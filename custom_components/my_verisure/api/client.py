@@ -1,8 +1,12 @@
-"""My Verisure API client using GraphQL."""
+"""Client for My Verisure GraphQL API."""
 
-from __future__ import annotations
-
+import json
 import logging
+import os
+import platform
+import time
+import uuid
+import hashlib
 from typing import Any, Dict, Optional
 
 import aiohttp
@@ -14,7 +18,6 @@ from .exceptions import (
     MyVerisureConnectionError,
     MyVerisureError,
     MyVerisureOTPError,
-    MyVerisureResponseError,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -22,16 +25,25 @@ _LOGGER = logging.getLogger(__name__)
 # GraphQL endpoint
 VERISURE_GRAPHQL_URL = "https://customers.securitasdirect.es/owa-api/graphql"
 
-# Login mutation
+# Login mutation (Native App Simulation)
 LOGIN_MUTATION = gql("""
-    mutation mkLoginToken($user: String!, $password: String!, $id: String!, $country: String!, $lang: String!, $callby: String!) {
+    mutation mkLoginToken($user: String!, $password: String!, $id: String!, $country: String!, $idDevice: String, $idDeviceIndigitall: String, $deviceType: String, $deviceVersion: String, $deviceResolution: String, $lang: String!, $callby: String!, $uuid: String, $deviceName: String, $deviceBrand: String, $deviceOsVersion: String) {
         xSLoginToken(
             user: $user
             password: $password
             id: $id
             country: $country
+            idDevice: $idDevice
+            idDeviceIndigitall: $idDeviceIndigitall
+            deviceType: $deviceType
+            deviceVersion: $deviceVersion
+            deviceResolution: $deviceResolution
             lang: $lang
             callby: $callby
+            uuid: $uuid
+            deviceName: $deviceName
+            deviceBrand: $deviceBrand
+            deviceOsVersion: $deviceOsVersion
         ) {
             res
             msg
@@ -40,6 +52,7 @@ LOGIN_MUTATION = gql("""
             legals
             changePassword
             needDeviceAuthorization
+            refreshToken
         }
     }
 """)
@@ -87,8 +100,9 @@ class MyVerisureClient:
         self._cookies: Dict[str, str] = {}
         self._session_data: Dict[str, Any] = {}
         self._otp_data: Optional[Dict[str, Any]] = None
+        self._device_identifiers: Optional[Dict[str, str]] = None
 
-    async def __aenter__(self) -> MyVerisureClient:
+    async def __aenter__(self):
         """Async context manager entry."""
         await self.connect()
         return self
@@ -96,6 +110,107 @@ class MyVerisureClient:
     async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
         """Async context manager exit."""
         await self.disconnect()
+
+    def _get_device_identifiers_file(self) -> str:
+        """Get the path to the device identifiers file."""
+        # Use the same directory as session files
+        storage_dir = os.path.expanduser(f"~/.storage")
+        if not os.path.exists(storage_dir):
+            # Fallback to current directory
+            storage_dir = "."
+        
+        return os.path.join(storage_dir, f"my_verisure_device_{self.user}.json")
+
+    def _generate_device_identifiers(self) -> Dict[str, str]:
+        """Generate device identifiers based on user and system info."""
+        # Generate consistent device UUID based on user and system info
+        device_seed = f"{self.user}_{platform.system()}_{platform.machine()}"
+        device_uuid = hashlib.sha256(device_seed.encode()).hexdigest()
+        
+        # Format as UUID string
+        formatted_uuid = device_uuid.upper()[:8] + "-" + device_uuid.upper()[8:12] + "-" + device_uuid.upper()[12:16] + "-" + device_uuid.upper()[16:20] + "-" + device_uuid.upper()[20:32]
+        
+        # Generate Indigitall UUID (random but consistent for this device)
+        indigitall_seed = f"{self.user}_indigitall_{platform.system()}"
+        indigitall_uuid = hashlib.sha256(indigitall_seed.encode()).hexdigest()
+        formatted_indigitall = indigitall_uuid[:8] + "-" + indigitall_uuid[8:12] + "-" + indigitall_uuid[12:16] + "-" + indigitall_uuid[16:20] + "-" + indigitall_uuid[20:32]
+        
+        return {
+            "idDevice": device_uuid,
+            "uuid": formatted_uuid,
+            "idDeviceIndigitall": formatted_indigitall,
+            "deviceName": f"HomeAssistant-{platform.system()}",
+            "deviceBrand": "HomeAssistant",
+            "deviceOsVersion": f"{platform.system()} {platform.release()}",
+            "deviceVersion": "10.154.0",
+            "deviceType": "",
+            "deviceResolution": "",
+            "generated_time": int(time.time())
+        }
+
+    def _load_device_identifiers(self) -> bool:
+        """Load device identifiers from file."""
+        file_path = self._get_device_identifiers_file()
+        
+        if not os.path.exists(file_path):
+            _LOGGER.warning("No device identifiers file found, will generate new ones")
+            return False
+        
+        try:
+            with open(file_path, 'r') as f:
+                self._device_identifiers = json.load(f)
+            
+            _LOGGER.warning("Device identifiers loaded from %s", file_path)
+            _LOGGER.warning("Device UUID: %s", self._device_identifiers.get("uuid", "Unknown"))
+            return True
+            
+        except Exception as e:
+            _LOGGER.error("Failed to load device identifiers: %s", e)
+            return False
+
+    def _save_device_identifiers(self) -> None:
+        """Save device identifiers to file."""
+        if not self._device_identifiers:
+            _LOGGER.warning("No device identifiers to save")
+            return
+        
+        file_path = self._get_device_identifiers_file()
+        
+        try:
+            # Ensure directory exists
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            
+            with open(file_path, 'w') as f:
+                json.dump(self._device_identifiers, f, indent=2)
+            
+            _LOGGER.warning("Device identifiers saved to %s", file_path)
+            
+        except Exception as e:
+            _LOGGER.error("Failed to save device identifiers: %s", e)
+
+    def _ensure_device_identifiers(self) -> None:
+        """Ensure device identifiers are loaded or generated."""
+        if self._device_identifiers is None:
+            # Try to load existing identifiers
+            if not self._load_device_identifiers():
+                # Generate new identifiers
+                _LOGGER.warning("Generating new device identifiers")
+                self._device_identifiers = self._generate_device_identifiers()
+                self._save_device_identifiers()
+
+    def get_device_info(self) -> Dict[str, str]:
+        """Get current device identifiers information."""
+        if not self._device_identifiers:
+            self._ensure_device_identifiers()
+        
+        return {
+            "uuid": self._device_identifiers.get("uuid", "Unknown"),
+            "device_name": self._device_identifiers.get("deviceName", "Unknown"),
+            "device_brand": self._device_identifiers.get("deviceBrand", "Unknown"),
+            "device_os": self._device_identifiers.get("deviceOsVersion", "Unknown"),
+            "device_version": self._device_identifiers.get("deviceVersion", "Unknown"),
+            "generated_time": self._device_identifiers.get("generated_time", 0)
+        }
 
     async def connect(self) -> None:
         """Connect to My Verisure API."""
@@ -141,9 +256,6 @@ class MyVerisureClient:
 
     def _get_session_headers(self) -> Dict[str, str]:
         """Get headers with session data for device validation."""
-        import time
-        import json
-        
         if not self._session_data:
             _LOGGER.warning("No session data available, using basic headers")
             return self._get_headers()
@@ -197,7 +309,6 @@ class MyVerisureClient:
             # Check if this is a GraphQL error response
             if "errors" in str(e):
                 # Try to extract the actual error from the exception
-                import json
                 try:
                     # The error might be embedded in the exception message
                     error_str = str(e)
@@ -530,24 +641,39 @@ class MyVerisureClient:
             return {"errors": [{"message": str(e), "data": {}}]}
 
     async def login(self) -> bool:
-        """Login to My Verisure API."""
-        import uuid
-        import time
+        """Login to My Verisure API (Native App Simulation)."""
+        # Ensure device identifiers are loaded or generated
+        self._ensure_device_identifiers()
         
         # Generate unique ID for this session
-        session_id = f"OWP_______________{self.user}_______________{int(time.time() * 1000)}"
+        session_id = f"OWI______________________"
         
-        # Prepare variables for the login mutation
+        # Prepare variables for the login mutation (using persistent device identifiers)
         variables = {
             "id": session_id,
             "country": "ES",
-            "callby": "OWP_10",
+            "callby": "OWI_10",  # Native app identifier
             "lang": "es",
             "user": self.user,
-            "password": self.password
+            "password": self.password,
+            "idDevice": self._device_identifiers["idDevice"],
+            "idDeviceIndigitall": self._device_identifiers["idDeviceIndigitall"],
+            "deviceType": self._device_identifiers["deviceType"],
+            "deviceVersion": self._device_identifiers["deviceVersion"],
+            "deviceResolution": self._device_identifiers["deviceResolution"],
+            "uuid": self._device_identifiers["uuid"],
+            "deviceName": self._device_identifiers["deviceName"],
+            "deviceBrand": self._device_identifiers["deviceBrand"],
+            "deviceOsVersion": self._device_identifiers["deviceOsVersion"]
         }
         
         try:
+            _LOGGER.warning("Attempting login with native app simulation")
+            _LOGGER.warning("Device UUID: %s", variables.get("uuid"))
+            _LOGGER.warning("Device Name: %s", variables.get("deviceName"))
+            _LOGGER.warning("Callby: %s", variables.get("callby"))
+            _LOGGER.warning("Using persistent device identifiers: %s", "Yes" if self._device_identifiers else "No")
+            
             result = await self._execute_query(LOGIN_MUTATION, variables)
             
             # Check for GraphQL errors first
@@ -603,25 +729,18 @@ class MyVerisureClient:
 
     async def _complete_device_authorization(self) -> bool:
         """Complete device authorization process with OTP."""
-        import uuid
-        import platform
+        # Ensure device identifiers are loaded or generated
+        self._ensure_device_identifiers()
         
-        # Generate device information
-        device_uuid = str(uuid.uuid4())
-        device_name = f"HomeAssistant-{platform.system()}"
-        device_brand = "HomeAssistant"
-        device_os = f"{platform.system()} {platform.release()}"
-        device_version = "1.0.0"
-        
-        # Prepare variables for device validation
+        # Prepare variables for device validation (using persistent identifiers)
         variables = {
-            "idDevice": device_uuid,
-            "idDeviceIndigitall": None,
-            "uuid": device_uuid,
-            "deviceName": device_name,
-            "deviceBrand": device_brand,
-            "deviceOsVersion": device_os,
-            "deviceVersion": device_version
+            "idDevice": self._device_identifiers["idDevice"],
+            "idDeviceIndigitall": self._device_identifiers["idDeviceIndigitall"],
+            "uuid": self._device_identifiers["uuid"],
+            "deviceName": self._device_identifiers["deviceName"],
+            "deviceBrand": self._device_identifiers["deviceBrand"],
+            "deviceOsVersion": self._device_identifiers["deviceOsVersion"],
+            "deviceVersion": self._device_identifiers["deviceVersion"]
         }
         
         try:
@@ -811,8 +930,6 @@ class MyVerisureClient:
 
     async def verify_otp(self, otp_code: str) -> bool:
         """Verify the OTP code received via SMS."""
-        import time
-        
         if not self._otp_data:
             raise MyVerisureOTPError("No OTP data available. Please send OTP first.")
         
@@ -909,16 +1026,12 @@ class MyVerisureClient:
 
     async def save_session(self, file_path: str) -> None:
         """Save session data to file."""
-        import json
-        import os
-        import time
-        import asyncio
-        
         session_data = {
             "cookies": self._cookies,
             "session_data": self._session_data,
             "token": self._token,
             "user": self.user,
+            "device_identifiers": self._device_identifiers,
             "saved_time": int(time.time())
         }
         
@@ -939,10 +1052,6 @@ class MyVerisureClient:
 
     async def load_session(self, file_path: str) -> bool:
         """Load session data from file."""
-        import json
-        import os
-        import asyncio
-        
         def _load_session_sync():
             if not os.path.exists(file_path):
                 return None
@@ -960,27 +1069,32 @@ class MyVerisureClient:
         if session_data is None:
             _LOGGER.debug("No session file found at %s", file_path)
             return False
-        
+
         try:
             self._cookies = session_data.get("cookies", {})
             self._session_data = session_data.get("session_data", {})
             self._token = session_data.get("token")
             self.user = session_data.get("user", self.user)
-            
+            # Load device identifiers if available
+            loaded_identifiers = session_data.get("device_identifiers")
+            if loaded_identifiers:
+                self._device_identifiers = loaded_identifiers
+                _LOGGER.warning("Device identifiers loaded from session")
+            else:
+                _LOGGER.warning("No device identifiers in session, will generate new ones")
+
             _LOGGER.warning("Session loaded from %s", file_path)
             _LOGGER.warning("Loaded session includes JWT token: %s", "Yes" if self._token else "No")
             if self._token:
                 _LOGGER.warning("Loaded JWT token length: %d characters", len(self._token))
             return True
-            
+
         except Exception as e:
             _LOGGER.error("Failed to process session data: %s", e)
             return False
 
     def is_session_valid(self) -> bool:
         """Check if current session is still valid."""
-        import time
-        
         if not self._session_data:
             _LOGGER.warning("No session data available")
             return False
