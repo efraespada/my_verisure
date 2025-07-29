@@ -13,6 +13,7 @@ from .exceptions import (
     MyVerisureAuthenticationError,
     MyVerisureConnectionError,
     MyVerisureError,
+    MyVerisureOTPError,
     MyVerisureResponseError,
 )
 
@@ -698,8 +699,6 @@ class MyVerisureClient:
             raise
         except Exception as e:
             _LOGGER.error("Unexpected error during device authorization: %s", e)
-            # Import here to avoid circular imports
-            from .exceptions import MyVerisureOTPError
             if "MyVerisureOTPError" in str(e):
                 raise MyVerisureOTPError(f"OTP error: {e}") from e
             else:
@@ -776,16 +775,12 @@ class MyVerisureClient:
                 return True
             else:
                 error_msg = otp_response.get("msg", "Unknown error") if otp_response else "No response data"
-                # Import here to avoid circular imports
-                from .exceptions import MyVerisureOTPError
                 raise MyVerisureOTPError(f"Failed to send OTP: {error_msg}")
                 
         except MyVerisureError:
             raise
         except Exception as e:
             _LOGGER.error("Unexpected error sending OTP: %s", e)
-            # Import here to avoid circular imports
-            from .exceptions import MyVerisureOTPError
             raise MyVerisureOTPError(f"Failed to send OTP: {e}") from e
 
     async def verify_otp(self, otp_code: str) -> bool:
@@ -828,8 +823,6 @@ class MyVerisureClient:
             raise
         except Exception as e:
             _LOGGER.error("Unexpected error during OTP verification: %s", e)
-            # Import here to avoid circular imports
-            from .exceptions import MyVerisureOTPError
             raise MyVerisureOTPError(f"OTP verification failed: {e}") from e
 
     async def get_installations(self) -> list[Dict[str, Any]]:
