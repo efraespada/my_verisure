@@ -1,0 +1,15 @@
+{
+  "domain": "my_verisure",
+  "name": "My Verisure",
+  "codeowners": [],
+  "config_flow": true,
+  "documentation": "https://github.com/your-username/my_verisure",
+  "integration_type": "hub",
+  "iot_class": "cloud_polling",
+  "loggers": ["my_verisure"],
+  "requirements": [
+    "aiohttp==3.9.1",
+    "gql[requests]==3.4.1"
+  ],
+  "version": "1.0.0"
+} 

@@ -1,0 +1,45 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "data": {
+          "description": "Inicia sesión con tu cuenta de My Verisure.",
+          "user": "ID de Usuario (DNI/NIE)",
+          "password": "Contraseña"
+        }
+      },
+      "installation": {
+        "description": "Home Assistant encontró múltiples instalaciones de My Verisure en tu cuenta. Por favor, selecciona la instalación que quieres añadir a Home Assistant.",
+        "data": {
+          "installation_id": "Instalación"
+        }
+      },
+      "reauth_confirm": {
+        "data": {
+          "description": "Re-autentícate con tu cuenta de My Verisure.",
+          "user": "ID de Usuario (DNI/NIE)",
+          "password": "Contraseña"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Autenticación inválida",
+      "cannot_connect": "Error al conectar",
+      "unknown": "Error inesperado",
+      "cannot_get_installations": "No se pudieron obtener las instalaciones de My Verisure"
+    },
+    "abort": {
+      "already_configured": "La cuenta ya está configurada",
+      "reauth_successful": "La re-autenticación fue exitosa"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "description": "Configurar opciones de My Verisure"
+        }
+      }
+    }
+  }
+} 

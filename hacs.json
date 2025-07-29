@@ -1,0 +1,7 @@
+{
+  "name": "My Verisure",
+  "render_readme": true,
+  "domains": ["alarm_control_panel", "binary_sensor", "camera", "lock", "sensor", "switch"],
+  "homeassistant": "2024.1.0",
+  "iot_class": "Cloud Polling"
+} 
