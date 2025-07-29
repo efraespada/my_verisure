@@ -9,6 +9,7 @@ from homeassistant.exceptions import ConfigEntryNotReady
 
 from .const import DOMAIN, LOGGER
 from .coordinator import MyVerisureDataUpdateCoordinator
+from .config_flow import MyVerisureConfigFlowHandler
 
 PLATFORMS: list[Platform] = [
     Platform.ALARM_CONTROL_PANEL,
@@ -41,6 +42,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Update options
     entry.async_on_unload(entry.add_update_listener(update_listener))
 
+    return True
+
+
+async def async_setup(hass: HomeAssistant, config: dict) -> bool:
+    """Set up the My Verisure component."""
+    hass.data.setdefault(DOMAIN, {})
     return True
 
 

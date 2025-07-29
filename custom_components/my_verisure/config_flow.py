@@ -51,25 +51,10 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             self.user = user_input[CONF_USER]
             self.password = user_input[CONF_PASSWORD]
-            self.client = MyVerisureClient(
-                user=self.user,
-                password=self.password,
-            )
-
-            try:
-                await self.client.connect()
-                await self.client.login()
-            except MyVerisureAuthenticationError:
-                LOGGER.debug("Invalid credentials for My Verisure")
-                errors["base"] = "invalid_auth"
-            except MyVerisureConnectionError:
-                LOGGER.debug("Connection error to My Verisure")
-                errors["base"] = "cannot_connect"
-            except MyVerisureError as ex:
-                LOGGER.debug("Unexpected error from My Verisure: %s", ex)
-                errors["base"] = "unknown"
-            else:
-                return await self.async_step_installation()
+            
+            # Store credentials and proceed to installation step
+            # We'll validate them later when getting installations
+            return await self.async_step_installation()
 
         return self.async_show_form(
             step_id="user",
@@ -86,6 +71,28 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Select My Verisure installation to add."""
+        errors: dict[str, str] = {}
+        
+        # Create client and validate credentials
+        if not hasattr(self, 'client') or self.client is None:
+            self.client = MyVerisureClient(
+                user=self.user,
+                password=self.password,
+            )
+            
+            try:
+                await self.client.connect()
+                await self.client.login()
+            except MyVerisureAuthenticationError:
+                LOGGER.debug("Invalid credentials for My Verisure")
+                return self.async_abort(reason="invalid_auth")
+            except MyVerisureConnectionError:
+                LOGGER.debug("Connection error to My Verisure")
+                return self.async_abort(reason="cannot_connect")
+            except MyVerisureError as ex:
+                LOGGER.debug("Unexpected error from My Verisure: %s", ex)
+                return self.async_abort(reason="unknown")
+        
         try:
             installations_data = await self.client.get_installations()
             installations = {

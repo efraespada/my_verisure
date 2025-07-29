@@ -10,7 +10,8 @@
   "loggers": ["my_verisure"],
   "requirements": [
     "aiohttp==3.9.1",
-    "gql[requests]==3.4.1"
+    "gql[requests]==3.4.1",
+    "voluptuous==0.14.2"
   ],
   "version": "1.0.0"
 } 
