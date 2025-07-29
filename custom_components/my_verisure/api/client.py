@@ -901,7 +901,7 @@ class MyVerisureClient:
         import json
         import os
         import time
-        import aiofiles
+        import asyncio
         
         session_data = {
             "cookies": self._cookies,
@@ -911,11 +911,15 @@ class MyVerisureClient:
             "saved_time": int(time.time())
         }
         
-        # Ensure directory exists
-        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        def _save_session_sync():
+            # Ensure directory exists
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            
+            with open(file_path, 'w') as f:
+                json.dump(session_data, f, indent=2)
         
-        async with aiofiles.open(file_path, 'w') as f:
-            await f.write(json.dumps(session_data, indent=2))
+        # Run the file operation in a thread to avoid blocking
+        await asyncio.to_thread(_save_session_sync)
         
         _LOGGER.warning("Session saved to %s", file_path)
         _LOGGER.warning("Saved session includes JWT token: %s", "Yes" if self._token else "No")
@@ -926,17 +930,27 @@ class MyVerisureClient:
         """Load session data from file."""
         import json
         import os
-        import aiofiles
+        import asyncio
         
-        if not os.path.exists(file_path):
+        def _load_session_sync():
+            if not os.path.exists(file_path):
+                return None
+            
+            try:
+                with open(file_path, 'r') as f:
+                    return json.load(f)
+            except Exception as e:
+                _LOGGER.error("Failed to load session: %s", e)
+                return None
+        
+        # Run the file operation in a thread to avoid blocking
+        session_data = await asyncio.to_thread(_load_session_sync)
+        
+        if session_data is None:
             _LOGGER.debug("No session file found at %s", file_path)
             return False
         
         try:
-            async with aiofiles.open(file_path, 'r') as f:
-                content = await f.read()
-                session_data = json.loads(content)
-            
             self._cookies = session_data.get("cookies", {})
             self._session_data = session_data.get("session_data", {})
             self._token = session_data.get("token")
@@ -949,7 +963,7 @@ class MyVerisureClient:
             return True
             
         except Exception as e:
-            _LOGGER.error("Failed to load session: %s", e)
+            _LOGGER.error("Failed to process session data: %s", e)
             return False
 
     def is_session_valid(self) -> bool:
