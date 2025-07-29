@@ -13,8 +13,6 @@ from homeassistant.components.sensor import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     PERCENTAGE,
-    TEMP_CELSIUS,
-    TEMP_FAHRENHEIT,
     UnitOfTemperature,
 )
 from homeassistant.core import HomeAssistant
@@ -28,7 +26,7 @@ DEVICE_TYPE_TO_SENSOR_CONFIG = {
     "TEMPERATURE": {
         "device_class": SensorDeviceClass.TEMPERATURE,
         "state_class": SensorStateClass.MEASUREMENT,
-        "unit_of_measurement": TEMP_CELSIUS,
+        "unit_of_measurement": UnitOfTemperature.CELSIUS,
         "friendly_name": "Temperature",
     },
     "HUMIDITY": {
