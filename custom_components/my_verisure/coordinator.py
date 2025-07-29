@@ -49,6 +49,8 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
                         "Present" if self.client._token else "None")
             if self.client._token:
                 LOGGER.warning("JWT token length: %d characters", len(self.client._token))
+            else:
+                LOGGER.warning("Session loaded but no JWT token found - session may be invalid")
         else:
             LOGGER.warning("No existing session found")
 
@@ -83,17 +85,11 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
                     LOGGER.warning("Session test failed, will re-authenticate: %s", e)
                     # Fall through to re-authentication
             
-            # Perform login
-            LOGGER.warning("Performing fresh login")
-            await self.client.login()
+            # If we don't have a valid session, we cannot proceed automatically
+            # because we might need OTP which requires user interaction
+            LOGGER.warning("No valid session available and cannot perform automatic login due to potential OTP requirement")
+            raise ConfigEntryAuthFailed("otp_reauth_required")
             
-            # Save session after successful login
-            session_file = self.hass.config.path(
-                STORAGE_DIR, f"my_verisure_{self.client.user}.json"
-            )
-            self.client.save_session(session_file)
-            
-            return True
         except MyVerisureOTPError as ex:
             LOGGER.error("OTP authentication required but cannot be handled automatically: %s", ex)
             # This is a special case - we need to trigger re-authentication
@@ -108,6 +104,11 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
     async def _async_update_data(self) -> Dict[str, Any]:
         """Fetch data from My Verisure."""
         try:
+            # Check if we can operate without login
+            if not self.can_operate_without_login():
+                LOGGER.warning("Cannot operate without valid session - triggering re-authentication")
+                raise ConfigEntryAuthFailed("otp_reauth_required")
+            
             # Get all devices for the installation
             devices = await self.client.get_devices(self.installation_id or "")
             
@@ -164,6 +165,10 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
                 filtered_devices[device_id] = device
         
         return filtered_devices
+
+    def can_operate_without_login(self) -> bool:
+        """Check if the coordinator can operate without requiring login."""
+        return self.client.is_session_valid() and self.client._token is not None
 
     async def async_shutdown(self) -> None:
         """Shutdown the coordinator."""

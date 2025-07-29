@@ -47,7 +47,8 @@
       "otp_required": "Two-factor authentication required",
       "otp_invalid": "Invalid OTP code",
       "otp_failed": "Failed to send OTP code",
-      "otp_reauth_required": "Two-factor authentication required again. Please reconfigure the integration to provide a new OTP code."
+      "otp_reauth_required": "Two-factor authentication required again. Please reconfigure the integration to provide a new OTP code.",
+      "session_expired": "Your session has expired. Please reconfigure the integration to authenticate again."
     },
     "abort": {
       "already_configured": "[%key:common::config_flow::abort::already_configured_account%]",
