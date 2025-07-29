@@ -1044,7 +1044,44 @@ class MyVerisureClient:
         """Get devices for an installation."""
         # TODO: Implement actual devices query
         # This is a placeholder - you'll need to provide the actual GraphQL query
-        _LOGGER.info(f"Get devices method called for installation {installation_id} - waiting for GraphQL query details")
+        _LOGGER.warning(f"Get devices method called for installation {installation_id} - returning sample data")
         
-        # Return empty list for now
-        return [] 
+        # Return sample data for testing
+        return [
+            {
+                "id": "alarm_panel_1",
+                "type": "ALARM",
+                "status": "DARM",  # Using real My Verisure state
+                "active": False,
+                "battery": 95,
+                "signal": -45,
+            },
+            {
+                "id": "motion_sensor_1",
+                "type": "PIR",
+                "status": "INACTIVE",
+                "active": False,
+                "battery": 87,
+                "signal": -52,
+            },
+            {
+                "id": "door_sensor_1",
+                "type": "DOOR",
+                "status": "CLOSED",
+                "active": False,
+                "battery": 92,
+                "signal": -48,
+            },
+            {
+                "id": "temp_sensor_1",
+                "type": "TEMPERATURE",
+                "status": "ACTIVE",
+                "active": True,
+                "temperature": 22.5,
+                "temperature_unit": "C",
+                "battery": 89,
+                "signal": -50,
+            },
+        ]
+
+ 

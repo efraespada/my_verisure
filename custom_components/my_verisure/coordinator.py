@@ -103,6 +103,24 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             # Get all devices for the installation
             devices = await self.client.get_devices(self.installation_id or "")
             
+            LOGGER.warning("Retrieved %d devices from My Verisure", len(devices))
+            
+            # Get services for the installation
+            services = await self.client.get_installation_services(self.installation_id or "")
+            
+            LOGGER.warning("Retrieved services from My Verisure: %d services found", 
+                          len(services.get("services", [])))
+            
+            # Log alarm-related services
+            alarm_services = []
+            for service in services.get("services", []):
+                request = service.get("request", "")
+                if request in ["DARM", "ARM", "ARMDAY", "ARMNIGHT", "PERI"]:
+                    alarm_services.append(f"{request}({service.get('idService', 'N/A')})")
+            
+            if alarm_services:
+                LOGGER.warning("Alarm services available: %s", ", ".join(alarm_services))
+            
             # Organize devices by type
             organized_data = {
                 "alarm": self._get_alarm_state(devices),
@@ -112,7 +130,10 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
                 "locks": self._filter_devices_by_type(devices, ["LOCK", "SMARTLOCK"]),
                 "smart_plugs": self._filter_devices_by_type(devices, ["SMARTPLUG", "PLUG"]),
                 "sensors": self._filter_devices_by_type(devices, ["SENSOR", "MOTION", "SMOKE", "WATER"]),
+                "services": services,  # Add services data
             }
+            
+            LOGGER.warning("Organized data: %s", {k: len(v) for k, v in organized_data.items()})
             
             return organized_data
             
