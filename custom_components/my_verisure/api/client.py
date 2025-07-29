@@ -102,9 +102,17 @@ class MyVerisureClient:
         if self._session is None:
             self._session = aiohttp.ClientSession()
         
+        # Use session headers if we have a token, otherwise use basic headers
+        if self._token:
+            headers = self._get_session_headers()
+            _LOGGER.warning("Connecting with session headers (token present)")
+        else:
+            headers = self._get_headers()
+            _LOGGER.warning("Connecting with basic headers (no token)")
+        
         transport = AIOHTTPTransport(
             url=VERISURE_GRAPHQL_URL,
-            headers=self._get_headers(),
+            headers=headers,
             cookies=self._get_cookies()
         )
         
@@ -430,6 +438,9 @@ class MyVerisureClient:
     async def _execute_installation_services_direct(self, installation_id: str) -> Dict[str, Any]:
         """Execute installation services query using direct aiohttp request."""
         if not self._session:
+            raise MyVerisureConnectionError("Client not connected")
+        
+        if not self._client:
             raise MyVerisureConnectionError("Client not connected")
 
         try:
@@ -999,11 +1010,18 @@ class MyVerisureClient:
         if not installation_id:
             raise MyVerisureError("Installation ID is required")
         
+        # Ensure client is connected
+        if not self._client:
+            _LOGGER.warning("Client not connected, connecting now...")
+            await self.connect()
+        
         _LOGGER.info("Getting services for installation %s", installation_id)
         
         try:
+            _LOGGER.warning("About to execute installation services query for %s", installation_id)
             # Execute the services query
             result = await self._execute_installation_services_direct(installation_id)
+            _LOGGER.warning("Installation services query executed successfully")
             
             # Check for errors first
             if "errors" in result:
@@ -1042,6 +1060,11 @@ class MyVerisureClient:
 
     async def get_devices(self, installation_id: str) -> list[Dict[str, Any]]:
         """Get devices for an installation."""
+        # Ensure client is connected
+        if not self._client:
+            _LOGGER.warning("Client not connected, connecting now...")
+            await self.connect()
+        
         # TODO: Implement actual devices query
         # This is a placeholder - you'll need to provide the actual GraphQL query
         _LOGGER.warning(f"Get devices method called for installation {installation_id} - returning sample data")

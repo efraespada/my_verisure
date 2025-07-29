@@ -101,6 +101,13 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
         installation_info = services_data.get("installation", {})
         alias = installation_info.get("alias", "Unknown")
         
+        # Clean up the alias (remove extra commas and spaces)
+        if alias and alias != "Unknown":
+            # Remove extra commas and clean up
+            alias = alias.replace(", ,", ",").replace("  ", " ").strip()
+            if alias.endswith(","):
+                alias = alias[:-1].strip()
+        
         return f"My Verisure Alarm ({alias})"
 
     @property
@@ -129,22 +136,23 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
         alarm_data = self.coordinator.data.get("alarm", {})
         device = alarm_data.get("device", {})
         
-        # Get services data
-        services_data = self.coordinator.data.get("services", {})
-        services_list = services_data.get("services", [])
+        # Get alarm data (now includes services info)
+        alarm_data = self.coordinator.data.get("alarm", {})
+        available_commands = alarm_data.get("available_commands", [])
+        alarm_services = alarm_data.get("services", [])
         
-        # Extract alarm-related services
-        alarm_services = {}
-        for service in services_list:
+        # Convert services list to dict for backward compatibility
+        services_dict = {}
+        for service in alarm_services:
             request = service.get("request", "")
-            if request in ["DARM", "ARM", "ARMDAY", "ARMNIGHT", "PERI"]:
-                alarm_services[request] = {
-                    "id": service.get("idService", ""),
-                    "name": service.get("request", ""),
-                    "active": service.get("active", False)
-                }
+            services_dict[request] = {
+                "id": service.get("idService", ""),
+                "name": service.get("request", ""),
+                "active": service.get("active", False)
+            }
         
-        # Get installation info
+        # Get installation info from services
+        services_data = self.coordinator.data.get("services", {})
         installation_info = services_data.get("installation", {})
         
         return {
@@ -155,14 +163,8 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
             "installation_alias": installation_info.get("alias", "Unknown"),
             "installation_status": installation_info.get("status", "Unknown"),
             "installation_panel": installation_info.get("panel", "Unknown"),
-            "available_commands": {
-                "disarm": "DARM (DESCONECTAR)",
-                "arm_away": "ARM (CONECTAR Total)",
-                "arm_home": "ARMDAY (ARMADO DIA)",
-                "arm_night": "ARMNIGHT (ARMADO NOCHE)",
-                "perimetral": "PERI (PERIMETRAL)",
-            },
-            "services": alarm_services,
+            "available_commands": available_commands,
+            "services": services_dict,
         }
 
     async def async_alarm_disarm(self, code: str | None = None) -> None:
