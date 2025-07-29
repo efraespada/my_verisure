@@ -733,16 +733,23 @@ class MyVerisureClient:
 
     def select_phone(self, phone_id: int) -> bool:
         """Select a phone number for OTP."""
+        _LOGGER.debug("Selecting phone ID: %d", phone_id)
+        
         if not self._otp_data:
+            _LOGGER.error("No OTP data available")
             return False
         
         phones = self._otp_data.get("phones", [])
+        _LOGGER.debug("Available phones: %s", phones)
+        
         selected_phone = next((p for p in phones if p.get("id") == phone_id), None)
         
         if selected_phone:
             self._otp_data["selected_phone"] = selected_phone
             _LOGGER.info("📞 Phone selected: ID %d - %s", phone_id, selected_phone.get("phone"))
             return True
+        else:
+            _LOGGER.error("Phone ID %d not found in available phones", phone_id)
         
         return False
 

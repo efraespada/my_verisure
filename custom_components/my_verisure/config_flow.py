@@ -102,16 +102,24 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
             
             try:
                 # Select the phone and send OTP
-                if self.client.select_phone(phone_id):
-                    await self.client.send_otp(phone_id, self.client._otp_data["otp_hash"])
+                phone_id_int = int(phone_id)
+                LOGGER.debug("Selected phone ID: %s (int: %d)", phone_id, phone_id_int)
+                
+                if self.client.select_phone(phone_id_int):
+                    LOGGER.debug("Phone selected successfully, sending OTP...")
+                    await self.client.send_otp(phone_id_int, self.client._otp_data["otp_hash"])
+                    LOGGER.debug("OTP sent successfully")
                     return await self.async_step_otp_verification()
                 else:
+                    LOGGER.error("Failed to select phone ID: %d", phone_id_int)
                     errors["base"] = "otp_failed"
             except MyVerisureOTPError as ex:
-                LOGGER.debug("Failed to send OTP: %s", ex)
+                LOGGER.error("Failed to send OTP: %s", ex)
                 errors["base"] = "otp_failed"
             except Exception as ex:
-                LOGGER.debug("Unexpected error sending OTP: %s", ex)
+                LOGGER.error("Unexpected error sending OTP: %s", ex)
+                import traceback
+                LOGGER.error("Traceback: %s", traceback.format_exc())
                 errors["base"] = "unknown"
 
         # Get available phone numbers
