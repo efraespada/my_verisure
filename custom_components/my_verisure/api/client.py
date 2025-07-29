@@ -137,6 +137,7 @@ class MyVerisureClient:
         import json
         
         if not self._session_data:
+            _LOGGER.debug("No session data available, using basic headers")
             return self._get_headers()
         
         # Create session header as shown in the browser
@@ -149,6 +150,10 @@ class MyVerisureClient:
             "callby": "OWP_10",
             "hash": self._token if self._token else None
         }
+        
+        _LOGGER.debug("Session header created - Token present: %s", "Yes" if self._token else "No")
+        if self._token:
+            _LOGGER.debug("Token length: %d characters", len(self._token))
         
         headers = self._get_headers()
         headers["Auth"] = json.dumps(session_header)
@@ -792,6 +797,8 @@ class MyVerisureClient:
 
     async def verify_otp(self, otp_code: str) -> bool:
         """Verify the OTP code received via SMS."""
+        import time
+        
         if not self._otp_data:
             raise MyVerisureOTPError("No OTP data available. Please send OTP first.")
         
@@ -816,11 +823,24 @@ class MyVerisureClient:
             data = result.get("data", {})
             validation_response = data.get("xSValidateDevice", {})
             
+            _LOGGER.debug("OTP verification response: %s", validation_response)
+            
             if validation_response and validation_response.get("res") == "OK":
                 # Store the authentication token
                 self._token = validation_response.get("hash")
+                
+                # Update session data to ensure it's available for subsequent requests
+                if not self._session_data:
+                    self._session_data = {
+                        "user": self.user,
+                        "lang": "es",
+                        "login_time": int(time.time())
+                    }
+                
                 _LOGGER.info("OTP verification successful!")
                 _LOGGER.info("Authentication token obtained: %s", self._token[:50] + "..." if self._token else "None")
+                _LOGGER.debug("Full token: %s", self._token)
+                _LOGGER.debug("Session data updated: %s", self._session_data)
                 return True
             else:
                 error_msg = validation_response.get("msg", "Unknown error") if validation_response else "No response data"

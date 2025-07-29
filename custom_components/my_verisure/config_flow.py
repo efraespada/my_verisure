@@ -153,6 +153,42 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                 LOGGER.debug("Verifying OTP code: %s", otp_code)
                 if await self.client.verify_otp(otp_code):
                     LOGGER.debug("OTP verification successful")
+                    LOGGER.debug("Client token after OTP verification: %s", 
+                               self.client._token[:50] + "..." if self.client._token else "None")
+                    
+                    # Ensure client is still connected and authenticated
+                    if not self.client._token:
+                        LOGGER.error("Client lost authentication token after OTP verification")
+                        errors["base"] = "otp_failed"
+                        return self.async_show_form(
+                            step_id="otp_verification",
+                            data_schema=vol.Schema(
+                                {
+                                    vol.Required(CONF_OTP_CODE): str,
+                                }
+                            ),
+                            errors=errors,
+                        )
+                    
+                    # Ensure session data is available
+                    if not self.client._session_data:
+                        LOGGER.error("Client lost session data after OTP verification")
+                        errors["base"] = "otp_failed"
+                        return self.async_show_form(
+                            step_id="otp_verification",
+                            data_schema=vol.Schema(
+                                {
+                                    vol.Required(CONF_OTP_CODE): str,
+                                }
+                            ),
+                            errors=errors,
+                        )
+                    
+                    LOGGER.debug("Client authentication confirmed, proceeding to installation selection")
+                    LOGGER.debug("Client state - Token: %s, Session: %s, Cookies: %s", 
+                               "Present" if self.client._token else "None",
+                               "Active" if self.client._session else "None",
+                               len(self.client._cookies) if self.client._cookies else 0)
                     return await self.async_step_installation()
                 else:
                     LOGGER.error("OTP verification returned False")
@@ -181,13 +217,38 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
     ) -> ConfigFlowResult:
         """Select My Verisure installation to add."""
         try:
+            # Verify client is still authenticated
+            if not self.client._token:
+                LOGGER.error("Client not authenticated when trying to get installations")
+                return self.async_abort(reason="not_authenticated")
+            
+            LOGGER.debug("Client authenticated, getting installations...")
+            
+            # Ensure client session is still active
+            if not self.client._session:
+                LOGGER.debug("Client session lost, reconnecting...")
+                await self.client.connect()
+            
             installations_data = await self.client.get_installations()
+            LOGGER.debug("Installations data received: %s", installations_data)
+            
             installations = {}
             for inst in installations_data:
+                LOGGER.debug("Processing installation: %s", inst)
+                
                 installation_id = inst.get("numinst")
                 installation_name = inst.get("alias", "Unknown")
                 address = inst.get("address", {})
-                street = address.get("street", "Unknown address")
+                
+                LOGGER.debug("Installation %s: id=%s, name=%s, address=%s (type: %s)", 
+                           installation_id, installation_id, installation_name, address, type(address))
+                
+                # Handle case where address might be a string or dict
+                if isinstance(address, dict):
+                    street = address.get("street", "Unknown address")
+                else:
+                    # If address is a string, use it directly
+                    street = str(address) if address else "Unknown address"
                 
                 if installation_id:
                     installations[installation_id] = f"{installation_name} ({street})"
@@ -215,6 +276,11 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
             )
         except MyVerisureError as ex:
             LOGGER.error("Failed to get installations: %s", ex)
+            return self.async_abort(reason="cannot_get_installations")
+        except Exception as ex:
+            LOGGER.error("Unexpected error getting installations: %s", ex)
+            import traceback
+            LOGGER.error("Traceback: %s", traceback.format_exc())
             return self.async_abort(reason="cannot_get_installations")
 
     async def async_step_reauth(
