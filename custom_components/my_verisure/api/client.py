@@ -147,7 +147,7 @@ class MyVerisureClient:
             "country": "ES",
             "lang": self._session_data.get("lang", "es"),
             "callby": "OWP_10",
-            "hash": self._token
+            "hash": self._token if self._token else None
         }
         
         headers = self._get_headers()

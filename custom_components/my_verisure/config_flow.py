@@ -182,10 +182,15 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
         """Select My Verisure installation to add."""
         try:
             installations_data = await self.client.get_installations()
-            installations = {
-                inst["id"]: f"{inst['name']} ({inst['address']['street']})"
-                for inst in installations_data
-            }
+            installations = {}
+            for inst in installations_data:
+                installation_id = inst.get("numinst")
+                installation_name = inst.get("alias", "Unknown")
+                address = inst.get("address", {})
+                street = address.get("street", "Unknown address")
+                
+                if installation_id:
+                    installations[installation_id] = f"{installation_name} ({street})"
 
             if user_input is None:
                 if len(installations) != 1:
