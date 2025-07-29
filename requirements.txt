@@ -1,0 +1,11 @@
+# Dependencies for My Verisure integration
+aiohttp==3.9.1
+gql[requests]==3.4.1
+
+# Development dependencies
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+black==23.11.0
+flake8==6.1.0
+mypy==1.7.1 

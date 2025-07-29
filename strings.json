@@ -2,21 +2,24 @@
   "config": {
     "step": {
       "user": {
+        "title": "My Verisure Authentication",
+        "description": "Enter your My Verisure account credentials to connect to your security system.",
         "data": {
-          "description": "Sign in with your My Verisure account.",
           "user": "User ID (DNI/NIE)",
           "password": "[%key:common::config_flow::data::password%]"
         }
       },
       "installation": {
-        "description": "Home Assistant found multiple My Verisure installations in your account. Please, select the installation to add to Home Assistant.",
+        "title": "Select Installation",
+        "description": "Select which My Verisure installation you want to add to Home Assistant.",
         "data": {
           "installation_id": "Installation"
         }
       },
       "reauth_confirm": {
+        "title": "Re-authenticate",
+        "description": "Your My Verisure credentials have expired. Please re-enter them.",
         "data": {
-          "description": "Re-authenticate with your My Verisure account.",
           "user": "User ID (DNI/NIE)",
           "password": "[%key:common::config_flow::data::password%]"
         }
@@ -36,9 +39,9 @@
   "options": {
     "step": {
       "init": {
-        "data": {
-          "description": "Configure My Verisure options"
-        }
+        "title": "My Verisure Options",
+        "description": "Configure additional options for My Verisure integration.",
+        "data": {}
       }
     }
   }

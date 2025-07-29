@@ -1,9 +1,9 @@
 {
   "domain": "my_verisure",
   "name": "My Verisure",
-  "codeowners": [],
+  "codeowners": ["@efraespada"],
   "config_flow": true,
-  "documentation": "https://github.com/your-username/my_verisure",
+  "documentation": "https://github.com/efraespada/my_verisure",
   "integration_type": "hub",
   "iot_class": "cloud_polling",
   "loggers": ["my_verisure"],

@@ -1,22 +1,26 @@
 {
+  "title": "My Verisure",
   "config": {
     "step": {
       "user": {
+        "title": "Autenticación My Verisure",
+        "description": "Introduce las credenciales de tu cuenta My Verisure para conectar con tu sistema de seguridad.",
         "data": {
-          "description": "Inicia sesión con tu cuenta de My Verisure.",
           "user": "ID de Usuario (DNI/NIE)",
           "password": "Contraseña"
         }
       },
       "installation": {
-        "description": "Home Assistant encontró múltiples instalaciones de My Verisure en tu cuenta. Por favor, selecciona la instalación que quieres añadir a Home Assistant.",
+        "title": "Seleccionar Instalación",
+        "description": "Selecciona qué instalación de My Verisure quieres añadir a Home Assistant.",
         "data": {
           "installation_id": "Instalación"
         }
       },
       "reauth_confirm": {
+        "title": "Re-autenticación",
+        "description": "Tus credenciales de My Verisure han expirado. Por favor, introdúcelas de nuevo.",
         "data": {
-          "description": "Re-autentícate con tu cuenta de My Verisure.",
           "user": "ID de Usuario (DNI/NIE)",
           "password": "Contraseña"
         }
@@ -36,9 +40,17 @@
   "options": {
     "step": {
       "init": {
-        "data": {
-          "description": "Configurar opciones de My Verisure"
-        }
+        "title": "Opciones My Verisure",
+        "description": "Configurar opciones adicionales para la integración My Verisure.",
+        "data": {}
+      }
+    }
+  },
+  "title": "My Verisure",
+  "entity": {
+    "alarm_control_panel": {
+      "my_verisure_alarm": {
+        "name": "Alarma My Verisure"
       }
     }
   }
