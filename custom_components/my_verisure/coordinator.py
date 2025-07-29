@@ -17,6 +17,7 @@ from .api.exceptions import (
     MyVerisureAuthenticationError,
     MyVerisureConnectionError,
     MyVerisureError,
+    MyVerisureOTPError,
 )
 from .const import CONF_INSTALLATION_ID, CONF_USER, DEFAULT_SCAN_INTERVAL, DOMAIN, LOGGER
 
@@ -43,9 +44,13 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         
         # Try to load existing session
         if self.client.load_session(session_file):
-            LOGGER.info("Session loaded from storage")
+            LOGGER.warning("Session loaded from storage")
+            LOGGER.warning("Client JWT token after loading: %s", 
+                        "Present" if self.client._token else "None")
+            if self.client._token:
+                LOGGER.warning("JWT token length: %d characters", len(self.client._token))
         else:
-            LOGGER.info("No existing session found")
+            LOGGER.warning("No existing session found")
 
         super().__init__(
             hass,
@@ -62,10 +67,24 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             
             # Check if we have a valid session
             if self.client.is_session_valid():
-                LOGGER.info("Using existing valid session")
-                return True
+                LOGGER.warning("Using existing valid session")
+                # Try to use the session by making a test request
+                try:
+                    # Test the session by trying to get installations
+                    LOGGER.warning("Testing session with JWT token: %s", 
+                                "Present" if self.client._token else "None")
+                    await self.client.get_installations()
+                    LOGGER.warning("Session is valid and working")
+                    return True
+                except MyVerisureOTPError:
+                    LOGGER.warning("Session requires OTP re-authentication")
+                    # Fall through to re-authentication
+                except Exception as e:
+                    LOGGER.warning("Session test failed, will re-authenticate: %s", e)
+                    # Fall through to re-authentication
             
             # Perform login
+            LOGGER.warning("Performing fresh login")
             await self.client.login()
             
             # Save session after successful login
@@ -75,6 +94,10 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             self.client.save_session(session_file)
             
             return True
+        except MyVerisureOTPError as ex:
+            LOGGER.error("OTP authentication required but cannot be handled automatically: %s", ex)
+            # This is a special case - we need to trigger re-authentication
+            raise ConfigEntryAuthFailed("otp_reauth_required") from ex
         except MyVerisureAuthenticationError as ex:
             LOGGER.error("Authentication failed for My Verisure: %s", ex)
             raise ConfigEntryAuthFailed("Authentication failed") from ex
@@ -101,6 +124,9 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             
             return organized_data
             
+        except MyVerisureOTPError as ex:
+            LOGGER.error("OTP authentication required during update: %s", ex)
+            raise ConfigEntryAuthFailed("otp_reauth_required") from ex
         except MyVerisureAuthenticationError as ex:
             LOGGER.error("Authentication failed during update: %s", ex)
             raise ConfigEntryAuthFailed("Authentication failed") from ex

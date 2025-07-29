@@ -152,8 +152,8 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                 # Verify the OTP
                 LOGGER.debug("Verifying OTP code: %s", otp_code)
                 if await self.client.verify_otp(otp_code):
-                    LOGGER.debug("OTP verification successful")
-                    LOGGER.debug("Client token after OTP verification: %s", 
+                    LOGGER.warning("OTP verification successful")
+                    LOGGER.warning("Client token after OTP verification: %s", 
                                self.client._token[:50] + "..." if self.client._token else "None")
                     
                     # Ensure client is still connected and authenticated
@@ -184,8 +184,8 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                             errors=errors,
                         )
                     
-                    LOGGER.debug("Client authentication confirmed, proceeding to installation selection")
-                    LOGGER.debug("Client state - Token: %s, Session: %s, Cookies: %s", 
+                    LOGGER.warning("Client authentication confirmed, proceeding to installation selection")
+                    LOGGER.warning("Client state - Token: %s, Session: %s, Cookies: %s", 
                                "Present" if self.client._token else "None",
                                "Active" if self.client._session else "None",
                                len(self.client._cookies) if self.client._cookies else 0)
@@ -222,25 +222,25 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                 LOGGER.error("Client not authenticated when trying to get installations")
                 return self.async_abort(reason="not_authenticated")
             
-            LOGGER.debug("Client authenticated, getting installations...")
+            LOGGER.warning("Client authenticated, getting installations...")
             
             # Ensure client session is still active
             if not self.client._session:
-                LOGGER.debug("Client session lost, reconnecting...")
+                LOGGER.warning("Client session lost, reconnecting...")
                 await self.client.connect()
             
             installations_data = await self.client.get_installations()
-            LOGGER.debug("Installations data received: %s", installations_data)
+            LOGGER.warning("Installations data received: %s", installations_data)
             
             installations = {}
             for inst in installations_data:
-                LOGGER.debug("Processing installation: %s", inst)
+                LOGGER.warning("Processing installation: %s", inst)
                 
                 installation_id = inst.get("numinst")
                 installation_name = inst.get("alias", "Unknown")
                 address = inst.get("address", {})
                 
-                LOGGER.debug("Installation %s: id=%s, name=%s, address=%s (type: %s)", 
+                LOGGER.warning("Installation %s: id=%s, name=%s, address=%s (type: %s)", 
                            installation_id, installation_id, installation_name, address, type(address))
                 
                 # Handle case where address might be a string or dict

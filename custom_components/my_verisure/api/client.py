@@ -137,7 +137,7 @@ class MyVerisureClient:
         import json
         
         if not self._session_data:
-            _LOGGER.debug("No session data available, using basic headers")
+            _LOGGER.warning("No session data available, using basic headers")
             return self._get_headers()
         
         # Create session header as shown in the browser
@@ -151,9 +151,12 @@ class MyVerisureClient:
             "hash": self._token if self._token else None
         }
         
-        _LOGGER.debug("Session header created - Token present: %s", "Yes" if self._token else "No")
+        _LOGGER.warning("Session header created - Token present: %s", "Yes" if self._token else "No")
         if self._token:
-            _LOGGER.debug("Token length: %d characters", len(self._token))
+            _LOGGER.warning("Token length: %d characters", len(self._token))
+            _LOGGER.warning("Token preview: %s...", self._token[:20] if len(self._token) > 20 else self._token)
+        else:
+            _LOGGER.error("No JWT token available for session headers!")
         
         headers = self._get_headers()
         headers["Auth"] = json.dumps(session_header)
@@ -408,7 +411,7 @@ class MyVerisureClient:
             # Get session headers (Auth header with token)
             headers = self._get_session_headers()
 
-            _LOGGER.debug("Installations query headers: %s", headers)
+            _LOGGER.warning("Installations query headers: %s", headers)
 
             # Make direct request
             async with self._session.post(
@@ -417,7 +420,7 @@ class MyVerisureClient:
                 headers=headers
             ) as response:
                 result = await response.json()
-                _LOGGER.debug("Direct installations response: %s", result)
+                _LOGGER.warning("Direct installations response: %s", result)
                 return result
 
         except Exception as e:
@@ -498,8 +501,8 @@ class MyVerisureClient:
             # Get session headers (Auth header with token)
             headers = self._get_session_headers()
 
-            _LOGGER.debug("Installation services query headers: %s", headers)
-            _LOGGER.debug("Installation services variables: %s", variables)
+            _LOGGER.warning("Installation services query headers: %s", headers)
+            _LOGGER.warning("Installation services variables: %s", variables)
 
             # Make direct request
             async with self._session.post(
@@ -508,7 +511,7 @@ class MyVerisureClient:
                 headers=headers
             ) as response:
                 result = await response.json()
-                _LOGGER.debug("Direct installation services response: %s", result)
+                _LOGGER.warning("Direct installation services response: %s", result)
                 return result
 
         except Exception as e:
@@ -823,7 +826,7 @@ class MyVerisureClient:
             data = result.get("data", {})
             validation_response = data.get("xSValidateDevice", {})
             
-            _LOGGER.debug("OTP verification response: %s", validation_response)
+            _LOGGER.warning("OTP verification response: %s", validation_response)
             
             if validation_response and validation_response.get("res") == "OK":
                 # Store the authentication token
@@ -840,7 +843,7 @@ class MyVerisureClient:
                 _LOGGER.info("OTP verification successful!")
                 _LOGGER.info("Authentication token obtained: %s", self._token[:50] + "..." if self._token else "None")
                 _LOGGER.debug("Full token: %s", self._token)
-                _LOGGER.debug("Session data updated: %s", self._session_data)
+                _LOGGER.warning("Session data updated: %s", self._session_data)
                 return True
             else:
                 error_msg = validation_response.get("msg", "Unknown error") if validation_response else "No response data"
@@ -913,7 +916,10 @@ class MyVerisureClient:
         with open(file_path, 'w') as f:
             json.dump(session_data, f, indent=2)
         
-        _LOGGER.info("Session saved to %s", file_path)
+        _LOGGER.warning("Session saved to %s", file_path)
+        _LOGGER.warning("Saved session includes JWT token: %s", "Yes" if self._token else "No")
+        if self._token:
+            _LOGGER.warning("Saved JWT token length: %d characters", len(self._token))
 
     def load_session(self, file_path: str) -> bool:
         """Load session data from file."""
@@ -933,7 +939,10 @@ class MyVerisureClient:
             self._token = session_data.get("token")
             self.user = session_data.get("user", self.user)
             
-            _LOGGER.info("Session loaded from %s", file_path)
+            _LOGGER.warning("Session loaded from %s", file_path)
+            _LOGGER.warning("Loaded session includes JWT token: %s", "Yes" if self._token else "No")
+            if self._token:
+                _LOGGER.warning("Loaded JWT token length: %d characters", len(self._token))
             return True
             
         except Exception as e:
@@ -945,17 +954,24 @@ class MyVerisureClient:
         import time
         
         if not self._session_data:
+            _LOGGER.warning("No session data available")
             return False
         
-        # Check if session is not too old (24 hours)
+        if not self._token:
+            _LOGGER.warning("No authentication token available")
+            return False
+        
+        # Check if session is not too old (12 hours instead of 24 for better security)
         login_time = self._session_data.get("login_time", 0)
         current_time = int(time.time())
         session_age = current_time - login_time
         
-        if session_age > 86400:  # 24 hours
-            _LOGGER.debug("Session expired (age: %d seconds)", session_age)
+        if session_age > 43200:  # 12 hours
+            _LOGGER.warning("Session expired (age: %d seconds)", session_age)
             return False
         
+        _LOGGER.warning("Session appears valid (age: %d seconds, token present: %s)", 
+                     session_age, "Yes" if self._token else "No")
         return True
 
     async def get_installation_services(self, installation_id: str) -> Dict[str, Any]:
