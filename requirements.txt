@@ -1,7 +1,7 @@
 # Dependencies for My Verisure integration
-aiohttp==3.9.1
-gql[requests]==3.4.1
-voluptuous==0.14.2
+aiohttp>=3.8.0
+gql[requests]>=3.4.0
+voluptuous>=0.13.0
 
 # Development dependencies
 pytest==7.4.3
