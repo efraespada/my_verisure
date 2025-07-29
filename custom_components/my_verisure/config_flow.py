@@ -266,6 +266,17 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
             await self.async_set_unique_id(user_input[CONF_INSTALLATION_ID])
             self._abort_if_unique_id_configured()
 
+            # Save session before creating the config entry
+            try:
+                from homeassistant.helpers.storage import STORAGE_DIR
+                session_file = self.hass.config.path(
+                    STORAGE_DIR, f"my_verisure_{self.user}.json"
+                )
+                self.client.save_session(session_file)
+                LOGGER.warning("Session saved successfully before creating config entry")
+            except Exception as e:
+                LOGGER.error("Failed to save session: %s", e)
+
             return self.async_create_entry(
                 title=installations[user_input[CONF_INSTALLATION_ID]],
                 data={
