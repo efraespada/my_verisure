@@ -3,7 +3,7 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/custom-components/hacs)
 [![maintainer](https://img.shields.io/badge/maintainer-%40efrain.espada-blue.svg)](https://github.com/efrain.espada)
 
-Custom integration for Home Assistant that connects to the new Verisure/Securitas Direct GraphQL API.
+Custom integration for Home Assistant that connects to the new Verisure/Securitas Direct GraphQL API. This integration provides full control over your Verisure security system including alarm control, sensors, cameras, and smart locks.
 
 ## 🚀 Features
 

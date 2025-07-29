@@ -1,9 +1,7 @@
 {
   "name": "My Verisure",
   "render_readme": true,
-  "domains": ["my_verisure"],
   "homeassistant": "2024.1.0",
-  "iot_class": "Cloud Polling",
   "content_in_root": false,
   "filename": "my_verisure"
 } 
