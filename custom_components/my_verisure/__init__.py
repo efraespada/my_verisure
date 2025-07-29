@@ -27,6 +27,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     coordinator = MyVerisureDataUpdateCoordinator(hass, entry=entry)
 
+    # Load session asynchronously
+    await coordinator.async_load_session()
+
     # Check if we can operate without login (session should be valid from config flow)
     if not coordinator.can_operate_without_login():
         LOGGER.warning("No valid session available - integration will require re-authentication")

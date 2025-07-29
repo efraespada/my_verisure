@@ -272,7 +272,7 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                 session_file = self.hass.config.path(
                     STORAGE_DIR, f"my_verisure_{self.user}.json"
                 )
-                self.client.save_session(session_file)
+                await self.client.save_session(session_file)
                 LOGGER.warning("Session saved successfully before creating config entry")
             except Exception as e:
                 LOGGER.error("Failed to save session: %s", e)

@@ -896,11 +896,12 @@ class MyVerisureClient:
             _LOGGER.error("Unexpected error getting installations: %s", e)
             raise MyVerisureError(f"Failed to get installations: {e}") from e
 
-    def save_session(self, file_path: str) -> None:
+    async def save_session(self, file_path: str) -> None:
         """Save session data to file."""
         import json
         import os
         import time
+        import aiofiles
         
         session_data = {
             "cookies": self._cookies,
@@ -913,26 +914,28 @@ class MyVerisureClient:
         # Ensure directory exists
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
         
-        with open(file_path, 'w') as f:
-            json.dump(session_data, f, indent=2)
+        async with aiofiles.open(file_path, 'w') as f:
+            await f.write(json.dumps(session_data, indent=2))
         
         _LOGGER.warning("Session saved to %s", file_path)
         _LOGGER.warning("Saved session includes JWT token: %s", "Yes" if self._token else "No")
         if self._token:
             _LOGGER.warning("Saved JWT token length: %d characters", len(self._token))
 
-    def load_session(self, file_path: str) -> bool:
+    async def load_session(self, file_path: str) -> bool:
         """Load session data from file."""
         import json
         import os
+        import aiofiles
         
         if not os.path.exists(file_path):
             _LOGGER.debug("No session file found at %s", file_path)
             return False
         
         try:
-            with open(file_path, 'r') as f:
-                session_data = json.load(f)
+            async with aiofiles.open(file_path, 'r') as f:
+                content = await f.read()
+                session_data = json.loads(content)
             
             self._cookies = session_data.get("cookies", {})
             self._session_data = session_data.get("session_data", {})

@@ -42,17 +42,8 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             password=entry.data[CONF_PASSWORD],
         )
         
-        # Try to load existing session
-        if self.client.load_session(session_file):
-            LOGGER.warning("Session loaded from storage")
-            LOGGER.warning("Client JWT token after loading: %s", 
-                        "Present" if self.client._token else "None")
-            if self.client._token:
-                LOGGER.warning("JWT token length: %d characters", len(self.client._token))
-            else:
-                LOGGER.warning("Session loaded but no JWT token found - session may be invalid")
-        else:
-            LOGGER.warning("No existing session found")
+        # Store session file path for later loading
+        self.session_file = session_file
 
         super().__init__(
             hass,
@@ -165,6 +156,23 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
                 filtered_devices[device_id] = device
         
         return filtered_devices
+
+    async def async_load_session(self) -> bool:
+        """Load session data asynchronously."""
+        if hasattr(self, 'session_file'):
+            if await self.client.load_session(self.session_file):
+                LOGGER.warning("Session loaded from storage")
+                LOGGER.warning("Client JWT token after loading: %s", 
+                            "Present" if self.client._token else "None")
+                if self.client._token:
+                    LOGGER.warning("JWT token length: %d characters", len(self.client._token))
+                else:
+                    LOGGER.warning("Session loaded but no JWT token found - session may be invalid")
+                return True
+            else:
+                LOGGER.warning("No existing session found")
+                return False
+        return False
 
     def can_operate_without_login(self) -> bool:
         """Check if the coordinator can operate without requiring login."""
