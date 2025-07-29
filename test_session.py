@@ -15,7 +15,7 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 # Añadir el directorio actual al path para importar el módulo api
-sys.path.append('.')
+sys.path.append('./custom_components/my_verisure')
 
 try:
     from api.client import MyVerisureClient
