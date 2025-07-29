@@ -723,18 +723,8 @@ class MyVerisureClient:
         for phone in auth_phones:
             _LOGGER.info("  ID %d: %s", phone.get("id"), phone.get("phone"))
         
-        # For now, we'll use the second phone number (ID 1) as requested
-        # In a real implementation, this would be configurable
-        selected_phone_id = 1
-        selected_phone = next((p for p in auth_phones if p.get("id") == selected_phone_id), None)
-        
-        if not selected_phone:
-            raise MyVerisureOTPError(f"Phone ID {selected_phone_id} not found")
-        
-        _LOGGER.info("📞 Selected phone ID %d: %s", selected_phone_id, selected_phone.get("phone"))
-        
-        # Send OTP
-        return await self._send_otp(selected_phone_id, otp_hash)
+        # Don't automatically send OTP - let the config flow handle it
+        raise MyVerisureOTPError("OTP authentication required - please select phone number")
 
     def get_available_phones(self) -> list[Dict[str, Any]]:
         """Get available phone numbers for OTP."""
@@ -757,7 +747,7 @@ class MyVerisureClient:
         
         return False
 
-    async def _send_otp(self, record_id: int, otp_hash: str) -> bool:
+    async def send_otp(self, record_id: int, otp_hash: str) -> bool:
         """Send OTP to the selected phone number."""
         variables = {
             "recordId": record_id,

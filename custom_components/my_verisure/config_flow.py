@@ -21,8 +21,9 @@ from .api.exceptions import (
     MyVerisureAuthenticationError,
     MyVerisureConnectionError,
     MyVerisureError,
+    MyVerisureOTPError,
 )
-from .const import CONF_INSTALLATION_ID, CONF_USER, DOMAIN, LOGGER
+from .const import CONF_INSTALLATION_ID, CONF_USER, CONF_PHONE_ID, CONF_OTP_CODE, DOMAIN, LOGGER
 
 
 class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
@@ -65,6 +66,14 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
             except MyVerisureConnectionError:
                 LOGGER.debug("Connection error to My Verisure")
                 errors["base"] = "cannot_connect"
+            except MyVerisureOTPError:
+                LOGGER.debug("OTP authentication required")
+                # Check if we have phone numbers available
+                phones = self.client.get_available_phones()
+                if phones:
+                    return await self.async_step_phone_selection()
+                else:
+                    errors["base"] = "otp_required"
             except MyVerisureError as ex:
                 LOGGER.debug("Unexpected error from My Verisure: %s", ex)
                 errors["base"] = "unknown"
@@ -77,6 +86,78 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                 {
                     vol.Required(CONF_USER): str,
                     vol.Required(CONF_PASSWORD): str,
+                }
+            ),
+            errors=errors,
+        )
+
+    async def async_step_phone_selection(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Handle phone number selection for OTP."""
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            phone_id = user_input[CONF_PHONE_ID]
+            
+            try:
+                # Select the phone and send OTP
+                if self.client.select_phone(phone_id):
+                    await self.client.send_otp(phone_id, self.client._otp_data["otp_hash"])
+                    return await self.async_step_otp_verification()
+                else:
+                    errors["base"] = "otp_failed"
+            except MyVerisureOTPError as ex:
+                LOGGER.debug("Failed to send OTP: %s", ex)
+                errors["base"] = "otp_failed"
+            except Exception as ex:
+                LOGGER.debug("Unexpected error sending OTP: %s", ex)
+                errors["base"] = "unknown"
+
+        # Get available phone numbers
+        phones = self.client.get_available_phones()
+        phone_options = {
+            str(phone["id"]): f"{phone['phone']}"
+            for phone in phones
+        }
+
+        return self.async_show_form(
+            step_id="phone_selection",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_PHONE_ID): vol.In(phone_options),
+                }
+            ),
+            errors=errors,
+        )
+
+    async def async_step_otp_verification(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Handle OTP verification."""
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            otp_code = user_input[CONF_OTP_CODE]
+            
+            try:
+                # Verify the OTP
+                if await self.client.verify_otp(otp_code):
+                    return await self.async_step_installation()
+                else:
+                    errors["base"] = "otp_invalid"
+            except MyVerisureOTPError as ex:
+                LOGGER.debug("Invalid OTP: %s", ex)
+                errors["base"] = "otp_invalid"
+            except Exception as ex:
+                LOGGER.debug("Unexpected error verifying OTP: %s", ex)
+                errors["base"] = "unknown"
+
+        return self.async_show_form(
+            step_id="otp_verification",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_OTP_CODE): str,
                 }
             ),
             errors=errors,

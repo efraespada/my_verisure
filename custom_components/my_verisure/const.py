@@ -11,6 +11,8 @@ LOGGER = logging.getLogger(__package__)
 CONF_USER = "user"
 CONF_PASSWORD = "password"
 CONF_INSTALLATION_ID = "installation_id"
+CONF_PHONE_ID = "phone_id"
+CONF_OTP_CODE = "otp_code"
 
 # Default values
 DEFAULT_SCAN_INTERVAL = timedelta(minutes=1)

@@ -9,6 +9,20 @@
           "password": "[%key:common::config_flow::data::password%]"
         }
       },
+      "phone_selection": {
+        "title": "Select Phone Number",
+        "description": "Select which phone number should receive the OTP code for two-factor authentication.",
+        "data": {
+          "phone_id": "Phone Number"
+        }
+      },
+      "otp_verification": {
+        "title": "Enter OTP Code",
+        "description": "Enter the 6-digit OTP code sent to your selected phone number.",
+        "data": {
+          "otp_code": "OTP Code"
+        }
+      },
       "installation": {
         "title": "Select Installation",
         "description": "Select which My Verisure installation you want to add to Home Assistant.",
@@ -29,7 +43,10 @@
       "invalid_auth": "[%key:common::config_flow::error::invalid_auth%]",
       "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
       "unknown": "[%key:common::config_flow::error::unknown%]",
-      "cannot_get_installations": "Could not get installations from My Verisure"
+      "cannot_get_installations": "Could not get installations from My Verisure",
+      "otp_required": "Two-factor authentication required",
+      "otp_invalid": "Invalid OTP code",
+      "otp_failed": "Failed to send OTP code"
     },
     "abort": {
       "already_configured": "[%key:common::config_flow::abort::already_configured_account%]",
