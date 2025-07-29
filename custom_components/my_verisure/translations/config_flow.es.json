@@ -1,0 +1,54 @@
+{
+  "step": {
+    "user": {
+      "title": "Autenticación My Verisure",
+      "description": "Introduce las credenciales de tu cuenta My Verisure para conectar con tu sistema de seguridad.",
+      "data": {
+        "user": "ID de Usuario (DNI/NIE)",
+        "password": "Contraseña"
+      }
+    },
+    "phone_selection": {
+      "title": "Seleccionar Número de Teléfono",
+      "description": "Selecciona qué número de teléfono debe recibir el código OTP para la autenticación de dos factores.",
+      "data": {
+        "phone_id": "Número de Teléfono"
+      }
+    },
+    "otp_verification": {
+      "title": "Introducir Código OTP",
+      "description": "Introduce el código OTP de 6 dígitos enviado a tu número de teléfono seleccionado.",
+      "data": {
+        "otp_code": "Código OTP"
+      }
+    },
+    "installation": {
+      "title": "Seleccionar Instalación",
+      "description": "Selecciona qué instalación de My Verisure quieres añadir a Home Assistant.",
+      "data": {
+        "installation_id": "Instalación"
+      }
+    },
+    "reauth_confirm": {
+      "title": "Re-autenticación",
+      "description": "Tus credenciales de My Verisure han expirado. Por favor, introdúcelas de nuevo.",
+      "data": {
+        "user": "ID de Usuario (DNI/NIE)",
+        "password": "Contraseña"
+      }
+    }
+  },
+  "error": {
+    "invalid_auth": "Autenticación inválida",
+    "cannot_connect": "Error al conectar",
+    "unknown": "Error inesperado",
+    "cannot_get_installations": "No se pudieron obtener las instalaciones de My Verisure",
+    "otp_required": "Se requiere autenticación de dos factores",
+    "otp_invalid": "Código OTP inválido",
+    "otp_failed": "Error al enviar el código OTP"
+  },
+  "abort": {
+    "already_configured": "La cuenta ya está configurada",
+    "reauth_successful": "La re-autenticación fue exitosa"
+  }
+} 

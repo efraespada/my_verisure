@@ -1,0 +1,54 @@
+{
+  "step": {
+    "user": {
+      "title": "My Verisure Authentication",
+      "description": "Enter your My Verisure account credentials to connect to your security system.",
+      "data": {
+        "user": "User ID (DNI/NIE)",
+        "password": "Password"
+      }
+    },
+    "phone_selection": {
+      "title": "Select Phone Number",
+      "description": "Select which phone number should receive the OTP code for two-factor authentication.",
+      "data": {
+        "phone_id": "Phone Number"
+      }
+    },
+    "otp_verification": {
+      "title": "Enter OTP Code",
+      "description": "Enter the 6-digit OTP code sent to your selected phone number.",
+      "data": {
+        "otp_code": "OTP Code"
+      }
+    },
+    "installation": {
+      "title": "Select Installation",
+      "description": "Select which My Verisure installation you want to add to Home Assistant.",
+      "data": {
+        "installation_id": "Installation"
+      }
+    },
+    "reauth_confirm": {
+      "title": "Re-authenticate",
+      "description": "Your My Verisure credentials have expired. Please re-enter them.",
+      "data": {
+        "user": "User ID (DNI/NIE)",
+        "password": "Password"
+      }
+    }
+  },
+  "error": {
+    "invalid_auth": "Invalid authentication",
+    "cannot_connect": "Failed to connect",
+    "unknown": "Unexpected error",
+    "cannot_get_installations": "Could not get installations from My Verisure",
+    "otp_required": "Two-factor authentication required",
+    "otp_invalid": "Invalid OTP code",
+    "otp_failed": "Failed to send OTP code"
+  },
+  "abort": {
+    "already_configured": "Account is already configured",
+    "reauth_successful": "Re-authentication was successful"
+  }
+} 

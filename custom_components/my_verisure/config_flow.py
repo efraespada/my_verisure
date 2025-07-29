@@ -150,15 +150,20 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
             
             try:
                 # Verify the OTP
+                LOGGER.debug("Verifying OTP code: %s", otp_code)
                 if await self.client.verify_otp(otp_code):
+                    LOGGER.debug("OTP verification successful")
                     return await self.async_step_installation()
                 else:
+                    LOGGER.error("OTP verification returned False")
                     errors["base"] = "otp_invalid"
             except MyVerisureOTPError as ex:
-                LOGGER.debug("Invalid OTP: %s", ex)
+                LOGGER.error("Invalid OTP: %s", ex)
                 errors["base"] = "otp_invalid"
             except Exception as ex:
-                LOGGER.debug("Unexpected error verifying OTP: %s", ex)
+                LOGGER.error("Unexpected error verifying OTP: %s", ex)
+                import traceback
+                LOGGER.error("Traceback: %s", traceback.format_exc())
                 errors["base"] = "unknown"
 
         return self.async_show_form(

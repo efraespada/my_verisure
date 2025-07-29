@@ -13,7 +13,7 @@
         "title": "Select Phone Number",
         "description": "Select which phone number should receive the OTP code for two-factor authentication.",
         "data": {
-          "phone_id": "[%key:common::config_flow::data::password%]"
+          "phone_id": "Phone Number"
         }
       },
       "otp_verification": {
