@@ -47,7 +47,7 @@ async def test_login(user: str, password: str) -> None:
         
         if success:
             logger.info("✅ Login successful!")
-            logger.info(f"🔑 Token obtained: {client._token[:20]}..." if client._token else "❌ No token obtained")
+            logger.info(f"🔑 Token obtained: {client._hash[:20]}..." if client._hash else "❌ No token obtained")
         else:
             logger.error("❌ Login failed")
             

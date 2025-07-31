@@ -65,7 +65,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
                 try:
                     # Test the session by trying to get installations
                     LOGGER.warning("Testing session with JWT token: %s", 
-                                "Present" if self.client._token else "None")
+                                "Present" if self.client._hash else "None")
                     await self.client.get_installations()
                     LOGGER.warning("Session is valid and working")
                     return True
@@ -326,9 +326,9 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             if await self.client.load_session(self.session_file):
                 LOGGER.warning("Session loaded from storage")
                 LOGGER.warning("Client JWT token after loading: %s", 
-                            "Present" if self.client._token else "None")
-                if self.client._token:
-                    LOGGER.warning("JWT token length: %d characters", len(self.client._token))
+                            "Present" if self.client._hash else "None")
+                if self.client._hash:
+                    LOGGER.warning("JWT token length: %d characters", len(self.client._hash))
                 else:
                     LOGGER.warning("Session loaded but no JWT token found - session may be invalid")
                 return True
@@ -339,7 +339,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
 
     def can_operate_without_login(self) -> bool:
         """Check if the coordinator can operate without requiring login."""
-        return self.client.is_session_valid() and self.client._token is not None
+        return self.client.is_session_valid() and self.client._hash is not None
 
     async def async_shutdown(self) -> None:
         """Shutdown the coordinator."""

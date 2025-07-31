@@ -50,7 +50,7 @@ async def test_installations(user_id: str, password: str) -> None:
         
         if login_success:
             logger.info("✅ Login exitoso!")
-            logger.info(f"🎫 Token: {client._token[:50] + '...' if client._token else 'None'}")
+            logger.info(f"🎫 Token: {client._hash[:50] + '...' if client._hash else 'None'}")
             
             # Obtener instalaciones
             logger.info("🏠 Obteniendo instalaciones...")

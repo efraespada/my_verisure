@@ -22,3 +22,6 @@ class MyVerisureMFAError(MyVerisureError):
     
 class MyVerisureOTPError(MyVerisureError):
     """OTP authentication error.""" 
+
+class MyVerisureDeviceAuthorizationError(MyVerisureError):
+    """Device authorization error - device needs to be authorized.""" 

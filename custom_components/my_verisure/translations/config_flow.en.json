@@ -45,7 +45,8 @@
     "cannot_get_installations": "Could not get installations from My Verisure",
     "otp_required": "Two-factor authentication required",
     "otp_invalid": "Invalid OTP code",
-    "otp_failed": "Failed to send OTP code"
+    "otp_failed": "Failed to send OTP code",
+    "device_not_authorized": "Device not authorized. This device is not authorized and will require OTP verification on every login. Please contact My Verisure support to authorize this device permanently."
   },
   "abort": {
     "already_configured": "Account is already configured",

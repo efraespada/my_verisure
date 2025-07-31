@@ -51,7 +51,7 @@ async def test_verify_otp(user_id: str, password: str, otp_code: str) -> None:
         
         if login_success:
             logger.info("✅ Login exitoso!")
-            logger.info(f"🎫 Token: {client._token}")
+            logger.info(f"🎫 Token: {client._hash}")
             logger.info(f"📊 Datos de sesión: {client._session_data}")
             
             # Check if we have OTP data
@@ -95,7 +95,7 @@ async def test_verify_otp(user_id: str, password: str, otp_code: str) -> None:
                                 
                                 if otp_verified:
                                     logger.info("✅ OTP verificado correctamente!")
-                                    logger.info(f"🎫 Token de autenticación: {client._token[:50] + '...' if client._token else 'None'}")
+                                    logger.info(f"🎫 Token de autenticación: {client._hash[:50] + '...' if client._hash else 'None'}")
                                     logger.info("🚀 ¡Autenticación completa exitosa!")
                                 else:
                                     logger.error("❌ Error verificando OTP")

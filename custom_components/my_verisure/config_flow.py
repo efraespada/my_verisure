@@ -22,6 +22,7 @@ from .api.exceptions import (
     MyVerisureConnectionError,
     MyVerisureError,
     MyVerisureOTPError,
+    MyVerisureDeviceAuthorizationError,
 )
 from .const import CONF_INSTALLATION_ID, CONF_USER, CONF_PHONE_ID, CONF_OTP_CODE, DOMAIN, LOGGER
 
@@ -154,10 +155,10 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                 if await self.client.verify_otp(otp_code):
                     LOGGER.warning("OTP verification successful")
                     LOGGER.warning("Client token after OTP verification: %s", 
-                               self.client._token[:50] + "..." if self.client._token else "None")
+                               self.client._hash[:50] + "..." if self.client._hash else "None")
                     
                     # Ensure client is still connected and authenticated
-                    if not self.client._token:
+                    if not self.client._hash:
                         LOGGER.error("Client lost authentication token after OTP verification")
                         errors["base"] = "otp_failed"
                         return self.async_show_form(
@@ -186,7 +187,7 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                     
                     LOGGER.warning("Client authentication confirmed, proceeding to installation selection")
                     LOGGER.warning("Client state - Token: %s, Session: %s, Cookies: %s", 
-                               "Present" if self.client._token else "None",
+                               "Present" if self.client._hash else "None",
                                "Active" if self.client._session else "None",
                                len(self.client._cookies) if self.client._cookies else 0)
                     return await self.async_step_installation()
@@ -196,6 +197,9 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
             except MyVerisureOTPError as ex:
                 LOGGER.error("Invalid OTP: %s", ex)
                 errors["base"] = "otp_invalid"
+            except MyVerisureDeviceAuthorizationError as ex:
+                LOGGER.error("Device authorization failed: %s", ex)
+                errors["base"] = "device_not_authorized"
             except Exception as ex:
                 LOGGER.error("Unexpected error verifying OTP: %s", ex)
                 import traceback
@@ -218,7 +222,7 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
         """Select My Verisure installation to add."""
         try:
             # Verify client is still authenticated
-            if not self.client._token:
+            if not self.client._hash:
                 LOGGER.error("Client not authenticated when trying to get installations")
                 return self.async_abort(reason="not_authenticated")
             

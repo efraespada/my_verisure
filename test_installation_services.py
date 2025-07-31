@@ -51,7 +51,7 @@ async def test_installation_services(user_id: str, password: str, installation_i
         
         if login_success:
             logger.info("✅ Login exitoso!")
-            logger.info(f"🎫 Token: {client._token[:50] + '...' if client._token else 'None'}")
+            logger.info(f"🎫 Token: {client._hash[:50] + '...' if client._hash else 'None'}")
             
             # Obtener servicios de instalación
             logger.info(f"🏠 Obteniendo servicios para instalación {installation_id}...")

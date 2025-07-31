@@ -51,7 +51,7 @@ async def test_device_validation(user_id: str, password: str) -> None:
         
         if login_success:
             logger.info("✅ Login exitoso!")
-            logger.info(f"🎫 Token: {client._token}")
+            logger.info(f"🎫 Token: {client._hash}")
             logger.info(f"📊 Datos de sesión: {client._session_data}")
             
             # Check if we have OTP data

@@ -104,7 +104,7 @@ async def perform_login(client: MyVerisureClient, password: str) -> None:
     
     if success:
         logger.info("✅ Login exitoso!")
-        logger.info(f"🎫 Token: {client._token}")
+        logger.info(f"🎫 Token: {client._hash}")
         logger.info(f"📊 Datos de sesión: {client._session_data}")
         
         # Check for device authorization

@@ -1,5 +1,6 @@
 """Client for My Verisure GraphQL API."""
 
+import asyncio
 import json
 import logging
 import os
@@ -18,6 +19,7 @@ from .exceptions import (
     MyVerisureConnectionError,
     MyVerisureError,
     MyVerisureOTPError,
+    MyVerisureDeviceAuthorizationError,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -96,7 +98,8 @@ class MyVerisureClient:
         self.password = password
         self._session: Optional[aiohttp.ClientSession] = None
         self._client: Optional[Client] = None
-        self._token: Optional[str] = None
+        self._hash: Optional[str] = None
+        self._refresh_token: Optional[str] = None
         self._cookies: Dict[str, str] = {}
         self._session_data: Dict[str, Any] = {}
         self._otp_data: Optional[Dict[str, Any]] = None
@@ -217,13 +220,13 @@ class MyVerisureClient:
         if self._session is None:
             self._session = aiohttp.ClientSession()
         
-        # Use session headers if we have a token, otherwise use basic headers
-        if self._token:
+        # Use session headers if we have a hash, otherwise use basic headers
+        if self._hash:
             headers = self._get_session_headers()
-            _LOGGER.warning("Connecting with session headers (token present)")
+            _LOGGER.warning("Connecting with session headers (hash present)")
         else:
             headers = self._get_headers()
-            _LOGGER.warning("Connecting with basic headers (no token)")
+            _LOGGER.warning("Connecting with basic headers (no hash)")
         
         transport = AIOHTTPTransport(
             url=VERISURE_GRAPHQL_URL,
@@ -242,6 +245,13 @@ class MyVerisureClient:
             await self._session.close()
             self._session = None
 
+    def _get_native_app_headers(self) -> Dict[str, str]:
+        """Get native app headers for better authentication."""
+        return {
+            "App": '{"origin": "native", "appVersion": "10.154.0"}',
+            "Extension": '{"mode": "full"}'
+        }
+
     def _get_headers(self) -> Dict[str, str]:
         """Get headers for API requests."""
         headers = {
@@ -249,8 +259,11 @@ class MyVerisureClient:
             "User-Agent": "HomeAssistant-MyVerisure/1.0",
         }
         
-        if self._token:
-            headers["Authorization"] = f"Bearer {self._token}"
+        # Add native app headers
+        headers.update(self._get_native_app_headers())
+        
+        if self._hash:
+            headers["Authorization"] = f"Bearer {self._hash}"
         
         return headers
 
@@ -264,22 +277,30 @@ class MyVerisureClient:
         session_header = {
             "loginTimestamp": int(time.time() * 1000),
             "user": self._session_data.get("user", self.user),
-            "id": f"OWP_______________{self.user}_______________{int(time.time() * 1000)}",
+            "id": f"OWI______________________",
             "country": "ES",
             "lang": self._session_data.get("lang", "es"),
-            "callby": "OWP_10",
-            "hash": self._token if self._token else None
+            "callby": "OWI_10",
+            "hash": self._hash if self._hash else None
         }
         
-        _LOGGER.warning("Session header created - Token present: %s", "Yes" if self._token else "No")
-        if self._token:
-            _LOGGER.warning("Token length: %d characters", len(self._token))
-            _LOGGER.warning("Token preview: %s...", self._token[:20] if len(self._token) > 20 else self._token)
+        _LOGGER.warning("Session header created - Hash present: %s", "Yes" if self._hash else "No")
+        if self._hash:
+            _LOGGER.warning("Hash length: %d characters", len(self._hash))
+            _LOGGER.warning("Hash preview: %s...", self._hash[:20] if len(self._hash) > 20 else self._hash)
         else:
-            _LOGGER.error("No JWT token available for session headers!")
+            _LOGGER.error("No JWT hash available for session headers!")
         
         headers = self._get_headers()
         headers["Auth"] = json.dumps(session_header)
+        
+        # Ensure native app headers are present
+        headers.update(self._get_native_app_headers())
+        
+        native_headers = self._get_native_app_headers()
+        _LOGGER.warning("Session headers created with native app headers")
+        _LOGGER.warning("App header: %s", native_headers.get("App"))
+        _LOGGER.warning("Extension header: %s", native_headers.get("Extension"))
         
         return headers
 
@@ -359,6 +380,14 @@ class MyVerisureClient:
             # Get session headers
             headers = self._get_session_headers()
             
+            # Log the request details
+            _LOGGER.warning("=== DEVICE VALIDATION REQUEST ===")
+            _LOGGER.warning("URL: %s", VERISURE_GRAPHQL_URL)
+            _LOGGER.warning("Headers: %s", json.dumps(headers, indent=2, default=str))
+            _LOGGER.warning("Request Body: %s", json.dumps(request_data, indent=2, default=str))
+            _LOGGER.warning("Variables: %s", json.dumps(variables, indent=2, default=str))
+            _LOGGER.warning("==================================")
+            
             # Make direct request
             async with self._session.post(
                 VERISURE_GRAPHQL_URL,
@@ -366,7 +395,10 @@ class MyVerisureClient:
                 headers=headers
             ) as response:
                 result = await response.json()
-                _LOGGER.debug("Direct device validation response: %s", result)
+                _LOGGER.warning("=== DEVICE VALIDATION RESPONSE ===")
+                _LOGGER.warning("Status: %s", response.status)
+                _LOGGER.warning("Response: %s", json.dumps(result, indent=2, default=str))
+                _LOGGER.warning("===================================")
                 return result
                 
         except Exception as e:
@@ -416,6 +448,14 @@ class MyVerisureClient:
             # Get session headers
             headers = self._get_session_headers()
             
+            # Log the request details
+            _LOGGER.warning("=== OTP SEND REQUEST ===")
+            _LOGGER.warning("URL: %s", VERISURE_GRAPHQL_URL)
+            _LOGGER.warning("Headers: %s", json.dumps(headers, indent=2, default=str))
+            _LOGGER.warning("Request Body: %s", json.dumps(request_data, indent=2, default=str))
+            _LOGGER.warning("Variables: %s", json.dumps(variables, indent=2, default=str))
+            _LOGGER.warning("========================")
+            
             # Make direct request
             async with self._session.post(
                 VERISURE_GRAPHQL_URL,
@@ -423,7 +463,10 @@ class MyVerisureClient:
                 headers=headers
             ) as response:
                 result = await response.json()
-                _LOGGER.debug("Direct OTP response: %s", result)
+                _LOGGER.warning("=== OTP SEND RESPONSE ===")
+                _LOGGER.warning("Status: %s", response.status)
+                _LOGGER.warning("Response: %s", json.dumps(result, indent=2, default=str))
+                _LOGGER.warning("=========================")
                 return result
                 
         except Exception as e:
@@ -436,6 +479,9 @@ class MyVerisureClient:
             raise MyVerisureConnectionError("Client not connected")
 
         try:
+            # Ensure device identifiers are available
+            self._ensure_device_identifiers()
+            
             # Prepare the GraphQL request (same as device validation)
             query = """
             mutation mkValidateDevice($idDevice: String, $idDeviceIndigitall: String, $uuid: String, $deviceName: String, $deviceBrand: String, $deviceOsVersion: String, $deviceVersion: String) {
@@ -457,8 +503,16 @@ class MyVerisureClient:
             }
             """
 
-            # Empty variables as specified
-            variables = {}
+            # Use device identifiers as variables
+            variables = {
+                "idDevice": self._device_identifiers["idDevice"],
+                "idDeviceIndigitall": self._device_identifiers["idDeviceIndigitall"],
+                "uuid": self._device_identifiers["uuid"],
+                "deviceName": self._device_identifiers["deviceName"],
+                "deviceBrand": self._device_identifiers["deviceBrand"],
+                "deviceOsVersion": self._device_identifiers["deviceOsVersion"],
+                "deviceVersion": self._device_identifiers["deviceVersion"]
+            }
 
             request_data = {
                 "query": query,
@@ -477,7 +531,15 @@ class MyVerisureClient:
             }
             headers["Security"] = json.dumps(security_header)
 
-            _LOGGER.debug("OTP verification headers: %s", headers)
+            # Log the request details
+            _LOGGER.warning("=== OTP VERIFICATION REQUEST ===")
+            _LOGGER.warning("URL: %s", VERISURE_GRAPHQL_URL)
+            _LOGGER.warning("Headers: %s", json.dumps(headers, indent=2, default=str))
+            _LOGGER.warning("Request Body: %s", json.dumps(request_data, indent=2, default=str))
+            _LOGGER.warning("Security Header: %s", json.dumps(security_header, indent=2, default=str))
+            _LOGGER.warning("OTP Code: %s", otp_code)
+            _LOGGER.warning("OTP Hash: %s", otp_hash)
+            _LOGGER.warning("=================================")
 
             # Make direct request
             async with self._session.post(
@@ -486,7 +548,10 @@ class MyVerisureClient:
                 headers=headers
             ) as response:
                 result = await response.json()
-                _LOGGER.debug("Direct OTP verification response: %s", result)
+                _LOGGER.warning("=== OTP VERIFICATION RESPONSE ===")
+                _LOGGER.warning("Status: %s", response.status)
+                _LOGGER.warning("Response: %s", json.dumps(result, indent=2, default=str))
+                _LOGGER.warning("==================================")
                 return result
 
         except Exception as e:
@@ -673,6 +738,10 @@ class MyVerisureClient:
             _LOGGER.warning("Device Name: %s", variables.get("deviceName"))
             _LOGGER.warning("Callby: %s", variables.get("callby"))
             _LOGGER.warning("Using persistent device identifiers: %s", "Yes" if self._device_identifiers else "No")
+            native_headers = self._get_native_app_headers()
+            _LOGGER.warning("Using native app headers: App=%s, Extension=%s", 
+                           native_headers.get("App"), 
+                           native_headers.get("Extension"))
             
             result = await self._execute_query(LOGIN_MUTATION, variables)
             
@@ -704,7 +773,8 @@ class MyVerisureClient:
                 }
                 
                 # Store the hash token if available
-                self._token = login_data.get("hash")
+                self._hash = login_data.get("hash")
+                self._refresh_token = login_data.get("refreshToken")
                 
                 _LOGGER.info("Successfully logged in to My Verisure")
                 _LOGGER.info("Session data: %s", self._session_data)
@@ -761,7 +831,15 @@ class MyVerisureClient:
             if hasattr(self._client, 'transport') and hasattr(self._client.transport, 'headers'):
                 self._client.transport.headers = original_headers
             
-            # Check for OTP requirement
+            # Check for successful device validation first
+            device_data = result.get("xSValidateDevice", {})
+            if device_data and device_data.get("res") == "OK":
+                self._hash = device_data.get("hash")
+                self._refresh_token = device_data.get("refreshToken")
+                _LOGGER.info("Device validation successful")
+                return True
+            
+            # Check for errors that require OTP
             if "errors" in result and result["errors"]:
                 error = result["errors"][0]
                 error_data = error.get("data", {})
@@ -781,21 +859,18 @@ class MyVerisureClient:
                 else:
                     raise MyVerisureAuthenticationError(f"Device validation failed: {error.get('message', 'Unknown error')} (auth-code: {auth_code})")
             
-            # If we get here, the error was caught as an exception
-            # Let's try to extract the error from the exception message
+            # If we get here, check if there are errors in the result that we haven't handled
             if isinstance(result, dict) and "errors" in result:
                 error = result["errors"][0]
                 if isinstance(error, dict) and "message" in error:
                     error_msg = error["message"]
-                    # Check if the error message contains the actual error data
+                    # Check if the error message contains auth-code information
                     if "auth-code" in error_msg:
-                        # Try to extract the auth-code from the error message
                         if "10001" in error_msg:
                             _LOGGER.info("OTP authentication required (extracted from error message)")
-                            # Extract the actual error data from the exception message
+                            # Try to extract the actual error data from the exception message
                             import json
                             try:
-                                # The error message contains the full error data
                                 if "{" in error_msg and "}" in error_msg:
                                     start = error_msg.find("{")
                                     end = error_msg.rfind("}") + 1
@@ -805,33 +880,13 @@ class MyVerisureClient:
                                         return await self._handle_otp_authentication(error_data["data"])
                             except:
                                 pass
-                            
-                            # Fallback to simulated data if extraction fails
-                            otp_data = {
-                                "auth-type": "OTP",
-                                "auth-code": "10001",
-                                "auth-phones": [
-                                    {"id": 0, "phone": "**********975"},
-                                    {"id": 1, "phone": "**********808"}
-                                ],
-                                "auth-otp-hash": "simulated-hash"
-                            }
-                            return await self._handle_otp_authentication(otp_data)
                         elif "10010" in error_msg:
                             _LOGGER.error("Device validation failed - auth-code 10010: Unauthorized")
                             raise MyVerisureAuthenticationError("Device validation failed - unauthorized. This may require additional authentication steps.")
             
-            raise MyVerisureAuthenticationError(f"Device validation failed: {result}")
-            
-            # Check for successful device validation
-            device_data = result.get("xSValidateDevice", {})
-            if device_data and device_data.get("res") == "OK":
-                self._token = device_data.get("hash")
-                _LOGGER.info("Device validation successful")
-                return True
-            else:
-                error_msg = device_data.get("msg", "Unknown error") if device_data else "No response data"
-                raise MyVerisureAuthenticationError(f"Device validation failed: {error_msg}")
+            # If we reach here, it's an unexpected error
+            error_msg = device_data.get("msg", "Unknown error") if device_data else "No response data"
+            raise MyVerisureAuthenticationError(f"Device validation failed: {error_msg}")
                 
         except MyVerisureError:
             raise
@@ -899,7 +954,11 @@ class MyVerisureClient:
         }
         
         try:
-            _LOGGER.info("Sending OTP...")
+            _LOGGER.warning("=== SENDING OTP ===")
+            _LOGGER.warning("Record ID: %s", record_id)
+            _LOGGER.warning("OTP Hash: %s", otp_hash)
+            _LOGGER.warning("Variables: %s", json.dumps(variables, indent=2, default=str))
+            _LOGGER.warning("==================")
             
             # Use direct aiohttp request for OTP as well
             result = await self._execute_otp_direct(variables)
@@ -911,8 +970,8 @@ class MyVerisureClient:
             # The response structure is {'data': {'xSSendOtp': {...}}}
             data = result.get("data", {})
             otp_response = data.get("xSSendOtp", {})
-            _LOGGER.debug("OTP response: %s", otp_response)
-            _LOGGER.debug("Full result: %s", result)
+            _LOGGER.warning("OTP response: %s", json.dumps(otp_response, indent=2, default=str))
+            _LOGGER.warning("Full result: %s", json.dumps(result, indent=2, default=str))
             
             if otp_response and otp_response.get("res") == "OK":
                 _LOGGER.info("OTP sent successfully: %s", otp_response.get("msg"))
@@ -937,7 +996,11 @@ class MyVerisureClient:
         if not otp_hash:
             raise MyVerisureOTPError("No OTP hash available. Please send OTP first.")
         
-        _LOGGER.info("Verifying OTP code: %s", otp_code)
+        _LOGGER.warning("=== VERIFYING OTP ===")
+        _LOGGER.warning("OTP Code: %s", otp_code)
+        _LOGGER.warning("OTP Hash: %s", otp_hash)
+        _LOGGER.warning("OTP Data: %s", json.dumps(self._otp_data, indent=2, default=str))
+        _LOGGER.warning("=====================")
         
         try:
             # Use the same device validation mutation but with OTP verification headers
@@ -957,22 +1020,54 @@ class MyVerisureClient:
             _LOGGER.warning("OTP verification response: %s", validation_response)
             
             if validation_response and validation_response.get("res") == "OK":
-                # Store the authentication token
-                self._token = validation_response.get("hash")
+                # Store the authentication token from OTP verification
+                self._hash = validation_response.get("hash")
+                refresh_hash = validation_response.get("refreshToken")
                 
-                # Update session data to ensure it's available for subsequent requests
-                if not self._session_data:
-                    self._session_data = {
-                        "user": self.user,
-                        "lang": "es",
-                        "login_time": int(time.time())
-                    }
+                # Log the tokens from OTP verification
+                _LOGGER.warning("=== OTP VERIFICATION SUCCESSFUL ===")
+                _LOGGER.warning("Hash Token from OTP: %s", self._hash)
+                _LOGGER.warning("Refresh Token from OTP: %s", refresh_hash)
+                _LOGGER.warning("Hash Token Length: %d characters", len(self._hash) if self._hash else 0)
+                _LOGGER.warning("Refresh Token Length: %d characters", len(refresh_hash) if refresh_hash else 0)
+                _LOGGER.warning("=====================================")
                 
-                _LOGGER.info("OTP verification successful!")
-                _LOGGER.info("Authentication token obtained: %s", self._token[:50] + "..." if self._token else "None")
-                _LOGGER.debug("Full token: %s", self._token)
-                _LOGGER.warning("Session data updated: %s", self._session_data)
-                return True
+                # Check if device authorization is still needed
+                need_device_authorization = validation_response.get("needDeviceAuthorization", False)
+                _LOGGER.warning("Need device authorization status after OTP verification: %s", need_device_authorization)
+                
+                if need_device_authorization:
+                    _LOGGER.error("Device authorization still required after OTP verification")
+                    _LOGGER.error("This device is not authorized and will require OTP on every login")
+                    raise MyVerisureDeviceAuthorizationError(
+                        "Device authorization failed. This device is not authorized and will require "
+                        "OTP verification on every login. Please contact My Verisure support to "
+                        "authorize this device permanently."
+                    )
+                
+                # Now perform a new login to get updated tokens
+                _LOGGER.info("OTP verification successful! Performing new login to get updated tokens...")
+                
+                try:
+                    # Perform a new login to get fresh tokens
+                    login_success = await self._perform_post_otp_login()
+                    
+                    if login_success:
+                        _LOGGER.info("Post-OTP login successful!")
+                        _LOGGER.info("Device authorization status: %s", "Authorized" if not need_device_authorization else "Not Authorized")
+                        _LOGGER.info("Updated authentication token obtained: %s", self._hash[:50] + "..." if self._hash else "None")
+                        _LOGGER.debug("Full updated token: %s", self._hash)
+                        _LOGGER.warning("Updated session data: %s", self._session_data)
+                        return True
+                    else:
+                        _LOGGER.warning("Post-OTP login failed, but OTP verification was successful")
+                        # Even if post-OTP login fails, we still have valid tokens from OTP verification
+                        return True
+                        
+                except Exception as e:
+                    _LOGGER.warning("Post-OTP login failed: %s, but OTP verification was successful", e)
+                    # Even if post-OTP login fails, we still have valid tokens from OTP verification
+                    return True
             else:
                 error_msg = validation_response.get("msg", "Unknown error") if validation_response else "No response data"
                 raise MyVerisureOTPError(f"OTP verification failed: {error_msg}")
@@ -983,9 +1078,90 @@ class MyVerisureClient:
             _LOGGER.error("Unexpected error during OTP verification: %s", e)
             raise MyVerisureOTPError(f"OTP verification failed: {e}") from e
 
+    async def _perform_post_otp_login(self) -> bool:
+        """Perform a new login after OTP verification to get updated tokens."""
+        # Ensure device identifiers are loaded or generated
+        self._ensure_device_identifiers()
+        
+        # Generate unique ID for this session
+        session_id = f"OWI______________________"
+        
+        # Prepare variables for the login mutation (using persistent device identifiers)
+        variables = {
+            "id": session_id,
+            "country": "ES",
+            "callby": "OWI_10",  # Native app identifier
+            "lang": "es",
+            "user": self.user,
+            "password": self.password,
+            "idDevice": self._device_identifiers["idDevice"],
+            "idDeviceIndigitall": self._device_identifiers["idDeviceIndigitall"],
+            "deviceType": self._device_identifiers["deviceType"],
+            "deviceVersion": self._device_identifiers["deviceVersion"],
+            "deviceResolution": self._device_identifiers["deviceResolution"],
+            "uuid": self._device_identifiers["uuid"],
+            "deviceName": self._device_identifiers["deviceName"],
+            "deviceBrand": self._device_identifiers["deviceBrand"],
+            "deviceOsVersion": self._device_identifiers["deviceOsVersion"]
+        }
+        
+        try:
+            _LOGGER.info("Performing post-OTP login to get updated tokens...")
+            _LOGGER.info("Device UUID: %s", variables.get("uuid"))
+            _LOGGER.info("Device Name: %s", variables.get("deviceName"))
+            
+            result = await self._execute_query(LOGIN_MUTATION, variables)
+            
+            # Check for GraphQL errors first
+            if "errors" in result and result["errors"]:
+                error = result["errors"][0]
+                error_message = error.get("message", "Unknown error")
+                _LOGGER.error("Post-OTP login failed: %s", error_message)
+                return False
+            
+            # Check for successful response
+            login_data = result.get("xSLoginToken", {})
+            if login_data and login_data.get("res") == "OK":
+                # Store updated session data
+                self._session_data = {
+                    "user": self.user,
+                    "lang": login_data.get("lang", "ES"),
+                    "legals": login_data.get("legals", False),
+                    "changePassword": login_data.get("changePassword", False),
+                    "needDeviceAuthorization": login_data.get("needDeviceAuthorization", False),
+                    "login_time": int(time.time())
+                }
+                
+                # Store the updated hash token and refresh token
+                self._hash = login_data.get("hash")
+                self._refresh_token = login_data.get("refreshToken")
+                
+                # Update session data with tokens
+                if self._hash:
+                    self._session_data["hash"] = self._hash
+                if self._refresh_token:
+                    self._session_data["refreshToken"] = self._refresh_token
+                
+                _LOGGER.info("Post-OTP login successful!")
+                _LOGGER.info("Updated hash token obtained: %s", self._hash[:50] + "..." if self._hash else "None")
+                _LOGGER.info("Updated refresh token obtained: %s", self._refresh_token[:50] + "..." if self._refresh_token else "None")
+                _LOGGER.info("Device authorization required: %s", login_data.get("needDeviceAuthorization", False))
+                
+                return True
+            else:
+                error_msg = login_data.get("msg", "Unknown error") if login_data else "No response data"
+                _LOGGER.error("Post-OTP login failed: %s", error_msg)
+                return False
+                    
+        except Exception as e:
+            _LOGGER.error("Unexpected error during post-OTP login: %s", e)
+            return False
+
+
+
     async def get_installations(self) -> list[Dict[str, Any]]:
         """Get user installations."""
-        if not self._token:
+        if not self._hash:
             raise MyVerisureAuthenticationError("Not authenticated. Please login first.")
         
         _LOGGER.info("Getting user installations...")
@@ -1029,7 +1205,7 @@ class MyVerisureClient:
         session_data = {
             "cookies": self._cookies,
             "session_data": self._session_data,
-            "token": self._token,
+            "token": self._hash,  # Keep for backward compatibility
             "user": self.user,
             "device_identifiers": self._device_identifiers,
             "saved_time": int(time.time())
@@ -1046,9 +1222,23 @@ class MyVerisureClient:
         await asyncio.to_thread(_save_session_sync)
         
         _LOGGER.warning("Session saved to %s", file_path)
-        _LOGGER.warning("Saved session includes JWT token: %s", "Yes" if self._token else "No")
-        if self._token:
-            _LOGGER.warning("Saved JWT token length: %d characters", len(self._token))
+        _LOGGER.warning("Saved session includes JWT token: %s", "Yes" if self._hash else "No")
+        if self._hash:
+            _LOGGER.warning("Saved JWT token length: %d characters", len(self._hash))
+        
+        # Log tokens if available
+        hash_hash = self._session_data.get("hash") if self._session_data else None
+        refresh_hash = self._session_data.get("refreshToken") if self._session_data else None
+        
+        _LOGGER.warning("Saved session includes hash token: %s", "Yes" if hash_hash else "No")
+        if hash_hash:
+            _LOGGER.warning("Saved hash token length: %d characters", len(hash_hash))
+            _LOGGER.warning("Hash token preview: %s...", hash_hash[:20] if len(hash_hash) > 20 else hash_hash)
+        
+        _LOGGER.warning("Saved session includes refresh token: %s", "Yes" if refresh_hash else "No")
+        if refresh_hash:
+            _LOGGER.warning("Saved refresh token length: %d characters", len(refresh_hash))
+            _LOGGER.warning("Refresh token preview: %s...", refresh_hash[:20] if len(refresh_hash) > 20 else refresh_hash)
 
     async def load_session(self, file_path: str) -> bool:
         """Load session data from file."""
@@ -1073,7 +1263,8 @@ class MyVerisureClient:
         try:
             self._cookies = session_data.get("cookies", {})
             self._session_data = session_data.get("session_data", {})
-            self._token = session_data.get("token")
+            # Load token from session data first, then fallback to legacy token field
+            self._hash = self._session_data.get("hash") or session_data.get("token")
             self.user = session_data.get("user", self.user)
             # Load device identifiers if available
             loaded_identifiers = session_data.get("device_identifiers")
@@ -1084,9 +1275,24 @@ class MyVerisureClient:
                 _LOGGER.warning("No device identifiers in session, will generate new ones")
 
             _LOGGER.warning("Session loaded from %s", file_path)
-            _LOGGER.warning("Loaded session includes JWT token: %s", "Yes" if self._token else "No")
-            if self._token:
-                _LOGGER.warning("Loaded JWT token length: %d characters", len(self._token))
+            _LOGGER.warning("Loaded session includes JWT token: %s", "Yes" if self._hash else "No")
+            if self._hash:
+                _LOGGER.warning("Loaded JWT token length: %d characters", len(self._hash))
+            
+            # Log tokens if available
+            hash_hash = self._session_data.get("hash") if self._session_data else None
+            refresh_hash = self._session_data.get("refreshToken") if self._session_data else None
+            
+            _LOGGER.warning("Loaded session includes hash token: %s", "Yes" if hash_hash else "No")
+            if hash_hash:
+                _LOGGER.warning("Loaded hash token length: %d characters", len(hash_hash))
+                _LOGGER.warning("Hash token preview: %s...", hash_hash[:20] if len(hash_hash) > 20 else hash_hash)
+            
+            _LOGGER.warning("Loaded session includes refresh token: %s", "Yes" if refresh_hash else "No")
+            if refresh_hash:
+                _LOGGER.warning("Loaded refresh token length: %d characters", len(refresh_hash))
+                _LOGGER.warning("Refresh token preview: %s...", refresh_hash[:20] if len(refresh_hash) > 20 else refresh_hash)
+            
             return True
 
         except Exception as e:
@@ -1099,7 +1305,7 @@ class MyVerisureClient:
             _LOGGER.warning("No session data available")
             return False
         
-        if not self._token:
+        if not self._hash:
             _LOGGER.warning("No authentication token available")
             return False
         
@@ -1113,12 +1319,12 @@ class MyVerisureClient:
             return False
         
         _LOGGER.warning("Session appears valid (age: %d seconds, token present: %s)", 
-                     session_age, "Yes" if self._token else "No")
+                     session_age, "Yes" if self._hash else "No")
         return True
 
     async def get_installation_services(self, installation_id: str) -> Dict[str, Any]:
         """Get detailed services and configuration for an installation."""
-        if not self._token:
+        if not self._hash:
             raise MyVerisureAuthenticationError("Not authenticated. Please login first.")
         
         if not installation_id:

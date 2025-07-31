@@ -166,7 +166,7 @@ async def interactive_login() -> None:
             
             # Si llegamos aquí sin excepción, no se requiere OTP
             print_success("¡Autenticación completada sin OTP requerido!")
-            print_info(f"Token de autenticación: {client._token[:50] + '...' if client._token else 'None'}")
+            print_info(f"Token de autenticación: {client._hash[:50] + '...' if client._hash else 'None'}")
             
         except MyVerisureOTPError:
             # Se requiere OTP, continuar con el flujo
@@ -212,111 +212,112 @@ async def interactive_login() -> None:
             print_info("Verificando código OTP...")
             otp_verified = await client.verify_otp(otp_code)
             
-            if otp_verified:
-                print_header("¡AUTENTICACIÓN COMPLETADA!")
-                print_success("¡Código OTP verificado correctamente!")
-                print_success("¡Autenticación completa exitosa!")
-                print_info(f"Token de autenticación: {client._token[:50] + '...' if client._token else 'None'}")
-                print_info("Ya puedes usar la API de My Verisure")
+            if not otp_verified:
+                print_error("Error verificando el código OTP")
+                return
                 
-                # Paso 7: Obtener instalaciones
-                print_header("RECUPERACIÓN DE INSTALACIONES")
-                print_info("Obteniendo información de las instalaciones...")
+            print_header("¡AUTENTICACIÓN COMPLETADA!")
+            print_success("¡Código OTP verificado correctamente!")
+            print_success("¡Autenticación completa exitosa!")
+            print_info(f"Token de autenticación: {client._hash[:50] + '...' if client._hash else 'None'}")
+            print_info("Ya puedes usar la API de My Verisure")
+        
+        # Paso 7: Obtener instalaciones (se ejecuta tanto con OTP como sin OTP)
+        print_header("RECUPERACIÓN DE INSTALACIONES")
+        print_info("Obteniendo información de las instalaciones...")
+        
+        try:
+            installations = await client.get_installations()
+            
+            if installations:
+                print_success(f"Se encontraron {len(installations)} instalación(es)")
+                print()
                 
-                try:
-                    installations = await client.get_installations()
-                    
-                    if installations:
-                        print_success(f"Se encontraron {len(installations)} instalación(es)")
-                        print()
-                        
-                        for i, installation in enumerate(installations):
-                            print(f"🏠 Instalación {i+1}:")
-                            print(f"   📍 Alias: {installation.get('alias', 'N/A')}")
-                            print(f"   🆔 Número: {installation.get('numinst', 'N/A')}")
-                            print(f"   🏠 Tipo: {installation.get('type', 'N/A')}")
-                            print(f"   👤 Propietario: {installation.get('name', 'N/A')} {installation.get('surname', 'N/A')}")
-                            print(f"   📍 Dirección: {installation.get('address', 'N/A')}")
-                            print(f"   🏙️  Ciudad: {installation.get('city', 'N/A')} ({installation.get('postcode', 'N/A')})")
-                            print(f"   📞 Teléfono: {installation.get('phone', 'N/A')}")
-                            print(f"   📧 Email: {installation.get('email', 'N/A')}")
-                            print(f"   🎭 Rol: {installation.get('role', 'N/A')}")
-                            print()
-                    else:
-                        print_info("No se encontraron instalaciones")
-                        
-                except Exception as e:
-                    print_error(f"Error obteniendo instalaciones: {e}")
-                    
-                # Paso 8: Obtener servicios de todas las instalaciones
-                if installations:
-                    print_header("SERVICIOS DE TODAS LAS INSTALACIONES")
-                    print_info(f"Procesando {len(installations)} instalación(es)...")
+                for i, installation in enumerate(installations):
+                    print(f"🏠 Instalación {i+1}:")
+                    print(f"   📍 Alias: {installation.get('alias', 'N/A')}")
+                    print(f"   🆔 Número: {installation.get('numinst', 'N/A')}")
+                    print(f"   🏠 Tipo: {installation.get('type', 'N/A')}")
+                    print(f"   👤 Propietario: {installation.get('name', 'N/A')} {installation.get('surname', 'N/A')}")
+                    print(f"   📍 Dirección: {installation.get('address', 'N/A')}")
+                    print(f"   🏙️  Ciudad: {installation.get('city', 'N/A')} ({installation.get('postcode', 'N/A')})")
+                    print(f"   📞 Teléfono: {installation.get('phone', 'N/A')}")
+                    print(f"   📧 Email: {installation.get('email', 'N/A')}")
+                    print(f"   🎭 Rol: {installation.get('role', 'N/A')}")
+                    print()
+            else:
+                print_info("No se encontraron instalaciones")
+                
+        except Exception as e:
+            print_error(f"Error obteniendo instalaciones: {e}")
+            
+        # Paso 8: Obtener servicios de todas las instalaciones
+        if installations:
+            print_header("SERVICIOS DE TODAS LAS INSTALACIONES")
+            print_info(f"Procesando {len(installations)} instalación(es)...")
+            print()
+            
+            for i, installation_info in enumerate(installations):
+                installation_id = installation_info.get("numinst")
+                installation_alias = installation_info.get("alias", "N/A")
+                
+                if installation_id:
+                    print(f"🏠 Procesando instalación {i+1}/{len(installations)}: {installation_alias}")
+                    print(f"🆔 Número: {installation_id}")
                     print()
                     
-                    for i, installation_info in enumerate(installations):
-                        installation_id = installation_info.get("numinst")
-                        installation_alias = installation_info.get("alias", "N/A")
+                    try:
+                        services_data = await client.get_installation_services(installation_id)
                         
-                        if installation_id:
-                            print(f"🏠 Procesando instalación {i+1}/{len(installations)}: {installation_alias}")
-                            print(f"🆔 Número: {installation_id}")
-                            print()
-                            
-                            try:
-                                services_data = await client.get_installation_services(installation_id)
-                                
-                                installation = services_data.get("installation", {})
-                                services = services_data.get("services", [])
-                                
-                                print_success(f"Se encontraron {len(services)} servicios")
-                                
-                                # Mostrar información básica de la instalación
-                                print(f"   📊 Estado: {installation.get('status', 'N/A')}")
-                                print(f"   🛡️  Panel: {installation.get('panel', 'N/A')}")
-                                print(f"   📱 SIM: {installation.get('sim', 'N/A')}")
-                                print(f"   🎭 Rol: {installation.get('role', 'N/A')}")
-                                print(f"   🔧 IBS: {installation.get('instIbs', 'N/A')}")
-                                print()
-                                
-                                # Mostrar servicios activos
-                                active_services = [s for s in services if s.get("active")]
-                                print(f"   ✅ Servicios activos ({len(active_services)}):")
-                                for service in active_services:
-                                    service_id = service.get("idService", "N/A")
-                                    service_request = service.get("request", "N/A")
-                                    service_visible = "👁️" if service.get("visible") else "🙈"
-                                    service_premium = "⭐" if service.get("isPremium") else ""
-                                    service_bde = "💰" if service.get("bde") else ""
-                                    print(f"      {service_visible} {service_id}: {service_request} {service_premium}{service_bde}")
-                                
-                                # Mostrar servicios inactivos (solo si hay pocos)
-                                inactive_services = [s for s in services if not s.get("active")]
-                                if inactive_services and len(inactive_services) <= 5:
-                                    print(f"   ❌ Servicios inactivos ({len(inactive_services)}):")
-                                    for service in inactive_services:
-                                        service_id = service.get("idService", "N/A")
-                                        service_request = service.get("request", "N/A")
-                                        print(f"      ❌ {service_id}: {service_request}")
-                                
-                                # Capacidades
-                                capabilities = services_data.get("capabilities")
-                                if capabilities:
-                                    print(f"   🔐 Capacidades: {capabilities[:30] + '...' if capabilities else 'None'}")
-                                
-                            except Exception as e:
-                                print_error(f"Error obteniendo servicios para instalación {installation_id}: {e}")
-                            
-                            # Separador entre instalaciones
-                            if i < len(installations) - 1:
-                                print("\n" + "-" * 60)
-                                print()
+                        installation = services_data.get("installation", {})
+                        services = services_data.get("services", [])
+                        
+                        print_success(f"Se encontraron {len(services)} servicios")
+                        
+                        # Mostrar información básica de la instalación
+                        print(f"   📊 Estado: {installation.get('status', 'N/A')}")
+                        print(f"   🛡️  Panel: {installation.get('panel', 'N/A')}")
+                        print(f"   📱 SIM: {installation.get('sim', 'N/A')}")
+                        print(f"   🎭 Rol: {installation.get('role', 'N/A')}")
+                        print(f"   🔧 IBS: {installation.get('instIbs', 'N/A')}")
+                        print()
+                        
+                        # Mostrar servicios activos
+                        active_services = [s for s in services if s.get("active")]
+                        print(f"   ✅ Servicios activos ({len(active_services)}):")
+                        for service in active_services:
+                            service_id = service.get("idService", "N/A")
+                            service_request = service.get("request", "N/A")
+                            service_visible = "👁️" if service.get("visible") else "🙈"
+                            service_premium = "⭐" if service.get("isPremium") else ""
+                            service_bde = "💰" if service.get("bde") else ""
+                            print(f"      {service_visible} {service_id}: {service_request} {service_premium}{service_bde}")
+                        
+                        # Mostrar servicios inactivos (solo si hay pocos)
+                        inactive_services = [s for s in services if not s.get("active")]
+                        if inactive_services and len(inactive_services) <= 5:
+                            print(f"   ❌ Servicios inactivos ({len(inactive_services)}):")
+                            for service in inactive_services:
+                                service_id = service.get("idService", "N/A")
+                                service_request = service.get("request", "N/A")
+                                print(f"      ❌ {service_id}: {service_request}")
+                        
+                        # Capacidades
+                        capabilities = services_data.get("capabilities")
+                        if capabilities:
+                            print(f"   🔐 Capacidades: {capabilities[:30] + '...' if capabilities else 'None'}")
+                        
+                    except Exception as e:
+                        print_error(f"Error obteniendo servicios para instalación {installation_id}: {e}")
                     
-                    print_header("RESUMEN FINAL")
-                    print_success(f"Procesamiento completado para {len(installations)} instalación(es)")
-                    print_info("Todas las instalaciones han sido procesadas correctamente")
-            else:
-                print_error("Error verificando el código OTP")
+                    # Separador entre instalaciones
+                    if i < len(installations) - 1:
+                        print("\n" + "-" * 60)
+                        print()
+            
+            print_header("RESUMEN FINAL")
+            print_success(f"Procesamiento completado para {len(installations)} instalación(es)")
+            print_info("Todas las instalaciones han sido procesadas correctamente")
             
     except MyVerisureOTPError as e:
         print_error(f"Error OTP: {e}")

@@ -70,7 +70,7 @@ async def test_homeassistant_otp_flow():
         
         # Test 5: Test _get_session_headers with None token
         logger.info("🔑 Test 5: Testing _get_session_headers with None token...")
-        client._token = None
+        client._hash = None
         try:
             headers = client._get_session_headers()
             logger.info(f"✅ Session headers: {headers}")
@@ -80,7 +80,7 @@ async def test_homeassistant_otp_flow():
         
         # Test 6: Test _get_session_headers with token
         logger.info("🔑 Test 6: Testing _get_session_headers with token...")
-        client._token = "test-token-12345"
+        client._hash = "test-token-12345"
         try:
             headers = client._get_session_headers()
             logger.info(f"✅ Session headers with token: {headers}")
