@@ -78,10 +78,14 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
                     LOGGER.warning("Session test failed, will re-authenticate: %s", e)
                     # Fall through to re-authentication
             
-            # If we don't have a valid session, we cannot proceed automatically
-            # because we might need OTP which requires user interaction
-            LOGGER.warning("No valid session available and cannot perform automatic login due to potential OTP requirement")
-            raise ConfigEntryAuthFailed("otp_reauth_required")
+            # If we don't have a valid session, try to refresh it automatically
+            LOGGER.warning("No valid session available, attempting automatic refresh...")
+            if await self.async_refresh_session():
+                LOGGER.warning("Session refreshed successfully during login")
+                return True
+            else:
+                LOGGER.warning("Automatic session refresh failed - may require OTP")
+                raise ConfigEntryAuthFailed("otp_reauth_required")
             
         except MyVerisureOTPError as ex:
             LOGGER.error("OTP authentication required but cannot be handled automatically: %s", ex)
@@ -94,13 +98,53 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             LOGGER.error("Could not log in to My Verisure: %s", ex)
             return False
 
+    async def async_refresh_session(self) -> bool:
+        """Attempt to refresh the session using stored credentials."""
+        try:
+            LOGGER.warning("Attempting to refresh session with stored credentials...")
+            
+            # Try to connect and authenticate with stored credentials
+            await self.client.connect()
+            
+            # Perform login to get new session tokens
+            LOGGER.warning("Performing login to refresh session...")
+            login_success = await self.client.login()
+            
+            if login_success and self.client.is_session_valid():
+                LOGGER.warning("Session refreshed successfully")
+                # Save the new session
+                if hasattr(self, 'session_file'):
+                    await self.client.save_session(self.session_file)
+                    LOGGER.warning("New session saved to storage")
+                return True
+            else:
+                LOGGER.warning("Session refresh failed - login unsuccessful or session not valid")
+                return False
+                
+        except MyVerisureOTPError as ex:
+            LOGGER.error("OTP required during session refresh: %s", ex)
+            # Cannot refresh automatically if OTP is required
+            return False
+        except MyVerisureAuthenticationError as ex:
+            LOGGER.error("Authentication failed during session refresh: %s", ex)
+            return False
+        except MyVerisureError as ex:
+            LOGGER.error("Error during session refresh: %s", ex)
+            return False
+
     async def _async_update_data(self) -> Dict[str, Any]:
         """Fetch data from My Verisure."""
         try:
             # Check if we can operate without login
             if not self.can_operate_without_login():
-                LOGGER.warning("Cannot operate without valid session - triggering re-authentication")
-                raise ConfigEntryAuthFailed("otp_reauth_required")
+                LOGGER.warning("Session not valid, attempting to refresh...")
+                
+                # Try to refresh the session automatically
+                if await self.async_refresh_session():
+                    LOGGER.warning("Session refreshed successfully, proceeding with data update")
+                else:
+                    LOGGER.warning("Session refresh failed - triggering re-authentication")
+                    raise ConfigEntryAuthFailed("otp_reauth_required")
             
             # Ensure client is connected
             LOGGER.warning("Checking client connection status...")

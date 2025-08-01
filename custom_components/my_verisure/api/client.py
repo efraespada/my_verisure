@@ -1505,12 +1505,12 @@ class MyVerisureClient:
             _LOGGER.warning("No authentication token available")
             return False
         
-        # Check if session is not too old (12 hours instead of 24 for better security)
+        # Check if session is not too old
         login_time = self._session_data.get("login_time", 0)
         current_time = int(time.time())
         session_age = current_time - login_time
         
-        if session_age > 43200:  # 12 hours
+        if session_age > 360:  # 6 minutes
             _LOGGER.warning("Session expired (age: %d seconds)", session_age)
             return False
         
