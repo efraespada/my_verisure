@@ -1897,8 +1897,8 @@ class MyVerisureClient:
                     # Need to wait and retry
                     retry_count += 1
                     if retry_count < max_retries:
-                        _LOGGER.debug("Alarm status check returned WAIT, waiting 2 seconds before retry %d", retry_count + 1)
-                        await asyncio.sleep(5)  # Wait 2 seconds before retry
+                        _LOGGER.debug("Alarm status check returned WAIT, waiting 5 seconds before retry %d", retry_count + 1)
+                        await asyncio.sleep(5)  # Wait 5 seconds before retry
                     else:
                         _LOGGER.warning("Max retries reached for alarm status check")
                         return None
@@ -1994,8 +1994,8 @@ class MyVerisureClient:
                 elif status_res == "WAIT":
                     # Need to wait and retry
                     if retry_count < max_retries:
-                        _LOGGER.debug("Arm status returned WAIT, waiting 2 seconds before retry")
-                        await asyncio.sleep(2)  # Wait 2 seconds before retry
+                        _LOGGER.debug("Arm status returned WAIT, waiting 5 seconds before retry")
+                        await asyncio.sleep(5)  # Wait 5 seconds before retry
                     else:
                         _LOGGER.warning("Max retries reached for arm status check")
                         return False
@@ -2093,7 +2093,7 @@ class MyVerisureClient:
                     # Need to wait and retry
                     if retry_count < max_retries:
                         _LOGGER.debug("Disarm status returned WAIT, waiting 2 seconds before retry")
-                        await asyncio.sleep(2)  # Wait 2 seconds before retry
+                        await asyncio.sleep(5)  # Wait 5 seconds before retry
                     else:
                         _LOGGER.warning("Max retries reached for disarm status check")
                         return False
