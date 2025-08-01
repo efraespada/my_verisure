@@ -1840,16 +1840,11 @@ class MyVerisureClient:
                 return False
             
             # Step 1: Send the arm command
-            arm_result = await self._execute_query(
-                ARM_PANEL_MUTATION,
-                variables={
-                    "numinst": installation_id,
-                    "request": request,
-                    "panel": panel,
-                    "currentStatus": current_status,
-                    "forceArmingRemoteId": None,
-                    "armAndLock": False
-                }
+            arm_result = await self._execute_arm_panel_direct(
+                installation_id=installation_id,
+                panel=panel,
+                request=request,
+                current_status=current_status
             )
             
             # Check for errors in arm command
@@ -1881,17 +1876,12 @@ class MyVerisureClient:
                 _LOGGER.debug("Checking arm status, attempt %d/%d", retry_count, max_retries)
                 
                 # Execute the status check query
-                status_result = await self._execute_query(
-                    ARM_STATUS_QUERY,
-                    variables={
-                        "numinst": installation_id,
-                        "request": request,
-                        "panel": panel,
-                        "referenceId": reference_id,
-                        "counter": retry_count,
-                        "forceArmingRemoteId": None,
-                        "armAndLock": False
-                    }
+                status_result = await self._execute_arm_status_direct(
+                    installation_id=installation_id,
+                    panel=panel,
+                    request=request,
+                    reference_id=reference_id,
+                    counter=retry_count
                 )
                 
                 # Check for errors in status check
@@ -1944,13 +1934,10 @@ class MyVerisureClient:
                 return False
             
             # Step 1: Send the disarm command
-            disarm_result = await self._execute_query(
-                DISARM_PANEL_MUTATION,
-                variables={
-                    "numinst": installation_id,
-                    "request": "DARM1",
-                    "panel": panel
-                }
+            disarm_result = await self._execute_disarm_panel_direct(
+                installation_id=installation_id,
+                panel=panel,
+                request="DARM1"
             )
             
             # Check for errors in disarm command
@@ -1982,15 +1969,12 @@ class MyVerisureClient:
                 _LOGGER.debug("Checking disarm status, attempt %d/%d", retry_count, max_retries)
                 
                 # Execute the status check query
-                status_result = await self._execute_query(
-                    DISARM_STATUS_QUERY,
-                    variables={
-                        "numinst": installation_id,
-                        "panel": panel,
-                        "referenceId": reference_id,
-                        "counter": retry_count,
-                        "request": "DARM1"
-                    }
+                status_result = await self._execute_disarm_status_direct(
+                    installation_id=installation_id,
+                    panel=panel,
+                    request="DARM1",
+                    reference_id=reference_id,
+                    counter=retry_count
                 )
                 
                 # Check for errors in status check
@@ -2042,4 +2026,211 @@ class MyVerisureClient:
     async def arm_alarm_night(self, installation_id: str) -> bool:
         """Arm the alarm in night mode for the specified installation."""
         return await self.send_alarm_command(installation_id, "ARMNIGHT1")
+
+    async def _execute_arm_panel_direct(self, installation_id: str, panel: str, request: str, current_status: str = "E") -> Dict[str, Any]:
+        """Execute arm panel mutation using direct aiohttp request."""
+        if not self._session:
+            raise MyVerisureConnectionError("Client not connected")
+
+        try:
+            # Prepare variables
+            variables = {
+                "numinst": installation_id,
+                "request": request,
+                "panel": panel,
+                "currentStatus": current_status,
+                "forceArmingRemoteId": None,
+                "armAndLock": False
+            }
+
+            request_data = {
+                "query": ARM_PANEL_MUTATION.loc.source.body,
+                "variables": variables
+            }
+
+            # Get session headers (Auth header with token)
+            headers = self._get_session_headers()
+            
+            # Add alarm-specific headers
+            headers["numinst"] = installation_id
+            headers["panel"] = panel
+
+            _LOGGER.warning("=== ARM PANEL REQUEST ===")
+            _LOGGER.warning("URL: %s", VERISURE_GRAPHQL_URL)
+            _LOGGER.warning("Headers: %s", json.dumps(headers, indent=2, default=str))
+            _LOGGER.warning("Request Body: %s", json.dumps(request_data, indent=2, default=str))
+            _LOGGER.warning("Variables: %s", json.dumps(variables, indent=2, default=str))
+            _LOGGER.warning("=========================")
+
+            # Make direct request
+            async with self._session.post(
+                VERISURE_GRAPHQL_URL,
+                json=request_data,
+                headers=headers
+            ) as response:
+                result = await response.json()
+                _LOGGER.warning("=== ARM PANEL RESPONSE ===")
+                _LOGGER.warning("Status: %s", response.status)
+                _LOGGER.warning("Response: %s", json.dumps(result, indent=2, default=str))
+                _LOGGER.warning("==========================")
+                return result
+
+        except Exception as e:
+            _LOGGER.error("Direct arm panel failed: %s", e)
+            return {"errors": [{"message": str(e), "data": {}}]}
+
+    async def _execute_arm_status_direct(self, installation_id: str, panel: str, request: str, reference_id: str, counter: int) -> Dict[str, Any]:
+        """Execute arm status query using direct aiohttp request."""
+        if not self._session:
+            raise MyVerisureConnectionError("Client not connected")
+
+        try:
+            # Prepare variables
+            variables = {
+                "numinst": installation_id,
+                "request": request,
+                "panel": panel,
+                "referenceId": reference_id,
+                "counter": counter,
+                "forceArmingRemoteId": None,
+                "armAndLock": False
+            }
+
+            request_data = {
+                "query": ARM_STATUS_QUERY.loc.source.body,
+                "variables": variables
+            }
+
+            # Get session headers (Auth header with token)
+            headers = self._get_session_headers()
+            
+            # Add alarm-specific headers
+            headers["numinst"] = installation_id
+            headers["panel"] = panel
+
+            _LOGGER.warning("=== ARM STATUS REQUEST ===")
+            _LOGGER.warning("URL: %s", VERISURE_GRAPHQL_URL)
+            _LOGGER.warning("Headers: %s", json.dumps(headers, indent=2, default=str))
+            _LOGGER.warning("Request Body: %s", json.dumps(request_data, indent=2, default=str))
+            _LOGGER.warning("Variables: %s", json.dumps(variables, indent=2, default=str))
+            _LOGGER.warning("==========================")
+
+            # Make direct request
+            async with self._session.post(
+                VERISURE_GRAPHQL_URL,
+                json=request_data,
+                headers=headers
+            ) as response:
+                result = await response.json()
+                _LOGGER.warning("=== ARM STATUS RESPONSE ===")
+                _LOGGER.warning("Status: %s", response.status)
+                _LOGGER.warning("Response: %s", json.dumps(result, indent=2, default=str))
+                _LOGGER.warning("===========================")
+                return result
+
+        except Exception as e:
+            _LOGGER.error("Direct arm status failed: %s", e)
+            return {"errors": [{"message": str(e), "data": {}}]}
+
+    async def _execute_disarm_panel_direct(self, installation_id: str, panel: str, request: str) -> Dict[str, Any]:
+        """Execute disarm panel mutation using direct aiohttp request."""
+        if not self._session:
+            raise MyVerisureConnectionError("Client not connected")
+
+        try:
+            # Prepare variables
+            variables = {
+                "numinst": installation_id,
+                "request": request,
+                "panel": panel
+            }
+
+            request_data = {
+                "query": DISARM_PANEL_MUTATION.loc.source.body,
+                "variables": variables
+            }
+
+            # Get session headers (Auth header with token)
+            headers = self._get_session_headers()
+            
+            # Add alarm-specific headers
+            headers["numinst"] = installation_id
+            headers["panel"] = panel
+
+            _LOGGER.warning("=== DISARM PANEL REQUEST ===")
+            _LOGGER.warning("URL: %s", VERISURE_GRAPHQL_URL)
+            _LOGGER.warning("Headers: %s", json.dumps(headers, indent=2, default=str))
+            _LOGGER.warning("Request Body: %s", json.dumps(request_data, indent=2, default=str))
+            _LOGGER.warning("Variables: %s", json.dumps(variables, indent=2, default=str))
+            _LOGGER.warning("============================")
+
+            # Make direct request
+            async with self._session.post(
+                VERISURE_GRAPHQL_URL,
+                json=request_data,
+                headers=headers
+            ) as response:
+                result = await response.json()
+                _LOGGER.warning("=== DISARM PANEL RESPONSE ===")
+                _LOGGER.warning("Status: %s", response.status)
+                _LOGGER.warning("Response: %s", json.dumps(result, indent=2, default=str))
+                _LOGGER.warning("=============================")
+                return result
+
+        except Exception as e:
+            _LOGGER.error("Direct disarm panel failed: %s", e)
+            return {"errors": [{"message": str(e), "data": {}}]}
+
+    async def _execute_disarm_status_direct(self, installation_id: str, panel: str, request: str, reference_id: str, counter: int) -> Dict[str, Any]:
+        """Execute disarm status query using direct aiohttp request."""
+        if not self._session:
+            raise MyVerisureConnectionError("Client not connected")
+
+        try:
+            # Prepare variables
+            variables = {
+                "numinst": installation_id,
+                "panel": panel,
+                "referenceId": reference_id,
+                "counter": counter,
+                "request": request
+            }
+
+            request_data = {
+                "query": DISARM_STATUS_QUERY.loc.source.body,
+                "variables": variables
+            }
+
+            # Get session headers (Auth header with token)
+            headers = self._get_session_headers()
+            
+            # Add alarm-specific headers
+            headers["numinst"] = installation_id
+            headers["panel"] = panel
+
+            _LOGGER.warning("=== DISARM STATUS REQUEST ===")
+            _LOGGER.warning("URL: %s", VERISURE_GRAPHQL_URL)
+            _LOGGER.warning("Headers: %s", json.dumps(headers, indent=2, default=str))
+            _LOGGER.warning("Request Body: %s", json.dumps(request_data, indent=2, default=str))
+            _LOGGER.warning("Variables: %s", json.dumps(variables, indent=2, default=str))
+            _LOGGER.warning("=============================")
+
+            # Make direct request
+            async with self._session.post(
+                VERISURE_GRAPHQL_URL,
+                json=request_data,
+                headers=headers
+            ) as response:
+                result = await response.json()
+                _LOGGER.warning("=== DISARM STATUS RESPONSE ===")
+                _LOGGER.warning("Status: %s", response.status)
+                _LOGGER.warning("Response: %s", json.dumps(result, indent=2, default=str))
+                _LOGGER.warning("==============================")
+                return result
+
+        except Exception as e:
+            _LOGGER.error("Direct disarm status failed: %s", e)
+            return {"errors": [{"message": str(e), "data": {}}]}
+
+
 
