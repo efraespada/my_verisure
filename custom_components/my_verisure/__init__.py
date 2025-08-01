@@ -30,10 +30,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Load session asynchronously
     await coordinator.async_load_session()
 
-    # Check if we can operate without login (session should be valid from config flow)
+    # Check if we have a session (even if expired)
+    if coordinator.client._hash is None:
+        LOGGER.warning("No session found - integration will require re-authentication")
+        raise ConfigEntryNotReady("No session found - please reconfigure the integration")
+    
+    # If session is expired, log it but allow the integration to start
+    # The coordinator will handle automatic refresh during data updates
     if not coordinator.can_operate_without_login():
-        LOGGER.warning("No valid session available - integration will require re-authentication")
-        raise ConfigEntryNotReady("No valid session available - please reconfigure the integration")
+        LOGGER.warning("Session is expired but integration will start - automatic refresh will be attempted during data updates")
 
     await coordinator.async_config_entry_first_refresh()
 
