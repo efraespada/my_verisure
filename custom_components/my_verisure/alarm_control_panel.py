@@ -8,16 +8,10 @@ from typing import Any
 from homeassistant.components.alarm_control_panel import (
     AlarmControlPanelEntity,
     AlarmControlPanelEntityFeature,
+    AlarmControlPanelState,
     CodeFormat,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import (
-    STATE_ALARM_ARMED_AWAY,
-    STATE_ALARM_ARMED_HOME,
-    STATE_ALARM_ARMED_NIGHT,
-    STATE_ALARM_DISARMED,
-    STATE_ALARM_TRIGGERED,
-)
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -27,33 +21,33 @@ from .coordinator import MyVerisureDataUpdateCoordinator
 # My Verisure alarm states mapping
 VERISURE_TO_HA_STATES = {
     # Standard states
-    "DISARMED": STATE_ALARM_DISARMED,
-    "ARMED_AWAY": STATE_ALARM_ARMED_AWAY,
-    "ARMED_HOME": STATE_ALARM_ARMED_HOME,
-    "ARMED_NIGHT": STATE_ALARM_ARMED_NIGHT,
-    "TRIGGERED": STATE_ALARM_TRIGGERED,
+    "DISARMED": AlarmControlPanelState.DISARMED,
+    "ARMED_AWAY": AlarmControlPanelState.ARMED_AWAY,
+    "ARMED_HOME": AlarmControlPanelState.ARMED_HOME,
+    "ARMED_NIGHT": AlarmControlPanelState.ARMED_NIGHT,
+    "TRIGGERED": AlarmControlPanelState.TRIGGERED,
     
     # My Verisure specific states (from services response)
-    "DARM": STATE_ALARM_DISARMED,           # DESCONECTAR
-    "ARM": STATE_ALARM_ARMED_AWAY,          # CONECTAR (Total)
-    "ARMDAY": STATE_ALARM_ARMED_HOME,       # ARMADO DIA (Interior Parcial Día)
-    "ARMNIGHT": STATE_ALARM_ARMED_NIGHT,    # ARMADO NOCHE (Interior Parcial Noche)
-    "PERI": STATE_ALARM_ARMED_AWAY,         # PERIMETRAL (Exterior)
-    "ARMINTFPART": STATE_ALARM_ARMED_HOME,  # Armado Interior Parcial
-    "ARMPARTFINT": STATE_ALARM_ARMED_HOME,  # Armado Parcial Interior
+    "DARM": AlarmControlPanelState.DISARMED,           # DESCONECTAR
+    "ARM": AlarmControlPanelState.ARMED_AWAY,          # CONECTAR (Total)
+    "ARMDAY": AlarmControlPanelState.ARMED_HOME,       # ARMADO DIA (Interior Parcial Día)
+    "ARMNIGHT": AlarmControlPanelState.ARMED_NIGHT,    # ARMADO NOCHE (Interior Parcial Noche)
+    "PERI": AlarmControlPanelState.ARMED_AWAY,         # PERIMETRAL (Exterior)
+    "ARMINTFPART": AlarmControlPanelState.ARMED_HOME,  # Armado Interior Parcial
+    "ARMPARTFINT": AlarmControlPanelState.ARMED_HOME,  # Armado Parcial Interior
     
     # Legacy mappings for compatibility
-    "PARTIAL_DAY": STATE_ALARM_ARMED_HOME,
-    "PARTIAL_NIGHT": STATE_ALARM_ARMED_NIGHT,
-    "TOTAL": STATE_ALARM_ARMED_AWAY,
-    "PERIMETRAL": STATE_ALARM_ARMED_AWAY,
+    "PARTIAL_DAY": AlarmControlPanelState.ARMED_HOME,
+    "PARTIAL_NIGHT": AlarmControlPanelState.ARMED_NIGHT,
+    "TOTAL": AlarmControlPanelState.ARMED_AWAY,
+    "PERIMETRAL": AlarmControlPanelState.ARMED_AWAY,
 }
 
 HA_TO_VERISURE_STATES = {
-    STATE_ALARM_DISARMED: "DARM",           # DESCONECTAR
-    STATE_ALARM_ARMED_AWAY: "ARM",          # CONECTAR (Total)
-    STATE_ALARM_ARMED_HOME: "ARMDAY",       # ARMADO DIA (Interior Parcial Día)
-    STATE_ALARM_ARMED_NIGHT: "ARMNIGHT",    # ARMADO NOCHE (Interior Parcial Noche)
+    AlarmControlPanelState.DISARMED: "DARM",           # DESCONECTAR
+    AlarmControlPanelState.ARMED_AWAY: "ARM",          # CONECTAR (Total)
+    AlarmControlPanelState.ARMED_HOME: "ARMDAY",       # ARMADO DIA (Interior Parcial Día)
+    AlarmControlPanelState.ARMED_NIGHT: "ARMNIGHT",    # ARMADO NOCHE (Interior Parcial Noche)
 }
 
 
@@ -88,7 +82,6 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
             AlarmControlPanelEntityFeature.ARM_AWAY
             | AlarmControlPanelEntityFeature.ARM_HOME
             | AlarmControlPanelEntityFeature.ARM_NIGHT
-            | AlarmControlPanelEntityFeature.DISARM
         )
 
     @property
@@ -117,12 +110,39 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
             return None
 
         alarm_data = self.coordinator.data.get("alarm", {})
-        verisure_state = alarm_data.get("state", "UNKNOWN")
         
-        LOGGER.warning("Alarm state from Verisure: %s", verisure_state)
+        # Parse the JSON structure with internal/external sections
+        internal = alarm_data.get("internal", {})
+        external = alarm_data.get("external", {})
         
-        # Map Verisure state to Home Assistant state
-        ha_state = VERISURE_TO_HA_STATES.get(verisure_state.upper(), STATE_ALARM_DISARMED)
+        # Check internal states
+        internal_day = internal.get("day", {}).get("status", False)
+        internal_night = internal.get("night", {}).get("status", False)
+        internal_total = internal.get("total", {}).get("status", False)
+        
+        # Check external state
+        external_status = external.get("status", False)
+        
+        LOGGER.warning("Alarm states - Internal Day: %s, Night: %s, Total: %s, External: %s", 
+                      internal_day, internal_night, internal_total, external_status)
+        
+        # Determine the overall state based on the JSON structure
+        if internal_total:
+            # Total internal armed (away mode)
+            ha_state = AlarmControlPanelState.ARMED_AWAY
+        elif internal_day:
+            # Day internal armed (home mode)
+            ha_state = AlarmControlPanelState.ARMED_HOME
+        elif internal_night:
+            # Night internal armed (night mode)
+            ha_state = AlarmControlPanelState.ARMED_NIGHT
+        elif external_status:
+            # Only external armed (perimeter mode - map to away)
+            ha_state = AlarmControlPanelState.ARMED_AWAY
+        else:
+            # Nothing armed
+            ha_state = AlarmControlPanelState.DISARMED
+        
         LOGGER.warning("Mapped to HA state: %s", ha_state)
         
         return ha_state
@@ -134,37 +154,24 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
             return {}
 
         alarm_data = self.coordinator.data.get("alarm", {})
-        device = alarm_data.get("device", {})
         
-        # Get alarm data (now includes services info)
-        alarm_data = self.coordinator.data.get("alarm", {})
-        available_commands = alarm_data.get("available_commands", [])
-        alarm_services = alarm_data.get("services", [])
-        
-        # Convert services list to dict for backward compatibility
-        services_dict = {}
-        for service in alarm_services:
-            request = service.get("request", "")
-            services_dict[request] = {
-                "id": service.get("idService", ""),
-                "name": service.get("request", ""),
-                "active": service.get("active", False)
-            }
+        # Parse the JSON structure with internal/external sections
+        internal = alarm_data.get("internal", {})
+        external = alarm_data.get("external", {})
         
         # Get installation info from services
         services_data = self.coordinator.data.get("services", {})
         installation_info = services_data.get("installation", {})
         
         return {
-            "verisure_state": alarm_data.get("state", "UNKNOWN"),
-            "device_id": device.get("id", "Unknown"),
-            "device_type": device.get("type", "Unknown"),
+            "internal_day_status": internal.get("day", {}).get("status", False),
+            "internal_night_status": internal.get("night", {}).get("status", False),
+            "internal_total_status": internal.get("total", {}).get("status", False),
+            "external_status": external.get("status", False),
             "installation_id": self.config_entry.data.get("installation_id", "Unknown"),
             "installation_alias": installation_info.get("alias", "Unknown"),
             "installation_status": installation_info.get("status", "Unknown"),
             "installation_panel": installation_info.get("panel", "Unknown"),
-            "available_commands": available_commands,
-            "services": services_dict,
         }
 
     async def async_alarm_disarm(self, code: str | None = None) -> None:
