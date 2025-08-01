@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from typing import Any
-from datetime import datetime
+from datetime import datetime, timezone
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -177,8 +177,10 @@ class MyVerisureLastUpdatedSensor(SensorEntity):
 
         try:
             # Convertir timestamp a datetime
-            return datetime.fromtimestamp(last_updated)
-        except (ValueError, TypeError):
+            result = datetime.fromtimestamp(last_updated, timezone.utc)
+            return result
+        except (ValueError, TypeError) as e:
+            LOGGER.error("LastUpdatedSensor: Error converting timestamp %s: %s", last_updated, e)
             return None
 
     @property

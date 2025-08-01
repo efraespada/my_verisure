@@ -1455,6 +1455,9 @@ class MyVerisureClient:
         if session_data is None:
             _LOGGER.debug("No session file found at %s", file_path)
             return False
+        
+        _LOGGER.warning("Loading: %s", file_path)
+        _LOGGER.warning(json.dumps(session_data, indent=2, default=str))
 
         try:
             self._cookies = session_data.get("cookies", {})
