@@ -98,6 +98,98 @@ CHECK_ALARM_QUERY = gql("""
     }
 """)
 
+# Alarm control mutations
+ARM_PANEL_MUTATION = gql("""
+    mutation xSArmPanel($numinst: String!, $request: ArmCodeRequest!, $panel: String!, $currentStatus: String, $forceArmingRemoteId: String, $armAndLock: Boolean) {
+        xSArmPanel(
+            numinst: $numinst
+            request: $request
+            panel: $panel
+            currentStatus: $currentStatus
+            forceArmingRemoteId: $forceArmingRemoteId
+            armAndLock: $armAndLock
+        ) {
+            res
+            msg
+            referenceId
+        }
+    }
+""")
+
+ARM_STATUS_QUERY = gql("""
+    query ArmStatus($numinst: String!, $request: ArmCodeRequest, $panel: String!, $referenceId: String!, $counter: Int!, $forceArmingRemoteId: String, $armAndLock: Boolean) {
+        xSArmStatus(
+            numinst: $numinst
+            panel: $panel
+            referenceId: $referenceId
+            counter: $counter
+            request: $request
+            forceArmingRemoteId: $forceArmingRemoteId
+            armAndLock: $armAndLock
+        ) {
+            res
+            msg
+            status
+            protomResponse
+            protomResponseDate
+            numinst
+            requestId
+            error {
+                code
+                type
+                allowForcing
+                exceptionsNumber
+                referenceId
+                suid
+            }
+            smartlockStatus {
+                state
+                deviceId
+                updatedOnArm
+            }
+        }
+    }
+""")
+
+# Disarm mutations
+DISARM_PANEL_MUTATION = gql("""
+    mutation xSDisarmPanel($numinst: String!, $request: DisarmCodeRequest!, $panel: String!) {
+        xSDisarmPanel(numinst: $numinst, request: $request, panel: $panel) {
+            res
+            msg
+            referenceId
+        }
+    }
+""")
+
+DISARM_STATUS_QUERY = gql("""
+    query DisarmStatus($numinst: String!, $panel: String!, $referenceId: String!, $counter: Int!, $request: DisarmCodeRequest) {
+        xSDisarmStatus(
+            numinst: $numinst
+            panel: $panel
+            referenceId: $referenceId
+            counter: $counter
+            request: $request
+        ) {
+            res
+            msg
+            status
+            protomResponse
+            protomResponseDate
+            numinst
+            requestId
+            error {
+                code
+                type
+                allowForcing
+                exceptionsNumber
+                referenceId
+                suid
+            }
+        }
+    }
+""")
+
 CHECK_ALARM_STATUS_QUERY = gql("""
     query CheckAlarmStatus($numinst: String!, $idService: String!, $panel: String!, $referenceId: String!) {
         xSCheckAlarmStatus(
@@ -1733,4 +1825,221 @@ class MyVerisureClient:
         except Exception as e:
             _LOGGER.error("Unexpected error getting real-time alarm status: %s", e)
             return None
+
+    async def send_alarm_command(self, installation_id: str, request: str, current_status: str = "E") -> bool:
+        """Send an alarm command to the specified installation using the correct flow."""
+        try:
+            _LOGGER.info("Sending alarm command '%s' to installation %s", request, installation_id)
+            
+            # Get installation services to get the panel info
+            services_data = await self.get_installation_services(installation_id)
+            panel = services_data.get("installation", {}).get("panel", "")
+            
+            if not panel:
+                _LOGGER.error("No panel information found for installation %s", installation_id)
+                return False
+            
+            # Step 1: Send the arm command
+            arm_result = await self._execute_query(
+                ARM_PANEL_MUTATION,
+                variables={
+                    "numinst": installation_id,
+                    "request": request,
+                    "panel": panel,
+                    "currentStatus": current_status,
+                    "forceArmingRemoteId": None,
+                    "armAndLock": False
+                }
+            )
+            
+            # Check for errors in arm command
+            if "errors" in arm_result:
+                error = arm_result["errors"][0] if arm_result["errors"] else {}
+                error_msg = error.get("message", "Unknown error")
+                _LOGGER.error("Failed to send arm command: %s", error_msg)
+                return False
+            
+            # Check arm response
+            arm_data = arm_result.get("data", {})
+            arm_panel_result = arm_data.get("xSArmPanel", {})
+            arm_res = arm_panel_result.get("res", "Unknown")
+            arm_msg = arm_panel_result.get("msg", "Unknown")
+            reference_id = arm_panel_result.get("referenceId")
+            
+            if arm_res != "OK" or not reference_id:
+                _LOGGER.error("Failed to send arm command '%s': %s", request, arm_msg)
+                return False
+            
+            _LOGGER.info("Arm command sent successfully, referenceId: %s", reference_id)
+            
+            # Step 2: Poll for status until completion
+            max_retries = 30  # Maximum number of retries
+            retry_count = 0
+            
+            while retry_count < max_retries:
+                retry_count += 1
+                _LOGGER.debug("Checking arm status, attempt %d/%d", retry_count, max_retries)
+                
+                # Execute the status check query
+                status_result = await self._execute_query(
+                    ARM_STATUS_QUERY,
+                    variables={
+                        "numinst": installation_id,
+                        "request": request,
+                        "panel": panel,
+                        "referenceId": reference_id,
+                        "counter": retry_count,
+                        "forceArmingRemoteId": None,
+                        "armAndLock": False
+                    }
+                )
+                
+                # Check for errors in status check
+                if "errors" in status_result:
+                    error = status_result["errors"][0] if status_result["errors"] else {}
+                    error_msg = error.get("message", "Unknown error")
+                    _LOGGER.error("Failed to check arm status: %s", error_msg)
+                    return False
+                
+                # Check status response
+                status_data = status_result.get("data", {})
+                arm_status_result = status_data.get("xSArmStatus", {})
+                status_res = arm_status_result.get("res", "Unknown")
+                status_msg = arm_status_result.get("msg", "Unknown")
+                status_status = arm_status_result.get("status")
+                
+                _LOGGER.debug("Arm status check: res=%s, msg=%s, status=%s", status_res, status_msg, status_status)
+                
+                if status_res == "OK":
+                    _LOGGER.info("Alarm command '%s' completed successfully: %s", request, status_msg)
+                    return True
+                elif status_res == "WAIT":
+                    # Need to wait and retry
+                    if retry_count < max_retries:
+                        _LOGGER.debug("Arm status returned WAIT, waiting 2 seconds before retry")
+                        await asyncio.sleep(2)  # Wait 2 seconds before retry
+                    else:
+                        _LOGGER.warning("Max retries reached for arm status check")
+                        return False
+                else:
+                    # Error or unknown response
+                    _LOGGER.error("Failed to complete alarm command '%s': %s", request, status_msg)
+                    return False
+                
+        except Exception as e:
+            _LOGGER.error("Unexpected error sending alarm command: %s", e)
+            return False
+
+    async def disarm_alarm(self, installation_id: str) -> bool:
+        """Disarm the alarm for the specified installation using the correct flow."""
+        try:
+            _LOGGER.info("Disarming alarm for installation %s", installation_id)
+            
+            # Get installation services to get the panel info
+            services_data = await self.get_installation_services(installation_id)
+            panel = services_data.get("installation", {}).get("panel", "")
+            
+            if not panel:
+                _LOGGER.error("No panel information found for installation %s", installation_id)
+                return False
+            
+            # Step 1: Send the disarm command
+            disarm_result = await self._execute_query(
+                DISARM_PANEL_MUTATION,
+                variables={
+                    "numinst": installation_id,
+                    "request": "DARM1",
+                    "panel": panel
+                }
+            )
+            
+            # Check for errors in disarm command
+            if "errors" in disarm_result:
+                error = disarm_result["errors"][0] if disarm_result["errors"] else {}
+                error_msg = error.get("message", "Unknown error")
+                _LOGGER.error("Failed to send disarm command: %s", error_msg)
+                return False
+            
+            # Check disarm response
+            disarm_data = disarm_result.get("data", {})
+            disarm_panel_result = disarm_data.get("xSDisarmPanel", {})
+            disarm_res = disarm_panel_result.get("res", "Unknown")
+            disarm_msg = disarm_panel_result.get("msg", "Unknown")
+            reference_id = disarm_panel_result.get("referenceId")
+            
+            if disarm_res != "OK" or not reference_id:
+                _LOGGER.error("Failed to send disarm command: %s", disarm_msg)
+                return False
+            
+            _LOGGER.info("Disarm command sent successfully, referenceId: %s", reference_id)
+            
+            # Step 2: Poll for status until completion
+            max_retries = 30  # Maximum number of retries
+            retry_count = 0
+            
+            while retry_count < max_retries:
+                retry_count += 1
+                _LOGGER.debug("Checking disarm status, attempt %d/%d", retry_count, max_retries)
+                
+                # Execute the status check query
+                status_result = await self._execute_query(
+                    DISARM_STATUS_QUERY,
+                    variables={
+                        "numinst": installation_id,
+                        "panel": panel,
+                        "referenceId": reference_id,
+                        "counter": retry_count,
+                        "request": "DARM1"
+                    }
+                )
+                
+                # Check for errors in status check
+                if "errors" in status_result:
+                    error = status_result["errors"][0] if status_result["errors"] else {}
+                    error_msg = error.get("message", "Unknown error")
+                    _LOGGER.error("Failed to check disarm status: %s", error_msg)
+                    return False
+                
+                # Check status response
+                status_data = status_result.get("data", {})
+                disarm_status_result = status_data.get("xSDisarmStatus", {})
+                status_res = disarm_status_result.get("res", "Unknown")
+                status_msg = disarm_status_result.get("msg", "Unknown")
+                status_status = disarm_status_result.get("status")
+                protom_response = disarm_status_result.get("protomResponse")
+                
+                _LOGGER.debug("Disarm status check: res=%s, msg=%s, status=%s, protomResponse=%s", 
+                             status_res, status_msg, status_status, protom_response)
+                
+                if status_res == "OK":
+                    _LOGGER.info("Alarm disarmed successfully: %s", status_msg)
+                    return True
+                elif status_res == "WAIT":
+                    # Need to wait and retry
+                    if retry_count < max_retries:
+                        _LOGGER.debug("Disarm status returned WAIT, waiting 2 seconds before retry")
+                        await asyncio.sleep(2)  # Wait 2 seconds before retry
+                    else:
+                        _LOGGER.warning("Max retries reached for disarm status check")
+                        return False
+                else:
+                    # Error or unknown response
+                    _LOGGER.error("Failed to complete disarm command: %s", status_msg)
+                    return False
+                
+        except Exception as e:
+            _LOGGER.error("Unexpected error disarming alarm: %s", e)
+            return False
+
+    async def arm_alarm_away(self, installation_id: str) -> bool:
+        """Arm the alarm in away mode for the specified installation."""
+        return await self.send_alarm_command(installation_id, "ARM1")
+
+    async def arm_alarm_home(self, installation_id: str) -> bool:
+        """Arm the alarm in home mode for the specified installation."""
+        return await self.send_alarm_command(installation_id, "PERI1")
+
+    async def arm_alarm_night(self, installation_id: str) -> bool:
+        """Arm the alarm in night mode for the specified installation."""
+        return await self.send_alarm_command(installation_id, "ARMNIGHT1")
 

@@ -77,7 +77,9 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
         # We'll update the name later when we have installation data
         self._attr_name = f"My Verisure Alarm"
         self._attr_unique_id = f"{config_entry.entry_id}_alarm"
-        self._attr_code_format = CodeFormat.NUMBER
+        self._attr_code_format = None  # No code required
+        self._attr_code_arm_required = False  # No code required for arming
+        self._attr_code_disarm_required = False  # No code required for disarming
         self._attr_supported_features = (
             AlarmControlPanelEntityFeature.ARM_AWAY
             | AlarmControlPanelEntityFeature.ARM_HOME
@@ -90,18 +92,15 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
         if not self.coordinator.data:
             return self._attr_name
 
-        services_data = self.coordinator.data.get("services", {})
-        installation_info = services_data.get("installation", {})
-        alias = installation_info.get("alias", "Unknown")
+        # Try to get installation info from the coordinator data
+        # The coordinator might store installation info in different keys
+        installation_id = self.config_entry.data.get("installation_id", "")
         
-        # Clean up the alias (remove extra commas and spaces)
-        if alias and alias != "Unknown":
-            # Remove extra commas and clean up
-            alias = alias.replace(", ,", ",").replace("  ", " ").strip()
-            if alias.endswith(","):
-                alias = alias[:-1].strip()
-        
-        return f"My Verisure Alarm ({alias})"
+        # For now, use a simple name with installation ID
+        if installation_id:
+            return f"My Verisure Alarm ({installation_id})"
+        else:
+            return "My Verisure Alarm"
 
     @property
     def alarm_state(self) -> AlarmControlPanelState | None:
@@ -188,8 +187,15 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
         """Send disarm command."""
         LOGGER.warning("Disarming alarm (DARM - DESCONECTAR)...")
         try:
-            # TODO: Implement actual disarm command to My Verisure API
-            # await self.coordinator.client.send_alarm_command("DARM")
+            installation_id = self.config_entry.data.get("installation_id")
+            if installation_id:
+                success = await self.coordinator.client.disarm_alarm(installation_id)
+                if success:
+                    LOGGER.info("Alarm disarmed successfully")
+                else:
+                    LOGGER.error("Failed to disarm alarm")
+            else:
+                LOGGER.error("No installation ID available")
             await self.coordinator.async_request_refresh()
         except Exception as e:
             LOGGER.error("Failed to disarm alarm: %s", e)
@@ -198,8 +204,15 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
         """Send arm away command."""
         LOGGER.warning("Arming alarm away (ARM - CONECTAR Total)...")
         try:
-            # TODO: Implement actual arm away command to My Verisure API
-            # await self.coordinator.client.send_alarm_command("ARM")
+            installation_id = self.config_entry.data.get("installation_id")
+            if installation_id:
+                success = await self.coordinator.client.arm_alarm_away(installation_id)
+                if success:
+                    LOGGER.info("Alarm armed away successfully")
+                else:
+                    LOGGER.error("Failed to arm alarm away")
+            else:
+                LOGGER.error("No installation ID available")
             await self.coordinator.async_request_refresh()
         except Exception as e:
             LOGGER.error("Failed to arm alarm away: %s", e)
@@ -208,8 +221,15 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
         """Send arm home command."""
         LOGGER.warning("Arming alarm home (ARMDAY - ARMADO DIA)...")
         try:
-            # TODO: Implement actual arm home command to My Verisure API
-            # await self.coordinator.client.send_alarm_command("ARMDAY")
+            installation_id = self.config_entry.data.get("installation_id")
+            if installation_id:
+                success = await self.coordinator.client.arm_alarm_home(installation_id)
+                if success:
+                    LOGGER.info("Alarm armed home successfully")
+                else:
+                    LOGGER.error("Failed to arm alarm home")
+            else:
+                LOGGER.error("No installation ID available")
             await self.coordinator.async_request_refresh()
         except Exception as e:
             LOGGER.error("Failed to arm alarm home: %s", e)
@@ -218,8 +238,15 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
         """Send arm night command."""
         LOGGER.warning("Arming alarm night (ARMNIGHT - ARMADO NOCHE)...")
         try:
-            # TODO: Implement actual arm night command to My Verisure API
-            # await self.coordinator.client.send_alarm_command("ARMNIGHT")
+            installation_id = self.config_entry.data.get("installation_id")
+            if installation_id:
+                success = await self.coordinator.client.arm_alarm_night(installation_id)
+                if success:
+                    LOGGER.info("Alarm armed night successfully")
+                else:
+                    LOGGER.error("Failed to arm alarm night")
+            else:
+                LOGGER.error("No installation ID available")
             await self.coordinator.async_request_refresh()
         except Exception as e:
             LOGGER.error("Failed to arm alarm night: %s", e)
