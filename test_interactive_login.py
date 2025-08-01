@@ -8,6 +8,7 @@ import asyncio
 import logging
 import sys
 import os
+import json
 import getpass
 from typing import Optional
 
@@ -306,6 +307,20 @@ async def interactive_login() -> None:
                         capabilities = services_data.get("capabilities")
                         if capabilities:
                             print(f"   🔐 Capacidades: {capabilities[:30] + '...' if capabilities else 'None'}")
+                        
+                        # Probar get_alarm_status
+                        print()
+                        print_info("🔍 Probando get_alarm_status...")
+                        try:
+                            alarm_status = await client.get_alarm_status(installation_id, capabilities)
+                            
+                            # Print the complete JSON response
+                            print_info("=== COMPLETE ALARM STATUS JSON ===")
+                            print(json.dumps(alarm_status, indent=2, default=str))
+                            print("==================================")
+                            
+                        except Exception as e:
+                            print_error(f"Error obteniendo estado de alarma: {e}")
                         
                     except Exception as e:
                         print_error(f"Error obteniendo servicios para instalación {installation_id}: {e}")

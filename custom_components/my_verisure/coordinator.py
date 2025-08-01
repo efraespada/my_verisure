@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import json
 import logging
+import time
 from typing import Any, Dict
 
 from homeassistant.config_entries import ConfigEntry
@@ -110,40 +112,24 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
                 await self.client.connect()
                 LOGGER.warning("Client connected successfully")
             
-            # First, get services for the installation to know what's available
-            LOGGER.warning("Getting services for installation %s", self.installation_id)
-            services = await self.client.get_installation_services(self.installation_id or "")
+            # Get installation services
+            LOGGER.warning("Getting installation services for installation %s", self.installation_id)
+            services_data = await self.client.get_installation_services(self.installation_id or "")
+
+            # Get alarm status from services
+            LOGGER.warning("Getting alarm status for installation %s", self.installation_id)
+            alarm_status = await self.client.get_alarm_status(self.installation_id or "", services_data.get("capabilities", ""))
+                        
+            # Print the complete JSON response
+            LOGGER.warning("=== COMPLETE ALARM STATUS JSON ===")
+            LOGGER.warning(json.dumps(alarm_status, indent=2, default=str))
+            LOGGER.warning("==================================")
             
-            LOGGER.warning("Retrieved services from My Verisure: %d services found", 
-                          len(services.get("services", [])))
-            
-            # Analyze services to determine what devices/functionality are available
-            available_features = self._analyze_services(services.get("services", []))
-            
-            LOGGER.warning("Available features based on services: %s", available_features)
-            
-            # Get devices only if we have device-related services
-            devices = []
-            if available_features.get("has_devices", False):
-                devices = await self.client.get_devices(self.installation_id or "")
-                LOGGER.warning("Retrieved %d devices from My Verisure", len(devices))
-            
-            # Organize data based on available services
-            organized_data = {
-                "alarm": self._get_alarm_state_from_services(services, devices),
-                "cameras": self._get_cameras_from_services(services, devices),
-                "climate": self._get_climate_from_services(services, devices),
-                "door_window": self._get_door_window_from_services(services, devices),
-                "locks": self._get_locks_from_services(services, devices),
-                "smart_plugs": self._get_smart_plugs_from_services(services, devices),
-                "sensors": self._get_sensors_from_services(services, devices),
-                "services": services,  # Keep full services data
-                "available_features": available_features,  # Add feature summary
+            # Return the alarm status data
+            return {
+                "alarm_status": alarm_status,
+                "last_updated": int(time.time())
             }
-            
-            LOGGER.warning("Organized data: %s", {k: len(v) for k, v in organized_data.items()})
-            
-            return organized_data
             
         except MyVerisureOTPError as ex:
             LOGGER.error("OTP authentication required during update: %s", ex)
@@ -157,168 +143,6 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         except MyVerisureError as ex:
             LOGGER.error("Error updating data: %s", ex)
             raise UpdateFailed(f"Update failed: {ex}") from ex
-
-    def _analyze_services(self, services: list[Dict[str, Any]]) -> Dict[str, Any]:
-        """Analyze services to determine available features."""
-        features = {
-            "has_alarm": False,
-            "has_cameras": False,
-            "has_climate": False,
-            "has_door_window": False,
-            "has_locks": False,
-            "has_smart_plugs": False,
-            "has_sensors": False,
-            "has_devices": False,
-            "alarm_services": [],
-            "device_services": [],
-        }
-        
-        for service in services:
-            request = service.get("request", "")
-            active = service.get("active", False)
-            
-            if not active:
-                continue
-                
-            # Alarm services
-            if request in ["DARM", "ARM", "ARMDAY", "ARMNIGHT", "PERI"]:
-                features["has_alarm"] = True
-                features["alarm_services"].append({
-                    "request": request,
-                    "id": service.get("idService", ""),
-                    "active": active
-                })
-            
-            # Device-related services
-            elif request in ["EST", "ESTINV", "IMG", "CAMA", "CAMERAS"]:
-                features["has_devices"] = True
-                features["device_services"].append({
-                    "request": request,
-                    "id": service.get("idService", ""),
-                    "active": active
-                })
-                
-                # Specific device types
-                if request in ["IMG", "CAMA", "CAMERAS"]:
-                    features["has_cameras"] = True
-                elif request in ["EST", "ESTINV"]:
-                    features["has_sensors"] = True
-        
-        LOGGER.warning("Service analysis: %s", features)
-        return features
-
-    def _get_alarm_state_from_services(self, services: Dict[str, Any], devices: list[Dict[str, Any]]) -> Dict[str, Any]:
-        """Extract alarm state from services and devices."""
-        services_list = services.get("services", [])
-        installation = services.get("installation", {})
-        
-        # Check if we have alarm services
-        alarm_services = []
-        for service in services_list:
-            request = service.get("request", "")
-            if request in ["DARM", "ARM", "ARMDAY", "ARMNIGHT", "PERI"] and service.get("active", False):
-                alarm_services.append(service)
-        
-        if not alarm_services:
-            return {"state": "UNKNOWN", "device": None, "available_commands": []}
-        
-        # For now, return basic alarm info
-        # TODO: Get actual alarm state from devices or another API call
-        return {
-            "state": "DARM",  # Default to disarmed
-            "device": {
-                "id": "alarm_panel",
-                "type": "ALARM",
-                "installation_id": installation.get("numinst", "Unknown"),
-                "panel": installation.get("panel", "Unknown"),
-            },
-            "available_commands": [s.get("request") for s in alarm_services],
-            "services": alarm_services,
-        }
-
-    def _get_cameras_from_services(self, services: Dict[str, Any], devices: list[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
-        """Get cameras based on services and devices."""
-        # Check if camera services are available
-        services_list = services.get("services", [])
-        has_camera_service = any(
-            s.get("request") in ["IMG", "CAMA", "CAMERAS"] and s.get("active", False)
-            for s in services_list
-        )
-        
-        if not has_camera_service:
-            return {}
-        
-        # Filter devices for cameras
-        return self._filter_devices_by_type(devices, ["CAMERA", "SMARTCAMERA"])
-
-    def _get_climate_from_services(self, services: Dict[str, Any], devices: list[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
-        """Get climate sensors based on services and devices."""
-        # For now, return empty as we don't have specific climate services
-        return self._filter_devices_by_type(devices, ["CLIMATE", "HUMIDITY", "TEMPERATURE"])
-
-    def _get_door_window_from_services(self, services: Dict[str, Any], devices: list[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
-        """Get door/window sensors based on services and devices."""
-        # Check if device inventory service is available
-        services_list = services.get("services", [])
-        has_device_service = any(
-            s.get("request") in ["EST", "ESTINV"] and s.get("active", False)
-            for s in services_list
-        )
-        
-        if not has_device_service:
-            return {}
-        
-        # Filter devices for door/window sensors
-        return self._filter_devices_by_type(devices, ["DOOR", "WINDOW", "PIR"])
-
-    def _get_locks_from_services(self, services: Dict[str, Any], devices: list[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
-        """Get locks based on services and devices."""
-        # Check if key service is available
-        services_list = services.get("services", [])
-        has_key_service = any(
-            s.get("request") == "KEY" and s.get("active", False)
-            for s in services_list
-        )
-        
-        if not has_key_service:
-            return {}
-        
-        # Filter devices for locks
-        return self._filter_devices_by_type(devices, ["LOCK", "SMARTLOCK"])
-
-    def _get_smart_plugs_from_services(self, services: Dict[str, Any], devices: list[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
-        """Get smart plugs based on services and devices."""
-        # For now, return empty as we don't have specific smart plug services
-        return self._filter_devices_by_type(devices, ["SMARTPLUG", "PLUG"])
-
-    def _get_sensors_from_services(self, services: Dict[str, Any], devices: list[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
-        """Get sensors based on services and devices."""
-        # Check if device inventory service is available
-        services_list = services.get("services", [])
-        has_device_service = any(
-            s.get("request") in ["EST", "ESTINV"] and s.get("active", False)
-            for s in services_list
-        )
-        
-        if not has_device_service:
-            return {}
-        
-        # Filter devices for sensors
-        return self._filter_devices_by_type(devices, ["SENSOR", "MOTION", "SMOKE", "WATER"])
-
-    def _filter_devices_by_type(
-        self, devices: list[Dict[str, Any]], device_types: list[str]
-    ) -> Dict[str, Dict[str, Any]]:
-        """Filter devices by type and organize by device ID."""
-        filtered_devices = {}
-        
-        for device in devices:
-            device_type = device.get("type", "").upper()
-            if any(dt in device_type for dt in device_types):
-                device_id = device.get("id", device.get("name", "unknown"))
-                filtered_devices[device_id] = device
-        
-        return filtered_devices
 
     async def async_load_session(self) -> bool:
         """Load session data asynchronously."""

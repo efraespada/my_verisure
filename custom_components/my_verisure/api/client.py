@@ -88,6 +88,35 @@ SEND_OTP_MUTATION = gql("""
     }
 """)
 
+CHECK_ALARM_QUERY = gql("""
+    query CheckAlarm($numinst: String!, $panel: String!) {
+        xSCheckAlarm(numinst: $numinst, panel: $panel) {
+            res
+            msg
+            referenceId
+        }
+    }
+""")
+
+CHECK_ALARM_STATUS_QUERY = gql("""
+    query CheckAlarmStatus($numinst: String!, $idService: String!, $panel: String!, $referenceId: String!) {
+        xSCheckAlarmStatus(
+            numinst: $numinst
+            idService: $idService
+            panel: $panel
+            referenceId: $referenceId
+        ) {
+            res
+            msg
+            status
+            numinst
+            protomResponse
+            protomResponseDate
+            forcedArmed
+        }
+    }
+""")
+
 
 class MyVerisureClient:
     """Client for My Verisure GraphQL API."""
@@ -215,6 +244,76 @@ class MyVerisureClient:
             "generated_time": self._device_identifiers.get("generated_time", 0)
         }
 
+    def _load_alarm_status_config(self) -> Dict[str, Any]:
+        """Load alarm status configuration from JSON file."""
+        try:
+            # Get the directory where this file is located and go up one level to the my_verisure directory
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            config_path = os.path.join(current_dir, "alarm_status.json")
+            
+            with open(config_path, 'r') as f:
+                config = json.load(f)
+            
+            _LOGGER.debug("Alarm status configuration loaded from %s", config_path)
+            return config
+            
+        except Exception as e:
+            _LOGGER.error("Failed to load alarm status configuration: %s", e)
+            # Return default empty structure
+            return {
+                "internal": {
+                    "day": {"alarm": []},
+                    "night": {"alarm": []},
+                    "total": {"alarm": []}
+                },
+                "external": {"alarm": []}
+            }
+
+    def _process_alarm_message(self, message: str) -> Dict[str, Any]:
+        """Process alarm message and return status structure."""
+        if not message:
+            return self._get_default_alarm_status()
+        
+        config = self._load_alarm_status_config()
+        
+        # Initialize response structure
+        response = {
+            "internal": {
+                "day": {"status": False},
+                "night": {"status": False},
+                "total": {"status": False}
+            },
+            "external": {"status": False}
+        }
+        
+        # Check if message matches any alarm in the configuration
+        for section, section_config in config.items():
+            if section == "internal":
+                for subsection, subsection_config in section_config.items():
+                    alarm_messages = subsection_config.get("alarm", [])
+                    if message in alarm_messages:
+                        response["internal"][subsection]["status"] = True
+                        _LOGGER.info("Alarm message '%s' matches %s.%s", message, section, subsection)
+            elif section == "external":
+                alarm_messages = section_config.get("alarm", [])
+                if message in alarm_messages:
+                    response["external"]["status"] = True
+                    _LOGGER.info("Alarm message '%s' matches %s", message, section)
+        
+        _LOGGER.debug("Processed alarm message '%s' -> %s", message, response)
+        return response
+
+    def _get_default_alarm_status(self) -> Dict[str, Any]:
+        """Get default alarm status structure with all statuses as False."""
+        return {
+            "internal": {
+                "day": {"status": False},
+                "night": {"status": False},
+                "total": {"status": False}
+            },
+            "external": {"status": False}
+        }
+
     async def connect(self) -> None:
         """Connect to My Verisure API."""
         if self._session is None:
@@ -262,9 +361,6 @@ class MyVerisureClient:
         # Add native app headers
         headers.update(self._get_native_app_headers())
         
-        if self._hash:
-            headers["Authorization"] = f"Bearer {self._hash}"
-        
         return headers
 
     def _get_session_headers(self) -> Dict[str, str]:
@@ -292,7 +388,7 @@ class MyVerisureClient:
             _LOGGER.error("No JWT hash available for session headers!")
         
         headers = self._get_headers()
-        headers["Auth"] = json.dumps(session_header)
+        headers["auth"] = json.dumps(session_header)
         
         # Ensure native app headers are present
         headers.update(self._get_native_app_headers())
@@ -703,6 +799,106 @@ class MyVerisureClient:
 
         except Exception as e:
             _LOGGER.error("Direct installation services query failed: %s", e)
+            return {"errors": [{"message": str(e), "data": {}}]}
+
+    async def _execute_alarm_status_check_direct(self, installation_id: str, panel: str, id_service: str, reference_id: str, capabilities: str) -> Dict[str, Any]:
+        """Execute alarm status check query using direct aiohttp request."""
+        if not self._session:
+            raise MyVerisureConnectionError("Client not connected")
+
+        try:
+            # Prepare variables
+            variables = {
+                "numinst": installation_id,
+                "panel": panel,
+                "idService": id_service,
+                "referenceId": reference_id
+            }
+
+            request_data = {
+                "query": CHECK_ALARM_STATUS_QUERY.loc.source.body,
+                "variables": variables
+            }
+
+            # Get session headers (Auth header with token)
+            headers = self._get_session_headers()
+            
+            # Add alarm-specific headers
+            headers["numinst"] = installation_id
+            headers["panel"] = panel
+            headers["x-capabilities"] = capabilities
+
+            _LOGGER.warning("=== ALARM STATUS CHECK REQUEST ===")
+            _LOGGER.warning("URL: %s", VERISURE_GRAPHQL_URL)
+            _LOGGER.warning("Headers: %s", json.dumps(headers, indent=2, default=str))
+            _LOGGER.warning("Request Body: %s", json.dumps(request_data, indent=2, default=str))
+            _LOGGER.warning("Variables: %s", json.dumps(variables, indent=2, default=str))
+            _LOGGER.warning("===================================")
+
+            # Make direct request
+            async with self._session.post(
+                VERISURE_GRAPHQL_URL,
+                json=request_data,
+                headers=headers
+            ) as response:
+                result = await response.json()
+                _LOGGER.warning("=== ALARM STATUS CHECK RESPONSE ===")
+                _LOGGER.warning("Status: %s", response.status)
+                _LOGGER.warning("Response: %s", json.dumps(result, indent=2, default=str))
+                _LOGGER.warning("===================================")
+                return result
+
+        except Exception as e:
+            _LOGGER.error("Direct alarm status check failed: %s", e)
+            return {"errors": [{"message": str(e), "data": {}}]}
+
+    async def _execute_check_alarm_direct(self, installation_id: str, panel: str, capabilities: str) -> Dict[str, Any]:
+        """Execute CheckAlarm query using direct aiohttp request to get referenceId."""
+        if not self._session:
+            raise MyVerisureConnectionError("Client not connected")
+
+        try:
+            # Prepare variables
+            variables = {
+                "numinst": installation_id,
+                "panel": panel
+            }
+
+            request_data = {
+                "query": CHECK_ALARM_QUERY.loc.source.body,
+                "variables": variables
+            }
+
+            # Get session headers (Auth header with token)
+            headers = self._get_session_headers()
+            
+            # Add alarm-specific headers
+            headers["numinst"] = installation_id
+            headers["panel"] = panel
+            headers["x-capabilities"] = capabilities
+
+            _LOGGER.warning("=== CHECK ALARM REQUEST ===")
+            _LOGGER.warning("URL: %s", VERISURE_GRAPHQL_URL)
+            _LOGGER.warning("Headers: %s", json.dumps(headers, indent=2, default=str))
+            _LOGGER.warning("Request Body: %s", json.dumps(request_data, indent=2, default=str))
+            _LOGGER.warning("Variables: %s", json.dumps(variables, indent=2, default=str))
+            _LOGGER.warning("===========================")
+
+            # Make direct request
+            async with self._session.post(
+                VERISURE_GRAPHQL_URL,
+                json=request_data,
+                headers=headers
+            ) as response:
+                result = await response.json()
+                _LOGGER.warning("=== CHECK ALARM RESPONSE ===")
+                _LOGGER.warning("Status: %s", response.status)
+                _LOGGER.warning("Response: %s", json.dumps(result, indent=2, default=str))
+                _LOGGER.warning("============================")
+                return result
+
+        except Exception as e:
+            _LOGGER.error("Direct check alarm failed: %s", e)
             return {"errors": [{"message": str(e), "data": {}}]}
 
     async def login(self) -> bool:
@@ -1264,7 +1460,7 @@ class MyVerisureClient:
             self._cookies = session_data.get("cookies", {})
             self._session_data = session_data.get("session_data", {})
             # Load token from session data first, then fallback to legacy token field
-            self._hash = self._session_data.get("hash") or session_data.get("token")
+            self._hash = self._session_data.get("hash")
             self.user = session_data.get("user", self.user)
             # Load device identifiers if available
             loaded_identifiers = session_data.get("device_identifiers")
@@ -1365,7 +1561,7 @@ class MyVerisureClient:
                 return {
                     "installation": installation,
                     "services": services,
-                    "capabilities": services_data.get("capabilities"),
+                    "capabilities": installation.get("capabilities"),
                     "language": services_data.get("language")
                 }
             else:
@@ -1378,53 +1574,160 @@ class MyVerisureClient:
             _LOGGER.error("Unexpected error getting installation services: %s", e)
             raise MyVerisureError(f"Failed to get installation services: {e}") from e
 
-    async def get_devices(self, installation_id: str) -> list[Dict[str, Any]]:
-        """Get devices for an installation."""
+    async def get_alarm_status(self, installation_id: str, capabilities: str) -> Dict[str, Any]:
+        """Get alarm status from installation services and real-time check."""
+        if not self._hash:
+            raise MyVerisureAuthenticationError("Not authenticated. Please login first.")
+        
+        if not installation_id:
+            raise MyVerisureError("Installation ID is required")
+        
         # Ensure client is connected
         if not self._client:
             _LOGGER.warning("Client not connected, connecting now...")
             await self.connect()
         
-        # TODO: Implement actual devices query
-        # This is a placeholder - you'll need to provide the actual GraphQL query
-        _LOGGER.warning(f"Get devices method called for installation {installation_id} - returning sample data")
+        _LOGGER.info("Getting alarm status for installation %s", installation_id)
         
-        # Return sample data for testing
-        return [
-            {
-                "id": "alarm_panel_1",
-                "type": "ALARM",
-                "status": "DARM",  # Using real My Verisure state
-                "active": False,
-                "battery": 95,
-                "signal": -45,
-            },
-            {
-                "id": "motion_sensor_1",
-                "type": "PIR",
-                "status": "INACTIVE",
-                "active": False,
-                "battery": 87,
-                "signal": -52,
-            },
-            {
-                "id": "door_sensor_1",
-                "type": "DOOR",
-                "status": "CLOSED",
-                "active": False,
-                "battery": 92,
-                "signal": -48,
-            },
-            {
-                "id": "temp_sensor_1",
-                "type": "TEMPERATURE",
-                "status": "ACTIVE",
-                "active": True,
-                "temperature": 22.5,
-                "temperature_unit": "C",
-                "battery": 89,
-                "signal": -50,
-            },
-        ]
+        try:
+            # Get installation services first
+            services_data = await self.get_installation_services(installation_id)
+            services = services_data.get("services", [])
+            installation = services_data.get("installation", {})
+            
+            # Try to get real-time alarm status for EST service
+            try:
+                # Prepare parameters for real-time alarm status check
+                panel = installation.get("panel")
+                
+                # Find EST service for alarm status check
+                est_service = None
+                for service in services:
+                    if service.get("request") == "EST" and service.get("active"):
+                        est_service = service
+                        _LOGGER.info("Found EST service with idService: %s", service.get("idService"))
+                        break
+                
+                if est_service:
+                    service_id = est_service.get("idService")
+                    service_request = est_service.get("request")
+                    
+                    _LOGGER.info("Getting real-time alarm status for EST service: %s (request: %s)", service_id, service_request)
+                    
+                    # First, get the referenceId for the alarm status check
+                    check_alarm_result = await self._execute_check_alarm_direct(installation_id, panel, capabilities)
+                    
+                    # Check for errors in the CheckAlarm response
+                    if "errors" in check_alarm_result:
+                        error = check_alarm_result["errors"][0] if check_alarm_result["errors"] else {}
+                        error_msg = error.get("message", "Unknown error")
+                        _LOGGER.error("Failed to get referenceId: %s", error_msg)
+                        return self._get_default_alarm_status()
+                    
+                    # Check for successful response
+                    data = check_alarm_result.get("data", {})
+                    check_alarm_data = data.get("xSCheckAlarm", {})
+                    
+                    if check_alarm_data.get("res") != "OK":
+                        error_msg = check_alarm_data.get("msg", "Unknown error")
+                        _LOGGER.warning("Could not get referenceId for real-time alarm status check: %s", error_msg)
+                        return self._get_default_alarm_status()
+                    
+                    reference_id = check_alarm_data.get("referenceId")
+                    if not reference_id:
+                        _LOGGER.warning("No referenceId received from CheckAlarm query")
+                        return self._get_default_alarm_status()
+                    
+                    _LOGGER.info("Obtained referenceId: %s", reference_id)
 
- 
+                    alarm_message = await self._get_real_time_alarm_status(
+                        numinst=installation_id,
+                        panel=panel,
+                        id_service=service_id,
+                        reference_id=reference_id,
+                        capabilities=capabilities,
+                    )
+                    
+                    # Process the alarm message and return the structured response
+                    if alarm_message:
+                        _LOGGER.info("Received alarm message: %s", alarm_message)
+                        return self._process_alarm_message(alarm_message)
+                    else:
+                        _LOGGER.warning("No alarm message received")
+                        return self._get_default_alarm_status()
+                else:
+                    _LOGGER.warning("EST service not found or not active, cannot get real-time status")
+                    return self._get_default_alarm_status()
+                    
+            except Exception as e:
+                _LOGGER.warning("Error getting real-time alarm status: %s, using service-based status", e)
+                return self._get_default_alarm_status()
+            
+        except MyVerisureError:
+            raise
+        except Exception as e:
+            _LOGGER.error("Unexpected error getting alarm status: %s", e)
+            raise MyVerisureError(f"Failed to get alarm status: {e}") from e
+
+    async def _get_real_time_alarm_status(self, numinst: str, panel: str, id_service: str, reference_id: str, capabilities: str) -> str:
+        """Get real-time alarm status using the CheckAlarmStatus query with polling."""
+        try:
+            _LOGGER.info("Getting real-time alarm status with numinst: %s, panel: %s, idService: %s, referenceId: %s", 
+                        numinst, panel, id_service, reference_id)
+            
+            # Poll for alarm status with retries
+            max_retries = 10  # Maximum number of retries
+            retry_count = 0
+            
+            while retry_count < max_retries:
+                # Execute the alarm status check query
+                result = await self._execute_alarm_status_check_direct(
+                    installation_id=numinst,
+                    panel=panel,
+                    id_service=id_service,
+                    reference_id=reference_id,
+                    capabilities=capabilities
+                )
+                
+                # Check for errors
+                if "errors" in result:
+                    error = result["errors"][0] if result["errors"] else {}
+                    error_msg = error.get("message", "Unknown error")
+                    _LOGGER.error("Real-time alarm status check failed: %s", error_msg)
+                    return {}
+                
+                # Check for successful response
+                data = result.get("data", {})
+                alarm_status_data = data.get("xSCheckAlarmStatus", {})
+                res = alarm_status_data.get("res", "Unknown")
+                msg = alarm_status_data.get("msg", "Unknown")
+                
+                _LOGGER.debug("Alarm status check attempt %d: res=%s, msg=%s", retry_count + 1, res, msg)
+                
+                if res == "OK":                    
+                    return msg
+                    
+                elif res == "KO":
+                    # Failed
+                    error_msg = alarm_status_data.get("msg", "Unknown error")
+                    _LOGGER.error("Real-time alarm status check failed: %s", error_msg)
+                    return msg
+                    
+                elif res == "WAIT":
+                    # Need to wait and retry
+                    retry_count += 1
+                    if retry_count < max_retries:
+                        _LOGGER.debug("Alarm status check returned WAIT, waiting 2 seconds before retry %d", retry_count + 1)
+                        await asyncio.sleep(5)  # Wait 2 seconds before retry
+                    else:
+                        _LOGGER.warning("Max retries reached for alarm status check")
+                        return None
+                else:
+                    # Unknown response
+                    _LOGGER.warning("Unknown response from alarm status check: res=%s, msg=%s", res, msg)
+                    return None
+                
+        except Exception as e:
+            _LOGGER.error("Unexpected error getting real-time alarm status: %s", e)
+            return None
+

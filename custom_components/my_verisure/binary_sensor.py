@@ -16,44 +16,6 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import DOMAIN, LOGGER
 from .coordinator import MyVerisureDataUpdateCoordinator
 
-# Device type to device class mapping
-DEVICE_TYPE_TO_CLASS = {
-    "PIR": BinarySensorDeviceClass.MOTION,
-    "DOOR": BinarySensorDeviceClass.DOOR,
-    "WINDOW": BinarySensorDeviceClass.WINDOW,
-    "SMOKE": BinarySensorDeviceClass.SMOKE,
-    "WATER": BinarySensorDeviceClass.MOISTURE,
-    "GLASS": BinarySensorDeviceClass.SOUND,
-    "VIBRATION": BinarySensorDeviceClass.VIBRATION,
-    "GAS": BinarySensorDeviceClass.GAS,
-    "HEAT": BinarySensorDeviceClass.HEAT,
-    "MOTION": BinarySensorDeviceClass.MOTION,
-    "OCCUPANCY": BinarySensorDeviceClass.OCCUPANCY,
-    "OPENING": BinarySensorDeviceClass.OPENING,
-    "PRESENCE": BinarySensorDeviceClass.PRESENCE,
-    "SIREN": BinarySensorDeviceClass.SOUND,
-    "TAMPER": BinarySensorDeviceClass.TAMPER,
-}
-
-# Device type to friendly name mapping
-DEVICE_TYPE_TO_NAME = {
-    "PIR": "Motion Detector",
-    "DOOR": "Door Sensor",
-    "WINDOW": "Window Sensor",
-    "SMOKE": "Smoke Detector",
-    "WATER": "Water Leak Detector",
-    "GLASS": "Glass Break Detector",
-    "VIBRATION": "Vibration Sensor",
-    "GAS": "Gas Detector",
-    "HEAT": "Heat Detector",
-    "MOTION": "Motion Sensor",
-    "OCCUPANCY": "Occupancy Sensor",
-    "OPENING": "Opening Sensor",
-    "PRESENCE": "Presence Sensor",
-    "SIREN": "Siren",
-    "TAMPER": "Tamper Sensor",
-}
-
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -67,63 +29,64 @@ async def async_setup_entry(
 
     entities = []
 
-    # Get door/window sensors
-    door_window_devices = coordinator.data.get("door_window", {})
-    for device_id, device_data in door_window_devices.items():
-        device_type = device_data.get("type", "UNKNOWN")
-        device_class = DEVICE_TYPE_TO_CLASS.get(device_type, BinarySensorDeviceClass.OPENING)
-        
-        entities.append(
-            MyVerisureBinarySensor(
-                coordinator,
-                config_entry,
-                device_id,
-                device_data,
-                device_class,
-                f"{DEVICE_TYPE_TO_NAME.get(device_type, device_type)} {device_id}",
-            )
-        )
-
-    # Get motion sensors
-    motion_devices = coordinator.data.get("sensors", {})
-    for device_id, device_data in motion_devices.items():
-        device_type = device_data.get("type", "UNKNOWN")
-        if device_type in ["PIR", "MOTION"]:
-            device_class = BinarySensorDeviceClass.MOTION
-            entities.append(
-                MyVerisureBinarySensor(
-                    coordinator,
-                    config_entry,
-                    device_id,
-                    device_data,
-                    device_class,
-                    f"Motion Detector {device_id}",
-                )
-            )
+    # Create alarm status binary sensors
+    entities.extend([
+        # Binary sensor para alarma interna día
+        MyVerisureAlarmBinarySensor(
+            coordinator,
+            config_entry,
+            "internal_day",
+            "Alarma Interna Día",
+            BinarySensorDeviceClass.SAFETY,
+        ),
+        # Binary sensor para alarma interna noche
+        MyVerisureAlarmBinarySensor(
+            coordinator,
+            config_entry,
+            "internal_night",
+            "Alarma Interna Noche",
+            BinarySensorDeviceClass.SAFETY,
+        ),
+        # Binary sensor para alarma interna total
+        MyVerisureAlarmBinarySensor(
+            coordinator,
+            config_entry,
+            "internal_total",
+            "Alarma Interna Total",
+            BinarySensorDeviceClass.SAFETY,
+        ),
+        # Binary sensor para alarma externa
+        MyVerisureAlarmBinarySensor(
+            coordinator,
+            config_entry,
+            "external",
+            "Alarma Externa",
+            BinarySensorDeviceClass.SAFETY,
+        ),
+    ])
 
     async_add_entities(entities)
 
 
-class MyVerisureBinarySensor(BinarySensorEntity):
-    """Representation of a My Verisure binary sensor."""
+class MyVerisureAlarmBinarySensor(BinarySensorEntity):
+    """Representation of My Verisure alarm binary sensor."""
 
     def __init__(
         self,
         coordinator: MyVerisureDataUpdateCoordinator,
         config_entry: ConfigEntry,
-        device_id: str,
-        device_data: dict[str, Any],
-        device_class: BinarySensorDeviceClass,
+        sensor_id: str,
         friendly_name: str,
+        device_class: BinarySensorDeviceClass,
     ) -> None:
-        """Initialize the binary sensor."""
+        """Initialize the alarm binary sensor."""
         self.coordinator = coordinator
         self.config_entry = config_entry
-        self.device_id = device_id
-        self.device_data = device_data
-        self._attr_device_class = device_class
+        self.sensor_id = sensor_id
+        
         self._attr_name = friendly_name
-        self._attr_unique_id = f"{config_entry.entry_id}_{device_id}"
+        self._attr_unique_id = f"{config_entry.entry_id}_alarm_{sensor_id}"
+        self._attr_device_class = device_class
         self._attr_should_poll = False
 
     @property
@@ -132,59 +95,42 @@ class MyVerisureBinarySensor(BinarySensorEntity):
         if not self.coordinator.data:
             return None
 
-        # Get the latest device data
-        device_data = self._get_device_data()
-        if not device_data:
+        alarm_status = self.coordinator.data.get("alarm_status", {})
+        if not alarm_status:
             return None
 
-        # Check if device is triggered/active
-        status = device_data.get("status", "UNKNOWN")
-        is_active = device_data.get("active", False)
+        # Obtener el estado específico según el sensor_id
+        if self.sensor_id == "internal_day":
+            return alarm_status.get("internal", {}).get("day", {}).get("status", False)
+        elif self.sensor_id == "internal_night":
+            return alarm_status.get("internal", {}).get("night", {}).get("status", False)
+        elif self.sensor_id == "internal_total":
+            return alarm_status.get("internal", {}).get("total", {}).get("status", False)
+        elif self.sensor_id == "external":
+            return alarm_status.get("external", {}).get("status", False)
         
-        LOGGER.warning("Binary sensor %s: status=%s, active=%s", 
-                      self.device_id, status, is_active)
-        
-        # Consider device "on" if it's triggered or active
-        return status.upper() in ["TRIGGERED", "ACTIVE", "OPEN", "MOTION"] or is_active
+        return None
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
-        device_data = self._get_device_data()
-        if not device_data:
+        if not self.coordinator.data:
+            return {}
+
+        alarm_status = self.coordinator.data.get("alarm_status", {})
+        if not alarm_status:
             return {}
 
         return {
-            "device_id": self.device_id,
-            "device_type": device_data.get("type", "Unknown"),
-            "status": device_data.get("status", "Unknown"),
-            "active": device_data.get("active", False),
-            "battery_level": device_data.get("battery", None),
-            "signal_strength": device_data.get("signal", None),
+            "sensor_type": self.sensor_id,
             "installation_id": self.config_entry.data.get("installation_id", "Unknown"),
+            "last_updated": self.coordinator.data.get("last_updated"),
         }
-
-    def _get_device_data(self) -> dict[str, Any] | None:
-        """Get the current device data from coordinator."""
-        if not self.coordinator.data:
-            return None
-
-        # Look in door_window devices
-        door_window_devices = self.coordinator.data.get("door_window", {})
-        if self.device_id in door_window_devices:
-            return door_window_devices[self.device_id]
-
-        # Look in sensors
-        sensors = self.coordinator.data.get("sensors", {})
-        if self.device_id in sensors:
-            return sensors[self.device_id]
-
-        return None
 
     @property
     def available(self) -> bool:
         """Return True if entity is available."""
-        return self.coordinator.last_update_success and self._get_device_data() is not None
+        return self.coordinator.last_update_success
 
     async def async_added_to_hass(self) -> None:
         """When entity is added to hass."""
