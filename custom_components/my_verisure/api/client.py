@@ -228,7 +228,7 @@ class MyVerisureClient:
         # Cache for installation services
         self._installation_services_cache: Dict[str, Dict[str, Any]] = {}
         self._cache_timestamps: Dict[str, float] = {}
-        self._cache_ttl: int = 3600  # 1 hour default TTL
+        self._cache_ttl: int = 540  # 9 minutes default TTL
 
     async def __aenter__(self):
         """Async context manager entry."""
