@@ -23,6 +23,15 @@ El control panel principal muestra el estado de mayor prioridad según esta jera
 3. **ARMED_HOME** (Armado Casa): Cuando está activa la "Interna Día" o "Externa"
 4. **DISARMED** (Desarmado): Cuando no hay alarmas activas
 
+### Estados Intermedios
+
+El control panel también muestra estados intermedios para proporcionar feedback visual durante las operaciones:
+
+- **ARMING** (Armando): Se muestra mientras se está armando la alarma
+- **DISARMING** (Desarmando): Se muestra mientras se está desarmando la alarma
+
+Estos estados aparecen inmediatamente cuando presionas un botón y desaparecen cuando la operación se completa o falla.
+
 ## Entidades Disponibles
 
 ### 1. Control Panel Principal
@@ -190,6 +199,80 @@ automation:
                   entity_id: light.living_room
                 data:
                   rgb_color: [255, 165, 0]  # Naranja
+```
+
+### Feedback visual durante operaciones de alarma
+```yaml
+automation:
+  - alias: "Feedback durante Armado"
+    trigger:
+      platform: state
+      entity_id: alarm_control_panel.my_verisure_alarm
+      to: "arming"
+    action:
+      - service: light.turn_on
+        target:
+          entity_id: light.status_light
+        data:
+          rgb_color: [255, 255, 0]  # Amarillo
+          brightness: 255
+      - service: tts.cloud_say
+        data:
+          message: "Armando alarma, por favor espere"
+
+  - alias: "Feedback durante Desarmado"
+    trigger:
+      platform: state
+      entity_id: alarm_control_panel.my_verisure_alarm
+      to: "disarming"
+    action:
+      - service: light.turn_on
+        target:
+          entity_id: light.status_light
+        data:
+          rgb_color: [0, 255, 0]  # Verde
+          brightness: 255
+      - service: tts.cloud_say
+        data:
+          message: "Desarmando alarma"
+
+  - alias: "Restaurar iluminación después de operación"
+    trigger:
+      platform: state
+      entity_id: alarm_control_panel.my_verisure_alarm
+      from: 
+        - "arming"
+        - "disarming"
+    action:
+      - service: light.turn_off
+        target:
+          entity_id: light.status_light
+```
+
+### Notificación de progreso
+```yaml
+automation:
+  - alias: "Notificar inicio de armado"
+    trigger:
+      platform: state
+      entity_id: alarm_control_panel.my_verisure_alarm
+      to: "arming"
+    action:
+      - service: notify.mobile_app
+        data:
+          title: "Alarma"
+          message: "🔄 Armando alarma..."
+
+  - alias: "Notificar inicio de desarmado"
+    trigger:
+      platform: state
+      entity_id: alarm_control_panel.my_verisure_alarm
+      to: "disarming"
+    action:
+      - service: notify.mobile_app
+        data:
+          title: "Alarma"
+          message: "🔄 Desarmando alarma..."
 ```
 
 ## Solución de Problemas
