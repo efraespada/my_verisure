@@ -1834,6 +1834,7 @@ class MyVerisureClient:
             # Get installation services to get the panel info
             services_data = await self.get_installation_services(installation_id)
             panel = services_data.get("installation", {}).get("panel", "")
+            capabilities = services_data.get("capabilities", "")
             
             if not panel:
                 _LOGGER.error("No panel information found for installation %s", installation_id)
