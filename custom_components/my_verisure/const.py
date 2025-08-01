@@ -13,9 +13,10 @@ CONF_PASSWORD = "password"
 CONF_INSTALLATION_ID = "installation_id"
 CONF_PHONE_ID = "phone_id"
 CONF_OTP_CODE = "otp_code"
+CONF_SCAN_INTERVAL = "scan_interval"
 
 # Default values
-DEFAULT_SCAN_INTERVAL = timedelta(minutes=1)
+DEFAULT_SCAN_INTERVAL = timedelta(minutes=3)
 
 # API endpoints
 VERISURE_GRAPHQL_URL = "https://customers.securitasdirect.es/owa-api/graphql"

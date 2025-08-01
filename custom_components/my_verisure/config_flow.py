@@ -24,7 +24,7 @@ from .api.exceptions import (
     MyVerisureOTPError,
     MyVerisureDeviceAuthorizationError,
 )
-from .const import CONF_INSTALLATION_ID, CONF_USER, CONF_PHONE_ID, CONF_OTP_CODE, DOMAIN, LOGGER
+from .const import CONF_INSTALLATION_ID, CONF_USER, CONF_PHONE_ID, CONF_OTP_CODE, DOMAIN, LOGGER, CONF_SCAN_INTERVAL
 
 
 class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
@@ -287,6 +287,7 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                     CONF_USER: self.user,
                     CONF_PASSWORD: self.password,
                     CONF_INSTALLATION_ID: user_input[CONF_INSTALLATION_ID],
+                    CONF_SCAN_INTERVAL: 3,
                 },
             )
         except MyVerisureError as ex:
@@ -366,5 +367,13 @@ class MyVerisureOptionsFlowHandler(OptionsFlow):
 
         return self.async_show_form(
             step_id="init",
-            data_schema=vol.Schema({}),
+            data_schema=vol.Schema({
+                vol.Required(
+                    CONF_SCAN_INTERVAL,
+                    default=self.config_entry.data.get(CONF_SCAN_INTERVAL, 3)
+                ): vol.All(
+                    vol.Coerce(int),
+                    vol.Range(min=3, max=10)
+                ),
+            }),
         ) 

@@ -6,6 +6,7 @@ import json
 import logging
 import time
 from typing import Any, Dict
+from datetime import timedelta
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_PASSWORD
@@ -21,7 +22,7 @@ from .api.exceptions import (
     MyVerisureError,
     MyVerisureOTPError,
 )
-from .const import CONF_INSTALLATION_ID, CONF_USER, DEFAULT_SCAN_INTERVAL, DOMAIN, LOGGER
+from .const import CONF_INSTALLATION_ID, CONF_USER, DEFAULT_SCAN_INTERVAL, DOMAIN, LOGGER, CONF_SCAN_INTERVAL
 
 
 class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
@@ -47,12 +48,16 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         # Store session file path for later loading
         self.session_file = session_file
 
+        # Get scan interval from config entry
+        scan_interval_minutes = entry.data.get(CONF_SCAN_INTERVAL, 3)
+        scan_interval = timedelta(minutes=scan_interval_minutes)
+
         super().__init__(
             hass,
             LOGGER,
             config_entry=entry,
             name=DOMAIN,
-            update_interval=DEFAULT_SCAN_INTERVAL,
+            update_interval=scan_interval,
         )
 
     async def async_login(self) -> bool:
