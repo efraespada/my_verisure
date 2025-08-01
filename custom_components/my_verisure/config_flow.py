@@ -281,14 +281,16 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
             except Exception as e:
                 LOGGER.error("Failed to save session: %s", e)
 
+            config_data = {
+                CONF_USER: self.user,
+                CONF_PASSWORD: self.password,
+                CONF_INSTALLATION_ID: user_input[CONF_INSTALLATION_ID],
+                CONF_SCAN_INTERVAL: DEFAULT_SCAN_INTERVAL,
+            }
+            LOGGER.warning("Creating config entry with data: %s", config_data)
             return self.async_create_entry(
                 title=installations[user_input[CONF_INSTALLATION_ID]],
-                data={
-                    CONF_USER: self.user,
-                    CONF_PASSWORD: self.password,
-                    CONF_INSTALLATION_ID: user_input[CONF_INSTALLATION_ID],
-                    CONF_SCAN_INTERVAL: DEFAULT_SCAN_INTERVAL,
-                },
+                data=config_data,
             )
         except MyVerisureError as ex:
             LOGGER.error("Failed to get installations: %s", ex)
@@ -338,6 +340,7 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                     data_updates={
                         CONF_USER: user_input[CONF_USER],
                         CONF_PASSWORD: user_input[CONF_PASSWORD],
+                        CONF_SCAN_INTERVAL: self._get_reauth_entry().data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
                     },
                 )
 
@@ -363,14 +366,19 @@ class MyVerisureOptionsFlowHandler(OptionsFlow):
     ) -> ConfigFlowResult:
         """Manage My Verisure options."""
         if user_input is not None:
+            LOGGER.warning("Saving options: %s", user_input)
             return self.async_create_entry(data=user_input)
 
+        current_value = self.config_entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+        LOGGER.warning("Current scan_interval value: %s (type: %s), default: %s (type: %s)", 
+                      current_value, type(current_value), DEFAULT_SCAN_INTERVAL, type(DEFAULT_SCAN_INTERVAL))
+        
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema({
                 vol.Required(
                     CONF_SCAN_INTERVAL,
-                    default=self.config_entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+                    default=current_value
                 ): vol.All(
                     vol.Coerce(int),
                     vol.Range(min=9, max=60)
