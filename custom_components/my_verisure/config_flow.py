@@ -281,16 +281,14 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
             except Exception as e:
                 LOGGER.error("Failed to save session: %s", e)
 
-            config_data = {
-                CONF_USER: self.user,
-                CONF_PASSWORD: self.password,
-                CONF_INSTALLATION_ID: user_input[CONF_INSTALLATION_ID],
-                CONF_SCAN_INTERVAL: DEFAULT_SCAN_INTERVAL,
-            }
-            LOGGER.warning("Creating config entry with data: %s", config_data)
             return self.async_create_entry(
                 title=installations[user_input[CONF_INSTALLATION_ID]],
-                data=config_data,
+                data={
+                    CONF_USER: self.user,
+                    CONF_PASSWORD: self.password,
+                    CONF_INSTALLATION_ID: user_input[CONF_INSTALLATION_ID],
+                    CONF_SCAN_INTERVAL: DEFAULT_SCAN_INTERVAL,
+                },
             )
         except MyVerisureError as ex:
             LOGGER.error("Failed to get installations: %s", ex)
@@ -366,12 +364,17 @@ class MyVerisureOptionsFlowHandler(OptionsFlow):
     ) -> ConfigFlowResult:
         """Manage My Verisure options."""
         if user_input is not None:
-            LOGGER.warning("Saving options: %s", user_input)
             return self.async_create_entry(data=user_input)
 
-        current_value = self.config_entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
-        LOGGER.warning("Current scan_interval value: %s (type: %s), default: %s (type: %s)", 
-                      current_value, type(current_value), DEFAULT_SCAN_INTERVAL, type(DEFAULT_SCAN_INTERVAL))
+        # Check both options and data for the scan interval
+        current_value = (
+            self.config_entry.options.get(CONF_SCAN_INTERVAL) or 
+            self.config_entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+        )
+        LOGGER.warning("Options: %s, Data: %s, Current value: %s", 
+                      self.config_entry.options.get(CONF_SCAN_INTERVAL), 
+                      self.config_entry.data.get(CONF_SCAN_INTERVAL), 
+                      current_value)
         
         return self.async_show_form(
             step_id="init",
