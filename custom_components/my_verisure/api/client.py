@@ -1401,7 +1401,7 @@ class MyVerisureClient:
         session_data = {
             "cookies": self._cookies,
             "session_data": self._session_data,
-            "token": self._hash,  # Keep for backward compatibility
+            "hash": self._hash,  # Keep for backward compatibility
             "user": self.user,
             "device_identifiers": self._device_identifiers,
             "saved_time": int(time.time())
