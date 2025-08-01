@@ -99,15 +99,15 @@ class MyVerisureAlarmBinarySensor(BinarySensorEntity):
         if not alarm_status:
             return None
 
-        # Obtener el estado específico según el sensor_id
+        # Obtener el estado específico según el sensor_id e invertir la lógica
         if self.sensor_id == "internal_day":
-            return alarm_status.get("internal", {}).get("day", {}).get("status", False)
+            return not alarm_status.get("internal", {}).get("day", {}).get("status", False)
         elif self.sensor_id == "internal_night":
-            return alarm_status.get("internal", {}).get("night", {}).get("status", False)
+            return not alarm_status.get("internal", {}).get("night", {}).get("status", False)
         elif self.sensor_id == "internal_total":
-            return alarm_status.get("internal", {}).get("total", {}).get("status", False)
+            return not alarm_status.get("internal", {}).get("total", {}).get("status", False)
         elif self.sensor_id == "external":
-            return alarm_status.get("external", {}).get("status", False)
+            return not alarm_status.get("external", {}).get("status", False)
         
         return None
 
