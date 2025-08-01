@@ -102,6 +102,62 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
         else:
             return "My Verisure Alarm"
 
+    def _analyze_alarm_states(self, alarm_data: dict) -> tuple[AlarmControlPanelState, dict]:
+        """
+        Analyze alarm data and return the primary state and detailed state information.
+        
+        Returns:
+            tuple: (primary_state, detailed_states_dict)
+        """
+        if not alarm_data:
+            return AlarmControlPanelState.DISARMED, {}
+        
+        # Parse the JSON structure with internal/external sections
+        internal = alarm_data.get("internal", {})
+        external = alarm_data.get("external", {})
+        
+        # Check internal states
+        internal_day = internal.get("day", {}).get("status", False)
+        internal_night = internal.get("night", {}).get("status", False)
+        internal_total = internal.get("total", {}).get("status", False)
+        
+        # Check external state
+        external_status = external.get("status", False)
+        
+        # Create detailed state information
+        detailed_states = {
+            "internal_day": internal_day,
+            "internal_night": internal_night,
+            "internal_total": internal_total,
+            "external": external_status,
+            "active_alarms": []
+        }
+        
+        # Determine which alarms are active
+        if internal_total:
+            detailed_states["active_alarms"].append("Internal Total")
+        if internal_day:
+            detailed_states["active_alarms"].append("Internal Day")
+        if internal_night:
+            detailed_states["active_alarms"].append("Internal Night")
+        if external_status:
+            detailed_states["active_alarms"].append("External")
+        
+        # Determine primary state based on priority
+        # Priority order: Total > Night > Day > External > Disarmed
+        if internal_total:
+            primary_state = AlarmControlPanelState.ARMED_AWAY
+        elif internal_night:
+            primary_state = AlarmControlPanelState.ARMED_NIGHT
+        elif internal_day:
+            primary_state = AlarmControlPanelState.ARMED_HOME
+        elif external_status:
+            primary_state = AlarmControlPanelState.ARMED_HOME  # Map external to home
+        else:
+            primary_state = AlarmControlPanelState.DISARMED
+        
+        return primary_state, detailed_states
+
     @property
     def alarm_state(self) -> AlarmControlPanelState | None:
         """Return the state of the alarm."""
@@ -112,49 +168,12 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
         alarm_data = self.coordinator.data.get("alarm_status", {})
         LOGGER.warning("Raw alarm data: %s", alarm_data)
         
-        # Parse the JSON structure with internal/external sections
-        internal = alarm_data.get("internal", {})
-        external = alarm_data.get("external", {})
+        primary_state, detailed_states = self._analyze_alarm_states(alarm_data)
         
-        LOGGER.warning("Internal data: %s", internal)
-        LOGGER.warning("External data: %s", external)
+        LOGGER.warning("Primary state: %s", primary_state)
+        LOGGER.warning("Active alarms: %s", detailed_states.get("active_alarms", []))
         
-        # Check internal states
-        internal_day = internal.get("day", {}).get("status", False)
-        internal_night = internal.get("night", {}).get("status", False)
-        internal_total = internal.get("total", {}).get("status", False)
-        
-        # Check external state
-        external_status = external.get("status", False)
-        
-        LOGGER.warning("Parsed states - Internal Day: %s, Night: %s, Total: %s, External: %s", 
-                      internal_day, internal_night, internal_total, external_status)
-        
-        # Determine the overall state based on the JSON structure
-        if internal_total:
-            # Total internal armed (away mode)
-            ha_state = AlarmControlPanelState.ARMED_AWAY
-            LOGGER.warning("State determined: ARMED_AWAY (internal total)")
-        elif internal_day:
-            # Day internal armed (home mode)
-            ha_state = AlarmControlPanelState.ARMED_NIGHT
-            LOGGER.warning("State determined: ARMED_NIGHT (internal day)")
-        elif internal_night:
-            # Night internal armed (night mode)
-            ha_state = AlarmControlPanelState.ARMED_NIGHT
-            LOGGER.warning("State determined: ARMED_NIGHT (internal night)")
-        elif external_status:
-            # Only external armed (perimeter mode - map to home)
-            ha_state = AlarmControlPanelState.ARMED_HOME
-            LOGGER.warning("State determined: ARMED_HOME (external only)")
-        else:
-            # Nothing armed
-            ha_state = AlarmControlPanelState.DISARMED
-            LOGGER.warning("State determined: DISARMED (nothing armed)")
-        
-        LOGGER.warning("Final HA state: %s", ha_state)
-        
-        return ha_state
+        return primary_state
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -164,24 +183,31 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
 
         alarm_data = self.coordinator.data.get("alarm_status", {})
         
-        # Parse the JSON structure with internal/external sections
-        internal = alarm_data.get("internal", {})
-        external = alarm_data.get("external", {})
+        # Get detailed state analysis
+        _, detailed_states = self._analyze_alarm_states(alarm_data)
         
         # Get installation info from services
         services_data = self.coordinator.data.get("services", {})
         installation_info = services_data.get("installation", {})
         
-        return {
-            "internal_day_status": internal.get("day", {}).get("status", False),
-            "internal_night_status": internal.get("night", {}).get("status", False),
-            "internal_total_status": internal.get("total", {}).get("status", False),
-            "external_status": external.get("status", False),
+        attributes = {
             "installation_id": self.config_entry.data.get("installation_id", "Unknown"),
             "installation_alias": installation_info.get("alias", "Unknown"),
             "installation_status": installation_info.get("status", "Unknown"),
             "installation_panel": installation_info.get("panel", "Unknown"),
         }
+        
+        # Add detailed alarm state information
+        attributes.update({
+            "internal_day_status": detailed_states.get("internal_day", False),
+            "internal_night_status": detailed_states.get("internal_night", False),
+            "internal_total_status": detailed_states.get("internal_total", False),
+            "external_status": detailed_states.get("external", False),
+            "active_alarms": detailed_states.get("active_alarms", []),
+            "alarm_count": len(detailed_states.get("active_alarms", [])),
+        })
+        
+        return attributes
 
     async def async_alarm_disarm(self, code: str | None = None) -> None:
         """Send disarm command."""

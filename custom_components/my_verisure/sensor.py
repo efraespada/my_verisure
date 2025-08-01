@@ -40,6 +40,13 @@ async def async_setup_entry(
             "alarm_status",
             "Estado General de Alarma",
         ),
+        # Sensor de Alarmas Activas
+        MyVerisureActiveAlarmsSensor(
+            coordinator,
+            config_entry,
+            "active_alarms",
+            "Alarmas Activas",
+        ),
         # Sensor de Última Actualización
         MyVerisureLastUpdatedSensor(
             coordinator,
@@ -128,6 +135,119 @@ class MyVerisureAlarmStatusSensor(SensorEntity):
             "internal_night_status": internal.get("night", {}).get("status", False),
             "internal_total_status": internal.get("total", {}).get("status", False),
             "external_status": external.get("status", False),
+            "installation_id": self.config_entry.data.get("installation_id", "Unknown"),
+        }
+
+    @property
+    def available(self) -> bool:
+        """Return True if entity is available."""
+        return self.coordinator.last_update_success
+
+    async def async_added_to_hass(self) -> None:
+        """When entity is added to hass."""
+        await super().async_added_to_hass()
+        self.async_on_remove(
+            self.coordinator.async_add_listener(self.async_write_ha_state)
+        )
+
+
+class MyVerisureActiveAlarmsSensor(SensorEntity):
+    """Representation of My Verisure active alarms sensor."""
+
+    def __init__(
+        self,
+        coordinator: MyVerisureDataUpdateCoordinator,
+        config_entry: ConfigEntry,
+        sensor_id: str,
+        friendly_name: str,
+    ) -> None:
+        """Initialize the active alarms sensor."""
+        self.coordinator = coordinator
+        self.config_entry = config_entry
+        self.sensor_id = sensor_id
+        
+        self._attr_name = friendly_name
+        self._attr_unique_id = f"{config_entry.entry_id}_{sensor_id}"
+        self._attr_device_class = None
+        self._attr_state_class = None
+        self._attr_should_poll = False
+
+    @property
+    def native_value(self) -> str | None:
+        """Return the state of the sensor."""
+        if not self.coordinator.data:
+            return "Sin datos"
+
+        alarm_status = self.coordinator.data.get("alarm_status", {})
+        if not alarm_status:
+            return "Desconectado"
+
+        # Analizar el estado de la alarma
+        internal = alarm_status.get("internal", {})
+        external = alarm_status.get("external", {})
+        
+        # Determinar qué alarmas están activas
+        active_alarms = []
+        
+        internal_day = internal.get("day", {}).get("status", False)
+        internal_night = internal.get("night", {}).get("status", False)
+        internal_total = internal.get("total", {}).get("status", False)
+        external_status = external.get("status", False)
+        
+        if internal_total:
+            active_alarms.append("Interna Total")
+        if internal_day:
+            active_alarms.append("Interna Día")
+        if internal_night:
+            active_alarms.append("Interna Noche")
+        if external_status:
+            active_alarms.append("Externa")
+        
+        if not active_alarms:
+            return "Desconectado"
+        elif len(active_alarms) == 1:
+            return active_alarms[0]
+        else:
+            return f"Múltiples ({len(active_alarms)})"
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return the state attributes."""
+        if not self.coordinator.data:
+            return {}
+
+        alarm_status = self.coordinator.data.get("alarm_status", {})
+        if not alarm_status:
+            return {}
+
+        # Analizar el estado de la alarma
+        internal = alarm_status.get("internal", {})
+        external = alarm_status.get("external", {})
+        
+        # Determinar qué alarmas están activas
+        active_alarms = []
+        
+        internal_day = internal.get("day", {}).get("status", False)
+        internal_night = internal.get("night", {}).get("status", False)
+        internal_total = internal.get("total", {}).get("status", False)
+        external_status = external.get("status", False)
+        
+        if internal_total:
+            active_alarms.append("Interna Total")
+        if internal_day:
+            active_alarms.append("Interna Día")
+        if internal_night:
+            active_alarms.append("Interna Noche")
+        if external_status:
+            active_alarms.append("Externa")
+        
+        return {
+            "active_alarms": active_alarms,
+            "alarm_count": len(active_alarms),
+            "internal_day_active": internal_day,
+            "internal_night_active": internal_night,
+            "internal_total_active": internal_total,
+            "external_active": external_status,
             "installation_id": self.config_entry.data.get("installation_id", "Unknown"),
         }
 
