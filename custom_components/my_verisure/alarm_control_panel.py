@@ -104,16 +104,21 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
         return f"My Verisure Alarm ({alias})"
 
     @property
-    def state(self) -> str | None:
+    def alarm_state(self) -> AlarmControlPanelState | None:
         """Return the state of the alarm."""
         if not self.coordinator.data:
+            LOGGER.warning("No coordinator data available")
             return None
 
-        alarm_data = self.coordinator.data.get("alarm", {})
+        alarm_data = self.coordinator.data.get("alarm_status", {})
+        LOGGER.warning("Raw alarm data: %s", alarm_data)
         
         # Parse the JSON structure with internal/external sections
         internal = alarm_data.get("internal", {})
         external = alarm_data.get("external", {})
+        
+        LOGGER.warning("Internal data: %s", internal)
+        LOGGER.warning("External data: %s", external)
         
         # Check internal states
         internal_day = internal.get("day", {}).get("status", False)
@@ -123,27 +128,32 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
         # Check external state
         external_status = external.get("status", False)
         
-        LOGGER.warning("Alarm states - Internal Day: %s, Night: %s, Total: %s, External: %s", 
+        LOGGER.warning("Parsed states - Internal Day: %s, Night: %s, Total: %s, External: %s", 
                       internal_day, internal_night, internal_total, external_status)
         
         # Determine the overall state based on the JSON structure
         if internal_total:
             # Total internal armed (away mode)
             ha_state = AlarmControlPanelState.ARMED_AWAY
+            LOGGER.warning("State determined: ARMED_AWAY (internal total)")
         elif internal_day:
             # Day internal armed (home mode)
-            ha_state = AlarmControlPanelState.ARMED_HOME
+            ha_state = AlarmControlPanelState.ARMED_NIGHT
+            LOGGER.warning("State determined: ARMED_NIGHT (internal day)")
         elif internal_night:
             # Night internal armed (night mode)
             ha_state = AlarmControlPanelState.ARMED_NIGHT
+            LOGGER.warning("State determined: ARMED_NIGHT (internal night)")
         elif external_status:
-            # Only external armed (perimeter mode - map to away)
-            ha_state = AlarmControlPanelState.ARMED_AWAY
+            # Only external armed (perimeter mode - map to home)
+            ha_state = AlarmControlPanelState.ARMED_HOME
+            LOGGER.warning("State determined: ARMED_HOME (external only)")
         else:
             # Nothing armed
             ha_state = AlarmControlPanelState.DISARMED
+            LOGGER.warning("State determined: DISARMED (nothing armed)")
         
-        LOGGER.warning("Mapped to HA state: %s", ha_state)
+        LOGGER.warning("Final HA state: %s", ha_state)
         
         return ha_state
 
@@ -153,7 +163,7 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
         if not self.coordinator.data:
             return {}
 
-        alarm_data = self.coordinator.data.get("alarm", {})
+        alarm_data = self.coordinator.data.get("alarm_status", {})
         
         # Parse the JSON structure with internal/external sections
         internal = alarm_data.get("internal", {})
