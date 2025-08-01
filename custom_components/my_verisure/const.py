@@ -16,7 +16,7 @@ CONF_OTP_CODE = "otp_code"
 CONF_SCAN_INTERVAL = "scan_interval"
 
 # Default values
-DEFAULT_SCAN_INTERVAL = timedelta(minutes=3)
+DEFAULT_SCAN_INTERVAL = timedelta(minutes=10)
 
 # API endpoints
 VERISURE_GRAPHQL_URL = "https://customers.securitasdirect.es/owa-api/graphql"

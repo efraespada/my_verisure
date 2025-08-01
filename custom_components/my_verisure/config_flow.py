@@ -373,7 +373,7 @@ class MyVerisureOptionsFlowHandler(OptionsFlow):
                     default=self.config_entry.data.get(CONF_SCAN_INTERVAL, 3)
                 ): vol.All(
                     vol.Coerce(int),
-                    vol.Range(min=3, max=10)
+                    vol.Range(min=10, max=30)
                 ),
             }),
         ) 
