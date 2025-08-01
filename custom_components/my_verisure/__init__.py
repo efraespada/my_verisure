@@ -10,14 +10,13 @@ from homeassistant.exceptions import ConfigEntryNotReady
 from .const import DOMAIN, LOGGER
 from .coordinator import MyVerisureDataUpdateCoordinator
 from .config_flow import MyVerisureConfigFlowHandler
+from .device import async_setup_device
+from .services import async_setup_services, async_unload_services
 
 PLATFORMS: list[Platform] = [
     Platform.ALARM_CONTROL_PANEL,
     Platform.BINARY_SENSOR,
-    Platform.CAMERA,
-    Platform.LOCK,
     Platform.SENSOR,
-    Platform.SWITCH,
 ]
 
 
@@ -43,8 +42,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = coordinator
 
+    # Set up the device
+    await async_setup_device(hass, entry)
+
     # Set up all platforms for this device/entry
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+    # Set up services (only once)
+    if not hass.data[DOMAIN].get("services_setup"):
+        await async_setup_services(hass)
+        hass.data[DOMAIN]["services_setup"] = True
 
     # Update options
     entry.async_on_unload(entry.add_update_listener(update_listener))
@@ -75,7 +82,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     del hass.data[DOMAIN][entry.entry_id]
 
+    # Unload services if no more entries
     if not hass.data[DOMAIN]:
+        await async_unload_services(hass)
         del hass.data[DOMAIN]
 
     return True 

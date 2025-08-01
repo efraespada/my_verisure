@@ -49,7 +49,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         self.session_file = session_file
 
         # Get scan interval from config entry
-        scan_interval_minutes = entry.data.get(CONF_SCAN_INTERVAL, 3)
+        scan_interval_minutes = entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
         scan_interval = timedelta(minutes=scan_interval_minutes)
 
         super().__init__(

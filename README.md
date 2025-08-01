@@ -11,7 +11,6 @@ Custom integration for Home Assistant that connects to the new Verisure/Securita
 - ✅ **Automatic session management**
 - ✅ **Multiple installations** supported
 - ✅ **Alarm services** (arm/disarm, status)
-- ✅ **Cameras** and **locks** (coming soon)
 - ✅ **Modern GraphQL API** (doesn't use obsolete `vsure` library)
 
 ## 📋 Requirements
@@ -52,49 +51,73 @@ Custom integration for Home Assistant that connects to the new Verisure/Securita
 ## 🔧 Available Entities
 
 ### Alarm Control Panel
-- **Alarm status**: Armed, Disarmed, Perimeter, etc.
-- **Control**: Arm/Disarm, Arm day, Arm night, Perimeter
-
-### Binary Sensors
-- **Zone status**: Motion detectors, doors, etc.
-- **System status**: Failures, low battery, etc.
+- **Entity ID**: `alarm_control_panel.my_verisure_alarm_{installation_id}`
+- **States**: `disarmed`, `armed_home`, `armed_away`, `armed_night`, `arming`, `disarming`
+- **Features**: Full alarm control with visual interface
 
 ### Sensors
-- **Installation information**: Panel, SIM, IBS
-- **Service status**: Active/inactive services
+- **Alarm Status**: `sensor.my_verisure_alarm_status_{installation_id}` - Detailed alarm status
+- **Active Alarms**: `sensor.my_verisure_active_alarms_{installation_id}` - List of active alarms
+- **Panel State**: `sensor.my_verisure_panel_state_{installation_id}` - **Perfect for automations**
+- **Last Updated**: `sensor.my_verisure_last_updated_{installation_id}` - Timestamp of last update
 
-### Cameras (coming soon)
-- **Security cameras**: Image and video capture
+### Binary Sensors
+- **Internal Day**: `binary_sensor.my_verisure_alarm_internal_day_{installation_id}`
+- **Internal Night**: `binary_sensor.my_verisure_alarm_internal_night_{installation_id}`
+- **Internal Total**: `binary_sensor.my_verisure_alarm_internal_total_{installation_id}`
+- **External**: `binary_sensor.my_verisure_alarm_external_{installation_id}`
 
-### Locks (coming soon)
-- **Smart locks**: Door control
+
+
+
+
+## 📖 Entity Usage Guide
+
+For detailed information on how to use these entities in automations, dashboards, and scripts, see the [Entities Guide](ENTITIES_GUIDE.md).
 
 ## 🚨 Available Services
 
-### `my_verisure.arm_alarm`
-Arms the alarm with the specified mode.
+### `my_verisure.arm_away`
+Arms the alarm in away mode.
 
 ```yaml
-service: my_verisure.arm_alarm
+service: my_verisure.arm_away
 data:
   installation_id: "6220569"
-  mode: "day"  # day, night, perimeter, total
 ```
 
-### `my_verisure.disarm_alarm`
+### `my_verisure.arm_home`
+Arms the alarm in home mode.
+
+```yaml
+service: my_verisure.arm_home
+data:
+  installation_id: "6220569"
+```
+
+### `my_verisure.arm_night`
+Arms the alarm in night mode.
+
+```yaml
+service: my_verisure.arm_night
+data:
+  installation_id: "6220569"
+```
+
+### `my_verisure.disarm`
 Disarms the alarm.
 
 ```yaml
-service: my_verisure.disarm_alarm
+service: my_verisure.disarm
 data:
   installation_id: "6220569"
 ```
 
-### `my_verisure.get_alarm_status`
-Gets the current alarm status.
+### `my_verisure.get_status`
+Refreshes the alarm status.
 
 ```yaml
-service: my_verisure.get_alarm_status
+service: my_verisure.get_status
 data:
   installation_id: "6220569"
 ```

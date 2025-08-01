@@ -13,8 +13,9 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, LOGGER
+from .const import DOMAIN, LOGGER, ENTITY_NAMES
 from .coordinator import MyVerisureDataUpdateCoordinator
+from .device import get_device_info
 
 
 async def async_setup_entry(
@@ -31,36 +32,36 @@ async def async_setup_entry(
 
     # Create alarm status binary sensors
     entities.extend([
-        # Binary sensor para alarma interna día
+        # Binary sensor for internal day alarm
         MyVerisureAlarmBinarySensor(
             coordinator,
             config_entry,
             "internal_day",
-            "Alarma Interna Día",
+            ENTITY_NAMES["binary_sensor_internal_day"],
             BinarySensorDeviceClass.SAFETY,
         ),
-        # Binary sensor para alarma interna noche
+        # Binary sensor for internal night alarm
         MyVerisureAlarmBinarySensor(
             coordinator,
             config_entry,
             "internal_night",
-            "Alarma Interna Noche",
+            ENTITY_NAMES["binary_sensor_internal_night"],
             BinarySensorDeviceClass.SAFETY,
         ),
-        # Binary sensor para alarma interna total
+        # Binary sensor for internal total alarm
         MyVerisureAlarmBinarySensor(
             coordinator,
             config_entry,
             "internal_total",
-            "Alarma Interna Total",
+            ENTITY_NAMES["binary_sensor_internal_total"],
             BinarySensorDeviceClass.SAFETY,
         ),
-        # Binary sensor para alarma externa
+        # Binary sensor for external alarm
         MyVerisureAlarmBinarySensor(
             coordinator,
             config_entry,
             "external",
-            "Alarma Externa",
+            ENTITY_NAMES["binary_sensor_external"],
             BinarySensorDeviceClass.SAFETY,
         ),
     ])
@@ -88,6 +89,9 @@ class MyVerisureAlarmBinarySensor(BinarySensorEntity):
         self._attr_unique_id = f"{config_entry.entry_id}_alarm_{sensor_id}"
         self._attr_device_class = device_class
         self._attr_should_poll = False
+        
+        # Set device info
+        self._attr_device_info = get_device_info(config_entry)
 
     @property
     def is_on(self) -> bool | None:

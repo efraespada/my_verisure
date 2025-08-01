@@ -15,41 +15,9 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, LOGGER
+from .const import DOMAIN, LOGGER, ENTITY_NAMES
 from .coordinator import MyVerisureDataUpdateCoordinator
-
-# My Verisure alarm states mapping
-VERISURE_TO_HA_STATES = {
-    # Standard states
-    "DISARMED": AlarmControlPanelState.DISARMED,
-    "ARMED_AWAY": AlarmControlPanelState.ARMED_AWAY,
-    "ARMED_HOME": AlarmControlPanelState.ARMED_HOME,
-    "ARMED_NIGHT": AlarmControlPanelState.ARMED_NIGHT,
-    "TRIGGERED": AlarmControlPanelState.TRIGGERED,
-    
-    # My Verisure specific states (from services response)
-    "DARM": AlarmControlPanelState.DISARMED,           # DESCONECTAR
-    "ARM": AlarmControlPanelState.ARMED_AWAY,          # CONECTAR (Total)
-    "ARMDAY": AlarmControlPanelState.ARMED_HOME,       # ARMADO DIA (Interior Parcial Día)
-    "ARMNIGHT": AlarmControlPanelState.ARMED_NIGHT,    # ARMADO NOCHE (Interior Parcial Noche)
-    "PERI": AlarmControlPanelState.ARMED_AWAY,         # PERIMETRAL (Exterior)
-    "ARMINTFPART": AlarmControlPanelState.ARMED_HOME,  # Armado Interior Parcial
-    "ARMPARTFINT": AlarmControlPanelState.ARMED_HOME,  # Armado Parcial Interior
-    
-    # Legacy mappings for compatibility
-    "PARTIAL_DAY": AlarmControlPanelState.ARMED_HOME,
-    "PARTIAL_NIGHT": AlarmControlPanelState.ARMED_NIGHT,
-    "TOTAL": AlarmControlPanelState.ARMED_AWAY,
-    "PERIMETRAL": AlarmControlPanelState.ARMED_AWAY,
-}
-
-HA_TO_VERISURE_STATES = {
-    AlarmControlPanelState.DISARMED: "DARM",           # DESCONECTAR
-    AlarmControlPanelState.ARMED_AWAY: "ARM",          # CONECTAR (Total)
-    AlarmControlPanelState.ARMED_HOME: "ARMDAY",       # ARMADO DIA (Interior Parcial Día)
-    AlarmControlPanelState.ARMED_NIGHT: "ARMNIGHT",    # ARMADO NOCHE (Interior Parcial Noche)
-}
-
+from .device import get_device_info
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -75,7 +43,7 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
         self.coordinator = coordinator
         self.config_entry = config_entry
         # We'll update the name later when we have installation data
-        self._attr_name = f"My Verisure Alarm"
+        self._attr_name = ENTITY_NAMES["alarm_control_panel"]
         self._attr_unique_id = f"{config_entry.entry_id}_alarm"
         self._attr_code_format = None  # No code required
         self._attr_code_arm_required = False  # No code required for arming
@@ -87,6 +55,9 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
         )
         # Track transition state for ARMING/DISARMING feedback
         self._transition_state = None
+        
+        # Set device info
+        self._attr_device_info = get_device_info(config_entry)
 
     @property
     def name(self) -> str:
@@ -100,9 +71,9 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
         
         # For now, use a simple name with installation ID
         if installation_id:
-            return f"My Verisure Alarm ({installation_id})"
+            return f"{ENTITY_NAMES['alarm_control_panel']} ({installation_id})"
         else:
-            return "My Verisure Alarm"
+            return ENTITY_NAMES["alarm_control_panel"]
 
     def _analyze_alarm_states(self, alarm_data: dict) -> tuple[AlarmControlPanelState, dict]:
         """
