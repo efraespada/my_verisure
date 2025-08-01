@@ -152,7 +152,7 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
         elif internal_night:
             primary_state = AlarmControlPanelState.ARMED_NIGHT
         elif internal_day:
-            primary_state = AlarmControlPanelState.ARMED_HOME
+            primary_state = AlarmControlPanelState.ARMED_NIGHT
         elif external_status:
             primary_state = AlarmControlPanelState.ARMED_HOME  # Map external to home
         else:
