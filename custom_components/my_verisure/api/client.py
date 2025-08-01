@@ -225,6 +225,10 @@ class MyVerisureClient:
         self._session_data: Dict[str, Any] = {}
         self._otp_data: Optional[Dict[str, Any]] = None
         self._device_identifiers: Optional[Dict[str, str]] = None
+        # Cache for installation services
+        self._installation_services_cache: Dict[str, Dict[str, Any]] = {}
+        self._cache_timestamps: Dict[str, float] = {}
+        self._cache_ttl: int = 3600  # 1 hour default TTL
 
     async def __aenter__(self):
         """Async context manager entry."""
@@ -336,6 +340,69 @@ class MyVerisureClient:
             "generated_time": self._device_identifiers.get("generated_time", 0)
         }
 
+    def _is_cache_valid(self, installation_id: str) -> bool:
+        """Check if cached data for installation is still valid."""
+        if installation_id not in self._cache_timestamps:
+            return False
+        
+        cache_time = self._cache_timestamps[installation_id]
+        current_time = time.time()
+        age = current_time - cache_time
+        
+        return age < self._cache_ttl
+
+    def _get_cached_installation_services(self, installation_id: str) -> Optional[Dict[str, Any]]:
+        """Get cached installation services data if valid."""
+        if self._is_cache_valid(installation_id):
+            _LOGGER.debug("Using cached installation services for %s", installation_id)
+            return self._installation_services_cache.get(installation_id)
+        else:
+            _LOGGER.debug("Cache expired or not found for installation %s", installation_id)
+            return None
+
+    def _cache_installation_services(self, installation_id: str, data: Dict[str, Any]) -> None:
+        """Cache installation services data."""
+        self._installation_services_cache[installation_id] = data
+        self._cache_timestamps[installation_id] = time.time()
+        _LOGGER.debug("Cached installation services for %s", installation_id)
+
+    def clear_installation_services_cache(self, installation_id: Optional[str] = None) -> None:
+        """Clear installation services cache for specific installation or all."""
+        if installation_id:
+            if installation_id in self._installation_services_cache:
+                del self._installation_services_cache[installation_id]
+            if installation_id in self._cache_timestamps:
+                del self._cache_timestamps[installation_id]
+            _LOGGER.debug("Cleared cache for installation %s", installation_id)
+        else:
+            self._installation_services_cache.clear()
+            self._cache_timestamps.clear()
+            _LOGGER.debug("Cleared all installation services cache")
+
+    def set_cache_ttl(self, ttl_seconds: int) -> None:
+        """Set the cache TTL (Time To Live) in seconds."""
+        self._cache_ttl = ttl_seconds
+        _LOGGER.debug("Cache TTL set to %d seconds", ttl_seconds)
+
+    def get_cache_info(self) -> Dict[str, Any]:
+        """Get information about the current cache state."""
+        cache_info = {
+            "cache_size": len(self._installation_services_cache),
+            "ttl_seconds": self._cache_ttl,
+            "cached_installations": list(self._installation_services_cache.keys()),
+            "cache_timestamps": {}
+        }
+        
+        for installation_id, timestamp in self._cache_timestamps.items():
+            age = time.time() - timestamp
+            cache_info["cache_timestamps"][installation_id] = {
+                "timestamp": timestamp,
+                "age_seconds": age,
+                "is_valid": age < self._cache_ttl
+            }
+        
+        return cache_info
+
     def _load_alarm_status_config(self) -> Dict[str, Any]:
         """Load alarm status configuration from JSON file."""
         try:
@@ -435,6 +502,9 @@ class MyVerisureClient:
         if self._session:
             await self._session.close()
             self._session = None
+        
+        # Clear cache on disconnect
+        self.clear_installation_services_cache()
 
     def _get_native_app_headers(self) -> Dict[str, str]:
         """Get native app headers for better authentication."""
@@ -995,6 +1065,9 @@ class MyVerisureClient:
 
     async def login(self) -> bool:
         """Login to My Verisure API (Native App Simulation)."""
+        # Clear cache on new login
+        self.clear_installation_services_cache()
+        
         # Ensure device identifiers are loaded or generated
         self._ensure_device_identifiers()
         
@@ -1613,7 +1686,7 @@ class MyVerisureClient:
                      session_age, "Yes" if self._hash else "No")
         return True
 
-    async def get_installation_services(self, installation_id: str) -> Dict[str, Any]:
+    async def get_installation_services(self, installation_id: str, force_refresh: bool = False) -> Dict[str, Any]:
         """Get detailed services and configuration for an installation."""
         if not self._hash:
             raise MyVerisureAuthenticationError("Not authenticated. Please login first.")
@@ -1621,12 +1694,19 @@ class MyVerisureClient:
         if not installation_id:
             raise MyVerisureError("Installation ID is required")
         
+        # Check cache first (unless force refresh is requested)
+        if not force_refresh:
+            cached_data = self._get_cached_installation_services(installation_id)
+            if cached_data:
+                _LOGGER.info("Returning cached installation services for %s", installation_id)
+                return cached_data
+        
         # Ensure client is connected
         if not self._client:
             _LOGGER.warning("Client not connected, connecting now...")
             await self.connect()
         
-        _LOGGER.info("Getting services for installation %s", installation_id)
+        _LOGGER.info("Getting services for installation %s (force_refresh=%s)", installation_id, force_refresh)
         
         try:
             _LOGGER.warning("About to execute installation services query for %s", installation_id)
@@ -1653,12 +1733,17 @@ class MyVerisureClient:
                 _LOGGER.info("Installation status: %s", installation.get("status", "Unknown"))
                 _LOGGER.info("Installation panel: %s", installation.get("panel", "Unknown"))
                 
-                return {
+                response_data = {
                     "installation": installation,
                     "services": services,
                     "capabilities": installation.get("capabilities"),
                     "language": services_data.get("language")
                 }
+                
+                # Cache the response data
+                self._cache_installation_services(installation_id, response_data)
+                
+                return response_data
             else:
                 error_msg = services_data.get("msg", "Unknown error") if services_data else "No response data"
                 raise MyVerisureError(f"Failed to get installation services: {error_msg}")
