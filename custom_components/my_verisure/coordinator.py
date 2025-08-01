@@ -50,6 +50,15 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
 
         # Get scan interval from config entry
         scan_interval_minutes = entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+        # Ensure it's an integer
+        try:
+            scan_interval_minutes = int(scan_interval_minutes)
+        except (ValueError, TypeError):
+            LOGGER.warning("Invalid scan_interval value: %s, using default: %s", scan_interval_minutes, DEFAULT_SCAN_INTERVAL)
+            scan_interval_minutes = DEFAULT_SCAN_INTERVAL
+        
+        LOGGER.warning("Coordinator: Using scan_interval=%s minutes (from config: %s, default: %s)", 
+                      scan_interval_minutes, entry.data.get(CONF_SCAN_INTERVAL), DEFAULT_SCAN_INTERVAL)
         scan_interval = timedelta(minutes=scan_interval_minutes)
 
         super().__init__(
