@@ -1844,7 +1844,8 @@ class MyVerisureClient:
                 installation_id=installation_id,
                 panel=panel,
                 request=request,
-                current_status=current_status
+                current_status=current_status,
+                capabilities=capabilities
             )
             
             # Check for errors in arm command
@@ -1881,7 +1882,8 @@ class MyVerisureClient:
                     panel=panel,
                     request=request,
                     reference_id=reference_id,
-                    counter=retry_count
+                    counter=retry_count,
+                    capabilities=capabilities
                 )
                 
                 # Check for errors in status check
@@ -1928,6 +1930,7 @@ class MyVerisureClient:
             # Get installation services to get the panel info
             services_data = await self.get_installation_services(installation_id)
             panel = services_data.get("installation", {}).get("panel", "")
+            capabilities = services_data.get("capabilities", "")
             
             if not panel:
                 _LOGGER.error("No panel information found for installation %s", installation_id)
@@ -1937,7 +1940,8 @@ class MyVerisureClient:
             disarm_result = await self._execute_disarm_panel_direct(
                 installation_id=installation_id,
                 panel=panel,
-                request="DARM1"
+                request="DARM1",
+                capabilities=capabilities
             )
             
             # Check for errors in disarm command
@@ -1974,7 +1978,8 @@ class MyVerisureClient:
                     panel=panel,
                     request="DARM1",
                     reference_id=reference_id,
-                    counter=retry_count
+                    counter=retry_count,
+                    capabilities=capabilities
                 )
                 
                 # Check for errors in status check
@@ -2027,7 +2032,7 @@ class MyVerisureClient:
         """Arm the alarm in night mode for the specified installation."""
         return await self.send_alarm_command(installation_id, "ARMNIGHT1")
 
-    async def _execute_arm_panel_direct(self, installation_id: str, panel: str, request: str, current_status: str = "E") -> Dict[str, Any]:
+    async def _execute_arm_panel_direct(self, installation_id: str, panel: str, request: str, current_status: str = "E", capabilities: str = "") -> Dict[str, Any]:
         """Execute arm panel mutation using direct aiohttp request."""
         if not self._session:
             raise MyVerisureConnectionError("Client not connected")
@@ -2054,6 +2059,7 @@ class MyVerisureClient:
             # Add alarm-specific headers
             headers["numinst"] = installation_id
             headers["panel"] = panel
+            headers["x-capabilities"] = capabilities
 
             _LOGGER.warning("=== ARM PANEL REQUEST ===")
             _LOGGER.warning("URL: %s", VERISURE_GRAPHQL_URL)
@@ -2079,7 +2085,7 @@ class MyVerisureClient:
             _LOGGER.error("Direct arm panel failed: %s", e)
             return {"errors": [{"message": str(e), "data": {}}]}
 
-    async def _execute_arm_status_direct(self, installation_id: str, panel: str, request: str, reference_id: str, counter: int) -> Dict[str, Any]:
+    async def _execute_arm_status_direct(self, installation_id: str, panel: str, request: str, reference_id: str, counter: int, capabilities: str = "") -> Dict[str, Any]:
         """Execute arm status query using direct aiohttp request."""
         if not self._session:
             raise MyVerisureConnectionError("Client not connected")
@@ -2107,6 +2113,7 @@ class MyVerisureClient:
             # Add alarm-specific headers
             headers["numinst"] = installation_id
             headers["panel"] = panel
+            headers["x-capabilities"] = capabilities
 
             _LOGGER.warning("=== ARM STATUS REQUEST ===")
             _LOGGER.warning("URL: %s", VERISURE_GRAPHQL_URL)
@@ -2132,7 +2139,7 @@ class MyVerisureClient:
             _LOGGER.error("Direct arm status failed: %s", e)
             return {"errors": [{"message": str(e), "data": {}}]}
 
-    async def _execute_disarm_panel_direct(self, installation_id: str, panel: str, request: str) -> Dict[str, Any]:
+    async def _execute_disarm_panel_direct(self, installation_id: str, panel: str, request: str, capabilities: str = "") -> Dict[str, Any]:
         """Execute disarm panel mutation using direct aiohttp request."""
         if not self._session:
             raise MyVerisureConnectionError("Client not connected")
@@ -2156,6 +2163,7 @@ class MyVerisureClient:
             # Add alarm-specific headers
             headers["numinst"] = installation_id
             headers["panel"] = panel
+            headers["x-capabilities"] = capabilities
 
             _LOGGER.warning("=== DISARM PANEL REQUEST ===")
             _LOGGER.warning("URL: %s", VERISURE_GRAPHQL_URL)
@@ -2181,7 +2189,7 @@ class MyVerisureClient:
             _LOGGER.error("Direct disarm panel failed: %s", e)
             return {"errors": [{"message": str(e), "data": {}}]}
 
-    async def _execute_disarm_status_direct(self, installation_id: str, panel: str, request: str, reference_id: str, counter: int) -> Dict[str, Any]:
+    async def _execute_disarm_status_direct(self, installation_id: str, panel: str, request: str, reference_id: str, counter: int, capabilities: str = "") -> Dict[str, Any]:
         """Execute disarm status query using direct aiohttp request."""
         if not self._session:
             raise MyVerisureConnectionError("Client not connected")
@@ -2207,6 +2215,7 @@ class MyVerisureClient:
             # Add alarm-specific headers
             headers["numinst"] = installation_id
             headers["panel"] = panel
+            headers["x-capabilities"] = capabilities
 
             _LOGGER.warning("=== DISARM STATUS REQUEST ===")
             _LOGGER.warning("URL: %s", VERISURE_GRAPHQL_URL)
