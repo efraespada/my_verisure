@@ -369,11 +369,11 @@ class MyVerisureOptionsFlowHandler(OptionsFlow):
             step_id="init",
             data_schema=vol.Schema({
                 vol.Required(
-                                CONF_SCAN_INTERVAL,
-            default=self.config_entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+                    CONF_SCAN_INTERVAL,
+                    default=self.config_entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
                 ): vol.All(
                     vol.Coerce(int),
-                    vol.Range(min=10, max=30)
+                    vol.Range(min=9, max=60)
                 ),
             }),
         ) 

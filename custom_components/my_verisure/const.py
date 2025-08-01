@@ -36,11 +36,8 @@ DEVICE_INFO = {
     "manufacturer": "Verisure",
     "model": "Alarm System",
     "sw_version": "1.0.0",
-    "configuration_url": "https://mcp.verisure.com",
+    "configuration_url": "https://github.com/efraespada/my_verisure",
 }
 
 # API endpoints
 VERISURE_GRAPHQL_URL = "https://customers.securitasdirect.es/owa-api/graphql"
-
-# Platform names
-PLATFORMS = ["alarm_control_panel", "binary_sensor", "sensor", "camera", "lock", "switch"] 

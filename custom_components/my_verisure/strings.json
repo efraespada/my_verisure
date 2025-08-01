@@ -61,7 +61,7 @@
         "title": "My Verisure Options",
         "description": "Configure additional options for My Verisure integration.",
         "data": {
-          "scan_interval": "Intervalo de escaneo (minutos)"
+          "scan_interval": "Scan interval (minutes)"
         }
       }
     }
