@@ -1,0 +1,31 @@
+# Debug configuration for My Verisure integration
+# Add this to your configuration.yaml to enable debug logging
+
+# Enable debug logging for the integration
+logger:
+  custom_components.my_verisure: debug
+  custom_components.my_verisure.alarm_control_panel: debug
+  custom_components.my_verisure.coordinator: debug
+  custom_components.my_verisure.api.client: debug
+
+# Example service call to test the integration
+# You can call this service from Developer Tools > Services
+# service: my_verisure.change_language
+# data:
+#   language: "en"
+
+# Example automation to test alarm names
+# automation:
+#   - alias: "Test Alarm Names"
+#     trigger:
+#       platform: time
+#       at: "12:00:00"
+#     action:
+#       - service: my_verisure.change_language
+#         data:
+#           language: "es"
+#       - delay:
+#           seconds: 5
+#       - service: my_verisure.change_language
+#         data:
+#           language: "en" 

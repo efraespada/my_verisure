@@ -61,25 +61,77 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
 
     def get_alarm_mode_name(self, state: str) -> str:
         """Get the custom name for an alarm mode."""
-        # Try to get dynamic language names first
         try:
-            from .alarm_names_config import get_alarm_names_for_language
-            current_names = get_alarm_names_for_language()
-            return current_names.get(state, state)
-        except:
-            # Fallback to static names
-            return ALARM_MODE_NAMES.get(state, state)
+            # Try to get names from the config file
+            from .alarm_names_config import ALARM_NAMES_BY_LANGUAGE, DEFAULT_LANGUAGE
+            
+            # Get current language (default to Spanish)
+            language = self._get_current_language()
+            
+            # Get names for the current language
+            names = ALARM_NAMES_BY_LANGUAGE.get(language, ALARM_NAMES_BY_LANGUAGE[DEFAULT_LANGUAGE])
+            return names.get(state, state)
+            
+        except Exception as e:
+            LOGGER.warning("Error getting alarm names, using fallback: %s", e)
+            # Fallback to Spanish names
+            spanish_names = {
+                "armed_home": "Perimetral",
+                "armed_away": "Total",
+                "armed_night": "Noche",
+                "disarmed": "Desarmada",
+            }
+            return spanish_names.get(state, state)
 
     def get_alarm_mode_description(self, state: str) -> str:
         """Get the description for an alarm mode."""
-        # Try to get dynamic language descriptions first
         try:
-            from .alarm_names_config import get_alarm_descriptions_for_language
-            current_descriptions = get_alarm_descriptions_for_language()
-            return current_descriptions.get(state, "")
-        except:
-            # Fallback to static descriptions
-            return ALARM_MODE_DESCRIPTIONS.get(state, "")
+            # Try to get descriptions from the config file
+            from .alarm_names_config import ALARM_DESCRIPTIONS_BY_LANGUAGE, DEFAULT_LANGUAGE
+            
+            # Get current language (default to Spanish)
+            language = self._get_current_language()
+            
+            # Get descriptions for the current language
+            descriptions = ALARM_DESCRIPTIONS_BY_LANGUAGE.get(language, ALARM_DESCRIPTIONS_BY_LANGUAGE[DEFAULT_LANGUAGE])
+            return descriptions.get(state, "")
+            
+        except Exception as e:
+            LOGGER.warning("Error getting alarm descriptions, using fallback: %s", e)
+            # Fallback to Spanish descriptions
+            spanish_descriptions = {
+                "armed_home": "Activa solo la alarma perimetral (externa)",
+                "armed_away": "Activa todas las alarmas (total)",
+                "armed_night": "Activa la alarma nocturna (interna noche)",
+                "disarmed": "Desactiva todas las alarmas",
+            }
+            return spanish_descriptions.get(state, "")
+
+    def _get_current_language(self) -> str:
+        """Get the current language from Home Assistant context."""
+        try:
+            # Try to get language from the hass instance
+            if hasattr(self.hass, 'config') and hasattr(self.hass.config, 'language'):
+                language = self.hass.config.language
+                LOGGER.debug("Got language from hass.config.language: %s", language)
+                return language
+        except Exception as e:
+            LOGGER.debug("Error getting language from hass.config.language: %s", e)
+        
+        try:
+            # Try to get language from core config
+            if hasattr(self.hass, 'config') and hasattr(self.hass.config, 'core'):
+                core_config = self.hass.config.core
+                if hasattr(core_config, 'language'):
+                    language = core_config.language
+                    LOGGER.debug("Got language from hass.config.core.language: %s", language)
+                    return language
+        except Exception as e:
+            LOGGER.debug("Error getting language from core config: %s", e)
+        
+        # Default to Spanish
+        LOGGER.debug("Using default language: es")
+        return "es"
 
     @property
     def name(self) -> str:

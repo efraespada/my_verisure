@@ -125,11 +125,9 @@ DEFAULT_LANGUAGE = "es"
 # Function to get language from Home Assistant
 def get_home_assistant_language():
     """Get the current Home Assistant language."""
-    try:
-        import homeassistant.core as ha_core
-        return ha_core.HOMEASSISTANT_LANGUAGE or DEFAULT_LANGUAGE
-    except:
-        return DEFAULT_LANGUAGE
+    # For now, return Spanish as default
+    # This will be overridden by the alarm control panel when it has access to hass
+    return DEFAULT_LANGUAGE
 
 # Function to get alarm names for current language
 def get_alarm_names_for_language(language=None):
