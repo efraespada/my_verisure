@@ -67,14 +67,8 @@
   },
   "entity": {
     "alarm_control_panel": {
-      "my_verisure_alarm": {
-        "name": "My Verisure Alarm"
-      }
-    }
-  },
-  "entity": {
-    "alarm_control_panel": {
       "my_verisure": {
+        "name": "My Verisure",
         "state": {
           "armed_home": "Home",
           "armed_away": "Away",

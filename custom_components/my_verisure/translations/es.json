@@ -65,17 +65,10 @@
       }
     }
   },
-  "title": "My Verisure",
-  "entity": {
-    "alarm_control_panel": {
-      "my_verisure_alarm": {
-        "name": "Alarma My Verisure"
-      }
-    }
-  },
   "entity": {
     "alarm_control_panel": {
       "my_verisure": {
+        "name": "My Verisure",
         "state": {
           "armed_home": "Perimetral",
           "armed_away": "Total",

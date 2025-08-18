@@ -42,9 +42,9 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
         """Initialize the alarm control panel."""
         self.coordinator = coordinator
         self.config_entry = config_entry
-        # We'll update the name later when we have installation data
+        # Use a simple name and unique_id
         self._attr_name = ENTITY_NAMES["alarm_control_panel"]
-        self._attr_unique_id = f"{config_entry.entry_id}_alarm"
+        self._attr_unique_id = "my_verisure"
         self._attr_code_format = None  # No code required
         self._attr_code_arm_required = False  # No code required for arming
         self._attr_code_disarm_required = False  # No code required for disarming
@@ -66,18 +66,7 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
     @property
     def name(self) -> str:
         """Return the name of the alarm."""
-        if not self.coordinator.data:
-            return self._attr_name
-
-        # Try to get installation info from the coordinator data
-        # The coordinator might store installation info in different keys
-        installation_id = self.config_entry.data.get("installation_id", "")
-        
-        # For now, use a simple name with installation ID
-        if installation_id:
-            return f"{ENTITY_NAMES['alarm_control_panel']} ({installation_id})"
-        else:
-            return ENTITY_NAMES["alarm_control_panel"]
+        return ENTITY_NAMES["alarm_control_panel"]
 
     def _analyze_alarm_states(self, alarm_data: dict) -> tuple[AlarmControlPanelState, dict]:
         """

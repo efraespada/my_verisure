@@ -20,7 +20,7 @@ DEFAULT_SCAN_INTERVAL = 10  # minutes
 
 # Entity configuration
 ENTITY_NAMES = {
-    "alarm_control_panel": "My Verisure Alarm",
+    "alarm_control_panel": "My Verisure",
     "sensor_alarm_status": "General Alarm Status",
     "sensor_active_alarms": "Active Alarms",
     "sensor_panel_state": "Panel State",

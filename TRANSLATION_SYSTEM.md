@@ -12,6 +12,7 @@ Siguiendo las mejores prácticas de Home Assistant, hemos implementado un sistem
   "entity": {
     "alarm_control_panel": {
       "my_verisure": {
+        "name": "My Verisure",
         "state": {
           "armed_home": "Perimetral",
           "armed_away": "Total",
@@ -30,6 +31,7 @@ Siguiendo las mejores prácticas de Home Assistant, hemos implementado un sistem
   "entity": {
     "alarm_control_panel": {
       "my_verisure": {
+        "name": "My Verisure",
         "state": {
           "armed_home": "Perimetral",
           "armed_away": "Total",
@@ -48,6 +50,7 @@ Siguiendo las mejores prácticas de Home Assistant, hemos implementado un sistem
   "entity": {
     "alarm_control_panel": {
       "my_verisure": {
+        "name": "My Verisure",
         "state": {
           "armed_home": "Home",
           "armed_away": "Away",
