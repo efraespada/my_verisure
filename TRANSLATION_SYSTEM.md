@@ -9,12 +9,16 @@ Siguiendo las mejores prácticas de Home Assistant, hemos implementado un sistem
 ### 1. **strings.json** (Traducción principal)
 ```json
 {
-  "state": {
+  "entity": {
     "alarm_control_panel": {
-      "armed_home": "Perimetral",
-      "armed_away": "Total",
-      "armed_night": "Noche",
-      "disarmed": "Desarmada"
+      "my_verisure": {
+        "state": {
+          "armed_home": "Perimetral",
+          "armed_away": "Total",
+          "armed_night": "Noche",
+          "disarmed": "Desarmada"
+        }
+      }
     }
   }
 }
@@ -23,12 +27,16 @@ Siguiendo las mejores prácticas de Home Assistant, hemos implementado un sistem
 ### 2. **translations/es.json** (Español)
 ```json
 {
-  "state": {
+  "entity": {
     "alarm_control_panel": {
-      "armed_home": "Perimetral",
-      "armed_away": "Total",
-      "armed_night": "Noche",
-      "disarmed": "Desarmada"
+      "my_verisure": {
+        "state": {
+          "armed_home": "Perimetral",
+          "armed_away": "Total",
+          "armed_night": "Noche",
+          "disarmed": "Desarmada"
+        }
+      }
     }
   }
 }
@@ -37,18 +45,46 @@ Siguiendo las mejores prácticas de Home Assistant, hemos implementado un sistem
 ### 3. **translations/en.json** (Inglés)
 ```json
 {
-  "state": {
+  "entity": {
     "alarm_control_panel": {
-      "armed_home": "Home",
-      "armed_away": "Away",
-      "armed_night": "Night",
-      "disarmed": "Disarmed"
+      "my_verisure": {
+        "state": {
+          "armed_home": "Home",
+          "armed_away": "Away",
+          "armed_night": "Night",
+          "disarmed": "Disarmed"
+        }
+      }
     }
   }
 }
 ```
 
 ## 🌍 Cómo Funciona
+
+### **Estructura Correcta de Traducciones**
+Home Assistant requiere una jerarquía específica para las traducciones de estados:
+
+```json
+{
+  "entity": {
+    "alarm_control_panel": {
+      "my_verisure": {
+        "state": {
+          "armed_home": "Perimetral",
+          "armed_away": "Total"
+        }
+      }
+    }
+  }
+}
+```
+
+Donde:
+- `entity` → Sección para entidades
+- `alarm_control_panel` → Dominio de la entidad
+- `my_verisure` → Nombre de la integración (del manifest.json)
+- `state` → Estados de la entidad
 
 ### **Detección Automática de Idioma**
 1. Home Assistant detecta automáticamente el idioma configurado
