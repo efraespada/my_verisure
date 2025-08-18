@@ -32,9 +32,7 @@ SERVICE_GET_STATUS_SCHEMA = vol.Schema({
     vol.Required("installation_id"): cv.string,
 })
 
-SERVICE_CHANGE_LANGUAGE_SCHEMA = vol.Schema({
-    vol.Required("language"): cv.string,
-})
+
 
 
 async def async_setup_services(hass: HomeAssistant) -> None:
@@ -133,36 +131,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         else:
             LOGGER.error("Installation %s not found", installation_id)
 
-    async def async_change_language_service(call: ServiceCall) -> None:
-        """Service to change alarm language."""
-        language = call.data["language"]
-        
-        try:
-            # Import the language change function
-            from .alarm_names_config import get_alarm_names_for_language, get_alarm_descriptions_for_language
-            
-            # Get names and descriptions for the new language
-            new_names = get_alarm_names_for_language(language)
-            new_descriptions = get_alarm_descriptions_for_language(language)
-            
-            # Update the global constants
-            import sys
-            module = sys.modules.get('custom_components.my_verisure.const')
-            if module:
-                module.ALARM_MODE_NAMES = new_names
-                module.ALARM_MODE_DESCRIPTIONS = new_descriptions
-            
-            LOGGER.info("Alarm language changed to: %s", language)
-            
-            # Refresh all coordinators to update the UI
-            for entry_id, coordinator in hass.data[DOMAIN].items():
-                try:
-                    await coordinator.async_request_refresh()
-                except Exception as e:
-                    LOGGER.error("Error refreshing coordinator: %s", e)
-                    
-        except Exception as e:
-            LOGGER.error("Error changing alarm language: %s", e)
+
 
     # Register services
     hass.services.async_register(
@@ -200,12 +169,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         schema=SERVICE_GET_STATUS_SCHEMA,
     )
     
-    hass.services.async_register(
-        DOMAIN,
-        "change_language",
-        async_change_language_service,
-        schema=SERVICE_CHANGE_LANGUAGE_SCHEMA,
-    )
+
 
 
 async def async_unload_services(hass: HomeAssistant) -> None:
@@ -215,4 +179,4 @@ async def async_unload_services(hass: HomeAssistant) -> None:
     hass.services.async_remove(DOMAIN, "arm_night")
     hass.services.async_remove(DOMAIN, "disarm")
     hass.services.async_remove(DOMAIN, "get_status")
-    hass.services.async_remove(DOMAIN, "change_language") 
+ 

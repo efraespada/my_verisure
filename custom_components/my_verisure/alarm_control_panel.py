@@ -15,7 +15,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, LOGGER, ENTITY_NAMES, ALARM_MODE_NAMES, ALARM_MODE_DESCRIPTIONS
+from .const import DOMAIN, LOGGER, ENTITY_NAMES
 from .coordinator import MyVerisureDataUpdateCoordinator
 from .device import get_device_info
 
@@ -59,79 +59,9 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
         # Set device info
         self._attr_device_info = get_device_info(config_entry)
 
-    def get_alarm_mode_name(self, state: str) -> str:
-        """Get the custom name for an alarm mode."""
-        try:
-            # Try to get names from the config file
-            from .alarm_names_config import ALARM_NAMES_BY_LANGUAGE, DEFAULT_LANGUAGE
-            
-            # Get current language (default to Spanish)
-            language = self._get_current_language()
-            
-            # Get names for the current language
-            names = ALARM_NAMES_BY_LANGUAGE.get(language, ALARM_NAMES_BY_LANGUAGE[DEFAULT_LANGUAGE])
-            return names.get(state, state)
-            
-        except Exception as e:
-            LOGGER.warning("Error getting alarm names, using fallback: %s", e)
-            # Fallback to Spanish names
-            spanish_names = {
-                "armed_home": "Perimetral",
-                "armed_away": "Total",
-                "armed_night": "Noche",
-                "disarmed": "Desarmada",
-            }
-            return spanish_names.get(state, state)
 
-    def get_alarm_mode_description(self, state: str) -> str:
-        """Get the description for an alarm mode."""
-        try:
-            # Try to get descriptions from the config file
-            from .alarm_names_config import ALARM_DESCRIPTIONS_BY_LANGUAGE, DEFAULT_LANGUAGE
-            
-            # Get current language (default to Spanish)
-            language = self._get_current_language()
-            
-            # Get descriptions for the current language
-            descriptions = ALARM_DESCRIPTIONS_BY_LANGUAGE.get(language, ALARM_DESCRIPTIONS_BY_LANGUAGE[DEFAULT_LANGUAGE])
-            return descriptions.get(state, "")
-            
-        except Exception as e:
-            LOGGER.warning("Error getting alarm descriptions, using fallback: %s", e)
-            # Fallback to Spanish descriptions
-            spanish_descriptions = {
-                "armed_home": "Activa solo la alarma perimetral (externa)",
-                "armed_away": "Activa todas las alarmas (total)",
-                "armed_night": "Activa la alarma nocturna (interna noche)",
-                "disarmed": "Desactiva todas las alarmas",
-            }
-            return spanish_descriptions.get(state, "")
 
-    def _get_current_language(self) -> str:
-        """Get the current language from Home Assistant context."""
-        try:
-            # Try to get language from the hass instance
-            if hasattr(self.hass, 'config') and hasattr(self.hass.config, 'language'):
-                language = self.hass.config.language
-                LOGGER.debug("Got language from hass.config.language: %s", language)
-                return language
-        except Exception as e:
-            LOGGER.debug("Error getting language from hass.config.language: %s", e)
-        
-        try:
-            # Try to get language from core config
-            if hasattr(self.hass, 'config') and hasattr(self.hass.config, 'core'):
-                core_config = self.hass.config.core
-                if hasattr(core_config, 'language'):
-                    language = core_config.language
-                    LOGGER.debug("Got language from hass.config.core.language: %s", language)
-                    return language
-        except Exception as e:
-            LOGGER.debug("Error getting language from core config: %s", e)
-        
-        # Default to Spanish
-        LOGGER.debug("Using default language: es")
-        return "es"
+
 
     @property
     def name(self) -> str:
@@ -259,26 +189,7 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
             "alarm_count": len(detailed_states.get("active_alarms", [])),
         })
         
-        # Add custom alarm mode names and descriptions
-        current_state = self.alarm_state
-        if current_state:
-            state_str = current_state.value if hasattr(current_state, 'value') else str(current_state)
-            attributes.update({
-                "alarm_mode_name": self.get_alarm_mode_name(state_str),
-                "alarm_mode_description": self.get_alarm_mode_description(state_str),
-                "available_modes": {
-                    "armed_home": self.get_alarm_mode_name("armed_home"),
-                    "armed_away": self.get_alarm_mode_name("armed_away"),
-                    "armed_night": self.get_alarm_mode_name("armed_night"),
-                    "disarmed": self.get_alarm_mode_name("disarmed"),
-                },
-                "mode_descriptions": {
-                    "armed_home": self.get_alarm_mode_description("armed_home"),
-                    "armed_away": self.get_alarm_mode_description("armed_away"),
-                    "armed_night": self.get_alarm_mode_description("armed_night"),
-                    "disarmed": self.get_alarm_mode_description("disarmed"),
-                }
-            })
+
         
         return attributes
 

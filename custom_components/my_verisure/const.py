@@ -31,26 +31,7 @@ ENTITY_NAMES = {
     "binary_sensor_external": "External Alarm",
 }
 
-# Import custom alarm names configuration
-try:
-    from .alarm_names_config import CUSTOM_ALARM_NAMES, CUSTOM_ALARM_DESCRIPTIONS
-    ALARM_MODE_NAMES = CUSTOM_ALARM_NAMES
-    ALARM_MODE_DESCRIPTIONS = CUSTOM_ALARM_DESCRIPTIONS
-except ImportError:
-    # Fallback to default names if config file doesn't exist
-    ALARM_MODE_NAMES = {
-        "armed_home": "En Casa",         # Valor por defecto de Home Assistant
-        "armed_away": "Ausente",         # Valor por defecto de Home Assistant
-        "armed_night": "Noche",          # Valor por defecto de Home Assistant
-        "disarmed": "Desarmada",         # Valor por defecto de Home Assistant
-    }
-    
-    ALARM_MODE_DESCRIPTIONS = {
-        "armed_home": "Activa solo la alarma perimetral (externa)",
-        "armed_away": "Activa todas las alarmas (total)",
-        "armed_night": "Activa la alarma nocturna (interna noche)",
-        "disarmed": "Desactiva todas las alarmas",
-    }
+
 
 # Device configuration
 DEVICE_INFO = {

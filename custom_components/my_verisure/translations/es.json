@@ -72,5 +72,18 @@
         "name": "Alarma My Verisure"
       }
     }
+  },
+  "state": {
+    "alarm_control_panel": {
+      "armed_home": "Perimetral",
+      "armed_away": "Total",
+      "armed_night": "Noche",
+      "armed_vacation": "Vacaciones",
+      "armed_custom_bypass": "Personalizado",
+      "disarmed": "Desarmada",
+      "triggered": "Disparada",
+      "arming": "Armando",
+      "disarming": "Desarmando"
+    }
   }
 } 

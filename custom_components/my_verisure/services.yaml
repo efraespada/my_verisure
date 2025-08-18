@@ -80,33 +80,4 @@ get_status:
       selector:
         text:
 
-# Change alarm language
-change_language:
-  name: "Change Alarm Language"
-  description: "Change the language for alarm names and descriptions"
-  fields:
-    language:
-      name: "Language"
-      description: "The language code (es, en, ca, eu, gl, fr, de, it, pt)"
-      required: true
-      selector:
-        select:
-          options:
-            - label: "Español"
-              value: "es"
-            - label: "English"
-              value: "en"
-            - label: "Català"
-              value: "ca"
-            - label: "Euskara"
-              value: "eu"
-            - label: "Galego"
-              value: "gl"
-            - label: "Français"
-              value: "fr"
-            - label: "Deutsch"
-              value: "de"
-            - label: "Italiano"
-              value: "it"
-            - label: "Português"
-              value: "pt" 
+ 

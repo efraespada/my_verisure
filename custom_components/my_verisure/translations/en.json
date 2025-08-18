@@ -71,5 +71,18 @@
         "name": "My Verisure Alarm"
       }
     }
+  },
+  "state": {
+    "alarm_control_panel": {
+      "armed_home": "Home",
+      "armed_away": "Away",
+      "armed_night": "Night",
+      "armed_vacation": "Vacation",
+      "armed_custom_bypass": "Custom",
+      "disarmed": "Disarmed",
+      "triggered": "Triggered",
+      "arming": "Arming",
+      "disarming": "Disarming"
+    }
   }
 } 
