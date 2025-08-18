@@ -15,7 +15,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, LOGGER, ENTITY_NAMES
+from .const import DOMAIN, LOGGER, ENTITY_NAMES, ALARM_MODE_NAMES, ALARM_MODE_DESCRIPTIONS
 from .coordinator import MyVerisureDataUpdateCoordinator
 from .device import get_device_info
 
@@ -58,6 +58,28 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
         
         # Set device info
         self._attr_device_info = get_device_info(config_entry)
+
+    def get_alarm_mode_name(self, state: str) -> str:
+        """Get the custom name for an alarm mode."""
+        # Try to get dynamic language names first
+        try:
+            from .alarm_names_config import get_alarm_names_for_language
+            current_names = get_alarm_names_for_language()
+            return current_names.get(state, state)
+        except:
+            # Fallback to static names
+            return ALARM_MODE_NAMES.get(state, state)
+
+    def get_alarm_mode_description(self, state: str) -> str:
+        """Get the description for an alarm mode."""
+        # Try to get dynamic language descriptions first
+        try:
+            from .alarm_names_config import get_alarm_descriptions_for_language
+            current_descriptions = get_alarm_descriptions_for_language()
+            return current_descriptions.get(state, "")
+        except:
+            # Fallback to static descriptions
+            return ALARM_MODE_DESCRIPTIONS.get(state, "")
 
     @property
     def name(self) -> str:
@@ -184,6 +206,27 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
             "active_alarms": detailed_states.get("active_alarms", []),
             "alarm_count": len(detailed_states.get("active_alarms", [])),
         })
+        
+        # Add custom alarm mode names and descriptions
+        current_state = self.alarm_state
+        if current_state:
+            state_str = current_state.value if hasattr(current_state, 'value') else str(current_state)
+            attributes.update({
+                "alarm_mode_name": self.get_alarm_mode_name(state_str),
+                "alarm_mode_description": self.get_alarm_mode_description(state_str),
+                "available_modes": {
+                    "armed_home": self.get_alarm_mode_name("armed_home"),
+                    "armed_away": self.get_alarm_mode_name("armed_away"),
+                    "armed_night": self.get_alarm_mode_name("armed_night"),
+                    "disarmed": self.get_alarm_mode_name("disarmed"),
+                },
+                "mode_descriptions": {
+                    "armed_home": self.get_alarm_mode_description("armed_home"),
+                    "armed_away": self.get_alarm_mode_description("armed_away"),
+                    "armed_night": self.get_alarm_mode_description("armed_night"),
+                    "disarmed": self.get_alarm_mode_description("disarmed"),
+                }
+            })
         
         return attributes
 
