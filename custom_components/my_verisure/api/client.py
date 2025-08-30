@@ -781,7 +781,6 @@ class MyVerisureClient:
             headers = self._get_session_headers()
             
             # Add Security header for OTP verification
-            import json
             security_header = {
                 "token": otp_code,
                 "type": "OTP",
