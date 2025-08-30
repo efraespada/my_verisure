@@ -70,11 +70,8 @@ async def update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
     # Propagate configuration change
     coordinator = hass.data[DOMAIN][entry.entry_id]
     
-    # Update coordinator with new scan interval (check options first, then data)
-    scan_interval_minutes = (
-        entry.options.get(CONF_SCAN_INTERVAL) or 
-        entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
-    )
+    # Update coordinator with new scan interval
+    scan_interval_minutes = entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
     try:
         scan_interval_minutes = int(scan_interval_minutes)
     except (ValueError, TypeError):
@@ -83,6 +80,7 @@ async def update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
     from datetime import timedelta
     new_scan_interval = timedelta(minutes=scan_interval_minutes)
     
+    LOGGER.warning("Updating coordinator scan interval to %s minutes", scan_interval_minutes)
     coordinator.update_interval = new_scan_interval
     
     coordinator.async_update_listeners()
