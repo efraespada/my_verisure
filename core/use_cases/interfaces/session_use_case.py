@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from typing import Optional
 
-from api.models.domain.session import Session, SessionData
+# No imports needed for this interface
 
 
 class SessionUseCase(ABC):

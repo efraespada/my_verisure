@@ -1,9 +1,9 @@
 """Alarm use case implementation."""
 
 import logging
-from typing import Dict, Tuple, Optional
+from typing import Dict
 
-from api.models.domain.alarm import AlarmStatus, ArmResult, DisarmResult
+from api.models.domain.alarm import AlarmStatus
 from repositories.interfaces.alarm_repository import AlarmRepository
 from repositories.interfaces.installation_repository import (
     InstallationRepository,

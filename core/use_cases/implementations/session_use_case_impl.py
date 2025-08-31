@@ -3,7 +3,7 @@
 import logging
 from typing import Optional
 
-from api.models.domain.session import Session, SessionData
+from api.models.domain.session import SessionData
 from repositories.interfaces.session_repository import SessionRepository
 from use_cases.interfaces.session_use_case import SessionUseCase
 

@@ -1,9 +1,8 @@
 """Dependency injection providers for My Verisure integration."""
 
 import logging
-from typing import Optional
 
-from .container import register_singleton, register
+from .container import register_singleton
 from api.client import MyVerisureClient
 from repositories.interfaces.auth_repository import AuthRepository
 from repositories.interfaces.session_repository import SessionRepository

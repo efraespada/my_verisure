@@ -1,9 +1,8 @@
 """Authentication repository interface."""
 
 from abc import ABC, abstractmethod
-from typing import List
 
-from api.models.domain.auth import Auth, AuthResult, OTPData
+from api.models.domain.auth import Auth, AuthResult
 from api.models.domain.session import DeviceIdentifiers
 
 

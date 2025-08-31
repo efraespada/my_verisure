@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 
-from api.models.domain.alarm import AlarmStatus, ArmResult, DisarmResult
+from api.models.domain.alarm import AlarmStatus
 
 
 class AlarmUseCase(ABC):

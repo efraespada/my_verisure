@@ -1,7 +1,6 @@
 """Configuration for Core tests."""
 
 import sys
-import os
 from pathlib import Path
 
 # Add the core directory to the Python path

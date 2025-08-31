@@ -3,15 +3,9 @@
 import logging
 from typing import List, Dict, Any
 
-from api.models.domain.auth import Auth, AuthResult, OTPData
+from api.models.domain.auth import Auth, AuthResult
 from api.models.domain.session import DeviceIdentifiers
-from api.models.dto.auth_dto import AuthDTO, OTPDataDTO, PhoneDTO
-from api.fields import (
-    RESPONSE_OK,
-    ERROR_INVALID_CREDENTIALS,
-    ERROR_OTP_REQUIRED,
-    ERROR_UNAUTHORIZED,
-)
+from api.models.dto.auth_dto import AuthDTO
 from repositories.interfaces.auth_repository import AuthRepository
 from api.exceptions import (
     MyVerisureAuthenticationError,
@@ -42,14 +36,16 @@ class AuthRepositoryImpl(AuthRepository):
                 await self.client.connect()
 
             # Convert domain models to DTOs for the client
-            auth_dto = AuthDTO(
+            # Note: DTOs are created but not used in this implementation
+            # as the client handles the conversion internally
+            _ = AuthDTO(
                 res="",  # Will be filled by client
                 msg="",
                 hash=None,
                 refresh_token=None,
             )
 
-            device_dto = device_identifiers.to_dto()
+            _ = device_identifiers.to_dto()
 
             # Call the client's login method
             result = await self.client.login()

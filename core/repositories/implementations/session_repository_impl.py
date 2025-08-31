@@ -4,8 +4,7 @@ import logging
 import time
 from typing import Optional
 
-from api.models.domain.session import Session, SessionData
-from api.models.dto.session_dto import SessionDTO
+from api.models.domain.session import SessionData
 from repositories.interfaces.session_repository import SessionRepository
 
 _LOGGER = logging.getLogger(__name__)

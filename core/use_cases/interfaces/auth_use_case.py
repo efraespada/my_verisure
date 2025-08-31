@@ -3,8 +3,7 @@
 from abc import ABC, abstractmethod
 from typing import List
 
-from api.models.domain.auth import Auth, AuthResult, OTPData
-from api.models.domain.session import DeviceIdentifiers
+from api.models.domain.auth import AuthResult
 
 
 class AuthUseCase(ABC):
