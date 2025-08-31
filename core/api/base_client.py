@@ -1,13 +1,12 @@
 """Base client for My Verisure GraphQL API."""
 
-import asyncio
 import json
 import logging
 import time
 from typing import Any, Dict, Optional
 
 import aiohttp
-from gql import Client, gql
+from gql import Client
 from gql.transport.aiohttp import AIOHTTPTransport
 
 from .exceptions import MyVerisureConnectionError

@@ -2,12 +2,9 @@
 
 import pytest
 from unittest.mock import Mock, AsyncMock
-from typing import List, Dict, Any
 
-from api.models.domain.auth import Auth, AuthResult
+from api.models.domain.auth import Auth
 from api.models.domain.session import SessionData, DeviceIdentifiers
-from api.models.domain.installation import Installation, InstallationServices
-from api.models.domain.alarm import AlarmStatus, ArmResult, DisarmResult
 
 from repositories.implementations.auth_repository_impl import (
     AuthRepositoryImpl,

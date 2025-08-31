@@ -1,8 +1,6 @@
 """Unit tests for CLI input helper functions."""
 
-import pytest
 from unittest.mock import patch, Mock
-from io import StringIO
 
 from cli.utils.input_helpers import (
     get_user_credentials,

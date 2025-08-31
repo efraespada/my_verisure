@@ -1,8 +1,6 @@
 """Unit tests for CLI display utilities."""
 
-import pytest
 from io import StringIO
-import sys
 from unittest.mock import patch
 
 from cli.utils.display import (

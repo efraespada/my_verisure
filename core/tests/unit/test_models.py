@@ -1,7 +1,6 @@
 """Unit tests for models."""
 
 import pytest
-from unittest.mock import Mock
 
 from ...api.models.dto.auth_dto import AuthDTO, OTPDataDTO, PhoneDTO
 from ...api.models.dto.installation_dto import (
@@ -16,14 +15,7 @@ from ...api.models.dto.alarm_dto import (
 )
 from ...api.models.dto.session_dto import SessionDTO, DeviceIdentifiersDTO
 
-from ...api.models.domain.auth import Auth, AuthResult, OTPData, Phone
-from ...api.models.domain.installation import (
-    Installation,
-    InstallationServices,
-    Service,
-)
-from ...api.models.domain.alarm import AlarmStatus, ArmResult, DisarmResult
-from ...api.models.domain.session import Session, DeviceIdentifiers
+from ...api.models.domain.auth import Auth, AuthResult
 
 
 class TestAuthDTO:

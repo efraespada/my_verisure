@@ -4,9 +4,7 @@ Unit tests for InstallationRepository implementation.
 """
 
 import pytest
-import asyncio
-from unittest.mock import Mock, AsyncMock, patch
-from typing import Optional, List, Dict, Any
+from unittest.mock import Mock, AsyncMock
 
 # Add the package root to the path
 import sys
@@ -20,10 +18,6 @@ from repositories.implementations.installation_repository_impl import (
 from repositories.interfaces.installation_repository import (
     InstallationRepository,
 )
-from api.models.domain.installation import Installation, InstallationServices
-from api.models.domain.service import Service
-from api.models.dto.installation_dto import InstallationDTO
-from api.models.dto.service_dto import ServiceDTO
 from api.exceptions import MyVerisureError
 
 

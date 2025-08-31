@@ -4,9 +4,7 @@ Unit tests for AlarmRepository implementation.
 """
 
 import pytest
-import asyncio
-from unittest.mock import Mock, AsyncMock, patch
-from typing import Optional, Dict, Any
+from unittest.mock import Mock, AsyncMock
 
 # Add the package root to the path
 import sys
@@ -18,7 +16,6 @@ from repositories.implementations.alarm_repository_impl import (
     AlarmRepositoryImpl,
 )
 from repositories.interfaces.alarm_repository import AlarmRepository
-from api.models.domain.alarm import AlarmStatus
 from api.exceptions import MyVerisureError
 
 

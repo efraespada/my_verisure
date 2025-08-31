@@ -49,18 +49,7 @@ class TestAuthUseCase:
         username = "test_user"
         password = "test_password"
         expected_auth = Auth(username=username, password=password)
-        expected_device_identifiers = DeviceIdentifiers(
-            id_device="device_123",
-            uuid="uuid_456",
-            id_device_indigitall="indigitall_789",
-            device_name="HomeAssistant",
-            device_brand="HomeAssistant",
-            device_os_version="Linux 5.0",
-            device_version="10.154.0",
-            device_type="",
-            device_resolution="",
-            generated_time=0,
-        )
+
         expected_result = AuthResult(
             success=True, hash="test_hash", message="Login successful"
         )

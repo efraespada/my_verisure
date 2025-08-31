@@ -2,7 +2,6 @@
 
 import pytest
 from unittest.mock import Mock, AsyncMock
-from typing import List, Dict, Any
 
 from api.models.domain.auth import Auth, AuthResult
 from api.models.domain.session import SessionData, DeviceIdentifiers
