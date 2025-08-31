@@ -343,9 +343,8 @@ class TestInstallationUseCaseImpl:
         assert result.message == "Success"
         assert result.language == "es"
 
-        self.mock_installation_repository.get_installation_services.assert_called_once_with(
-            installation_id, False
-        )
+        self.mock_installation_repository.get_installation_services.\
+            assert_called_once_with(installation_id, False)
 
     @pytest.mark.asyncio
     async def test_get_installation_services_force_refresh(self):
@@ -374,9 +373,8 @@ class TestInstallationUseCaseImpl:
         # Assert
         assert result.success is True
 
-        self.mock_installation_repository.get_installation_services.assert_called_once_with(
-            installation_id, True
-        )
+        self.mock_installation_repository.get_installation_services.\
+            assert_called_once_with(installation_id, True)
 
     def test_get_cache_info(self):
         """Test cache info retrieval."""
@@ -472,9 +470,8 @@ class TestAlarmUseCaseImpl:
         assert result.status == "DISARMED"
         assert result.numinst == installation_id
 
-        self.mock_installation_repository.get_installation_services.assert_called_once_with(
-            installation_id
-        )
+        self.mock_installation_repository.get_installation_services.\
+            assert_called_once_with(installation_id)
         self.mock_alarm_repository.get_alarm_status.assert_called_once_with(
             installation_id, "PROTOCOL", "default_capabilities"
         )
@@ -507,9 +504,8 @@ class TestAlarmUseCaseImpl:
         # Assert
         assert result is True
 
-        self.mock_installation_repository.get_installation_services.assert_called_once_with(
-            installation_id
-        )
+        self.mock_installation_repository.get_installation_services.\
+            assert_called_once_with(installation_id)
         self.mock_alarm_repository.arm_panel.assert_called_once_with(
             installation_id, "ARM1", "PROTOCOL", "E"
         )
@@ -540,9 +536,8 @@ class TestAlarmUseCaseImpl:
         # Assert
         assert result is False
 
-        self.mock_installation_repository.get_installation_services.assert_called_once_with(
-            installation_id
-        )
+        self.mock_installation_repository.get_installation_services.\
+            assert_called_once_with(installation_id)
 
     @pytest.mark.asyncio
     async def test_arm_home_success(self):
@@ -572,9 +567,8 @@ class TestAlarmUseCaseImpl:
         # Assert
         assert result is True
 
-        self.mock_installation_repository.get_installation_services.assert_called_once_with(
-            installation_id
-        )
+        self.mock_installation_repository.get_installation_services.\
+            assert_called_once_with(installation_id)
         self.mock_alarm_repository.arm_panel.assert_called_once_with(
             installation_id, "PERI1", "PROTOCOL", "E"
         )
@@ -608,9 +602,8 @@ class TestAlarmUseCaseImpl:
         # Assert
         assert result is True
 
-        self.mock_installation_repository.get_installation_services.assert_called_once_with(
-            installation_id
-        )
+        self.mock_installation_repository.get_installation_services.\
+            assert_called_once_with(installation_id)
         self.mock_alarm_repository.arm_panel.assert_called_once_with(
             installation_id, "ARMNIGHT1", "PROTOCOL", "E"
         )
@@ -643,9 +636,8 @@ class TestAlarmUseCaseImpl:
         # Assert
         assert result is True
 
-        self.mock_installation_repository.get_installation_services.assert_called_once_with(
-            installation_id
-        )
+        self.mock_installation_repository.get_installation_services.\
+            assert_called_once_with(installation_id)
         self.mock_alarm_repository.disarm_panel.assert_called_once_with(
             installation_id, "PROTOCOL"
         )
