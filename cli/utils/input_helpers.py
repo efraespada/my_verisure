@@ -141,7 +141,7 @@ def select_installation(installations: List) -> Optional[str]:
 
 def confirm_action(action: str) -> bool:
     """Solicita confirmación para una acción."""
-    from .display import print_warning
+    from .display import print_warning, print_error
     
     print_warning(f"¿Estás seguro de que quieres {action}?")
     

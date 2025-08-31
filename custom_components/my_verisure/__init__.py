@@ -7,4 +7,8 @@ import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'core'))
 
-from core import * 
+# Import specific modules as needed
+from core.api import *
+from core.repositories import *
+from core.use_cases import *
+from core.dependency_injection import * 

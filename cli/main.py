@@ -132,28 +132,30 @@ async def main():
         elif args.command == 'info':
             command = InfoCommand()
             if args.action == 'services':
-                success = await command.execute(args.action, installation_id=args.installation_id)
+                success = await command.execute(args.action, installation_id=args.installation_id, interactive=not args.non_interactive)
             elif args.action == 'status':
-                success = await command.execute(args.action, installation_id=args.installation_id)
+                success = await command.execute(args.action, installation_id=args.installation_id, interactive=not args.non_interactive)
             else:
-                success = await command.execute(args.action)
+                success = await command.execute(args.action, interactive=not args.non_interactive)
                 
         elif args.command == 'alarm':
             command = AlarmCommand()
             if args.action == 'status':
-                success = await command.execute(args.action, installation_id=args.installation_id)
+                success = await command.execute(args.action, installation_id=args.installation_id, interactive=not args.non_interactive)
             elif args.action == 'arm':
                 success = await command.execute(
                     args.action, 
                     mode=args.mode, 
                     installation_id=args.installation_id,
-                    confirm=not args.no_confirm
+                    confirm=not args.no_confirm,
+                    interactive=not args.non_interactive
                 )
             elif args.action == 'disarm':
                 success = await command.execute(
                     args.action, 
                     installation_id=args.installation_id,
-                    confirm=not args.no_confirm
+                    confirm=not args.no_confirm,
+                    interactive=not args.non_interactive
                 )
             else:
                 success = False

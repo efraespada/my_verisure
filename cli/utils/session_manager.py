@@ -66,6 +66,7 @@ class SessionManager:
                 
                 self.username = session_data.get('username')
                 self.password = session_data.get('password')
+                self.is_authenticated = session_data.get('is_authenticated', False)
                 self.current_installation = session_data.get('current_installation')
                 
                 # Check if we have credentials
@@ -85,6 +86,7 @@ class SessionManager:
             session_data = {
                 'username': self.username,
                 'password': self.password,
+                'is_authenticated': self.is_authenticated,
                 'current_installation': self.current_installation,
                 'timestamp': asyncio.get_event_loop().time()
             }
