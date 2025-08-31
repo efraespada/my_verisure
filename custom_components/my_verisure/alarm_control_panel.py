@@ -73,7 +73,7 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
         """
         if not alarm_data:
             return AlarmControlPanelState.DISARMED, {}
-        
+
         # Parse the JSON structure with internal/external sections
         internal = alarm_data.get("internal", {})
         external = alarm_data.get("external", {})
@@ -94,7 +94,7 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
             "external": external_status,
             "active_alarms": []
         }
-        
+
         # Determine which alarms are active
         if internal_total:
             detailed_states["active_alarms"].append("Internal Total")
@@ -118,7 +118,7 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
             primary_state = AlarmControlPanelState.ARMED_HOME
         else:
             primary_state = AlarmControlPanelState.DISARMED
-        
+
         return primary_state, detailed_states
 
     @property

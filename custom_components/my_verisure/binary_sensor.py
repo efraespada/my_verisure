@@ -117,7 +117,7 @@ class MyVerisureAlarmBinarySensor(BinarySensorEntity):
             )
         elif self.sensor_id == "external":
             return not alarm_status.get("external", {}).get("status", False)
-        
+
         return None
 
     @property

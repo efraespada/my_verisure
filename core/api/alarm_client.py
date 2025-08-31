@@ -9,15 +9,12 @@ from typing import Any, Dict, Optional
 from gql import gql
 
 from .base_client import BaseClient
-from .exceptions import MyVerisureAuthenticationError, MyVerisureError
-from .models.dto.alarm_dto import (
-    AlarmStatusDTO,
-    ArmResultDTO,
-    DisarmResultDTO,
-    ArmStatusDTO as ArmStatusDTOType,
-    DisarmStatusDTO as DisarmStatusDTOType,
-    CheckAlarmDTO,
+from .exceptions import (
+    MyVerisureAuthenticationError,
+    MyVerisureConnectionError,
+    MyVerisureError,
 )
+
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -36,7 +33,14 @@ CHECK_ALARM_QUERY = gql(
 
 ARM_PANEL_MUTATION = gql(
     """
-    mutation xSArmPanel($numinst: String!, $request: ArmCodeRequest!, $panel: String!, $currentStatus: String, $forceArmingRemoteId: String, $armAndLock: Boolean) {
+    mutation xSArmPanel(
+        $numinst: String!,
+        $request: ArmCodeRequest!,
+        $panel: String!,
+        $currentStatus: String,
+        $forceArmingRemoteId: String,
+        $armAndLock: Boolean
+    ) {
         xSArmPanel(
             numinst: $numinst
             request: $request
@@ -55,7 +59,15 @@ ARM_PANEL_MUTATION = gql(
 
 ARM_STATUS_QUERY = gql(
     """
-    query ArmStatus($numinst: String!, $request: ArmCodeRequest, $panel: String!, $referenceId: String!, $counter: Int!, $forceArmingRemoteId: String, $armAndLock: Boolean) {
+    query ArmStatus(
+        $numinst: String!,
+        $request: ArmCodeRequest,
+        $panel: String!,
+        $referenceId: String!,
+        $counter: Int!,
+        $forceArmingRemoteId: String,
+        $armAndLock: Boolean
+    ) {
         xSArmStatus(
             numinst: $numinst
             panel: $panel
@@ -92,7 +104,11 @@ ARM_STATUS_QUERY = gql(
 
 DISARM_PANEL_MUTATION = gql(
     """
-    mutation xSDisarmPanel($numinst: String!, $request: DisarmCodeRequest!, $panel: String!) {
+    mutation xSDisarmPanel(
+        $numinst: String!,
+        $request: DisarmCodeRequest!,
+        $panel: String!
+    ) {
         xSDisarmPanel(numinst: $numinst, request: $request, panel: $panel) {
             res
             msg
@@ -104,7 +120,13 @@ DISARM_PANEL_MUTATION = gql(
 
 DISARM_STATUS_QUERY = gql(
     """
-    query DisarmStatus($numinst: String!, $panel: String!, $referenceId: String!, $counter: Int!, $request: DisarmCodeRequest) {
+    query DisarmStatus(
+        $numinst: String!,
+        $panel: String!,
+        $referenceId: String!,
+        $counter: Int!,
+        $request: DisarmCodeRequest
+    ) {
         xSDisarmStatus(
             numinst: $numinst
             panel: $panel
@@ -134,7 +156,12 @@ DISARM_STATUS_QUERY = gql(
 
 CHECK_ALARM_STATUS_QUERY = gql(
     """
-    query CheckAlarmStatus($numinst: String!, $idService: String!, $panel: String!, $referenceId: String!) {
+    query CheckAlarmStatus(
+        $numinst: String!,
+        $idService: String!,
+        $panel: String!,
+        $referenceId: String!
+    ) {
         xSCheckAlarmStatus(
             numinst: $numinst
             idService: $idService
@@ -164,7 +191,8 @@ class AlarmClient(BaseClient):
     def _load_alarm_status_config(self) -> Dict[str, Any]:
         """Load alarm status configuration from JSON file."""
         try:
-            # Get the directory where this file is located and go up one level to the my_verisure directory
+            # Get the directory where this file is located and go up one level
+            # to the my_verisure directory
             current_dir = os.path.dirname(os.path.abspath(__file__))
             config_path = os.path.join(current_dir, "alarm_status.json")
 
@@ -272,14 +300,14 @@ class AlarmClient(BaseClient):
                 panel = "panel1"  # This should come from installation services
 
                 # Find EST service for alarm status check
-                est_service = None
                 # This would normally come from installation services
                 # For now, we'll use a default service ID
                 service_id = "EST"
                 service_request = "EST"
 
                 _LOGGER.info(
-                    "Getting real-time alarm status for EST service: %s (request: %s)",
+                    "Getting real-time alarm status for EST service: %s "
+                    "(request: %s)",
                     service_id,
                     service_request,
                 )
@@ -311,7 +339,8 @@ class AlarmClient(BaseClient):
                 if check_alarm_data.get("res") != "OK":
                     error_msg = check_alarm_data.get("msg", "Unknown error")
                     _LOGGER.warning(
-                        "Could not get referenceId for real-time alarm status check: %s",
+                        "Could not get referenceId for real-time alarm status "
+                        "check: %s",
                         error_msg,
                     )
                     return self._get_default_alarm_status()
@@ -345,7 +374,8 @@ class AlarmClient(BaseClient):
 
             except Exception as e:
                 _LOGGER.warning(
-                    "Error getting real-time alarm status: %s, using service-based status",
+                    "Error getting real-time alarm status: %s, using "
+                    "service-based status",
                     e,
                 )
                 return self._get_default_alarm_status()
@@ -369,7 +399,8 @@ class AlarmClient(BaseClient):
         """Get real-time alarm status using the CheckAlarmStatus query with polling."""
         try:
             _LOGGER.info(
-                "Getting real-time alarm status with numinst: %s, panel: %s, idService: %s, referenceId: %s",
+                "Getting real-time alarm status with numinst: %s, panel: %s, "
+                "idService: %s, referenceId: %s",
                 numinst,
                 panel,
                 id_service,
@@ -430,7 +461,8 @@ class AlarmClient(BaseClient):
                     retry_count += 1
                     if retry_count < max_retries:
                         _LOGGER.debug(
-                            "Alarm status check returned WAIT, waiting 5 seconds before retry %d",
+                            "Alarm status check returned WAIT, waiting 5 seconds "
+                            "before retry %d",
                             retry_count + 1,
                         )
                         await asyncio.sleep(5)  # Wait 5 seconds before retry
@@ -508,7 +540,9 @@ class AlarmClient(BaseClient):
 
             if arm_res != "OK" or not reference_id:
                 _LOGGER.error(
-                    "Failed to send arm command '%s': %s", request, arm_msg
+                    "Failed to send arm command '%s': %s",
+                    request,
+                    arm_msg,
                 )
                 return False
 
@@ -576,7 +610,8 @@ class AlarmClient(BaseClient):
                     # Need to wait and retry
                     if retry_count < max_retries:
                         _LOGGER.debug(
-                            "Arm status returned WAIT, waiting 5 seconds before retry"
+                            "Arm status returned WAIT, waiting 5 seconds "
+                            "before retry"
                         )
                         await asyncio.sleep(5)  # Wait 5 seconds before retry
                     else:
@@ -703,7 +738,8 @@ class AlarmClient(BaseClient):
                 protom_response = disarm_status_result.get("protomResponse")
 
                 _LOGGER.debug(
-                    "Disarm status check: res=%s, msg=%s, status=%s, protomResponse=%s",
+                    "Disarm status check: res=%s, msg=%s, status=%s, "
+                    "protomResponse=%s",
                     status_res,
                     status_msg,
                     status_status,
@@ -717,7 +753,8 @@ class AlarmClient(BaseClient):
                     # Need to wait and retry
                     if retry_count < max_retries:
                         _LOGGER.debug(
-                            "Disarm status returned WAIT, waiting 2 seconds before retry"
+                            "Disarm status returned WAIT, waiting 2 seconds "
+                            "before retry"
                         )
                         await asyncio.sleep(5)  # Wait 5 seconds before retry
                     else:
