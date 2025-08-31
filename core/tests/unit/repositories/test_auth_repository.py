@@ -4,9 +4,7 @@ Unit tests for AuthRepository implementation.
 """
 
 import pytest
-import asyncio
-from unittest.mock import Mock, AsyncMock, patch
-from typing import Optional, List, Dict, Any
+from unittest.mock import Mock, AsyncMock
 
 # Add the package root to the path
 import sys
@@ -18,9 +16,8 @@ from repositories.implementations.auth_repository_impl import (
     AuthRepositoryImpl,
 )
 from repositories.interfaces.auth_repository import AuthRepository
-from api.models.domain.auth import Auth, AuthResult
+from api.models.domain.auth import Auth
 from api.models.domain.session import DeviceIdentifiers
-from api.models.dto.auth_dto import AuthDTO
 from api.exceptions import MyVerisureAuthenticationError, MyVerisureOTPError
 
 
@@ -62,16 +59,6 @@ class TestAuthRepository:
             device_type="",
             device_resolution="",
             generated_time=0,
-        )
-        expected_dto = AuthDTO(
-            res="OK",
-            msg="Login successful",
-            hash="test_hash",
-            lang="es",
-            legals=False,
-            change_password=False,
-            need_device_authorization=False,
-            refresh_token="refresh_token",
         )
 
         mock_client.login.return_value = True

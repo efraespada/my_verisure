@@ -4,8 +4,7 @@ import pytest
 import json
 import os
 import tempfile
-from unittest.mock import Mock, AsyncMock, patch, MagicMock
-from pathlib import Path
+from unittest.mock import Mock, AsyncMock, patch
 
 from cli.utils.session_manager import SessionManager
 

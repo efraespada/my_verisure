@@ -14,7 +14,7 @@ from .exceptions import (
     MyVerisureOTPError,
     MyVerisureDeviceAuthorizationError,
 )
-from .models.dto.auth_dto import AuthDTO, OTPDataDTO, PhoneDTO
+from .models.dto.auth_dto import AuthDTO, PhoneDTO
 
 _LOGGER = logging.getLogger(__name__)
 

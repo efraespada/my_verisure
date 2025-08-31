@@ -3,7 +3,7 @@
 
 import sys
 import os
-from unittest.mock import patch, Mock, AsyncMock
+from unittest.mock import patch
 from io import StringIO
 
 # Add the project root to the path

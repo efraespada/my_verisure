@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Script to run CLI tests."""
 
-import sys
 import os
 import subprocess
 from pathlib import Path

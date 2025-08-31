@@ -1,7 +1,6 @@
 """Authentication command for the CLI."""
 
 import logging
-from typing import Optional
 
 from .base import BaseCommand
 from ..utils.display import (

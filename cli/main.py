@@ -6,7 +6,6 @@ import asyncio
 import logging
 import sys
 import os
-from typing import Optional
 
 # Add core to path
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "core"))

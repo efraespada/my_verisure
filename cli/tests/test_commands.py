@@ -2,7 +2,6 @@
 
 import pytest
 from unittest.mock import Mock, AsyncMock, patch
-from io import StringIO
 
 from cli.commands.auth import AuthCommand
 from cli.commands.info import InfoCommand
@@ -138,7 +137,7 @@ class TestAuthCommand:
     @pytest.mark.asyncio
     async def test_execute_unknown_action(self):
         """Test execute with unknown action."""
-        with patch("cli.utils.display.print_error") as mock_print_error:
+        with patch("cli.utils.display.print_error"):
             result = await self.command.execute("unknown")
             assert result is False
             # The error message is printed to stdout, not through print_error
