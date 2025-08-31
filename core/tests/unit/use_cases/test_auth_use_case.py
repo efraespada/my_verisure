@@ -4,9 +4,7 @@ Unit tests for AuthUseCase implementation.
 """
 
 import pytest
-import asyncio
-from unittest.mock import Mock, AsyncMock, patch
-from typing import Optional
+from unittest.mock import Mock, AsyncMock
 
 # Add the package root to the path
 import sys

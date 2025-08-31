@@ -3,13 +3,12 @@
 Unit tests for InstallationUseCase implementation.
 """
 
+import os
+import sys
 import pytest
 from unittest.mock import Mock, AsyncMock
 
 # Add the package root to the path
-import sys
-import os
-
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../../../"))
 
 from use_cases.implementations.installation_use_case_impl import (
@@ -45,7 +44,7 @@ class TestInstallationUseCase:
     def test_installation_use_case_implements_interface(
         self, installation_use_case
     ):
-        """Test that InstallationUseCaseImpl implements InstallationUseCase interface."""
+        """Test InstallationUseCaseImpl implements InstallationUseCase interface."""
         assert isinstance(installation_use_case, InstallationUseCase)
 
     @pytest.mark.asyncio
