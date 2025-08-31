@@ -21,8 +21,7 @@ class AlarmRepositoryImpl(AlarmRepository):
         """Get alarm status."""
         try:
             _LOGGER.info(
-                "Getting alarm status for installation %s",
-                installation_id
+                "Getting alarm status for installation %s", installation_id
             )
 
             alarm_status_data = await self.client.get_alarm_status(

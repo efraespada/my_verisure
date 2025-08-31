@@ -1,7 +1,6 @@
 """Alarm use case implementation."""
 
 import logging
-from typing import Dict
 
 from api.models.domain.alarm import AlarmStatus
 from repositories.interfaces.alarm_repository import AlarmRepository

@@ -90,7 +90,8 @@ class SessionUseCaseImpl(SessionUseCase):
         try:
             _LOGGER.info("Refreshing session")
 
-            # This would typically involve re-authenticating with stored credentials
+            # This would typically involve re-authenticating with
+            # stored credentials.
             # For now, we'll just return True if we have session data
             if self._current_session_data:
                 _LOGGER.info("Session refresh completed")
