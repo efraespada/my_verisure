@@ -67,8 +67,9 @@ def test_use_case_creation():
         print("✅ InstallationUseCaseImpl creation: OK")
         
         # Test AlarmUseCaseImpl creation
-        alarm_use_case = AlarmUseCaseImpl(mock_alarm_repo)
+        alarm_use_case = AlarmUseCaseImpl(mock_alarm_repo, mock_installation_repo)
         assert alarm_use_case.alarm_repository == mock_alarm_repo
+        assert alarm_use_case.installation_repository == mock_installation_repo
         print("✅ AlarmUseCaseImpl creation: OK")
         
         return True

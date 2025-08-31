@@ -1,6 +1,6 @@
 """Installation domain models for My Verisure API."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from typing import List, Optional, Dict, Any
 from ..dto.installation_dto import InstallationDTO, InstallationServicesDTO, ServiceDTO, InstallationsListDTO
 
@@ -58,6 +58,10 @@ class Service:
             generic_config=self.generic_config,
             attributes=self.attributes,
         )
+    
+    def dict(self) -> Dict[str, Any]:
+        """Convert to dictionary."""
+        return asdict(self)
 
 
 @dataclass
@@ -116,6 +120,10 @@ class Installation:
             due=self.due,
             role=self.role,
         )
+    
+    def dict(self) -> Dict[str, Any]:
+        """Convert to dictionary."""
+        return asdict(self)
 
 
 @dataclass
@@ -169,6 +177,10 @@ class InstallationServices:
             installation=installation_data,
             services=services,
         )
+    
+    def dict(self) -> Dict[str, Any]:
+        """Convert to dictionary."""
+        return asdict(self)
 
 
 @dataclass
@@ -190,4 +202,8 @@ class InstallationsList:
     def to_dto(self) -> InstallationsListDTO:
         """Convert to DTO."""
         installations = [i.to_dto() for i in self.installations]
-        return InstallationsListDTO(installations=installations) 
+        return InstallationsListDTO(installations=installations)
+    
+    def dict(self) -> Dict[str, Any]:
+        """Convert to dictionary."""
+        return asdict(self) 

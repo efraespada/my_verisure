@@ -1,7 +1,7 @@
 """Authentication domain models for My Verisure API."""
 
-from dataclasses import dataclass
-from typing import List, Optional
+from dataclasses import dataclass, asdict
+from typing import List, Optional, Dict, Any
 from ..dto.auth_dto import AuthDTO, OTPDataDTO, PhoneDTO
 
 
@@ -25,6 +25,10 @@ class Phone:
             id=self.id,
             phone=self.phone,
         )
+    
+    def dict(self) -> Dict[str, Any]:
+        """Convert to dictionary."""
+        return asdict(self)
 
 
 @dataclass
@@ -53,6 +57,10 @@ class OTPData:
             auth_code=self.auth_code,
             auth_type=self.auth_type,
         )
+    
+    def dict(self) -> Dict[str, Any]:
+        """Convert to dictionary."""
+        return asdict(self)
 
 
 @dataclass
@@ -93,6 +101,10 @@ class AuthResult:
             change_password=self.change_password,
             need_device_authorization=self.need_device_authorization,
         )
+    
+    def dict(self) -> Dict[str, Any]:
+        """Convert to dictionary."""
+        return asdict(self)
 
 
 @dataclass
@@ -106,4 +118,8 @@ class Auth:
         if not self.username:
             raise ValueError("Username is required")
         if not self.password:
-            raise ValueError("Password is required") 
+            raise ValueError("Password is required")
+    
+    def dict(self) -> Dict[str, Any]:
+        """Convert to dictionary."""
+        return asdict(self) 

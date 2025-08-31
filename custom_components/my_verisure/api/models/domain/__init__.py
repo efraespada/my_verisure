@@ -1,17 +1,20 @@
 """Domain models for My Verisure API."""
 
-from .auth import Auth, AuthResult
-from .installation import Installation, InstallationServices, InstallationsList
+from .auth import AuthResult, Phone, OTPData, Auth
+from .installation import Installation, InstallationServices, InstallationsList, Service as InstallationService
 from .alarm import AlarmStatus, ArmResult, DisarmResult, ArmStatus, DisarmStatus, CheckAlarm
-from .session import SessionData
+from .session import SessionData, Session, DeviceIdentifiers
 from .service import Service
 
 __all__ = [
     "Auth",
-    "AuthResult", 
+    "AuthResult",
+    "Phone",
+    "OTPData",
     "Installation",
     "InstallationServices",
     "InstallationsList",
+    "InstallationService",
     "AlarmStatus",
     "ArmResult",
     "DisarmResult",
@@ -19,5 +22,7 @@ __all__ = [
     "DisarmStatus",
     "CheckAlarm",
     "SessionData",
+    "Session",
+    "DeviceIdentifiers",
     "Service"
 ] 

@@ -23,21 +23,41 @@ class AlarmRepositoryImpl(AlarmRepository):
             
             alarm_status_data = await self.client.get_alarm_status(installation_id, capabilities)
             
-            # Convert to domain model
-            # Note: The client returns a processed alarm status, so we need to create a DTO first
-            alarm_status_dto = AlarmStatusDTO(
-                res="OK",
-                msg="Alarm status retrieved",
-                status=alarm_status_data.get("status"),
+            # The client returns a processed alarm status with internal/external structure
+            # We need to convert this to our AlarmStatus domain model
+            _LOGGER.info("Raw alarm status data: %s", alarm_status_data)
+            
+            # Extract the alarm message from the processed data
+            # The client processes the alarm message and returns a structured response
+            # We'll use the first alarm message we find or a default one
+            alarm_message = "No alarm"
+            
+            # Check if there are any active alarms in the processed data
+            internal = alarm_status_data.get("internal", {})
+            external = alarm_status_data.get("external", {})
+            
+            # Look for active alarms
+            if internal.get("day", {}).get("status", False):
+                alarm_message = "Internal day alarm active"
+            elif internal.get("night", {}).get("status", False):
+                alarm_message = "Internal night alarm active"
+            elif internal.get("total", {}).get("status", False):
+                alarm_message = "Internal total alarm active"
+            elif external.get("status", False):
+                alarm_message = "External alarm active"
+            
+            # Create AlarmStatus domain model
+            alarm_status = AlarmStatus(
+                success=True,
+                message=alarm_message,
+                status="OK" if alarm_message == "No alarm" else "ALARM",
                 numinst=installation_id,
-                protom_response=alarm_status_data.get("protom_response"),
-                protom_response_date=alarm_status_data.get("protom_response_date"),
-                forced_armed=alarm_status_data.get("forced_armed")
+                protom_response=alarm_message,
+                protom_response_date=None,
+                forced_armed=False
             )
             
-            alarm_status = AlarmStatus.from_dto(alarm_status_dto)
-            
-            _LOGGER.info("Retrieved alarm status for installation %s", installation_id)
+            _LOGGER.info("Retrieved alarm status for installation %s: %s", installation_id, alarm_message)
             return alarm_status
             
         except Exception as e:

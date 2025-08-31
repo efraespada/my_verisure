@@ -1,6 +1,6 @@
 """Alarm domain models for My Verisure API."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from typing import Optional, Dict, Any
 from ..dto.alarm_dto import (
     AlarmStatusDTO, ArmResultDTO, DisarmResultDTO, 
@@ -31,6 +31,10 @@ class ArmResult:
             msg=self.message,
             reference_id=self.reference_id,
         )
+    
+    def dict(self) -> Dict[str, Any]:
+        """Convert to dictionary."""
+        return asdict(self)
 
 
 @dataclass
@@ -56,6 +60,10 @@ class DisarmResult:
             msg=self.message,
             reference_id=self.reference_id,
         )
+    
+    def dict(self) -> Dict[str, Any]:
+        """Convert to dictionary."""
+        return asdict(self)
 
 
 @dataclass
@@ -93,6 +101,10 @@ class AlarmStatus:
             protom_response_date=self.protom_response_date,
             forced_armed=self.forced_armed,
         )
+    
+    def dict(self) -> Dict[str, Any]:
+        """Convert to dictionary."""
+        return asdict(self)
 
 
 @dataclass

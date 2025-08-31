@@ -1,6 +1,6 @@
 """Session domain models for My Verisure API."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from typing import Dict, Any, Optional
 from ..dto.session_dto import SessionDTO, DeviceIdentifiersDTO
 
@@ -49,6 +49,10 @@ class DeviceIdentifiers:
             device_resolution=self.device_resolution,
             generated_time=self.generated_time,
         )
+    
+    def dict(self) -> Dict[str, Any]:
+        """Convert to dictionary."""
+        return asdict(self)
 
 
 @dataclass
@@ -91,6 +95,10 @@ class SessionData:
             device_identifiers=device_identifiers,
             saved_time=self.saved_time,
         )
+    
+    def dict(self) -> Dict[str, Any]:
+        """Convert to dictionary."""
+        return asdict(self)
 
 
 @dataclass
@@ -99,9 +107,6 @@ class Session:
     user: str
     password: str
     
-    def __post_init__(self):
-        """Validate session data."""
-        if not self.user:
-            raise ValueError("User is required")
-        if not self.password:
-            raise ValueError("Password is required") 
+    def dict(self) -> Dict[str, Any]:
+        """Convert to dictionary."""
+        return asdict(self) 

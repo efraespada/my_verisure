@@ -6,11 +6,9 @@ Usa la nueva arquitectura con casos de uso y repositorios.
 """
 
 import asyncio
+import getpass
 import logging
 import sys
-import os
-import json
-import getpass
 from typing import Optional
 
 # Configurar logging
@@ -20,18 +18,19 @@ logger = logging.getLogger(__name__)
 # Añadir el directorio actual al path para importar el módulo
 sys.path.append('./custom_components/my_verisure')
 
-try:
-    from dependency_injection.providers import setup_dependencies, get_auth_use_case, get_installation_use_case, clear_dependencies
-    from api.exceptions import (
-        MyVerisureAuthenticationError,
-        MyVerisureConnectionError,
-        MyVerisureError,
-        MyVerisureOTPError,
-    )
-except ImportError as e:
-    logger.error(f"No se pudo importar los módulos: {e}")
-    logger.error("Asegúrate de estar en el directorio correcto del proyecto")
-    sys.exit(1)
+from dependency_injection.providers import (
+    setup_dependencies, 
+    get_auth_use_case, 
+    get_installation_use_case, 
+    clear_dependencies, 
+    get_client
+)
+from api.exceptions import (
+    MyVerisureAuthenticationError,
+    MyVerisureConnectionError,
+    MyVerisureError,
+    MyVerisureOTPError,
+)
 
 
 def print_header(title: str) -> None:
@@ -352,10 +351,29 @@ async def interactive_login() -> None:
         print_error(f"Error inesperado: {e}")
         
     finally:
-        # Limpiar dependencias
-        print_info("Limpiando dependencias...")
-        clear_dependencies()
-        print_success("Dependencias limpiadas")
+        # Limpiar recursos de manera segura
+        await cleanup_resources()
+
+
+async def cleanup_resources() -> None:
+    """Limpia todos los recursos de manera segura."""
+    try:
+        # Obtener el cliente y desconectarlo explícitamente
+        try:
+            client = get_client()
+            if client:
+                print_info("Desconectando cliente HTTP...")
+                await client.disconnect()
+                print_success("Cliente HTTP desconectado")
+        except Exception as e:
+            print_info(f"No se pudo desconectar el cliente: {e}")
+    except Exception as e:
+        print_info(f"Error obteniendo cliente: {e}")
+    
+    # Limpiar dependencias
+    print_info("Limpiando dependencias...")
+    clear_dependencies()
+    print_success("Dependencias limpiadas")
 
 
 def main():

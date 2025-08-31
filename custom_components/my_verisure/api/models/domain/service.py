@@ -3,7 +3,7 @@
 Domain model for Service.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from typing import Dict, List, Any, Optional
 
 
@@ -61,4 +61,8 @@ class Service:
             inst_date=self.inst_date,
             generic_config=self.generic_config,
             attributes=self.attributes
-        ) 
+        )
+    
+    def dict(self) -> Dict[str, Any]:
+        """Convert to dictionary."""
+        return asdict(self) 

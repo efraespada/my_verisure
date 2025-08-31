@@ -71,7 +71,8 @@ def setup_dependencies(username: str, password: str) -> None:
     
     def create_alarm_use_case():
         alarm_repo = create_alarm_repository()
-        return AlarmUseCaseImpl(alarm_repo)
+        installation_repo = create_installation_repository()
+        return AlarmUseCaseImpl(alarm_repo, installation_repo)
     
     register_singleton(AuthUseCase, create_auth_use_case)
     register_singleton(SessionUseCase, create_session_use_case)

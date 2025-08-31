@@ -393,13 +393,20 @@ class TestAlarmUseCaseImpl:
     def setup_method(self):
         """Set up test fixtures."""
         self.mock_alarm_repository = Mock()
-        self.use_case = AlarmUseCaseImpl(self.mock_alarm_repository)
+        self.mock_installation_repository = Mock()
+        self.use_case = AlarmUseCaseImpl(self.mock_alarm_repository, self.mock_installation_repository)
     
     @pytest.mark.asyncio
     async def test_get_alarm_status_success(self):
         """Test successful alarm status retrieval."""
         # Arrange
         installation_id = "12345"
+        
+        # Mock installation services
+        mock_services = Mock()
+        mock_services.installation_data = {"panel": "PROTOCOL"}
+        mock_services.capabilities = "default_capabilities"
+        self.mock_installation_repository.get_installation_services = AsyncMock(return_value=mock_services)
         
         alarm_status = AlarmStatus(
             success=True,
@@ -419,6 +426,7 @@ class TestAlarmUseCaseImpl:
         assert result.status == "DISARMED"
         assert result.numinst == installation_id
         
+        self.mock_installation_repository.get_installation_services.assert_called_once_with(installation_id)
         self.mock_alarm_repository.get_alarm_status.assert_called_once_with(installation_id, "PROTOCOL", "default_capabilities")
     
     @pytest.mark.asyncio
@@ -426,6 +434,12 @@ class TestAlarmUseCaseImpl:
         """Test successful arm away."""
         # Arrange
         installation_id = "12345"
+        
+        # Mock installation services
+        mock_services = Mock()
+        mock_services.installation_data = {"panel": "PROTOCOL"}
+        mock_services.capabilities = "default_capabilities"
+        self.mock_installation_repository.get_installation_services = AsyncMock(return_value=mock_services)
         
         arm_result = ArmResult(
             success=True,
@@ -440,6 +454,7 @@ class TestAlarmUseCaseImpl:
         # Assert
         assert result is True
         
+        self.mock_installation_repository.get_installation_services.assert_called_once_with(installation_id)
         self.mock_alarm_repository.arm_panel.assert_called_once_with(installation_id, "ARM1", "PROTOCOL", "E")
     
     @pytest.mark.asyncio
@@ -447,6 +462,12 @@ class TestAlarmUseCaseImpl:
         """Test failed arm away."""
         # Arrange
         installation_id = "12345"
+        
+        # Mock installation services
+        mock_services = Mock()
+        mock_services.installation_data = {"panel": "PROTOCOL"}
+        mock_services.capabilities = "default_capabilities"
+        self.mock_installation_repository.get_installation_services = AsyncMock(return_value=mock_services)
         
         arm_result = ArmResult(
             success=False,
@@ -460,12 +481,20 @@ class TestAlarmUseCaseImpl:
         
         # Assert
         assert result is False
+        
+        self.mock_installation_repository.get_installation_services.assert_called_once_with(installation_id)
     
     @pytest.mark.asyncio
     async def test_arm_home_success(self):
         """Test successful arm home."""
         # Arrange
         installation_id = "12345"
+        
+        # Mock installation services
+        mock_services = Mock()
+        mock_services.installation_data = {"panel": "PROTOCOL"}
+        mock_services.capabilities = "default_capabilities"
+        self.mock_installation_repository.get_installation_services = AsyncMock(return_value=mock_services)
         
         arm_result = ArmResult(
             success=True,
@@ -480,6 +509,7 @@ class TestAlarmUseCaseImpl:
         # Assert
         assert result is True
         
+        self.mock_installation_repository.get_installation_services.assert_called_once_with(installation_id)
         self.mock_alarm_repository.arm_panel.assert_called_once_with(installation_id, "PERI1", "PROTOCOL", "E")
     
     @pytest.mark.asyncio
@@ -487,6 +517,12 @@ class TestAlarmUseCaseImpl:
         """Test successful arm night."""
         # Arrange
         installation_id = "12345"
+        
+        # Mock installation services
+        mock_services = Mock()
+        mock_services.installation_data = {"panel": "PROTOCOL"}
+        mock_services.capabilities = "default_capabilities"
+        self.mock_installation_repository.get_installation_services = AsyncMock(return_value=mock_services)
         
         arm_result = ArmResult(
             success=True,
@@ -501,6 +537,7 @@ class TestAlarmUseCaseImpl:
         # Assert
         assert result is True
         
+        self.mock_installation_repository.get_installation_services.assert_called_once_with(installation_id)
         self.mock_alarm_repository.arm_panel.assert_called_once_with(installation_id, "ARMNIGHT1", "PROTOCOL", "E")
     
     @pytest.mark.asyncio
@@ -508,6 +545,12 @@ class TestAlarmUseCaseImpl:
         """Test successful disarm."""
         # Arrange
         installation_id = "12345"
+        
+        # Mock installation services
+        mock_services = Mock()
+        mock_services.installation_data = {"panel": "PROTOCOL"}
+        mock_services.capabilities = "default_capabilities"
+        self.mock_installation_repository.get_installation_services = AsyncMock(return_value=mock_services)
         
         disarm_result = DisarmResult(
             success=True,
@@ -522,6 +565,7 @@ class TestAlarmUseCaseImpl:
         # Assert
         assert result is True
         
+        self.mock_installation_repository.get_installation_services.assert_called_once_with(installation_id)
         self.mock_alarm_repository.disarm_panel.assert_called_once_with(installation_id, "PROTOCOL")
     
     @pytest.mark.asyncio

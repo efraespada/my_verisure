@@ -15,8 +15,10 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../'))
 
 from use_cases.implementations.alarm_use_case_impl import AlarmUseCaseImpl
 from use_cases.interfaces.alarm_use_case import AlarmUseCase
+from repositories.interfaces.installation_repository import InstallationRepository
 from repositories.interfaces.alarm_repository import AlarmRepository
 from api.models.domain.alarm import AlarmStatus
+from api.models.domain.installation import InstallationServices
 from api.exceptions import MyVerisureError
 
 
@@ -35,9 +37,29 @@ class TestAlarmUseCase:
         return mock_repo
     
     @pytest.fixture
-    def alarm_use_case(self, mock_alarm_repository):
+    def mock_installation_repository(self):
+        """Create a mock installation repository."""
+        mock_repo = Mock(spec=InstallationRepository)
+        mock_repo.get_installation_services = AsyncMock()
+        
+        # Default mock response for installation services
+        mock_services = InstallationServices(
+            success=True,
+            message="Success",
+            installation_data={"panel": "PROTOCOL"},
+            capabilities="default_capabilities"
+        )
+        mock_repo.get_installation_services.return_value = mock_services
+        
+        return mock_repo
+    
+    @pytest.fixture
+    def alarm_use_case(self, mock_alarm_repository, mock_installation_repository):
         """Create AlarmUseCase instance with mocked dependencies."""
-        return AlarmUseCaseImpl(alarm_repository=mock_alarm_repository)
+        return AlarmUseCaseImpl(
+            alarm_repository=mock_alarm_repository,
+            installation_repository=mock_installation_repository
+        )
     
     def test_alarm_use_case_implements_interface(self, alarm_use_case):
         """Test that AlarmUseCaseImpl implements AlarmUseCase interface."""
