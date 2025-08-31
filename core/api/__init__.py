@@ -14,4 +14,4 @@ __all__ = [
     "MyVerisureAuthenticationError",
     "MyVerisureConnectionError",
     "MyVerisureOTPError",
-] 
+]

@@ -7,6 +7,7 @@ from typing import Dict, Any, Optional
 @dataclass
 class DeviceIdentifiersDTO:
     """Device identifiers DTO."""
+
     id_device: str
     uuid: str
     id_device_indigitall: str
@@ -17,7 +18,7 @@ class DeviceIdentifiersDTO:
     device_type: str = ""
     device_resolution: str = ""
     generated_time: int = 0
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "DeviceIdentifiersDTO":
         """Create DeviceIdentifiersDTO from dictionary."""
@@ -33,7 +34,7 @@ class DeviceIdentifiersDTO:
             device_resolution=data.get("deviceResolution", ""),
             generated_time=data.get("generated_time", 0),
         )
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
         return {
@@ -53,20 +54,23 @@ class DeviceIdentifiersDTO:
 @dataclass
 class SessionDTO:
     """Session data DTO."""
+
     cookies: Dict[str, str]
     session_data: Dict[str, Any]
     hash: Optional[str] = None
     user: str = ""
     device_identifiers: Optional[DeviceIdentifiersDTO] = None
     saved_time: int = 0
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "SessionDTO":
         """Create SessionDTO from dictionary."""
         device_identifiers = None
         if "device_identifiers" in data:
-            device_identifiers = DeviceIdentifiersDTO.from_dict(data["device_identifiers"])
-        
+            device_identifiers = DeviceIdentifiersDTO.from_dict(
+                data["device_identifiers"]
+            )
+
         return cls(
             cookies=data.get("cookies", {}),
             session_data=data.get("session_data", {}),
@@ -75,7 +79,7 @@ class SessionDTO:
             device_identifiers=device_identifiers,
             saved_time=data.get("saved_time", 0),
         )
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
         return {
@@ -83,6 +87,10 @@ class SessionDTO:
             "session_data": self.session_data,
             "hash": self.hash,
             "user": self.user,
-            "device_identifiers": self.device_identifiers.to_dict() if self.device_identifiers else None,
+            "device_identifiers": (
+                self.device_identifiers.to_dict()
+                if self.device_identifiers
+                else None
+            ),
             "saved_time": self.saved_time,
-        } 
+        }

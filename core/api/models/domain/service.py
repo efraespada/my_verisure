@@ -10,7 +10,7 @@ from typing import Dict, List, Any, Optional
 @dataclass
 class Service:
     """Domain model for a service."""
-    
+
     id_service: str
     active: bool
     visible: bool
@@ -24,9 +24,9 @@ class Service:
     inst_date: str
     generic_config: Dict[str, Any]
     attributes: List[Dict[str, Any]]
-    
+
     @classmethod
-    def from_dto(cls, dto) -> 'Service':
+    def from_dto(cls, dto) -> "Service":
         """Create Service from DTO."""
         return cls(
             id_service=dto.id_service,
@@ -41,12 +41,13 @@ class Service:
             unprotect_device_status=dto.unprotect_device_status,
             inst_date=dto.inst_date,
             generic_config=dto.generic_config,
-            attributes=dto.attributes
+            attributes=dto.attributes,
         )
-    
+
     def to_dto(self):
         """Convert to DTO."""
         from api.models.dto.service_dto import ServiceDTO
+
         return ServiceDTO(
             id_service=self.id_service,
             active=self.active,
@@ -60,9 +61,9 @@ class Service:
             unprotect_device_status=self.unprotect_device_status,
             inst_date=self.inst_date,
             generic_config=self.generic_config,
-            attributes=self.attributes
+            attributes=self.attributes,
         )
-    
+
     def dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
-        return asdict(self) 
+        return asdict(self)

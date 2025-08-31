@@ -4,19 +4,31 @@ import pytest
 from unittest.mock import Mock
 
 from ...api.models.dto.auth_dto import AuthDTO, OTPDataDTO, PhoneDTO
-from ...api.models.dto.installation_dto import InstallationDTO, InstallationServicesDTO, ServiceDTO
-from ...api.models.dto.alarm_dto import AlarmStatusDTO, ArmResultDTO, DisarmResultDTO
+from ...api.models.dto.installation_dto import (
+    InstallationDTO,
+    InstallationServicesDTO,
+    ServiceDTO,
+)
+from ...api.models.dto.alarm_dto import (
+    AlarmStatusDTO,
+    ArmResultDTO,
+    DisarmResultDTO,
+)
 from ...api.models.dto.session_dto import SessionDTO, DeviceIdentifiersDTO
 
 from ...api.models.domain.auth import Auth, AuthResult, OTPData, Phone
-from ...api.models.domain.installation import Installation, InstallationServices, Service
+from ...api.models.domain.installation import (
+    Installation,
+    InstallationServices,
+    Service,
+)
 from ...api.models.domain.alarm import AlarmStatus, ArmResult, DisarmResult
 from ...api.models.domain.session import Session, DeviceIdentifiers
 
 
 class TestAuthDTO:
     """Test AuthDTO."""
-    
+
     def test_from_dict(self):
         """Test creating AuthDTO from dictionary."""
         data = {
@@ -27,11 +39,11 @@ class TestAuthDTO:
             "lang": "es",
             "legals": True,
             "changePassword": False,
-            "needDeviceAuthorization": True
+            "needDeviceAuthorization": True,
         }
-        
+
         dto = AuthDTO.from_dict(data)
-        
+
         assert dto.res == "OK"
         assert dto.msg == "Login successful"
         assert dto.hash == "test_hash"
@@ -40,7 +52,7 @@ class TestAuthDTO:
         assert dto.legals is True
         assert dto.change_password is False
         assert dto.need_device_authorization is True
-    
+
     def test_to_dict(self):
         """Test converting AuthDTO to dictionary."""
         dto = AuthDTO(
@@ -51,11 +63,11 @@ class TestAuthDTO:
             lang="es",
             legals=True,
             change_password=False,
-            need_device_authorization=True
+            need_device_authorization=True,
         )
-        
+
         result = dto.to_dict()
-        
+
         assert result["res"] == "OK"
         assert result["msg"] == "Login successful"
         assert result["hash"] == "test_hash"
@@ -68,18 +80,18 @@ class TestAuthDTO:
 
 class TestPhoneDTO:
     """Test PhoneDTO."""
-    
+
     def test_phone_dto(self):
         """Test PhoneDTO creation."""
         dto = PhoneDTO(id=1, phone="+34600000000")
-        
+
         assert dto.id == 1
         assert dto.phone == "+34600000000"
 
 
 class TestOTPDataDTO:
     """Test OTPDataDTO."""
-    
+
     def test_otp_data_dto(self):
         """Test OTPDataDTO creation."""
         phones = [PhoneDTO(id=1, phone="+34600000000")]
@@ -87,9 +99,9 @@ class TestOTPDataDTO:
             phones=phones,
             otp_hash="test_hash",
             auth_code="10001",
-            auth_type="OTP"
+            auth_type="OTP",
         )
-        
+
         assert len(dto.phones) == 1
         assert dto.phones[0].id == 1
         assert dto.otp_hash == "test_hash"
@@ -99,7 +111,7 @@ class TestOTPDataDTO:
 
 class TestInstallationDTO:
     """Test InstallationDTO."""
-    
+
     def test_from_dict(self):
         """Test creating InstallationDTO from dictionary."""
         data = {
@@ -116,11 +128,11 @@ class TestInstallationDTO:
             "email": "john@example.com",
             "phone": "+34600000000",
             "due": "2024-12-31",
-            "role": "OWNER"
+            "role": "OWNER",
         }
-        
+
         dto = InstallationDTO.from_dict(data)
-        
+
         assert dto.numinst == "12345"
         assert dto.alias == "Home"
         assert dto.panel == "PROTOCOL"
@@ -139,7 +151,7 @@ class TestInstallationDTO:
 
 class TestServiceDTO:
     """Test ServiceDTO."""
-    
+
     def test_from_dict(self):
         """Test creating ServiceDTO from dictionary."""
         data = {
@@ -155,11 +167,11 @@ class TestServiceDTO:
             "unprotectDeviceStatus": False,
             "instDate": "2024-01-01",
             "genericConfig": {"total": 1},
-            "attributes": {"test": "value"}
+            "attributes": {"test": "value"},
         }
-        
+
         dto = ServiceDTO.from_dict(data)
-        
+
         assert dto.id_service == "EST"
         assert dto.active is True
         assert dto.visible is True
@@ -177,7 +189,7 @@ class TestServiceDTO:
 
 class TestInstallationServicesDTO:
     """Test InstallationServicesDTO."""
-    
+
     def test_from_dict_with_services(self):
         """Test creating InstallationServicesDTO from dictionary with services."""
         data = {
@@ -186,34 +198,26 @@ class TestInstallationServicesDTO:
             "language": "es",
             "installation": {
                 "services": [
-                    {
-                        "idService": "EST",
-                        "active": True,
-                        "visible": True
-                    }
+                    {"idService": "EST", "active": True, "visible": True}
                 ]
-            }
+            },
         }
-        
+
         dto = InstallationServicesDTO.from_dict(data)
-        
+
         assert dto.res == "OK"
         assert dto.msg == "Success"
         assert dto.language == "es"
         assert len(dto.services) == 1
         assert dto.services[0].id_service == "EST"
         assert dto.services[0].active is True
-    
+
     def test_from_dict_without_services(self):
         """Test creating InstallationServicesDTO from dictionary without services."""
-        data = {
-            "res": "OK",
-            "msg": "Success",
-            "language": "es"
-        }
-        
+        data = {"res": "OK", "msg": "Success", "language": "es"}
+
         dto = InstallationServicesDTO.from_dict(data)
-        
+
         assert dto.res == "OK"
         assert dto.msg == "Success"
         assert dto.language == "es"
@@ -222,7 +226,7 @@ class TestInstallationServicesDTO:
 
 class TestAlarmStatusDTO:
     """Test AlarmStatusDTO."""
-    
+
     def test_from_dict(self):
         """Test creating AlarmStatusDTO from dictionary."""
         data = {
@@ -232,11 +236,11 @@ class TestAlarmStatusDTO:
             "numinst": "12345",
             "protomResponse": "test_response",
             "protomResponseDate": "2024-01-01T00:00:00Z",
-            "forcedArmed": False
+            "forcedArmed": False,
         }
-        
+
         dto = AlarmStatusDTO.from_dict(data)
-        
+
         assert dto.res == "OK"
         assert dto.msg == "Alarm status retrieved"
         assert dto.status == "DISARMED"
@@ -248,17 +252,17 @@ class TestAlarmStatusDTO:
 
 class TestArmResultDTO:
     """Test ArmResultDTO."""
-    
+
     def test_from_dict(self):
         """Test creating ArmResultDTO from dictionary."""
         data = {
             "res": "OK",
             "msg": "Arm command sent",
-            "referenceId": "ref_123"
+            "referenceId": "ref_123",
         }
-        
+
         dto = ArmResultDTO.from_dict(data)
-        
+
         assert dto.res == "OK"
         assert dto.msg == "Arm command sent"
         assert dto.reference_id == "ref_123"
@@ -266,17 +270,17 @@ class TestArmResultDTO:
 
 class TestDisarmResultDTO:
     """Test DisarmResultDTO."""
-    
+
     def test_from_dict(self):
         """Test creating DisarmResultDTO from dictionary."""
         data = {
             "res": "OK",
             "msg": "Disarm command sent",
-            "referenceId": "ref_456"
+            "referenceId": "ref_456",
         }
-        
+
         dto = DisarmResultDTO.from_dict(data)
-        
+
         assert dto.res == "OK"
         assert dto.msg == "Disarm command sent"
         assert dto.reference_id == "ref_456"
@@ -284,7 +288,7 @@ class TestDisarmResultDTO:
 
 class TestDeviceIdentifiersDTO:
     """Test DeviceIdentifiersDTO."""
-    
+
     def test_from_dict(self):
         """Test creating DeviceIdentifiersDTO from dictionary."""
         data = {
@@ -297,11 +301,11 @@ class TestDeviceIdentifiersDTO:
             "deviceVersion": "10.154.0",
             "deviceType": "mobile",
             "deviceResolution": "1920x1080",
-            "generated_time": 1640995200
+            "generated_time": 1640995200,
         }
-        
+
         dto = DeviceIdentifiersDTO.from_dict(data)
-        
+
         assert dto.id_device == "device_123"
         assert dto.uuid == "uuid_456"
         assert dto.id_device_indigitall == "indigitall_789"
@@ -312,7 +316,7 @@ class TestDeviceIdentifiersDTO:
         assert dto.device_type == "mobile"
         assert dto.device_resolution == "1920x1080"
         assert dto.generated_time == 1640995200
-    
+
     def test_to_dict(self):
         """Test converting DeviceIdentifiersDTO to dictionary."""
         dto = DeviceIdentifiersDTO(
@@ -325,11 +329,11 @@ class TestDeviceIdentifiersDTO:
             device_version="10.154.0",
             device_type="mobile",
             device_resolution="1920x1080",
-            generated_time=1640995200
+            generated_time=1640995200,
         )
-        
+
         result = dto.to_dict()
-        
+
         assert result["idDevice"] == "device_123"
         assert result["uuid"] == "uuid_456"
         assert result["idDeviceIndigitall"] == "indigitall_789"
@@ -344,7 +348,7 @@ class TestDeviceIdentifiersDTO:
 
 class TestSessionDTO:
     """Test SessionDTO."""
-    
+
     def test_from_dict(self):
         """Test creating SessionDTO from dictionary."""
         data = {
@@ -362,13 +366,13 @@ class TestSessionDTO:
                 "deviceVersion": "10.154.0",
                 "deviceType": "",
                 "deviceResolution": "",
-                "generated_time": 1640995200
+                "generated_time": 1640995200,
             },
-            "saved_time": 1640995200
+            "saved_time": 1640995200,
         }
-        
+
         dto = SessionDTO.from_dict(data)
-        
+
         assert dto.cookies == {"session": "cookie_value"}
         assert dto.session_data == {"user": "test_user"}
         assert dto.hash == "test_hash"
@@ -376,7 +380,7 @@ class TestSessionDTO:
         assert dto.device_identifiers is not None
         assert dto.device_identifiers.id_device == "device_123"
         assert dto.saved_time == 1640995200
-    
+
     def test_to_dict(self):
         """Test converting SessionDTO to dictionary."""
         device_identifiers = DeviceIdentifiersDTO(
@@ -386,20 +390,20 @@ class TestSessionDTO:
             device_name="HomeAssistant",
             device_brand="HomeAssistant",
             device_os_version="Linux 5.0",
-            device_version="10.154.0"
+            device_version="10.154.0",
         )
-        
+
         dto = SessionDTO(
             cookies={"session": "cookie_value"},
             session_data={"user": "test_user"},
             hash="test_hash",
             user="test_user",
             device_identifiers=device_identifiers,
-            saved_time=1640995200
+            saved_time=1640995200,
         )
-        
+
         result = dto.to_dict()
-        
+
         assert result["cookies"] == {"session": "cookie_value"}
         assert result["session_data"] == {"user": "test_user"}
         assert result["hash"] == "test_hash"
@@ -411,22 +415,22 @@ class TestSessionDTO:
 
 class TestDomainModels:
     """Test domain models."""
-    
+
     def test_auth_validation(self):
         """Test Auth domain model validation."""
         # Valid auth
         auth = Auth(username="test_user", password="test_pass")
         assert auth.username == "test_user"
         assert auth.password == "test_pass"
-        
+
         # Invalid auth - missing username
         with pytest.raises(ValueError, match="Username is required"):
             Auth(username="", password="test_pass")
-        
+
         # Invalid auth - missing password
         with pytest.raises(ValueError, match="Password is required"):
             Auth(username="test_user", password="")
-    
+
     def test_auth_result_from_dto(self):
         """Test AuthResult from DTO."""
         dto = AuthDTO(
@@ -437,11 +441,11 @@ class TestDomainModels:
             lang="es",
             legals=True,
             change_password=False,
-            need_device_authorization=True
+            need_device_authorization=True,
         )
-        
+
         result = AuthResult.from_dto(dto)
-        
+
         assert result.success is True
         assert result.message == "Login successful"
         assert result.hash == "test_hash"
@@ -450,7 +454,7 @@ class TestDomainModels:
         assert result.legals is True
         assert result.change_password is False
         assert result.need_device_authorization is True
-    
+
     def test_auth_result_to_dto(self):
         """Test AuthResult to DTO."""
         result = AuthResult(
@@ -461,11 +465,11 @@ class TestDomainModels:
             lang="es",
             legals=True,
             change_password=False,
-            need_device_authorization=True
+            need_device_authorization=True,
         )
-        
+
         dto = result.to_dto()
-        
+
         assert dto.res == "OK"
         assert dto.msg == "Login successful"
         assert dto.hash == "test_hash"
@@ -473,4 +477,4 @@ class TestDomainModels:
         assert dto.lang == "es"
         assert dto.legals is True
         assert dto.change_password is False
-        assert dto.need_device_authorization is True 
+        assert dto.need_device_authorization is True

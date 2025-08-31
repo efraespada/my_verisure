@@ -1,19 +1,43 @@
 """Models for My Verisure API."""
 
 from .dto.auth_dto import AuthDTO, OTPDataDTO, PhoneDTO
-from .dto.installation_dto import InstallationDTO, InstallationServicesDTO, ServiceDTO, InstallationsListDTO
-from .dto.alarm_dto import AlarmStatusDTO, ArmResultDTO, DisarmResultDTO, ArmStatusDTO, DisarmStatusDTO, CheckAlarmDTO
+from .dto.installation_dto import (
+    InstallationDTO,
+    InstallationServicesDTO,
+    ServiceDTO,
+    InstallationsListDTO,
+)
+from .dto.alarm_dto import (
+    AlarmStatusDTO,
+    ArmResultDTO,
+    DisarmResultDTO,
+    ArmStatusDTO,
+    DisarmStatusDTO,
+    CheckAlarmDTO,
+)
 from .dto.session_dto import SessionDTO, DeviceIdentifiersDTO
 
 from .domain.auth import Auth, AuthResult, OTPData
-from .domain.installation import Installation, InstallationServices, Service, InstallationsList
-from .domain.alarm import AlarmStatus, ArmResult, DisarmResult, ArmStatus, DisarmStatus, CheckAlarm
+from .domain.installation import (
+    Installation,
+    InstallationServices,
+    Service,
+    InstallationsList,
+)
+from .domain.alarm import (
+    AlarmStatus,
+    ArmResult,
+    DisarmResult,
+    ArmStatus,
+    DisarmStatus,
+    CheckAlarm,
+)
 from .domain.session import Session, DeviceIdentifiers
 
 __all__ = [
     # DTOs
     "AuthDTO",
-    "OTPDataDTO", 
+    "OTPDataDTO",
     "PhoneDTO",
     "InstallationDTO",
     "InstallationServicesDTO",
@@ -27,7 +51,6 @@ __all__ = [
     "CheckAlarmDTO",
     "SessionDTO",
     "DeviceIdentifiersDTO",
-    
     # Domain Models
     "Auth",
     "AuthResult",
@@ -44,4 +67,4 @@ __all__ = [
     "CheckAlarm",
     "Session",
     "DeviceIdentifiers",
-] 
+]

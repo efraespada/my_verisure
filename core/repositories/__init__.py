@@ -7,7 +7,7 @@ from .interfaces.session_repository import SessionRepository
 
 __all__ = [
     "AuthRepository",
-    "InstallationRepository", 
+    "InstallationRepository",
     "AlarmRepository",
     "SessionRepository",
-] 
+]

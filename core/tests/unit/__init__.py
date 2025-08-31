@@ -1,1 +1,1 @@
-"""Unit tests for My Verisure integration.""" 
+"""Unit tests for My Verisure integration."""

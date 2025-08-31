@@ -7,10 +7,11 @@ from typing import Optional, Dict, Any
 @dataclass
 class ArmResultDTO:
     """Arm result DTO."""
+
     res: str
     msg: str
     reference_id: Optional[str] = None
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "ArmResultDTO":
         """Create ArmResultDTO from dictionary."""
@@ -24,10 +25,11 @@ class ArmResultDTO:
 @dataclass
 class DisarmResultDTO:
     """Disarm result DTO."""
+
     res: str
     msg: str
     reference_id: Optional[str] = None
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "DisarmResultDTO":
         """Create DisarmResultDTO from dictionary."""
@@ -41,6 +43,7 @@ class DisarmResultDTO:
 @dataclass
 class AlarmStatusDTO:
     """Alarm status DTO."""
+
     res: str
     msg: str
     status: Optional[str] = None
@@ -48,7 +51,7 @@ class AlarmStatusDTO:
     protom_response: Optional[str] = None
     protom_response_date: Optional[str] = None
     forced_armed: Optional[bool] = None
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "AlarmStatusDTO":
         """Create AlarmStatusDTO from dictionary."""
@@ -66,6 +69,7 @@ class AlarmStatusDTO:
 @dataclass
 class ArmStatusDTO:
     """Arm status response DTO."""
+
     res: str
     msg: str
     status: Optional[str] = None
@@ -75,7 +79,7 @@ class ArmStatusDTO:
     request_id: Optional[str] = None
     error: Optional[Dict[str, Any]] = None
     smartlock_status: Optional[Dict[str, Any]] = None
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "ArmStatusDTO":
         """Create ArmStatusDTO from dictionary."""
@@ -95,6 +99,7 @@ class ArmStatusDTO:
 @dataclass
 class DisarmStatusDTO:
     """Disarm status response DTO."""
+
     res: str
     msg: str
     status: Optional[str] = None
@@ -103,7 +108,7 @@ class DisarmStatusDTO:
     numinst: Optional[str] = None
     request_id: Optional[str] = None
     error: Optional[Dict[str, Any]] = None
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "DisarmStatusDTO":
         """Create DisarmStatusDTO from dictionary."""
@@ -122,10 +127,11 @@ class DisarmStatusDTO:
 @dataclass
 class CheckAlarmDTO:
     """Check alarm response DTO."""
+
     res: str
     msg: str
     reference_id: Optional[str] = None
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "CheckAlarmDTO":
         """Create CheckAlarmDTO from dictionary."""
@@ -133,4 +139,4 @@ class CheckAlarmDTO:
             res=data.get("res", ""),
             msg=data.get("msg", ""),
             reference_id=data.get("referenceId"),
-        ) 
+        )

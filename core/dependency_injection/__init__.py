@@ -6,4 +6,4 @@ from .providers import setup_dependencies
 __all__ = [
     "DependencyContainer",
     "setup_dependencies",
-] 
+]

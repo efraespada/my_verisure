@@ -10,7 +10,7 @@ from typing import Dict, List, Any, Optional
 @dataclass
 class ServiceDTO:
     """DTO for a service."""
-    
+
     id_service: str
     active: bool
     visible: bool
@@ -24,9 +24,9 @@ class ServiceDTO:
     inst_date: str
     generic_config: Dict[str, Any]
     attributes: List[Dict[str, Any]]
-    
+
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'ServiceDTO':
+    def from_dict(cls, data: Dict[str, Any]) -> "ServiceDTO":
         """Create ServiceDTO from dictionary."""
         return cls(
             id_service=data.get("idService", ""),
@@ -41,9 +41,9 @@ class ServiceDTO:
             unprotect_device_status=data.get("unprotectDeviceStatus", False),
             inst_date=data.get("instDate", ""),
             generic_config=data.get("genericConfig", {}),
-            attributes=data.get("attributes", [])
+            attributes=data.get("attributes", []),
         )
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
         return {
@@ -59,5 +59,5 @@ class ServiceDTO:
             "unprotectDeviceStatus": self.unprotect_device_status,
             "instDate": self.inst_date,
             "genericConfig": self.generic_config,
-            "attributes": self.attributes
-        } 
+            "attributes": self.attributes,
+        }

@@ -32,7 +32,6 @@ ENTITY_NAMES = {
 }
 
 
-
 # Device configuration
 DEVICE_INFO = {
     "manufacturer": "Verisure",

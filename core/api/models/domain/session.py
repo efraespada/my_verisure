@@ -8,6 +8,7 @@ from ..dto.session_dto import SessionDTO, DeviceIdentifiersDTO
 @dataclass
 class DeviceIdentifiers:
     """Device identifiers domain model."""
+
     id_device: str
     uuid: str
     id_device_indigitall: str
@@ -18,7 +19,7 @@ class DeviceIdentifiers:
     device_type: str = ""
     device_resolution: str = ""
     generated_time: int = 0
-    
+
     @classmethod
     def from_dto(cls, dto: DeviceIdentifiersDTO) -> "DeviceIdentifiers":
         """Create DeviceIdentifiers from DTO."""
@@ -34,7 +35,7 @@ class DeviceIdentifiers:
             device_resolution=dto.device_resolution,
             generated_time=dto.generated_time,
         )
-    
+
     def to_dto(self) -> DeviceIdentifiersDTO:
         """Convert to DTO."""
         return DeviceIdentifiersDTO(
@@ -49,7 +50,7 @@ class DeviceIdentifiers:
             device_resolution=self.device_resolution,
             generated_time=self.generated_time,
         )
-    
+
     def dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
         return asdict(self)
@@ -58,20 +59,23 @@ class DeviceIdentifiers:
 @dataclass
 class SessionData:
     """Session data domain model."""
+
     cookies: Dict[str, str]
     session_data: Dict[str, Any]
     hash: Optional[str] = None
     user: str = ""
     device_identifiers: Optional[DeviceIdentifiers] = None
     saved_time: int = 0
-    
+
     @classmethod
     def from_dto(cls, dto: SessionDTO) -> "SessionData":
         """Create SessionData from DTO."""
         device_identifiers = None
         if dto.device_identifiers:
-            device_identifiers = DeviceIdentifiers.from_dto(dto.device_identifiers)
-        
+            device_identifiers = DeviceIdentifiers.from_dto(
+                dto.device_identifiers
+            )
+
         return cls(
             cookies=dto.cookies,
             session_data=dto.session_data,
@@ -80,13 +84,13 @@ class SessionData:
             device_identifiers=device_identifiers,
             saved_time=dto.saved_time,
         )
-    
+
     def to_dto(self) -> SessionDTO:
         """Convert to DTO."""
         device_identifiers = None
         if self.device_identifiers:
             device_identifiers = self.device_identifiers.to_dto()
-        
+
         return SessionDTO(
             cookies=self.cookies,
             session_data=self.session_data,
@@ -95,7 +99,7 @@ class SessionData:
             device_identifiers=device_identifiers,
             saved_time=self.saved_time,
         )
-    
+
     def dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
         return asdict(self)
@@ -104,9 +108,10 @@ class SessionData:
 @dataclass
 class Session:
     """Session domain model."""
+
     user: str
     password: str
-    
+
     def dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
-        return asdict(self) 
+        return asdict(self)

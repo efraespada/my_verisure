@@ -19,9 +19,11 @@ class MyVerisureResponseError(MyVerisureError):
 
 class MyVerisureMFAError(MyVerisureError):
     """MFA authentication error."""
-    
+
+
 class MyVerisureOTPError(MyVerisureError):
-    """OTP authentication error.""" 
+    """OTP authentication error."""
+
 
 class MyVerisureDeviceAuthorizationError(MyVerisureError):
-    """Device authorization error - device needs to be authorized.""" 
+    """Device authorization error - device needs to be authorized."""

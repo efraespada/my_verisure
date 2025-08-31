@@ -3,18 +3,23 @@
 from dataclasses import dataclass, asdict
 from typing import Optional, Dict, Any
 from ..dto.alarm_dto import (
-    AlarmStatusDTO, ArmResultDTO, DisarmResultDTO, 
-    ArmStatusDTO as ArmStatusDTOType, DisarmStatusDTO as DisarmStatusDTOType, CheckAlarmDTO
+    AlarmStatusDTO,
+    ArmResultDTO,
+    DisarmResultDTO,
+    ArmStatusDTO as ArmStatusDTOType,
+    DisarmStatusDTO as DisarmStatusDTOType,
+    CheckAlarmDTO,
 )
 
 
 @dataclass
 class ArmResult:
     """Arm result domain model."""
+
     success: bool
     message: str
     reference_id: Optional[str] = None
-    
+
     @classmethod
     def from_dto(cls, dto: ArmResultDTO) -> "ArmResult":
         """Create ArmResult from DTO."""
@@ -23,7 +28,7 @@ class ArmResult:
             message=dto.msg,
             reference_id=dto.reference_id,
         )
-    
+
     def to_dto(self) -> ArmResultDTO:
         """Convert to DTO."""
         return ArmResultDTO(
@@ -31,7 +36,7 @@ class ArmResult:
             msg=self.message,
             reference_id=self.reference_id,
         )
-    
+
     def dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
         return asdict(self)
@@ -40,10 +45,11 @@ class ArmResult:
 @dataclass
 class DisarmResult:
     """Disarm result domain model."""
+
     success: bool
     message: str
     reference_id: Optional[str] = None
-    
+
     @classmethod
     def from_dto(cls, dto: DisarmResultDTO) -> "DisarmResult":
         """Create DisarmResult from DTO."""
@@ -52,7 +58,7 @@ class DisarmResult:
             message=dto.msg,
             reference_id=dto.reference_id,
         )
-    
+
     def to_dto(self) -> DisarmResultDTO:
         """Convert to DTO."""
         return DisarmResultDTO(
@@ -60,7 +66,7 @@ class DisarmResult:
             msg=self.message,
             reference_id=self.reference_id,
         )
-    
+
     def dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
         return asdict(self)
@@ -69,6 +75,7 @@ class DisarmResult:
 @dataclass
 class AlarmStatus:
     """Alarm status domain model."""
+
     success: bool
     message: str
     status: Optional[str] = None
@@ -76,7 +83,7 @@ class AlarmStatus:
     protom_response: Optional[str] = None
     protom_response_date: Optional[str] = None
     forced_armed: Optional[bool] = None
-    
+
     @classmethod
     def from_dto(cls, dto: AlarmStatusDTO) -> "AlarmStatus":
         """Create AlarmStatus from DTO."""
@@ -89,7 +96,7 @@ class AlarmStatus:
             protom_response_date=dto.protom_response_date,
             forced_armed=dto.forced_armed,
         )
-    
+
     def to_dto(self) -> AlarmStatusDTO:
         """Convert to DTO."""
         return AlarmStatusDTO(
@@ -101,7 +108,7 @@ class AlarmStatus:
             protom_response_date=self.protom_response_date,
             forced_armed=self.forced_armed,
         )
-    
+
     def dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
         return asdict(self)
@@ -110,6 +117,7 @@ class AlarmStatus:
 @dataclass
 class ArmStatus:
     """Arm status domain model."""
+
     success: bool
     message: str
     status: Optional[str] = None
@@ -119,7 +127,7 @@ class ArmStatus:
     request_id: Optional[str] = None
     error: Optional[Dict[str, Any]] = None
     smartlock_status: Optional[Dict[str, Any]] = None
-    
+
     @classmethod
     def from_dto(cls, dto: ArmStatusDTOType) -> "ArmStatus":
         """Create ArmStatus from DTO."""
@@ -134,7 +142,7 @@ class ArmStatus:
             error=dto.error,
             smartlock_status=dto.smartlock_status,
         )
-    
+
     def to_dto(self) -> ArmStatusDTOType:
         """Convert to DTO."""
         return ArmStatusDTOType(
@@ -153,6 +161,7 @@ class ArmStatus:
 @dataclass
 class DisarmStatus:
     """Disarm status domain model."""
+
     success: bool
     message: str
     status: Optional[str] = None
@@ -161,7 +170,7 @@ class DisarmStatus:
     numinst: Optional[str] = None
     request_id: Optional[str] = None
     error: Optional[Dict[str, Any]] = None
-    
+
     @classmethod
     def from_dto(cls, dto: DisarmStatusDTOType) -> "DisarmStatus":
         """Create DisarmStatus from DTO."""
@@ -175,7 +184,7 @@ class DisarmStatus:
             request_id=dto.request_id,
             error=dto.error,
         )
-    
+
     def to_dto(self) -> DisarmStatusDTOType:
         """Convert to DTO."""
         return DisarmStatusDTOType(
@@ -193,10 +202,11 @@ class DisarmStatus:
 @dataclass
 class CheckAlarm:
     """Check alarm domain model."""
+
     success: bool
     message: str
     reference_id: Optional[str] = None
-    
+
     @classmethod
     def from_dto(cls, dto: CheckAlarmDTO) -> "CheckAlarm":
         """Create CheckAlarm from DTO."""
@@ -205,11 +215,11 @@ class CheckAlarm:
             message=dto.msg,
             reference_id=dto.reference_id,
         )
-    
+
     def to_dto(self) -> CheckAlarmDTO:
         """Convert to DTO."""
         return CheckAlarmDTO(
             res="OK" if self.success else "KO",
             msg=self.message,
             reference_id=self.reference_id,
-        ) 
+        )

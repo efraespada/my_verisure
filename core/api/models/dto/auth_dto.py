@@ -7,6 +7,7 @@ from typing import List, Optional, Dict, Any
 @dataclass
 class PhoneDTO:
     """Phone number DTO for OTP."""
+
     id: int
     phone: str
 
@@ -14,6 +15,7 @@ class PhoneDTO:
 @dataclass
 class OTPDataDTO:
     """OTP data DTO."""
+
     phones: List[PhoneDTO]
     otp_hash: str
     auth_code: Optional[str] = None
@@ -23,6 +25,7 @@ class OTPDataDTO:
 @dataclass
 class AuthDTO:
     """Authentication response DTO."""
+
     res: str
     msg: str
     hash: Optional[str] = None
@@ -31,7 +34,7 @@ class AuthDTO:
     legals: Optional[bool] = None
     change_password: Optional[bool] = None
     need_device_authorization: Optional[bool] = None
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "AuthDTO":
         """Create AuthDTO from dictionary."""
@@ -45,7 +48,7 @@ class AuthDTO:
             change_password=data.get("changePassword"),
             need_device_authorization=data.get("needDeviceAuthorization"),
         )
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
         return {
@@ -57,4 +60,4 @@ class AuthDTO:
             "legals": self.legals,
             "changePassword": self.change_password,
             "needDeviceAuthorization": self.need_device_authorization,
-        } 
+        }

@@ -74,10 +74,10 @@ def print_services_info(services_data) -> None:
     if not services_data.success:
         print_error(f"Error obteniendo servicios: {services_data.message}")
         return
-    
+
     services = services_data.services
     print_success(f"Se encontraron {len(services)} servicios")
-    
+
     # Mostrar información básica de la instalación
     installation_info = services_data.installation_data or {}
     print(f"   📊 Estado: {installation_info.get('status', 'N/A')}")
@@ -86,7 +86,7 @@ def print_services_info(services_data) -> None:
     print(f"   🎭 Rol: {installation_info.get('role', 'N/A')}")
     print(f"   🔧 IBS: {installation_info.get('instIbs', 'N/A')}")
     print()
-    
+
     # Mostrar servicios activos
     active_services = [s for s in services if s.active]
     print(f"   ✅ Servicios activos ({len(active_services)}):")
@@ -96,8 +96,10 @@ def print_services_info(services_data) -> None:
         service_visible = "👁️" if service.visible else "🙈"
         service_premium = "⭐" if service.is_premium else ""
         service_bde = "💰" if service.bde else ""
-        print(f"      {service_visible} {service_id}: {service_request} {service_premium}{service_bde}")
-    
+        print(
+            f"      {service_visible} {service_id}: {service_request} {service_premium}{service_bde}"
+        )
+
     # Mostrar servicios inactivos (solo si hay pocos)
     inactive_services = [s for s in services if not s.active]
     if inactive_services and len(inactive_services) <= 5:
@@ -106,11 +108,13 @@ def print_services_info(services_data) -> None:
             service_id = service.id_service
             service_request = service.request or "N/A"
             print(f"      ❌ {service_id}: {service_request}")
-    
+
     # Capacidades
     capabilities = services_data.capabilities
     if capabilities:
-        print(f"   🔐 Capacidades: {capabilities[:30] + '...' if capabilities else 'None'}")
+        print(
+            f"   🔐 Capacidades: {capabilities[:30] + '...' if capabilities else 'None'}"
+        )
 
 
 def print_separator() -> None:

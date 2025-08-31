@@ -7,6 +7,7 @@ from typing import List, Optional, Dict, Any
 @dataclass
 class ServiceDTO:
     """Service DTO."""
+
     id_service: str
     active: bool
     visible: bool
@@ -20,7 +21,7 @@ class ServiceDTO:
     inst_date: Optional[str] = None
     generic_config: Optional[Dict[str, Any]] = None
     attributes: Optional[Dict[str, Any]] = None
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "ServiceDTO":
         """Create ServiceDTO from dictionary."""
@@ -44,6 +45,7 @@ class ServiceDTO:
 @dataclass
 class InstallationDTO:
     """Installation DTO."""
+
     numinst: str
     alias: str
     panel: str
@@ -58,7 +60,7 @@ class InstallationDTO:
     phone: str
     due: Optional[str] = None
     role: Optional[str] = None
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "InstallationDTO":
         """Create InstallationDTO from dictionary."""
@@ -83,28 +85,34 @@ class InstallationDTO:
 @dataclass
 class InstallationServicesDTO:
     """Installation services response DTO."""
+
     res: str
     msg: str
     language: Optional[str] = None
     installation: Optional[Dict[str, Any]] = None
     services: List[ServiceDTO] = None
-    
+
     def __post_init__(self):
         """Initialize services list if None."""
         if self.services is None:
             self.services = []
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "InstallationServicesDTO":
         """Create InstallationServicesDTO from dictionary."""
         services = []
-        
+
         # Handle different data structures
         if "installation" in data and "services" in data["installation"]:
             # GraphQL response structure
-            services = [ServiceDTO.from_dict(s) for s in data["installation"]["services"]]
+            services = [
+                ServiceDTO.from_dict(s)
+                for s in data["installation"]["services"]
+            ]
             res = data.get("res", "OK")  # Default to OK if not present
-            msg = data.get("msg", "Services retrieved successfully")  # Default message if not present
+            msg = data.get(
+                "msg", "Services retrieved successfully"
+            )  # Default message if not present
             language = data.get("language")
             installation = data.get("installation")
         elif "services" in data and "installation" in data:
@@ -113,7 +121,10 @@ class InstallationServicesDTO:
             if "data" in data and "xSSrv" in data["data"]:
                 # This is actually a GraphQL response wrapped in client structure
                 graphql_data = data["data"]["xSSrv"]
-                services = [ServiceDTO.from_dict(s) for s in graphql_data["installation"]["services"]]
+                services = [
+                    ServiceDTO.from_dict(s)
+                    for s in graphql_data["installation"]["services"]
+                ]
                 res = graphql_data.get("res", "")
                 msg = graphql_data.get("msg", "")
                 language = graphql_data.get("language")
@@ -131,7 +142,7 @@ class InstallationServicesDTO:
             msg = data.get("msg", "")
             language = data.get("language")
             installation = data.get("installation")
-        
+
         return cls(
             res=res,
             msg=msg,
@@ -144,18 +155,21 @@ class InstallationServicesDTO:
 @dataclass
 class InstallationsListDTO:
     """Installations list response DTO."""
+
     installations: List[InstallationDTO] = None
-    
+
     def __post_init__(self):
         """Initialize installations list if None."""
         if self.installations is None:
             self.installations = []
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "InstallationsListDTO":
         """Create InstallationsListDTO from dictionary."""
         installations = []
         if "installations" in data:
-            installations = [InstallationDTO.from_dict(i) for i in data["installations"]]
-        
-        return cls(installations=installations) 
+            installations = [
+                InstallationDTO.from_dict(i) for i in data["installations"]
+            ]
+
+        return cls(installations=installations)
