@@ -16,8 +16,12 @@ from homeassistant.config_entries import (
 from homeassistant.const import CONF_PASSWORD
 from homeassistant.core import callback
 
-from .api import MyVerisureClient
-from .api.exceptions import (
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'core'))
+
+from core.api.client import MyVerisureClient
+from core.api.exceptions import (
     MyVerisureAuthenticationError,
     MyVerisureConnectionError,
     MyVerisureError,

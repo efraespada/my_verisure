@@ -148,7 +148,7 @@ def main():
     # Verificar argumentos
     if len(sys.argv) != 4:
         print("Uso: python test_verify_otp.py <user_id> <password> <otp_code>")
-        print("Ejemplo: python test_verify_otp.py 16633776S mi_password 123456")
+        print("Ejemplo: python test_verify_otp.py 12345678A mi_password 123456")
         print("\nNota:")
         print("- El user_id debe ser tu DNI/NIE (sin guiones)")
         print("- El otp_code es el código de 6 dígitos que recibiste por SMS")

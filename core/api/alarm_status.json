@@ -1,0 +1,30 @@
+{
+    "internal": {
+        "day": {
+            "alarm": [
+                "alarm-manager.active_partial_day_alarm",
+                "alarm-manager.active_partial_day_plus_perimeter"
+            ]
+        },
+        "night": {
+            "alarm": [
+                "alarm-manager.active_partial_night_alarm",
+                "alarm-manager.active_partial_night_plus_perimeter"
+            ]
+        },
+        "total": {
+            "alarm": [
+                "alarm-manager.status.active_alarm_msg",
+                "alarm-manager.active_perimeter_plus_alarm"
+            ]
+        }
+    },
+    "external": {
+        "alarm": [
+            "alarm-manager.status_panel.active_perimetral_alarm_msg",
+            "alarm-manager.active_partial_day_plus_perimeter",
+            "alarm-manager.active_partial_night_plus_perimeter",
+            "alarm-manager.active_perimeter_plus_alarm"
+        ]
+    }
+}

@@ -162,7 +162,7 @@ def main():
     # Verificar argumentos
     if len(sys.argv) != 4:
         print("Uso: python test_installation_services.py <user_id> <password> <installation_id>")
-        print("Ejemplo: python test_installation_services.py 16633776S mi_password 6220569")
+        print("Ejemplo: python test_installation_services.py 12345678A mi_password 6220569")
         print("\nNota:")
         print("- El user_id debe ser tu DNI/NIE (sin guiones)")
         print("- El installation_id es el número de instalación (ej: 6220569)")

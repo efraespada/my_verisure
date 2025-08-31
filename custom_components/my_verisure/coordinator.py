@@ -15,8 +15,12 @@ from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.storage import STORAGE_DIR
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .api import MyVerisureClient
-from .api.exceptions import (
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'core'))
+
+from core.api.client import MyVerisureClient
+from core.api.exceptions import (
     MyVerisureAuthenticationError,
     MyVerisureConnectionError,
     MyVerisureError,

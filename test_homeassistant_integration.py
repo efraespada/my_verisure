@@ -113,7 +113,7 @@ def main():
     # Verificar argumentos
     if len(sys.argv) != 3:
         print("Uso: python test_homeassistant_integration.py <user_id> <password>")
-        print("Ejemplo: python test_homeassistant_integration.py 16633776S mi_password")
+        print("Ejemplo: python test_homeassistant_integration.py 12345678A mi_password")
         print("\nNota: El user_id debe ser tu DNI/NIE (sin guiones)")
         sys.exit(1)
     
