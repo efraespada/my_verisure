@@ -31,7 +31,7 @@ class SessionRepositoryImpl(SessionRepository):
                     session_data=self.client._session_data,
                     hash=self.client._hash,
                     user=self.client.user,
-                    device_identifiers=None,  # Will be loaded from session data if available
+                    device_identifiers=None,  # Will be loaded from session data
                     saved_time=int(time.time()),
                 )
 

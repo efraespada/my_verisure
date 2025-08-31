@@ -8,8 +8,7 @@ import platform
 import time
 from typing import Dict, Optional
 
-from .exceptions import MyVerisureAuthenticationError, MyVerisureOTPError
-from .fields import VERISURE_GRAPHQL_URL
+# No imports needed for this module
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -25,7 +24,7 @@ class DeviceManager:
     def _get_device_identifiers_file(self) -> str:
         """Get the path to the device identifiers file."""
         # Use the same directory as session files
-        storage_dir = os.path.expanduser(f"~/.storage")
+        storage_dir = os.path.expanduser("~/.storage")
         if not os.path.exists(storage_dir):
             # Fallback to current directory
             storage_dir = "."

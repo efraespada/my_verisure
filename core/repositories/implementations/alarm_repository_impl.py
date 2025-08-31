@@ -124,7 +124,8 @@ class AlarmRepositoryImpl(AlarmRepository):
         """Disarm the alarm panel."""
         try:
             _LOGGER.info(
-                "Disarming panel for installation %s", installation_id
+                "Disarming panel for installation %s",
+                installation_id,
             )
 
             result = await self.client.disarm_alarm(installation_id)

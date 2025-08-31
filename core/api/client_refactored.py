@@ -9,13 +9,11 @@ from .session_client import SessionClient
 from .installation_client import InstallationClient
 from .alarm_client import AlarmClient
 from .device_manager import DeviceManager
-from .exceptions import MyVerisureAuthenticationError, MyVerisureError
 from .models.dto.auth_dto import AuthDTO, PhoneDTO
 from .models.dto.installation_dto import (
     InstallationDTO,
     InstallationServicesDTO,
 )
-from .models.dto.session_dto import SessionDTO
 
 _LOGGER = logging.getLogger(__name__)
 

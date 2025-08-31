@@ -1,7 +1,6 @@
 """Session use case interface."""
 
 from abc import ABC, abstractmethod
-from typing import Optional
 
 # No imports needed for this interface
 

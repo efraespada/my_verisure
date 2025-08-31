@@ -112,11 +112,11 @@ class InstallationServicesDTO:
             res = data.get("res", "OK")  # Default to OK if not present
             msg = data.get(
                 "msg", "Services retrieved successfully"
-            )  # Default message if not present
+            )  # Default message
             language = data.get("language")
             installation = data.get("installation")
         elif "services" in data and "installation" in data:
-            # Client original structure - but we need to check if this is actually GraphQL response
+            # Client original structure - check if this is actually GraphQL response
             # Check if we have the GraphQL structure nested inside
             if "data" in data and "xSSrv" in data["data"]:
                 # This is actually a GraphQL response wrapped in client structure

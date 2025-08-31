@@ -135,7 +135,9 @@ class AuthRepositoryImpl(AuthRepository):
 
         except Exception as e:
             _LOGGER.error("Error sending OTP: %s", e)
-            raise MyVerisureOTPError(f"Failed to send OTP: {e}") from e
+            raise MyVerisureOTPError(
+                f"Failed to send OTP: {e}"
+            ) from e
 
     async def verify_otp(
         self,

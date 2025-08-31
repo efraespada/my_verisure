@@ -35,7 +35,7 @@ class AlarmUseCaseImpl(AlarmUseCase):
                 installation_id,
             )
 
-            # Get installation services from InstallationRepository (which handles caching)
+            # Get installation services from InstallationRepository
             services_data = (
                 await self.installation_repository.get_installation_services(
                     installation_id

@@ -28,7 +28,7 @@ class AuthUseCaseImpl(AuthUseCase):
             # Create domain models
             auth = Auth(username=username, password=password)
 
-            # Generate device identifiers (this would typically come from a device service)
+            # Generate device identifiers (would typically come from device service)
             device_identifiers = DeviceIdentifiers(
                 id_device="device_123",
                 uuid="uuid_456",
