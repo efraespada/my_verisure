@@ -170,28 +170,16 @@ def run_type_checking() -> bool:
     return all_success
 
 def run_coverage_report() -> bool:
-    """Generar reporte de cobertura."""
+    """Generar reporte de cobertura usando el script dedicado."""
     print_section("Coverage Report")
     
-    # Ejecutar pytest con cobertura
-    cmd = [
-        "python", "-m", "pytest", 
-        "--cov=cli", "--cov=core", "--cov=custom_components",
-        "--cov-report=html:htmlcov",
-        "--cov-report=term-missing",
-        "--cov-fail-under=70"
-    ]
+    # Usar el script dedicado para coverage
+    cmd = ["python", "run_coverage.py"]
     
     result = run_command(cmd)
     
     if result['success']:
         print_success("Coverage report generated successfully")
-        if result['stdout']:
-            # Mostrar solo el resumen de cobertura
-            lines = result['stdout'].split('\n')
-            for line in lines:
-                if 'TOTAL' in line or 'coverage:' in line:
-                    print(f"  {line}")
         print_info("HTML report available at: htmlcov/index.html")
         return True
     else:

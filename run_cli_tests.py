@@ -137,6 +137,27 @@ def run_linting() -> bool:
     
     return True
 
+def run_cli_coverage() -> bool:
+    """Ejecutar coverage para CLI."""
+    print_section("CLI Coverage Report")
+    
+    # Usar el script dedicado para coverage de CLI
+    cmd = ["python", "run_coverage.py", "cli"]
+    
+    result = run_command(cmd)
+    
+    if result['success']:
+        print_success("CLI coverage report generated successfully")
+        print_info("HTML report available at: htmlcov/cli/index.html")
+        return True
+    else:
+        print_error("CLI coverage report generation failed")
+        if result['stdout']:
+            print(result['stdout'])
+        if result['stderr']:
+            print(result['stderr'])
+        return False
+
 def main():
     """Función principal."""
     print_header("My Verisure - CLI Test Suite")
@@ -153,6 +174,7 @@ def main():
     test_suites = [
         ("CLI Tests", run_cli_tests),
         ("CLI Code Linting", run_linting),
+        ("CLI Coverage Report", run_cli_coverage),
     ]
     
     results = {}
