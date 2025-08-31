@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import logging
 from typing import Any
 
 from homeassistant.components.binary_sensor import (
@@ -13,7 +12,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, LOGGER, ENTITY_NAMES
+from .const import DOMAIN, ENTITY_NAMES
 from .coordinator import MyVerisureDataUpdateCoordinator
 from .device import get_device_info
 
@@ -84,12 +83,12 @@ class MyVerisureAlarmBinarySensor(BinarySensorEntity):
         self.coordinator = coordinator
         self.config_entry = config_entry
         self.sensor_id = sensor_id
-        
+
         self._attr_name = friendly_name
         self._attr_unique_id = f"{config_entry.entry_id}_alarm_{sensor_id}"
         self._attr_device_class = device_class
         self._attr_should_poll = False
-        
+
         # Set device info
         self._attr_device_info = get_device_info(config_entry)
 
@@ -105,11 +104,17 @@ class MyVerisureAlarmBinarySensor(BinarySensorEntity):
 
         # Obtener el estado específico según el sensor_id e invertir la lógica
         if self.sensor_id == "internal_day":
-            return not alarm_status.get("internal", {}).get("day", {}).get("status", False)
+            return not alarm_status.get("internal", {}).get("day", {}).get(
+                "status", False
+            )
         elif self.sensor_id == "internal_night":
-            return not alarm_status.get("internal", {}).get("night", {}).get("status", False)
+            return not alarm_status.get("internal", {}).get("night", {}).get(
+                "status", False
+            )
         elif self.sensor_id == "internal_total":
-            return not alarm_status.get("internal", {}).get("total", {}).get("status", False)
+            return not alarm_status.get("internal", {}).get("total", {}).get(
+                "status", False
+            )
         elif self.sensor_id == "external":
             return not alarm_status.get("external", {}).get("status", False)
         
@@ -141,4 +146,4 @@ class MyVerisureAlarmBinarySensor(BinarySensorEntity):
         await super().async_added_to_hass()
         self.async_on_remove(
             self.coordinator.async_add_listener(self.async_write_ha_state)
-        ) 
+        )

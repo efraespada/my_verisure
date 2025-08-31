@@ -24,7 +24,7 @@ class SessionClient(BaseClient):
     def _get_session_file(self) -> str:
         """Get the path to the session file."""
         # Use the same directory as device files
-        storage_dir = os.path.expanduser(f"~/.storage")
+        storage_dir = os.path.expanduser("~/.storage")
         if not os.path.exists(storage_dir):
             # Fallback to current directory
             storage_dir = "."

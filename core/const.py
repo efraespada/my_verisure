@@ -1,6 +1,5 @@
 """Constants for the My Verisure integration."""
 
-from datetime import timedelta
 import logging
 
 DOMAIN = "my_verisure"

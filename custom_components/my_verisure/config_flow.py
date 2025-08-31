@@ -28,7 +28,16 @@ from core.api.exceptions import (
     MyVerisureOTPError,
     MyVerisureDeviceAuthorizationError,
 )
-from .const import CONF_INSTALLATION_ID, CONF_USER, CONF_PHONE_ID, CONF_OTP_CODE, DOMAIN, LOGGER, CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
+from .const import (
+    CONF_INSTALLATION_ID,
+    CONF_USER,
+    CONF_PHONE_ID,
+    CONF_OTP_CODE,
+    DOMAIN,
+    LOGGER,
+    CONF_SCAN_INTERVAL,
+    DEFAULT_SCAN_INTERVAL,
+)
 
 
 class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
@@ -104,15 +113,17 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             phone_id = user_input[CONF_PHONE_ID]
-            
+
             try:
                 # Select the phone and send OTP
                 phone_id_int = int(phone_id)
                 LOGGER.debug("Selected phone ID: %s (int: %d)", phone_id, phone_id_int)
-                
+
                 if self.client.select_phone(phone_id_int):
                     LOGGER.debug("Phone selected successfully, sending OTP...")
-                    await self.client.send_otp(phone_id_int, self.client._otp_data["otp_hash"])
+                    await self.client.send_otp(
+                        phone_id_int, self.client._otp_data["otp_hash"]
+                    )
                     LOGGER.debug("OTP sent successfully")
                     return await self.async_step_otp_verification()
                 else:
@@ -152,18 +163,22 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             otp_code = user_input[CONF_OTP_CODE]
-            
+
             try:
                 # Verify the OTP
                 LOGGER.debug("Verifying OTP code: %s", otp_code)
                 if await self.client.verify_otp(otp_code):
                     LOGGER.warning("OTP verification successful")
-                    LOGGER.warning("Client token after OTP verification: %s", 
-                               self.client._hash[:50] + "..." if self.client._hash else "None")
-                    
+                    LOGGER.warning(
+                        "Client token after OTP verification: %s",
+                        self.client._hash[:50] + "..." if self.client._hash else "None"
+                    )
+
                     # Ensure client is still connected and authenticated
                     if not self.client._hash:
-                        LOGGER.error("Client lost authentication token after OTP verification")
+                        LOGGER.error(
+                            "Client lost authentication token after OTP verification"
+                        )
                         errors["base"] = "otp_failed"
                         return self.async_show_form(
                             step_id="otp_verification",
@@ -174,7 +189,7 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                             ),
                             errors=errors,
                         )
-                    
+
                     # Ensure session data is available
                     if not self.client._session_data:
                         LOGGER.error("Client lost session data after OTP verification")
@@ -188,12 +203,16 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                             ),
                             errors=errors,
                         )
-                    
-                    LOGGER.warning("Client authentication confirmed, proceeding to installation selection")
-                    LOGGER.warning("Client state - Token: %s, Session: %s, Cookies: %s", 
-                               "Present" if self.client._hash else "None",
-                               "Active" if self.client._session else "None",
-                               len(self.client._cookies) if self.client._cookies else 0)
+
+                    LOGGER.warning(
+                        "Client authentication confirmed, proceeding to installation selection"
+                    )
+                    LOGGER.warning(
+                        "Client state - Token: %s, Session: %s, Cookies: %s",
+                        "Present" if self.client._hash else "None",
+                        "Active" if self.client._session else "None",
+                        len(self.client._cookies) if self.client._cookies else 0
+                    )
                     return await self.async_step_installation()
                 else:
                     LOGGER.error("OTP verification returned False")
@@ -229,35 +248,37 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
             if not self.client._hash:
                 LOGGER.error("Client not authenticated when trying to get installations")
                 return self.async_abort(reason="not_authenticated")
-            
+
             LOGGER.warning("Client authenticated, getting installations...")
-            
+
             # Ensure client session is still active
             if not self.client._session:
                 LOGGER.warning("Client session lost, reconnecting...")
                 await self.client.connect()
-            
+
             installations_data = await self.client.get_installations()
             LOGGER.warning("Installations data received: %s", installations_data)
-            
+
             installations = {}
             for inst in installations_data:
                 LOGGER.warning("Processing installation: %s", inst)
-                
+
                 installation_id = inst.get("numinst")
                 installation_name = inst.get("alias", "Unknown")
                 address = inst.get("address", {})
-                
-                LOGGER.warning("Installation %s: id=%s, name=%s, address=%s (type: %s)", 
-                           installation_id, installation_id, installation_name, address, type(address))
-                
+
+                LOGGER.warning(
+                    "Installation %s: id=%s, name=%s, address=%s (type: %s)",
+                    installation_id, installation_id, installation_name, address, type(address)
+                )
+
                 # Handle case where address might be a string or dict
                 if isinstance(address, dict):
                     street = address.get("street", "Unknown address")
                 else:
                     # If address is a string, use it directly
                     street = str(address) if address else "Unknown address"
-                
+
                 if installation_id:
                     installations[installation_id] = f"{installation_name} ({street})"
 
@@ -374,9 +395,11 @@ class MyVerisureOptionsFlowHandler(OptionsFlow):
             return self.async_create_entry(data=user_input)
 
         current_value = self.config_entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
-        LOGGER.warning("Current scan_interval value: %s (type: %s), default: %s (type: %s)", 
-                      current_value, type(current_value), DEFAULT_SCAN_INTERVAL, type(DEFAULT_SCAN_INTERVAL))
-        
+        LOGGER.warning(
+            "Current scan_interval value: %s (type: %s), default: %s (type: %s)",
+            current_value, type(current_value), DEFAULT_SCAN_INTERVAL, type(DEFAULT_SCAN_INTERVAL)
+        )
+
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema({
@@ -388,4 +411,4 @@ class MyVerisureOptionsFlowHandler(OptionsFlow):
                     vol.Range(min=9, max=60)
                 ),
             }),
-        ) 
+        )

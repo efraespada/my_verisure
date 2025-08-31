@@ -3,11 +3,6 @@
 import logging
 
 from api.models.domain.alarm import AlarmStatus, ArmResult, DisarmResult
-from api.models.dto.alarm_dto import (
-    AlarmStatusDTO,
-    ArmResultDTO,
-    DisarmResultDTO,
-)
 from repositories.interfaces.alarm_repository import AlarmRepository
 
 _LOGGER = logging.getLogger(__name__)
@@ -26,7 +21,8 @@ class AlarmRepositoryImpl(AlarmRepository):
         """Get alarm status."""
         try:
             _LOGGER.info(
-                "Getting alarm status for installation %s", installation_id
+                "Getting alarm status for installation %s",
+                installation_id
             )
 
             alarm_status_data = await self.client.get_alarm_status(
@@ -109,7 +105,8 @@ class AlarmRepositoryImpl(AlarmRepository):
                 return ArmResult(
                     success=True,
                     message=f"Alarm armed successfully with request {request}",
-                    reference_id=None,  # The client doesn't return reference_id in this case
+                    # The client doesn't return reference_id in this case
+                    reference_id=None,
                 )
             else:
                 return ArmResult(
@@ -136,7 +133,8 @@ class AlarmRepositoryImpl(AlarmRepository):
                 return DisarmResult(
                     success=True,
                     message="Alarm disarmed successfully",
-                    reference_id=None,  # The client doesn't return reference_id in this case
+                    # The client doesn't return reference_id in this case
+                    reference_id=None,
                 )
             else:
                 return DisarmResult(

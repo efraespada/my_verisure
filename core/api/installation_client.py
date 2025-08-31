@@ -9,7 +9,6 @@ from .exceptions import MyVerisureAuthenticationError, MyVerisureError
 from .models.dto.installation_dto import (
     InstallationDTO,
     InstallationServicesDTO,
-    InstallationsListDTO,
 )
 
 _LOGGER = logging.getLogger(__name__)

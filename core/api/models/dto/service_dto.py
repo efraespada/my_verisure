@@ -4,7 +4,7 @@ DTO for Service.
 """
 
 from dataclasses import dataclass
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
 
 
 @dataclass

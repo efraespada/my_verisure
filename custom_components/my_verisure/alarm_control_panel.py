@@ -2,14 +2,12 @@
 
 from __future__ import annotations
 
-import logging
 from typing import Any
 
 from homeassistant.components.alarm_control_panel import (
     AlarmControlPanelEntity,
     AlarmControlPanelEntityFeature,
     AlarmControlPanelState,
-    CodeFormat,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -55,23 +53,21 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
         )
         # Track transition state for ARMING/DISARMING feedback
         self._transition_state = None
-        
+
         # Set device info
         self._attr_device_info = get_device_info(config_entry)
-
-
-
-
 
     @property
     def name(self) -> str:
         """Return the name of the alarm."""
         return ENTITY_NAMES["alarm_control_panel"]
 
-    def _analyze_alarm_states(self, alarm_data: dict) -> tuple[AlarmControlPanelState, dict]:
+    def _analyze_alarm_states(
+        self, alarm_data: dict
+    ) -> tuple[AlarmControlPanelState, dict]:
         """
         Analyze alarm data and return the primary state and detailed state information.
-        
+
         Returns:
             tuple: (primary_state, detailed_states_dict)
         """
@@ -81,15 +77,15 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
         # Parse the JSON structure with internal/external sections
         internal = alarm_data.get("internal", {})
         external = alarm_data.get("external", {})
-        
+
         # Check internal states
         internal_day = internal.get("day", {}).get("status", False)
         internal_night = internal.get("night", {}).get("status", False)
         internal_total = internal.get("total", {}).get("status", False)
-        
+
         # Check external state
         external_status = external.get("status", False)
-        
+
         # Create detailed state information
         detailed_states = {
             "internal_day": internal_day,
@@ -108,7 +104,7 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
             detailed_states["active_alarms"].append("Internal Night")
         if external_status:
             detailed_states["active_alarms"].append("External")
-        
+
         # Determine primary state based on priority
         # Priority order: Total > Night > Day > External > Disarmed
         if internal_total:
@@ -118,7 +114,8 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
         elif internal_day:
             primary_state = AlarmControlPanelState.ARMED_NIGHT
         elif external_status:
-            primary_state = AlarmControlPanelState.ARMED_HOME  # Map external to home
+            # Map external to home
+            primary_state = AlarmControlPanelState.ARMED_HOME
         else:
             primary_state = AlarmControlPanelState.DISARMED
         
@@ -131,19 +128,19 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
         if self._transition_state:
             LOGGER.warning("Returning transition state: %s", self._transition_state)
             return self._transition_state
-            
+
         if not self.coordinator.data:
             LOGGER.warning("No coordinator data available")
             return None
 
         alarm_data = self.coordinator.data.get("alarm_status", {})
         LOGGER.warning("Raw alarm data: %s", alarm_data)
-        
+
         primary_state, detailed_states = self._analyze_alarm_states(alarm_data)
-        
+
         LOGGER.warning("Primary state: %s", primary_state)
         LOGGER.warning("Active alarms: %s", detailed_states.get("active_alarms", []))
-        
+
         return primary_state
 
     @property
@@ -153,21 +150,21 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
             return {}
 
         alarm_data = self.coordinator.data.get("alarm_status", {})
-        
+
         # Get detailed state analysis
         _, detailed_states = self._analyze_alarm_states(alarm_data)
-        
+
         # Get installation info from services
         services_data = self.coordinator.data.get("services", {})
         installation_info = services_data.get("installation", {})
-        
+
         attributes = {
             "installation_id": self.config_entry.data.get("installation_id", "Unknown"),
             "installation_alias": installation_info.get("alias", "Unknown"),
             "installation_status": installation_info.get("status", "Unknown"),
             "installation_panel": installation_info.get("panel", "Unknown"),
         }
-        
+
         # Add detailed alarm state information
         attributes.update({
             "internal_day_status": detailed_states.get("internal_day", False),
@@ -177,9 +174,7 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
             "active_alarms": detailed_states.get("active_alarms", []),
             "alarm_count": len(detailed_states.get("active_alarms", [])),
         })
-        
 
-        
         return attributes
 
     async def async_alarm_disarm(self, code: str | None = None) -> None:
@@ -213,11 +208,11 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
     async def async_alarm_arm_away(self, code: str | None = None) -> None:
         """Send arm away command."""
         LOGGER.warning("Arming alarm away (ARM - CONECTAR Total)...")
-        
+
         # Set transition state
         self._transition_state = AlarmControlPanelState.ARMING
         self.async_write_ha_state()
-        
+
         try:
             installation_id = self.config_entry.data.get("installation_id")
             if installation_id:
@@ -228,7 +223,7 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
                     LOGGER.error("Failed to arm alarm away")
             else:
                 LOGGER.error("No installation ID available")
-            
+
             # Clear transition state and refresh
             self._transition_state = None
             await self.coordinator.async_request_refresh()
@@ -241,11 +236,11 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
     async def async_alarm_arm_home(self, code: str | None = None) -> None:
         """Send arm home command."""
         LOGGER.warning("Arming alarm home (ARMDAY - ARMADO DIA)...")
-        
+
         # Set transition state
         self._transition_state = AlarmControlPanelState.ARMING
         self.async_write_ha_state()
-        
+
         try:
             installation_id = self.config_entry.data.get("installation_id")
             if installation_id:
@@ -256,7 +251,7 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
                     LOGGER.error("Failed to arm alarm home")
             else:
                 LOGGER.error("No installation ID available")
-            
+
             # Clear transition state and refresh
             self._transition_state = None
             await self.coordinator.async_request_refresh()
@@ -269,11 +264,11 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
     async def async_alarm_arm_night(self, code: str | None = None) -> None:
         """Send arm night command."""
         LOGGER.warning("Arming alarm night (ARMNIGHT - ARMADO NOCHE)...")
-        
+
         # Set transition state
         self._transition_state = AlarmControlPanelState.ARMING
         self.async_write_ha_state()
-        
+
         try:
             installation_id = self.config_entry.data.get("installation_id")
             if installation_id:
@@ -284,7 +279,7 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
                     LOGGER.error("Failed to arm alarm night")
             else:
                 LOGGER.error("No installation ID available")
-            
+
             # Clear transition state and refresh
             self._transition_state = None
             await self.coordinator.async_request_refresh()
@@ -304,4 +299,4 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
         await super().async_added_to_hass()
         self.async_on_remove(
             self.coordinator.async_add_listener(self.async_write_ha_state)
-        ) 
+        )
