@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Script para ejecutar coverage sin conflictos.
-Este script ejecuta todos los tests con coverage y genera reportes.
+Script de coverage que funciona sin conflictos.
+Por ahora ejecuta los tests sin coverage hasta que se resuelva el problema del entorno virtual.
 """
 
 import sys
@@ -19,7 +19,6 @@ class Colors:
     FAIL = '\033[91m'
     ENDC = '\033[0m'
     BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
 
 def print_header(text):
     """Imprimir header con formato."""
@@ -44,6 +43,10 @@ def print_info(text):
     """Imprimir mensaje informativo."""
     print(f"{Colors.OKCYAN}ℹ️  {text}{Colors.ENDC}")
 
+def print_warning(text):
+    """Imprimir mensaje de advertencia."""
+    print(f"{Colors.WARNING}⚠️  {text}{Colors.ENDC}")
+
 def run_command(cmd):
     """Ejecutar comando y retornar resultado."""
     try:
@@ -62,166 +65,249 @@ def run_command(cmd):
             'returncode': -1
         }
 
-def run_coverage():
-    """Ejecutar coverage completo usando coverage directamente."""
-    print_section("Running Coverage Analysis")
+def run_tests_with_coverage_cli():
+    """Ejecutar tests CLI con coverage (si está disponible)."""
+    print_section("Running CLI Tests with Coverage")
     
-    # Limpiar datos de coverage anteriores
-    print_info("Cleaning previous coverage data...")
-    run_command(["python", "-m", "coverage", "erase"])
+    # Intentar usar coverage si está disponible
+    coverage_available = run_command(["python", "-c", "import coverage; print('available')"])
     
-    # Ejecutar tests con coverage
-    print_info("Running tests with coverage...")
-    cmd = [
-        "python", "-m", "coverage", "run", "-m", "pytest",
-        "cli/tests",
-        "core/tests"
-    ]
-    
-    result = run_command(cmd)
-    
-    if result['success']:
-        print_success("Tests completed successfully")
+    if coverage_available['success']:
+        print_info("Coverage module available, running with coverage...")
         
-        # Generar reportes
-        print_info("Generating coverage reports...")
+        # Limpiar datos de coverage anteriores
+        run_command(["python", "-m", "coverage", "erase"])
         
-        # Reporte de terminal
-        term_result = run_command(["python", "-m", "coverage", "report", "--show-missing"])
-        if term_result['success']:
-            print_success("Terminal report generated")
-            if term_result['stdout']:
-                print("\nCoverage Summary:")
-                print(term_result['stdout'])
+        # Ejecutar tests CLI con coverage
+        cmd = [
+            "python", "-m", "coverage", "run", "-m", "pytest",
+            "cli/tests"
+        ]
         
-        # Reporte HTML
-        html_result = run_command(["python", "-m", "coverage", "html", "--directory=htmlcov"])
-        if html_result['success']:
-            print_success("HTML report generated")
-            print_info("HTML report available at: htmlcov/index.html")
+        result = run_command(cmd)
         
-        # Reporte XML
-        xml_result = run_command(["python", "-m", "coverage", "xml", "-o", "coverage.xml"])
-        if xml_result['success']:
-            print_success("XML report generated")
-            print_info("XML report available at: coverage.xml")
-        
-        return True
+        if result['success']:
+            print_success("CLI tests completed successfully")
+            
+            # Generar reportes
+            print_info("Generating CLI coverage reports...")
+            
+            # Reporte de terminal
+            term_result = run_command(["python", "-m", "coverage", "report", "--show-missing"])
+            if term_result['success']:
+                print_success("CLI terminal report generated")
+                if term_result['stdout']:
+                    print("\nCLI Coverage Summary:")
+                    print(term_result['stdout'])
+            
+            # Reporte HTML
+            html_result = run_command(["python", "-m", "coverage", "html", "--directory=htmlcov/cli"])
+            if html_result['success']:
+                print_success("CLI HTML report generated")
+                print_info("HTML report available at: htmlcov/cli/index.html")
+            
+            return True
+        else:
+            print_error("CLI tests failed")
+            if result['stdout']:
+                print("STDOUT:")
+                print(result['stdout'])
+            if result['stderr']:
+                print("STDERR:")
+                print(result['stderr'])
+            return False
     else:
-        print_error("Tests failed")
-        if result['stdout']:
-            print("STDOUT:")
-            print(result['stdout'])
-        if result['stderr']:
-            print("STDERR:")
-            print(result['stderr'])
-        return False
+        print_warning("Coverage module not available, running tests without coverage...")
+        
+        # Ejecutar tests CLI sin coverage
+        cmd = [
+            "python", "-m", "pytest",
+            "cli/tests"
+        ]
+        
+        result = run_command(cmd)
+        
+        if result['success']:
+            print_success("CLI tests completed successfully (without coverage)")
+            print_info("To enable coverage, install it with: pip install coverage")
+            return True
+        else:
+            print_error("CLI tests failed")
+            if result['stdout']:
+                print("STDOUT:")
+                print(result['stdout'])
+            if result['stderr']:
+                print("STDERR:")
+                print(result['stderr'])
+            return False
 
-def run_coverage_cli_only():
-    """Ejecutar coverage solo para CLI."""
-    print_section("Running CLI Coverage Analysis")
+def run_tests_with_coverage_core():
+    """Ejecutar tests Core con coverage (si está disponible)."""
+    print_section("Running Core Tests with Coverage")
     
-    # Limpiar datos de coverage anteriores
-    print_info("Cleaning previous coverage data...")
-    run_command(["python", "-m", "coverage", "erase"])
+    # Intentar usar coverage si está disponible
+    coverage_available = run_command(["python", "-c", "import coverage; print('available')"])
     
-    # Ejecutar tests CLI con coverage
-    print_info("Running CLI tests with coverage...")
-    cmd = [
-        "python", "-m", "coverage", "run", "-m", "pytest",
-        "cli/tests"
-    ]
-    
-    result = run_command(cmd)
-    
-    if result['success']:
-        print_success("CLI tests completed successfully")
+    if coverage_available['success']:
+        print_info("Coverage module available, running with coverage...")
         
-        # Generar reportes
-        print_info("Generating CLI coverage reports...")
+        # Limpiar datos de coverage anteriores
+        run_command(["python", "-m", "coverage", "erase"])
         
-        # Reporte de terminal
-        term_result = run_command(["python", "-m", "coverage", "report", "--show-missing"])
-        if term_result['success']:
-            print_success("CLI terminal report generated")
-            if term_result['stdout']:
-                print("\nCLI Coverage Summary:")
-                print(term_result['stdout'])
+        # Ejecutar tests Core con coverage
+        cmd = [
+            "python", "-m", "coverage", "run", "-m", "pytest",
+            "core/tests"
+        ]
         
-        # Reporte HTML
-        html_result = run_command(["python", "-m", "coverage", "html", "--directory=htmlcov/cli"])
-        if html_result['success']:
-            print_success("CLI HTML report generated")
-            print_info("HTML report available at: htmlcov/cli/index.html")
+        result = run_command(cmd)
         
-        return True
+        if result['success']:
+            print_success("Core tests completed successfully")
+            
+            # Generar reportes
+            print_info("Generating Core coverage reports...")
+            
+            # Reporte de terminal
+            term_result = run_command(["python", "-m", "coverage", "report", "--show-missing"])
+            if term_result['success']:
+                print_success("Core terminal report generated")
+                if term_result['stdout']:
+                    print("\nCore Coverage Summary:")
+                    print(term_result['stdout'])
+            
+            # Reporte HTML
+            html_result = run_command(["python", "-m", "coverage", "html", "--directory=htmlcov/core"])
+            if html_result['success']:
+                print_success("Core HTML report generated")
+                print_info("HTML report available at: htmlcov/core/index.html")
+            
+            return True
+        else:
+            print_error("Core tests failed")
+            if result['stdout']:
+                print("STDOUT:")
+                print(result['stdout'])
+            if result['stderr']:
+                print("STDERR:")
+                print(result['stderr'])
+            return False
     else:
-        print_error("CLI tests failed")
-        if result['stdout']:
-            print(result['stdout'])
-        if result['stderr']:
-            print(result['stderr'])
-        return False
+        print_warning("Coverage module not available, running tests without coverage...")
+        
+        # Ejecutar tests Core sin coverage
+        cmd = [
+            "python", "-m", "pytest",
+            "core/tests"
+        ]
+        
+        result = run_command(cmd)
+        
+        if result['success']:
+            print_success("Core tests completed successfully (without coverage)")
+            print_info("To enable coverage, install it with: pip install coverage")
+            return True
+        else:
+            print_error("Core tests failed")
+            if result['stdout']:
+                print("STDOUT:")
+                print(result['stdout'])
+            if result['stderr']:
+                print("STDERR:")
+                print(result['stderr'])
+            return False
 
-def run_coverage_core_only():
-    """Ejecutar coverage solo para Core."""
-    print_section("Running Core Coverage Analysis")
+def run_tests_with_coverage_all():
+    """Ejecutar todos los tests con coverage (si está disponible)."""
+    print_section("Running All Tests with Coverage")
     
-    # Limpiar datos de coverage anteriores
-    print_info("Cleaning previous coverage data...")
-    run_command(["python", "-m", "coverage", "erase"])
+    # Intentar usar coverage si está disponible
+    coverage_available = run_command(["python", "-c", "import coverage; print('available')"])
     
-    # Ejecutar tests Core con coverage
-    print_info("Running Core tests with coverage...")
-    cmd = [
-        "python", "-m", "coverage", "run", "-m", "pytest",
-        "core/tests"
-    ]
-    
-    result = run_command(cmd)
-    
-    if result['success']:
-        print_success("Core tests completed successfully")
+    if coverage_available['success']:
+        print_info("Coverage module available, running with coverage...")
         
-        # Generar reportes
-        print_info("Generating Core coverage reports...")
+        # Limpiar datos de coverage anteriores
+        run_command(["python", "-m", "coverage", "erase"])
         
-        # Reporte de terminal
-        term_result = run_command(["python", "-m", "coverage", "report", "--show-missing"])
-        if term_result['success']:
-            print_success("Core terminal report generated")
-            if term_result['stdout']:
-                print("\nCore Coverage Summary:")
-                print(term_result['stdout'])
+        # Ejecutar tests con coverage
+        cmd = [
+            "python", "-m", "coverage", "run", "-m", "pytest",
+            "cli/tests",
+            "core/tests"
+        ]
         
-        # Reporte HTML
-        html_result = run_command(["python", "-m", "coverage", "html", "--directory=htmlcov/core"])
-        if html_result['success']:
-            print_success("Core HTML report generated")
-            print_info("HTML report available at: htmlcov/core/index.html")
+        result = run_command(cmd)
         
-        return True
+        if result['success']:
+            print_success("All tests completed successfully")
+            
+            # Generar reportes
+            print_info("Generating coverage reports...")
+            
+            # Reporte de terminal
+            term_result = run_command(["python", "-m", "coverage", "report", "--show-missing"])
+            if term_result['success']:
+                print_success("Terminal report generated")
+                if term_result['stdout']:
+                    print("\nCoverage Summary:")
+                    print(term_result['stdout'])
+            
+            # Reporte HTML
+            html_result = run_command(["python", "-m", "coverage", "html", "--directory=htmlcov"])
+            if html_result['success']:
+                print_success("HTML report generated")
+                print_info("HTML report available at: htmlcov/index.html")
+            
+            # Reporte XML
+            xml_result = run_command(["python", "-m", "coverage", "xml", "-o", "coverage.xml"])
+            if xml_result['success']:
+                print_success("XML report generated")
+                print_info("XML report available at: coverage.xml")
+            
+            return True
+        else:
+            print_error("Tests failed")
+            if result['stdout']:
+                print("STDOUT:")
+                print(result['stdout'])
+            if result['stderr']:
+                print("STDERR:")
+                print(result['stderr'])
+            return False
     else:
-        print_error("Core tests failed")
-        if result['stdout']:
-            print(result['stdout'])
-        if result['stderr']:
-            print(result['stderr'])
-        return False
+        print_warning("Coverage module not available, running tests without coverage...")
+        
+        # Ejecutar tests sin coverage
+        cmd = [
+            "python", "-m", "pytest",
+            "cli/tests",
+            "core/tests"
+        ]
+        
+        result = run_command(cmd)
+        
+        if result['success']:
+            print_success("All tests completed successfully (without coverage)")
+            print_info("To enable coverage, install it with: pip install coverage")
+            return True
+        else:
+            print_error("Tests failed")
+            if result['stdout']:
+                print("STDOUT:")
+                print(result['stdout'])
+            if result['stderr']:
+                print("STDERR:")
+                print(result['stderr'])
+            return False
 
 def main():
     """Función principal."""
-    print_header("My Verisure - Coverage Analysis")
+    print_header("My Verisure - Working Coverage Analysis")
     
     # Verificar que estamos en el directorio correcto
     if not Path("cli").exists() or not Path("core").exists():
         print_error("This script must be run from the project root directory")
-        sys.exit(1)
-    
-    # Verificar que coverage está instalado
-    result = run_command(["python", "-m", "coverage", "--version"])
-    if not result['success']:
-        print_error("coverage is not installed. Please install it with: pip install coverage")
         sys.exit(1)
     
     start_time = time.time()
@@ -231,16 +317,16 @@ def main():
         target = sys.argv[1].lower()
         
         if target == "cli":
-            success = run_coverage_cli_only()
+            success = run_tests_with_coverage_cli()
         elif target == "core":
-            success = run_coverage_core_only()
+            success = run_tests_with_coverage_core()
         else:
             print_error(f"Unknown target: {target}")
             print_info("Available targets: cli, core, all (default)")
             sys.exit(1)
     else:
         # Coverage completo por defecto
-        success = run_coverage()
+        success = run_tests_with_coverage_all()
     
     # Resumen final
     end_time = time.time()
@@ -249,9 +335,9 @@ def main():
     print_header("Coverage Results Summary")
     
     if success:
-        print_success("🎉 Coverage analysis completed successfully!")
+        print_success("🎉 Tests completed successfully!")
     else:
-        print_error("💥 Coverage analysis failed")
+        print_error("💥 Tests failed")
     
     print(f"\n{Colors.BOLD}Total time: {duration:.2f} seconds{Colors.ENDC}")
     

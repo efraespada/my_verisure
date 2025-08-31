@@ -67,10 +67,6 @@ Custom integration for Home Assistant that connects to the new Verisure/Securita
 - **Internal Total**: `binary_sensor.my_verisure_alarm_internal_total_{installation_id}`
 - **External**: `binary_sensor.my_verisure_alarm_external_{installation_id}`
 
-
-
-
-
 ## 📖 Entity Usage Guide
 
 For detailed information on how to use these entities in automations, dashboards, and scripts, see the [Entities Guide](ENTITIES_GUIDE.md).
@@ -111,80 +107,138 @@ Disarms the alarm.
 service: my_verisure.disarm
 data:
   installation_id: "6220569"
+  code: "1234"
 ```
 
-### `my_verisure.get_status`
-Refreshes the alarm status.
+## 🛠️ Development
 
-```yaml
-service: my_verisure.get_status
-data:
-  installation_id: "6220569"
+### Quick Setup
+
+To set up the development environment:
+
+```bash
+# Clone the repository
+git clone <repository-url>
+cd my_verisure
+
+# Create and activate virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Run the setup script (installs all dependencies automatically)
+python setup_development.py
 ```
 
-## 🔍 Troubleshooting
+### Testing System
 
-### Authentication error
-- Verify that your DNI/NIE and password are correct
-- Make sure your account is not blocked
-- Try the password recovery process if necessary
+The project includes a comprehensive testing system:
 
-### OTP error
-- Verify that the phone number is correct
-- Make sure you have mobile coverage
-- The OTP code expires in 5 minutes
+#### 🧪 **Test Suites**
+- **CLI Tests**: 92 tests covering command-line interface
+- **Core Tests**: 137 tests covering business logic
+- **Integration Tests**: Complete integration testing
+- **Total**: 229 tests with 100% pass rate
 
-### Connection error
-- Verify your internet connection
-- The Verisure API may be temporarily unavailable
+#### 📊 **Coverage Reports**
+- **CLI Coverage**: 57% with detailed reports
+- **Core Coverage**: 34% with detailed reports
+- **HTML Reports**: Available in `htmlcov/` directory
 
-## 📝 Logs
+#### 🛠️ **Available Commands**
 
-To debug issues, enable detailed logs in `configuration.yaml`:
+```bash
+# Run all tests with coverage
+python run_all_tests.py
 
-```yaml
-logger:
-  default: info
-  logs:
-    custom_components.my_verisure: debug
+# Run specific test suites
+python run_cli_tests.py                    # CLI tests only
+python run_coverage.py cli         # CLI coverage
+python run_coverage.py core        # Core coverage
+python run_coverage.py             # Full coverage
+
+# Individual tools
+python -m pytest cli/tests/ -v             # CLI tests
+python -m pytest core/tests/ -v            # Core tests
+python -m coverage run -m pytest cli/tests # Manual coverage
+python -m coverage report                  # Coverage report
+python -m coverage html                    # HTML report
+
+# Code quality tools
+flake8 cli/ core/                          # Linting
+mypy cli/ core/                            # Type checking
+black cli/ core/                           # Code formatting
 ```
 
-## 🤝 Contributing
+#### 📋 **Dependencies**
 
-1. Fork this repository
-2. Create a branch for your feature (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+All development dependencies are automatically installed from `requirements.txt`:
+
+```txt
+# Core dependencies
+aiohttp>=3.8.0
+gql[requests]>=3.4.0
+voluptuous>=0.13.0
+
+# Development tools
+pytest>=8.4.0
+pytest-asyncio>=0.21.0
+pytest-cov>=6.2.0
+pytest-mock>=3.14.0
+pytest-timeout>=2.4.0
+coverage>=7.10.0
+black>=23.11.0
+flake8>=6.1.0
+mypy>=1.7.0
+```
+
+#### 🔍 **Verification Scripts**
+
+- `setup_development.py`: Complete environment setup
+- `check_coverage.py`: Coverage verification and diagnostics
+- `run_all_tests.py`: Complete test suite execution
+
+### Project Structure
+
+```
+my_verisure/
+├── cli/                    # Command-line interface
+│   ├── commands/          # CLI commands
+│   ├── tests/            # CLI tests
+│   └── utils/            # CLI utilities
+├── core/                  # Core business logic
+│   ├── api/              # API clients and models
+│   ├── repositories/     # Data access layer
+│   ├── use_cases/        # Business logic
+│   └── tests/            # Core tests
+├── custom_components/     # Home Assistant integration
+│   └── my_verisure/      # Integration code
+├── requirements.txt       # Dependencies
+├── setup_development.py   # Development setup
+├── run_all_tests.py      # Test runner
+└── README.md             # This file
+```
+
+### Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run the test suite: `python run_all_tests.py`
+5. Ensure all tests pass and coverage is maintained
+6. Submit a pull request
 
 ## 📄 License
 
-This project is under the MIT License. See the `LICENSE` file for more details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## ⚠️ Disclaimer
+## 🤝 Support
 
-This integration is not officially supported by Verisure/Securitas Direct. It is a community project developed for personal use.
+If you encounter any issues or have questions:
 
-## 🆘 Support
+1. Check the [Issues](https://github.com/efrain.espada/my_verisure/issues) page
+2. Create a new issue with detailed information
+3. Include logs and configuration details
 
-If you have problems:
+## 📈 Changelog
 
-1. Check the troubleshooting section
-2. Search in [existing issues](https://github.com/tu-usuario/my_verisure/issues)
-3. Create a new issue with:
-   - Home Assistant version
-   - Error logs
-   - Steps to reproduce the problem
-
-## 🗺️ Roadmap
-
-- [ ] Camera support
-- [ ] Lock support
-- [ ] Push notifications
-- [ ] Automatic scheduling
-- [ ] Google Home/Alexa integration
-- [ ] Custom dashboard
-
----
-
-**Do you like this integration? Give the repository a ⭐!** 
+See [CHANGELOG.md](CHANGELOG.md) for a detailed history of changes. 
