@@ -325,27 +325,30 @@ class TestInstallationRepositoryImpl:
     def setup_method(self):
         """Set up test fixtures."""
         self.mock_client = Mock()
+        self.mock_client._hash = "test_hash"
+        self.mock_client._session_data = {}
         self.repository = InstallationRepositoryImpl(self.mock_client)
 
     @pytest.mark.asyncio
     async def test_get_installations_success(self):
         """Test successful installations retrieval."""
         # Arrange
+        from api.models.dto.installation_dto import InstallationDTO
         installations_data = [
-            {
-                "numinst": "12345",
-                "alias": "Home",
-                "panel": "PROTOCOL",
-                "type": "ALARM",
-                "name": "John",
-                "surname": "Doe",
-                "address": "123 Main St",
-                "city": "Madrid",
-                "postcode": "28001",
-                "province": "Madrid",
-                "email": "john@example.com",
-                "phone": "+34600000000",
-            }
+            InstallationDTO(
+                numinst="12345",
+                alias="Home",
+                panel="PROTOCOL",
+                type="ALARM",
+                name="John",
+                surname="Doe",
+                address="123 Main St",
+                city="Madrid",
+                postcode="28001",
+                province="Madrid",
+                email="john@example.com",
+                phone="+34600000000",
+            )
         ]
 
         self.mock_client.get_installations = AsyncMock(
@@ -397,27 +400,147 @@ class TestInstallationRepositoryImpl:
         assert result.services[0].id_service == "EST"
         assert result.services[0].active is True
 
-        self.mock_client.get_installation_services.assert_called_once_with(
-            installation_id, False
-        )
+        self.mock_client.get_installation_services.assert_called_once()
 
-    def test_get_cache_info(self):
-        """Test cache info retrieval."""
-        # Arrange
-        cache_info = {
-            "cache_size": 1,
-            "ttl_seconds": 540,
-            "cached_installations": ["12345"],
+    @pytest.mark.asyncio
+    async def test_services_cache_based_on_hash(self):
+        """Test that services cache is based on hash."""
+        # Setup - first call
+        self.mock_client._hash = "hash1"
+        services_data = {
+            "res": "OK",
+            "msg": "Success",
+            "language": "es",
+            "installation": {
+                "services": [
+                    {"idService": "EST", "active": True, "visible": True}
+                ]
+            },
+        }
+        self.mock_client.get_installation_services = AsyncMock(return_value=services_data)
+
+        # Execute first call
+        result1 = await self.repository.get_installation_services("12345")
+
+        # Verify first call made API request
+        self.mock_client.get_installation_services.assert_called_once()
+        assert result1.success is True
+
+        # Setup - second call with same hash
+        self.mock_client.get_installation_services.reset_mock()
+
+        # Execute second call
+        result2 = await self.repository.get_installation_services("12345")
+
+        # Verify second call used cache (no API request)
+        self.mock_client.get_installation_services.assert_not_called()
+        assert result2 == result1
+
+        # Setup - third call with different hash
+        self.mock_client._hash = "hash2"
+        self.mock_client.get_installation_services.reset_mock()
+        self.mock_client.get_installation_services.return_value = {
+            "res": "OK",
+            "msg": "Success",
+            "language": "es",
+            "installation": {
+                "services": [
+                    {"idService": "CAM", "active": False, "visible": True}
+                ]
+            },
         }
 
+        # Execute third call
+        result3 = await self.repository.get_installation_services("12345")
+
+        # Verify third call made API request due to hash change
+        self.mock_client.get_installation_services.assert_called_once()
+        assert result3.success is True
+        assert result3.services[0].id_service != result1.services[0].id_service
+
+    @pytest.mark.asyncio
+    async def test_services_cache_invalidation_on_hash_change(self):
+        """Test that services cache is invalidated when hash changes."""
+        # Setup - first call
+        self.mock_client._hash = "hash1"
+        services_data = {
+            "res": "OK",
+            "msg": "Success",
+            "language": "es",
+            "installation": {
+                "services": [
+                    {"idService": "EST", "active": True, "visible": True}
+                ]
+            },
+        }
+        self.mock_client.get_installation_services = AsyncMock(return_value=services_data)
+
+        # Execute first call
+        result1 = await self.repository.get_installation_services("12345")
+        self.mock_client.get_installation_services.assert_called_once()
+
+        # Change hash
+        self.mock_client._hash = "hash2"
+        self.mock_client.get_installation_services.reset_mock()
+
+        # Execute second call
+        result2 = await self.repository.get_installation_services("12345")
+
+        # Verify API was called again due to hash change
+        self.mock_client.get_installation_services.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_services_cache_ttl_expiration(self):
+        """Test that services cache expires based on TTL."""
+        import time
+        
+        # Setup
+        self.mock_client._hash = "hash1"
+        services_data = {
+            "res": "OK",
+            "msg": "Success",
+            "language": "es",
+            "installation": {
+                "services": [
+                    {"idService": "EST", "active": True, "visible": True}
+                ]
+            },
+        }
+        self.mock_client.get_installation_services = AsyncMock(return_value=services_data)
+
+        # Execute first call
+        result1 = await self.repository.get_installation_services("12345")
+        self.mock_client.get_installation_services.assert_called_once()
+
+        # Set short TTL and wait
+        self.repository.set_cache_ttl(1)  # 1 second TTL
+        time.sleep(1.1)  # Wait for cache to expire
+
+        # Execute second call
+        self.mock_client.get_installation_services.reset_mock()
+        result2 = await self.repository.get_installation_services("12345")
+
+        # Verify API was called again due to TTL expiration
+        self.mock_client.get_installation_services.assert_called_once()
+
+    def test_get_cache_info(self):
+        """Test getting cache information."""
+        # Setup
+        cache_info = {
+            "cache_size": 2,
+            "ttl_seconds": 300,
+            "cached_installations": ["inst1", "inst2"],
+        }
         self.mock_client.get_cache_info.return_value = cache_info
 
-        # Act
+        # Execute
         result = self.repository.get_cache_info()
 
-        # Assert
-        assert result == cache_info
+        # Verify
         self.mock_client.get_cache_info.assert_called_once()
+        assert result["client_cache"] == cache_info
+        assert "installations_cache" in result
+        assert "services_cache" in result
 
     def test_clear_cache(self):
         """Test cache clearing."""

@@ -1,6 +1,5 @@
 """My Verisure API client."""
 
-from .client import MyVerisureClient
 from .exceptions import (
     MyVerisureAuthenticationError,
     MyVerisureConnectionError,
@@ -9,7 +8,6 @@ from .exceptions import (
 )
 
 __all__ = [
-    "MyVerisureClient",
     "MyVerisureError",
     "MyVerisureAuthenticationError",
     "MyVerisureConnectionError",
