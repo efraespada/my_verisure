@@ -184,9 +184,11 @@ CHECK_ALARM_STATUS_QUERY = gql(
 class AlarmClient(BaseClient):
     """Alarm client for My Verisure API."""
 
-    def __init__(self) -> None:
+    def __init__(self, hash_token: Optional[str] = None, session_data: Optional[Dict[str, Any]] = None) -> None:
         """Initialize the alarm client."""
         super().__init__()
+        self._hash = hash_token
+        self._session_data = session_data or {}
 
     def _load_alarm_status_config(self) -> Dict[str, Any]:
         """Load alarm status configuration from JSON file."""
@@ -1096,3 +1098,9 @@ class AlarmClient(BaseClient):
         except Exception as e:
             _LOGGER.error("Direct disarm status failed: %s", e)
             return {"errors": [{"message": str(e), "data": {}}]}
+
+    def update_auth_token(self, hash_token: str, session_data: Dict[str, Any]) -> None:
+        """Update the authentication token and session data."""
+        self._hash = hash_token
+        self._session_data = session_data
+        _LOGGER.debug("Alarm client auth token updated")

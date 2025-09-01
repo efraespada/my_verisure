@@ -27,7 +27,7 @@ class InfoCommand(BaseCommand):
         print_command_header("INFO", "Información del sistema")
 
         if action == "installations":
-            return await self._show_installations()
+            return await self._show_installations(**kwargs)
         elif action == "services":
             return await self._show_services(**kwargs)
         elif action == "status":
@@ -36,7 +36,7 @@ class InfoCommand(BaseCommand):
             print_error(f"Acción de información desconocida: {action}")
             return False
 
-    async def _show_installations(self) -> bool:
+    async def _show_installations(self, interactive: bool = True) -> bool:
         """Show all installations."""
         print_header("INSTALACIONES")
 
@@ -68,7 +68,7 @@ class InfoCommand(BaseCommand):
             return False
 
     async def _show_services(
-        self, installation_id: Optional[str] = None
+        self, installation_id: Optional[str] = None, interactive: bool = True
     ) -> bool:
         """Show services for an installation."""
         print_header("SERVICIOS DE INSTALACIÓN")
@@ -108,7 +108,7 @@ class InfoCommand(BaseCommand):
             return False
 
     async def _show_status(
-        self, installation_id: Optional[str] = None
+        self, installation_id: Optional[str] = None, interactive: bool = True
     ) -> bool:
         """Show status for an installation."""
         print_header("ESTADO DE INSTALACIÓN")

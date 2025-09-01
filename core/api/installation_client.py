@@ -95,9 +95,11 @@ query Srv($numinst: String!, $uuid: String) {
 class InstallationClient(BaseClient):
     """Installation client for My Verisure API."""
 
-    def __init__(self) -> None:
+    def __init__(self, hash_token: Optional[str] = None, session_data: Optional[Dict[str, Any]] = None) -> None:
         """Initialize the installation client."""
         super().__init__()
+        self._hash = hash_token
+        self._session_data = session_data or {}
         # Cache for installation services
         self._installation_services_cache: Dict[str, Dict[str, Any]] = {}
         self._cache_timestamps: Dict[str, float] = {}
@@ -178,6 +180,12 @@ class InstallationClient(BaseClient):
             }
 
         return cache_info
+
+    def update_auth_token(self, hash_token: str, session_data: Dict[str, Any]) -> None:
+        """Update the authentication token and session data."""
+        self._hash = hash_token
+        self._session_data = session_data
+        _LOGGER.debug("Installation client auth token updated")
 
     async def get_installations(
         self,

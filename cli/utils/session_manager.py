@@ -13,8 +13,11 @@ from core.dependency_injection.providers import (
     setup_dependencies,
     get_auth_use_case,
     get_installation_use_case,
+    get_auth_client,
+    get_session_client,
+    get_installation_client,
+    get_alarm_client,
     clear_dependencies,
-    get_client,
 )
 from core.api.exceptions import (
     MyVerisureAuthenticationError,
@@ -303,17 +306,45 @@ class SessionManager:
     async def cleanup(self):
         """Clean up resources."""
         try:
-            # Get client and disconnect explicitly
+            # Disconnect all specific clients
             try:
-                client = get_client()
-                if client:
-                    print_info("Desconectando cliente HTTP...")
-                    await client.disconnect()
-                    print_success("Cliente HTTP desconectado")
+                auth_client = get_auth_client()
+                if auth_client:
+                    print_info("Desconectando cliente de autenticación...")
+                    await auth_client.disconnect()
+                    print_success("Cliente de autenticación desconectado")
             except Exception as e:
-                print_info(f"No se pudo desconectar el cliente: {e}")
+                print_info(f"No se pudo desconectar el cliente de autenticación: {e}")
+
+            try:
+                session_client = get_session_client()
+                if session_client:
+                    print_info("Desconectando cliente de sesión...")
+                    await session_client.disconnect()
+                    print_success("Cliente de sesión desconectado")
+            except Exception as e:
+                print_info(f"No se pudo desconectar el cliente de sesión: {e}")
+
+            try:
+                installation_client = get_installation_client()
+                if installation_client:
+                    print_info("Desconectando cliente de instalación...")
+                    await installation_client.disconnect()
+                    print_success("Cliente de instalación desconectado")
+            except Exception as e:
+                print_info(f"No se pudo desconectar el cliente de instalación: {e}")
+
+            try:
+                alarm_client = get_alarm_client()
+                if alarm_client:
+                    print_info("Desconectando cliente de alarma...")
+                    await alarm_client.disconnect()
+                    print_success("Cliente de alarma desconectado")
+            except Exception as e:
+                print_info(f"No se pudo desconectar el cliente de alarma: {e}")
+
         except Exception as e:
-            print_info(f"Error obteniendo cliente: {e}")
+            print_info(f"Error obteniendo clientes: {e}")
 
         # Clear dependencies
         print_info("Limpiando dependencias...")

@@ -37,12 +37,19 @@ class InstallationRepositoryImpl(InstallationRepository):
                 "Client connected: %s", "Yes" if self.client._client else "No"
             )
 
-            installations_data = await self.client.get_installations()
+            # Ensure client is connected
+            if not self.client._client:
+                _LOGGER.info("Client not connected, connecting now...")
+                await self.client.connect()
+
+            installations_data = await self.client.get_installations(
+                hash_token=self.client._hash,
+                session_data=self.client._session_data
+            )
 
             # Convert DTOs to domain models
             installations = []
-            for installation_data in installations_data:
-                installation_dto = InstallationDTO.from_dict(installation_data)
+            for installation_dto in installations_data:
                 installation = Installation.from_dto(installation_dto)
                 installations.append(installation)
 
@@ -64,8 +71,16 @@ class InstallationRepositoryImpl(InstallationRepository):
                 force_refresh,
             )
 
+            # Ensure client is connected
+            if not self.client._client:
+                _LOGGER.info("Client not connected, connecting now...")
+                await self.client.connect()
+
             services_data = await self.client.get_installation_services(
-                installation_id, force_refresh
+                installation_id, 
+                force_refresh,
+                hash_token=self.client._hash,
+                session_data=self.client._session_data
             )
 
             _LOGGER.info("Raw services data received: %s", type(services_data))

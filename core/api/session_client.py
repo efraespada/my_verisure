@@ -16,10 +16,12 @@ _LOGGER = logging.getLogger(__name__)
 class SessionClient(BaseClient):
     """Session client for My Verisure API."""
 
-    def __init__(self, user: str) -> None:
+    def __init__(self, user: str, hash_token: Optional[str] = None, session_data: Optional[Dict[str, Any]] = None) -> None:
         """Initialize the session client."""
         super().__init__()
         self.user = user
+        self._hash = hash_token
+        self._session_data = session_data or {}
 
     def _get_session_file(self) -> str:
         """Get the path to the session file."""
@@ -233,3 +235,9 @@ class SessionClient(BaseClient):
     ) -> DeviceIdentifiersDTO:
         """Convert device identifiers to DTO."""
         return DeviceIdentifiersDTO.from_dict(device_identifiers)
+
+    def update_auth_token(self, hash_token: str, session_data: Dict[str, Any]) -> None:
+        """Update the authentication token and session data."""
+        self._hash = hash_token
+        self._session_data = session_data
+        _LOGGER.debug("Session client auth token updated")

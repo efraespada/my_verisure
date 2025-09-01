@@ -164,6 +164,10 @@ class AuthClient(BaseClient):
                 _LOGGER.info("Successfully logged in to My Verisure")
                 _LOGGER.info("Session data: %s", self._session_data)
 
+                # Update other clients with the auth token
+                if hasattr(self, '_update_other_clients'):
+                    self._update_other_clients(self._hash, self._session_data)
+
                 # Convert to DTO
                 auth_dto = AuthDTO.from_dict(login_data)
 
@@ -544,6 +548,10 @@ class AuthClient(BaseClient):
                     self._session_data["hash"] = self._hash
                 if self._refresh_token:
                     self._session_data["refreshToken"] = self._refresh_token
+
+                # Update other clients with the auth token
+                if hasattr(self, '_update_other_clients'):
+                    self._update_other_clients(self._hash, self._session_data)
 
                 _LOGGER.info("Post-OTP login successful!")
                 _LOGGER.info(

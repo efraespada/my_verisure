@@ -35,7 +35,7 @@ class AlarmCommand(BaseCommand):
             return False
 
     async def _show_status(
-        self, installation_id: Optional[str] = None
+        self, installation_id: Optional[str] = None, interactive: bool = True
     ) -> bool:
         """Show alarm status."""
         print_header("ESTADO DE ALARMA")
@@ -71,6 +71,7 @@ class AlarmCommand(BaseCommand):
         mode: str,
         installation_id: Optional[str] = None,
         confirm: bool = True,
+        interactive: bool = True,
     ) -> bool:
         """Arm the alarm."""
         print_header(f"ARMAR ALARMA - MODO {mode.upper()}")
@@ -127,7 +128,7 @@ class AlarmCommand(BaseCommand):
             return False
 
     async def _disarm(
-        self, installation_id: Optional[str] = None, confirm: bool = True
+        self, installation_id: Optional[str] = None, confirm: bool = True, interactive: bool = True
     ) -> bool:
         """Disarm the alarm."""
         print_header("DESARMAR ALARMA")

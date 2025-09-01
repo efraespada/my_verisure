@@ -18,12 +18,19 @@ import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'core'))
 
-from core.api.client import MyVerisureClient
 from core.api.exceptions import (
     MyVerisureAuthenticationError,
     MyVerisureConnectionError,
     MyVerisureError,
     MyVerisureOTPError,
+)
+from core.dependency_injection.providers import (
+    setup_dependencies,
+    get_auth_use_case,
+    get_session_use_case,
+    get_installation_use_case,
+    get_alarm_use_case,
+    clear_dependencies,
 )
 from .const import CONF_INSTALLATION_ID, CONF_USER, DEFAULT_SCAN_INTERVAL, DOMAIN, LOGGER, CONF_SCAN_INTERVAL
 
@@ -43,10 +50,17 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             STORAGE_DIR, f"my_verisure_{entry.data[CONF_USER]}.json"
         )
         
-        self.client = MyVerisureClient(
-            user=entry.data[CONF_USER],
+        # Setup dependencies with credentials
+        setup_dependencies(
+            username=entry.data[CONF_USER],
             password=entry.data[CONF_PASSWORD],
         )
+        
+        # Get use cases
+        self.auth_use_case = get_auth_use_case()
+        self.session_use_case = get_session_use_case()
+        self.installation_use_case = get_installation_use_case()
+        self.alarm_use_case = get_alarm_use_case()
         
         # Store session file path for later loading
         self.session_file = session_file
@@ -75,17 +89,13 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
     async def async_login(self) -> bool:
         """Login to My Verisure."""
         try:
-            await self.client.connect()
-            
             # Check if we have a valid session
-            if self.client.is_session_valid():
+            if self.session_use_case.is_session_valid():
                 LOGGER.warning("Using existing valid session")
                 # Try to use the session by making a test request
                 try:
                     # Test the session by trying to get installations
-                    LOGGER.warning("Testing session with JWT token: %s", 
-                                "Present" if self.client._hash else "None")
-                    await self.client.get_installations()
+                    await self.installation_use_case.get_installations()
                     LOGGER.warning("Session is valid and working")
                     return True
                 except MyVerisureOTPError:
@@ -98,135 +108,168 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             # If we don't have a valid session, try to refresh it automatically
             LOGGER.warning("No valid session available, attempting automatic refresh...")
             if await self.async_refresh_session():
-                LOGGER.warning("Session refreshed successfully during login")
                 return True
-            else:
-                LOGGER.warning("Automatic session refresh failed - may require OTP")
-                raise ConfigEntryAuthFailed("otp_reauth_required")
             
-        except MyVerisureOTPError as ex:
-            LOGGER.error("OTP authentication required but cannot be handled automatically: %s", ex)
-            # This is a special case - we need to trigger re-authentication
-            raise ConfigEntryAuthFailed("otp_reauth_required") from ex
-        except MyVerisureAuthenticationError as ex:
-            LOGGER.error("Authentication failed for My Verisure: %s", ex)
-            raise ConfigEntryAuthFailed("Authentication failed") from ex
-        except MyVerisureError as ex:
-            LOGGER.error("Could not log in to My Verisure: %s", ex)
+            # If automatic refresh fails, perform a new login
+            LOGGER.warning("Automatic session refresh failed, performing new login...")
+            return await self._perform_new_login()
+            
+        except Exception as e:
+            LOGGER.error("Login failed: %s", e)
             return False
 
     async def async_refresh_session(self) -> bool:
-        """Attempt to refresh the session using stored credentials."""
+        """Try to refresh the session using saved session data."""
         try:
-            LOGGER.warning("Attempting to refresh session with stored credentials...")
-            
-            # Try to connect and authenticate with stored credentials
-            await self.client.connect()
-            
-            # Perform login to get new session tokens
-            LOGGER.warning("Performing login to refresh session...")
-            login_success = await self.client.login()
-            
-            if login_success and self.client.is_session_valid():
-                LOGGER.warning("Session refreshed successfully")
-                # Save the new session
-                if hasattr(self, 'session_file'):
-                    await self.client.save_session(self.session_file)
-                    LOGGER.warning("New session saved to storage")
-                return True
+            # Try to load and validate session
+            if await self.session_use_case.load_session(self.session_file):
+                if self.session_use_case.is_session_valid():
+                    LOGGER.warning("Session refreshed successfully")
+                    return True
+                else:
+                    LOGGER.warning("Loaded session is not valid")
+                    return False
             else:
-                LOGGER.warning("Session refresh failed - login unsuccessful or session not valid")
+                LOGGER.warning("No session file found or failed to load")
                 return False
                 
-        except MyVerisureOTPError as ex:
-            LOGGER.error("OTP required during session refresh: %s", ex)
-            # Cannot refresh automatically if OTP is required
+        except Exception as e:
+            LOGGER.error("Session refresh failed: %s", e)
             return False
-        except MyVerisureAuthenticationError as ex:
-            LOGGER.error("Authentication failed during session refresh: %s", ex)
-            return False
-        except MyVerisureError as ex:
-            LOGGER.error("Error during session refresh: %s", ex)
+
+    async def _perform_new_login(self) -> bool:
+        """Perform a new login."""
+        try:
+            # Get credentials from config entry
+            username = self.config_entry.data[CONF_USER]
+            password = self.config_entry.data[CONF_PASSWORD]
+            
+            # Perform login using auth use case
+            auth_result = await self.auth_use_case.login(username, password)
+            
+            if auth_result.success:
+                # Save session after successful login
+                await self.session_use_case.save_session(self.session_file)
+                LOGGER.warning("New login successful and session saved")
+                return True
+            else:
+                LOGGER.error("Login failed: %s", auth_result.error_message)
+                return False
+                
+        except MyVerisureOTPError:
+            LOGGER.warning("OTP authentication required")
+            # This should be handled by the config flow
+            raise
+        except Exception as e:
+            LOGGER.error("New login failed: %s", e)
             return False
 
     async def _async_update_data(self) -> Dict[str, Any]:
-        """Fetch data from My Verisure."""
+        """Update data via My Verisure API."""
         try:
-            # Check if we can operate without login
-            if not self.can_operate_without_login():
-                LOGGER.warning("Session not valid, attempting to refresh...")
-                
-                # Try to refresh the session automatically
-                if await self.async_refresh_session():
-                    LOGGER.warning("Session refreshed successfully, proceeding with data update")
-                else:
-                    LOGGER.warning("Session refresh failed - triggering re-authentication")
-                    raise ConfigEntryAuthFailed("otp_reauth_required")
-            
-            # Ensure client is connected
-            LOGGER.warning("Checking client connection status...")
-            LOGGER.warning("Client session exists: %s", "Yes" if self.client._session else "No")
-            LOGGER.warning("Client GraphQL client exists: %s", "Yes" if self.client._client else "No")
-            
-            if not self.client._client:
-                LOGGER.warning("Client not connected, connecting now...")
-                await self.client.connect()
-                LOGGER.warning("Client connected successfully")
-            
-            # Get installation services
-            LOGGER.warning("Getting installation services for installation %s", self.installation_id)
-            services_data = await self.client.get_installation_services(self.installation_id or "")
+            # Ensure we're logged in
+            if not await self.async_login():
+                raise UpdateFailed("Failed to login to My Verisure")
 
-            # Get alarm status from services
-            LOGGER.warning("Getting alarm status for installation %s", self.installation_id)
-            alarm_status = await self.client.get_alarm_status(self.installation_id or "", services_data.get("capabilities", ""))
-                        
-            # Print the complete JSON response
-            LOGGER.warning("=== COMPLETE ALARM STATUS JSON ===")
-            LOGGER.warning(json.dumps(alarm_status, indent=2, default=str))
-            LOGGER.warning("==================================")
+            # Get alarm status using alarm use case
+            alarm_status = await self.alarm_use_case.get_alarm_status(self.installation_id)
             
-            # Return the alarm status data
+            # Convert to dictionary format expected by Home Assistant
             return {
-                "alarm_status": alarm_status,
-                "last_updated": int(time.time())
+                "alarm_status": alarm_status.to_dict() if hasattr(alarm_status, 'to_dict') else alarm_status,
+                "last_update": time.time(),
             }
             
-        except MyVerisureOTPError as ex:
-            LOGGER.error("OTP authentication required during update: %s", ex)
-            raise ConfigEntryAuthFailed("otp_reauth_required") from ex
         except MyVerisureAuthenticationError as ex:
-            LOGGER.error("Authentication failed during update: %s", ex)
-            raise ConfigEntryAuthFailed("Authentication failed") from ex
+            LOGGER.error("Authentication error: %s", ex)
+            raise ConfigEntryAuthFailed from ex
         except MyVerisureConnectionError as ex:
-            LOGGER.error("Connection error during update: %s", ex)
-            raise UpdateFailed("Connection error") from ex
+            LOGGER.error("Connection error: %s", ex)
+            raise UpdateFailed(f"Connection error: {ex}") from ex
         except MyVerisureError as ex:
-            LOGGER.error("Error updating data: %s", ex)
-            raise UpdateFailed(f"Update failed: {ex}") from ex
+            LOGGER.error("My Verisure error: %s", ex)
+            raise UpdateFailed(f"My Verisure error: {ex}") from ex
+        except Exception as ex:
+            LOGGER.error("Unexpected error: %s", ex)
+            raise UpdateFailed(f"Unexpected error: {ex}") from ex
 
-    async def async_load_session(self) -> bool:
-        """Load session data asynchronously."""
-        if hasattr(self, 'session_file'):
-            if await self.client.load_session(self.session_file):
-                LOGGER.warning("Session loaded from storage")
-                LOGGER.warning("Client JWT token after loading: %s", 
-                            "Present" if self.client._hash else "None")
-                if self.client._hash:
-                    LOGGER.warning("JWT token length: %d characters", len(self.client._hash))
-                else:
-                    LOGGER.warning("Session loaded but no JWT token found - session may be invalid")
-                return True
-            else:
-                LOGGER.warning("No existing session found")
-                return False
-        return False
+    async def async_arm_away(self) -> bool:
+        """Arm the alarm in away mode."""
+        try:
+            return await self.alarm_use_case.arm_away(self.installation_id)
+        except Exception as e:
+            LOGGER.error("Failed to arm away: %s", e)
+            return False
 
-    def can_operate_without_login(self) -> bool:
-        """Check if the coordinator can operate without requiring login."""
-        return self.client.is_session_valid() and self.client._hash is not None
+    async def async_arm_home(self) -> bool:
+        """Arm the alarm in home mode."""
+        try:
+            return await self.alarm_use_case.arm_home(self.installation_id)
+        except Exception as e:
+            LOGGER.error("Failed to arm home: %s", e)
+            return False
 
-    async def async_shutdown(self) -> None:
-        """Shutdown the coordinator."""
-        if self.client:
-            await self.client.disconnect() 
+    async def async_arm_night(self) -> bool:
+        """Arm the alarm in night mode."""
+        try:
+            return await self.alarm_use_case.arm_night(self.installation_id)
+        except Exception as e:
+            LOGGER.error("Failed to arm night: %s", e)
+            return False
+
+    async def async_disarm(self) -> bool:
+        """Disarm the alarm."""
+        try:
+            return await self.alarm_use_case.disarm(self.installation_id)
+        except Exception as e:
+            LOGGER.error("Failed to disarm: %s", e)
+            return False
+
+    async def async_get_installations(self):
+        """Get user installations."""
+        try:
+            return await self.installation_use_case.get_installations()
+        except Exception as e:
+            LOGGER.error("Failed to get installations: %s", e)
+            return []
+
+    async def async_get_installation_services(self, force_refresh: bool = False):
+        """Get installation services."""
+        try:
+            return await self.installation_use_case.get_installation_services(
+                self.installation_id, force_refresh
+            )
+        except Exception as e:
+            LOGGER.error("Failed to get installation services: %s", e)
+            return None
+
+    def get_cache_info(self):
+        """Get cache information."""
+        try:
+            return self.installation_use_case.get_cache_info()
+        except Exception as e:
+            LOGGER.error("Failed to get cache info: %s", e)
+            return {}
+
+    def clear_cache(self, installation_id: str = None):
+        """Clear installation services cache."""
+        try:
+            self.installation_use_case.clear_cache(installation_id)
+        except Exception as e:
+            LOGGER.error("Failed to clear cache: %s", e)
+
+    def set_cache_ttl(self, ttl_seconds: int):
+        """Set cache TTL."""
+        try:
+            self.installation_use_case.set_cache_ttl(ttl_seconds)
+        except Exception as e:
+            LOGGER.error("Failed to set cache TTL: %s", e)
+
+    async def async_cleanup(self):
+        """Clean up resources."""
+        try:
+            # Clear dependencies
+            clear_dependencies()
+            LOGGER.info("Coordinator cleanup completed")
+        except Exception as e:
+            LOGGER.error("Error during cleanup: %s", e) 

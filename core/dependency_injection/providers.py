@@ -1,9 +1,13 @@
 """Dependency injection providers for My Verisure integration."""
 
 import logging
+from typing import Dict, Any
 
 from .container import register_singleton
-from api.client import MyVerisureClient
+from api.auth_client import AuthClient
+from api.session_client import SessionClient
+from api.installation_client import InstallationClient
+from api.alarm_client import AlarmClient
 from repositories.interfaces.auth_repository import AuthRepository
 from repositories.interfaces.session_repository import SessionRepository
 from repositories.interfaces.installation_repository import (
@@ -40,27 +44,53 @@ def setup_dependencies(username: str, password: str) -> None:
     """Set up all dependencies for the My Verisure integration."""
     _LOGGER.info("Setting up My Verisure dependencies")
 
-    # Create a single shared client instance
-    shared_client = MyVerisureClient(user=username, password=password)
+    # Create specific clients for each domain
+    auth_client = AuthClient(user=username, password=password)
+    session_client = SessionClient(user=username)
+    installation_client = InstallationClient()
+    alarm_client = AlarmClient()
 
-    # Register the shared client as a singleton
-    def get_shared_client():
-        return shared_client
+    # Function to update auth tokens in all clients
+    def update_auth_tokens(hash_token: str, session_data: Dict[str, Any]) -> None:
+        """Update authentication tokens in all clients."""
+        session_client.update_auth_token(hash_token, session_data)
+        installation_client.update_auth_token(hash_token, session_data)
+        alarm_client.update_auth_token(hash_token, session_data)
+        _LOGGER.info("Auth tokens updated in all clients")
 
-    register_singleton(MyVerisureClient, get_shared_client)
+    # Store the update function in the auth client for later use
+    auth_client._update_other_clients = update_auth_tokens
 
-    # Register repositories as singletons, all using the same shared client
+    # Register the specific clients as singletons
+    def get_auth_client():
+        return auth_client
+
+    def get_session_client():
+        return session_client
+
+    def get_installation_client():
+        return installation_client
+
+    def get_alarm_client():
+        return alarm_client
+
+    register_singleton(AuthClient, get_auth_client)
+    register_singleton(SessionClient, get_session_client)
+    register_singleton(InstallationClient, get_installation_client)
+    register_singleton(AlarmClient, get_alarm_client)
+
+    # Register repositories as singletons, each using their specific client
     def create_auth_repository():
-        return AuthRepositoryImpl(shared_client)
+        return AuthRepositoryImpl(auth_client)
 
     def create_session_repository():
-        return SessionRepositoryImpl(shared_client)
+        return SessionRepositoryImpl(session_client)
 
     def create_installation_repository():
-        return InstallationRepositoryImpl(shared_client)
+        return InstallationRepositoryImpl(installation_client)
 
     def create_alarm_repository():
-        return AlarmRepositoryImpl(shared_client)
+        return AlarmRepositoryImpl(alarm_client)
 
     register_singleton(AuthRepository, create_auth_repository)
     register_singleton(SessionRepository, create_session_repository)
@@ -121,11 +151,33 @@ def get_alarm_use_case() -> AlarmUseCase:
     return resolve(AlarmUseCase)
 
 
-def get_client() -> MyVerisureClient:
-    """Get the API client."""
+# Client getters for direct access if needed
+def get_auth_client() -> AuthClient:
+    """Get the authentication client."""
     from .container import resolve
 
-    return resolve(MyVerisureClient)
+    return resolve(AuthClient)
+
+
+def get_session_client() -> SessionClient:
+    """Get the session client."""
+    from .container import resolve
+
+    return resolve(SessionClient)
+
+
+def get_installation_client() -> InstallationClient:
+    """Get the installation client."""
+    from .container import resolve
+
+    return resolve(InstallationClient)
+
+
+def get_alarm_client() -> AlarmClient:
+    """Get the alarm client."""
+    from .container import resolve
+
+    return resolve(AlarmClient)
 
 
 def clear_dependencies() -> None:

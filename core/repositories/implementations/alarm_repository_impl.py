@@ -24,8 +24,16 @@ class AlarmRepositoryImpl(AlarmRepository):
                 "Getting alarm status for installation %s", installation_id
             )
 
+            # Ensure client is connected
+            if not self.client._client:
+                _LOGGER.info("Client not connected, connecting now...")
+                await self.client.connect()
+
             alarm_status_data = await self.client.get_alarm_status(
-                installation_id, capabilities
+                installation_id, 
+                capabilities,
+                hash_token=self.client._hash,
+                session_data=self.client._session_data
             )
 
             # The client returns a processed alarm status with internal/external structure
@@ -90,14 +98,30 @@ class AlarmRepositoryImpl(AlarmRepository):
 
             # Call the appropriate arm method based on request
             if request == "ARM1":
-                result = await self.client.arm_alarm_away(installation_id)
+                result = await self.client.arm_alarm_away(
+                    installation_id,
+                    hash_token=self.client._hash,
+                    session_data=self.client._session_data
+                )
             elif request == "PERI1":
-                result = await self.client.arm_alarm_home(installation_id)
+                result = await self.client.arm_alarm_home(
+                    installation_id,
+                    hash_token=self.client._hash,
+                    session_data=self.client._session_data
+                )
             elif request == "ARMNIGHT1":
-                result = await self.client.arm_alarm_night(installation_id)
+                result = await self.client.arm_alarm_night(
+                    installation_id,
+                    hash_token=self.client._hash,
+                    session_data=self.client._session_data
+                )
             else:
                 result = await self.client.send_alarm_command(
-                    installation_id, request, current_status
+                    installation_id, 
+                    request, 
+                    current_status,
+                    hash_token=self.client._hash,
+                    session_data=self.client._session_data
                 )
 
             if result:
@@ -127,7 +151,11 @@ class AlarmRepositoryImpl(AlarmRepository):
                 installation_id,
             )
 
-            result = await self.client.disarm_alarm(installation_id)
+            result = await self.client.disarm_alarm(
+                installation_id,
+                hash_token=self.client._hash,
+                session_data=self.client._session_data
+            )
 
             if result:
                 return DisarmResult(
@@ -151,7 +179,11 @@ class AlarmRepositoryImpl(AlarmRepository):
             _LOGGER.info(
                 "Arming alarm away for installation %s", installation_id
             )
-            result = await self.client.arm_alarm_away(installation_id)
+            result = await self.client.arm_alarm_away(
+                installation_id,
+                hash_token=self.client._hash,
+                session_data=self.client._session_data
+            )
             return result
         except Exception as e:
             _LOGGER.error("Error arming alarm away: %s", e)
@@ -163,7 +195,11 @@ class AlarmRepositoryImpl(AlarmRepository):
             _LOGGER.info(
                 "Arming alarm home for installation %s", installation_id
             )
-            result = await self.client.arm_alarm_home(installation_id)
+            result = await self.client.arm_alarm_home(
+                installation_id,
+                hash_token=self.client._hash,
+                session_data=self.client._session_data
+            )
             return result
         except Exception as e:
             _LOGGER.error("Error arming alarm home: %s", e)
@@ -175,7 +211,11 @@ class AlarmRepositoryImpl(AlarmRepository):
             _LOGGER.info(
                 "Arming alarm night for installation %s", installation_id
             )
-            result = await self.client.arm_alarm_night(installation_id)
+            result = await self.client.arm_alarm_night(
+                installation_id,
+                hash_token=self.client._hash,
+                session_data=self.client._session_data
+            )
             return result
         except Exception as e:
             _LOGGER.error("Error arming alarm night: %s", e)
@@ -187,7 +227,11 @@ class AlarmRepositoryImpl(AlarmRepository):
             _LOGGER.info(
                 "Disarming alarm for installation %s", installation_id
             )
-            result = await self.client.disarm_alarm(installation_id)
+            result = await self.client.disarm_alarm(
+                installation_id,
+                hash_token=self.client._hash,
+                session_data=self.client._session_data
+            )
             return result
         except Exception as e:
             _LOGGER.error("Error disarming alarm: %s", e)
