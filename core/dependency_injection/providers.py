@@ -40,15 +40,15 @@ from use_cases.implementations.alarm_use_case_impl import AlarmUseCaseImpl
 _LOGGER = logging.getLogger(__name__)
 
 
-def setup_dependencies(username: str, password: str) -> None:
+def setup_dependencies(username: str, password: str, hash_token: str = None, session_data: Dict[str, Any] = None) -> None:
     """Set up all dependencies for the My Verisure integration."""
     _LOGGER.info("Setting up My Verisure dependencies")
 
     # Create specific clients for each domain
     auth_client = AuthClient(user=username, password=password)
-    session_client = SessionClient(user=username)
-    installation_client = InstallationClient()
-    alarm_client = AlarmClient()
+    session_client = SessionClient(user=username, hash_token=hash_token, session_data=session_data)
+    installation_client = InstallationClient(hash_token=hash_token, session_data=session_data)
+    alarm_client = AlarmClient(hash_token=hash_token, session_data=session_data)
 
     # Function to update auth tokens in all clients
     def update_auth_tokens(hash_token: str, session_data: Dict[str, Any]) -> None:

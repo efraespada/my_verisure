@@ -43,6 +43,9 @@ class SessionManager:
         self.session_file = self._get_session_file_path()
         self.username = None
         self.password = None
+        self.hash_token = None
+        self.refresh_token = None
+        self.session_timestamp = None
 
         # Try to load existing session
         self._load_session()
@@ -74,11 +77,16 @@ class SessionManager:
                 self.current_installation = session_data.get(
                     "current_installation"
                 )
+                self.hash_token = session_data.get("hash_token")
+                self.refresh_token = session_data.get("refresh_token")
+                self.session_timestamp = session_data.get("session_timestamp")
 
-                # Check if we have credentials
-                if self.username and self.password:
-                    logger.info("Session loaded from file")
+                # Check if we have credentials and tokens
+                if self.username and self.password and self.hash_token:
+                    logger.info("Session loaded from file with tokens")
                     # We'll verify the session is still valid when needed
+                elif self.username and self.password:
+                    logger.info("Session loaded from file (credentials only)")
                 else:
                     logger.info("No valid session found in file")
 
@@ -89,18 +97,22 @@ class SessionManager:
     def _save_session(self) -> None:
         """Save session to file."""
         try:
+            import time
             session_data = {
                 "username": self.username,
                 "password": self.password,
                 "is_authenticated": self.is_authenticated,
                 "current_installation": self.current_installation,
-                "timestamp": asyncio.get_event_loop().time(),
+                "hash_token": self.hash_token,
+                "refresh_token": self.refresh_token,
+                "session_timestamp": self.session_timestamp,
+                "timestamp": time.time(),
             }
 
             with open(self.session_file, "w") as f:
                 json.dump(session_data, f, indent=2)
 
-            logger.info("Session saved to file")
+            logger.info("Session saved to file with tokens")
 
         except Exception as e:
             logger.error(f"Could not save session: {e}")
@@ -114,9 +126,86 @@ class SessionManager:
         except Exception as e:
             logger.warning(f"Could not clear session file: {e}")
 
+    def _is_token_valid(self) -> bool:
+        """Check if the stored hash token is still valid."""
+        if not self.hash_token:
+            logger.debug("No hash token available")
+            return False
+
+        if not self.session_timestamp:
+            logger.debug("No session timestamp available")
+            return False
+
+        # Check if token is not too old (6 minutes = 360 seconds)
+        import time
+        current_time = time.time()
+        token_age = current_time - self.session_timestamp
+
+        if token_age > 360:  # 6 minutes
+            logger.info(f"Token expired (age: {token_age:.1f} seconds)")
+            return False
+
+        logger.info(f"Token appears valid (age: {token_age:.1f} seconds)")
+        return True
+
+    def _update_session_tokens(self, auth_result) -> None:
+        """Update session tokens from auth result."""
+        if auth_result and hasattr(auth_result, 'hash'):
+            self.hash_token = auth_result.hash
+            self.refresh_token = getattr(auth_result, 'refresh_token', None)
+            import time
+            self.session_timestamp = time.time()
+            logger.info("Session tokens updated")
+        else:
+            logger.warning("No valid auth result to update tokens")
+
     async def ensure_authenticated(self, interactive: bool = True) -> bool:
         """Ensure the user is authenticated, performing login if necessary."""
-        # If we have credentials, try to login with them
+        
+        # First, check if we have a valid token
+        if self._is_token_valid():
+            logger.info("Valid token found, attempting to use existing session")
+            try:
+                # Setup dependencies with saved credentials and existing tokens
+                session_data = {
+                    "user": self.username,
+                    "lang": "ES",
+                    "legals": True,
+                    "changePassword": False,
+                    "needDeviceAuthorization": None,
+                    "login_time": self.session_timestamp,
+                }
+                setup_dependencies(
+                    username=self.username, 
+                    password=self.password,
+                    hash_token=self.hash_token,
+                    session_data=session_data
+                )
+
+                # Get use cases
+                self.auth_use_case = get_auth_use_case()
+                self.installation_use_case = get_installation_use_case()
+
+                # Try to use existing token (we'll test it by making a simple API call)
+                try:
+                    # Test the token by trying to get installations
+                    installations = await self.installation_use_case.get_installations()
+                    if installations:
+                        self.is_authenticated = True
+                        logger.info("Existing token is valid, session restored")
+                        return True
+                    else:
+                        logger.warning("Token validation failed - no installations returned")
+                        # Fall through to login
+                except Exception as e:
+                    logger.warning(f"Token validation failed: {e}")
+                    # Fall through to login
+
+            except Exception as e:
+                logger.warning(f"Error setting up dependencies for token validation: {e}")
+                clear_dependencies()
+
+        # If we have credentials but no valid token, try to login
         if self.username and self.password:
             try:
                 # Setup dependencies with saved credentials
@@ -136,6 +225,8 @@ class SessionManager:
 
                     if auth_result.success:
                         self.is_authenticated = True
+                        self._update_session_tokens(auth_result)
+                        self._save_session()
                         logger.info("Login successful with saved credentials")
                         return True
                     else:
@@ -204,6 +295,7 @@ class SessionManager:
                         "¡Autenticación completada sin OTP requerido!"
                     )
                     self.is_authenticated = True
+                    self._update_session_tokens(auth_result)
                     self._save_session()
                     return True
                 else:
@@ -264,7 +356,14 @@ class SessionManager:
                 print_info("Ya puedes usar la API de My Verisure")
 
                 self.is_authenticated = True
-                self._save_session()
+                # Get the final auth result after OTP verification
+                try:
+                    # Try to get the auth result from the use case
+                    if hasattr(self.auth_use_case, '_auth_result'):
+                        self._update_session_tokens(self.auth_use_case._auth_result)
+                    self._save_session()
+                except Exception as e:
+                    logger.warning(f"Could not update session tokens: {e}")
                 return True
 
         except MyVerisureOTPError as e:
@@ -364,6 +463,9 @@ class SessionManager:
         self.installation_use_case = None
         self.username = None
         self.password = None
+        self.hash_token = None
+        self.refresh_token = None
+        self.session_timestamp = None
         print_success("Sesión cerrada y limpiada")
 
 

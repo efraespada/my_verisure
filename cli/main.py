@@ -206,8 +206,9 @@ async def main():
             parser.print_help()
             return 0
 
-        # Cleanup
-        await session_manager.cleanup()
+        # Cleanup (skip for auth status since it doesn't initialize dependencies)
+        if not (args.command == "auth" and args.action == "status"):
+            await session_manager.cleanup()
 
         return 0 if success else 1
 
