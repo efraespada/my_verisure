@@ -328,6 +328,9 @@ class TestInstallationRepositoryImpl:
         self.mock_client._hash = "test_hash"
         self.mock_client._session_data = {}
         self.repository = InstallationRepositoryImpl(self.mock_client)
+        
+        # Clear any existing cache to ensure clean test state
+        self.repository._clear_cache()
 
     @pytest.mark.asyncio
     async def test_get_installations_success(self):
@@ -350,6 +353,11 @@ class TestInstallationRepositoryImpl:
                 phone="+34600000000",
             )
         ]
+
+        # Setup client hash and session data
+        self.mock_client._hash = "test_hash"
+        self.mock_client._session_data = {"session": "data"}
+        self.mock_client._client = True  # Mock connected client
 
         self.mock_client.get_installations = AsyncMock(
             return_value=installations_data
@@ -513,7 +521,7 @@ class TestInstallationRepositoryImpl:
         self.mock_client.get_installation_services.assert_called_once()
 
         # Set short TTL and wait
-        self.repository.set_cache_ttl(1)  # 1 second TTL
+        self.repository._set_cache_ttl(1)  # 1 second TTL
         time.sleep(1.1)  # Wait for cache to expire
 
         # Execute second call
@@ -523,8 +531,8 @@ class TestInstallationRepositoryImpl:
         # Verify API was called again due to TTL expiration
         self.mock_client.get_installation_services.assert_called_once()
 
-    def test_get_cache_info(self):
-        """Test getting cache information."""
+    def test_get_cache_info_internal(self):
+        """Test getting cache information (internal method)."""
         # Setup
         cache_info = {
             "cache_size": 2,
@@ -534,7 +542,7 @@ class TestInstallationRepositoryImpl:
         self.mock_client.get_cache_info.return_value = cache_info
 
         # Execute
-        result = self.repository.get_cache_info()
+        result = self.repository._get_cache_info()
 
         # Verify
         self.mock_client.get_cache_info.assert_called_once()
@@ -542,26 +550,27 @@ class TestInstallationRepositoryImpl:
         assert "installations_cache" in result
         assert "services_cache" in result
 
-    def test_clear_cache(self):
-        """Test cache clearing."""
+    def test_clear_cache_internal(self):
+        """Test cache clearing (internal method)."""
         # Arrange
         installation_id = "12345"
 
         # Act
-        self.repository.clear_cache(installation_id)
+        self.repository._clear_cache(installation_id)
 
         # Assert
-        self.mock_client.clear_installation_services_cache.assert_called_once_with(
-            installation_id
-        )
+        # The method is called twice: once in setup (with None) and once in test (with installation_id)
+        assert self.mock_client.clear_installation_services_cache.call_count == 2
+        self.mock_client.clear_installation_services_cache.assert_any_call(None)  # From setup
+        self.mock_client.clear_installation_services_cache.assert_any_call(installation_id)  # From test
 
-    def test_set_cache_ttl(self):
-        """Test cache TTL setting."""
+    def test_set_cache_ttl_internal(self):
+        """Test cache TTL setting (internal method)."""
         # Arrange
         ttl_seconds = 300
 
         # Act
-        self.repository.set_cache_ttl(ttl_seconds)
+        self.repository._set_cache_ttl(ttl_seconds)
 
         # Assert
         self.mock_client.set_cache_ttl.assert_called_once_with(ttl_seconds)

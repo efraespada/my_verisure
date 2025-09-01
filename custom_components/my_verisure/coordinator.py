@@ -243,27 +243,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             LOGGER.error("Failed to get installation services: %s", e)
             return None
 
-    def get_cache_info(self):
-        """Get cache information."""
-        try:
-            return self.installation_use_case.get_cache_info()
-        except Exception as e:
-            LOGGER.error("Failed to get cache info: %s", e)
-            return {}
 
-    def clear_cache(self, installation_id: str = None):
-        """Clear installation services cache."""
-        try:
-            self.installation_use_case.clear_cache(installation_id)
-        except Exception as e:
-            LOGGER.error("Failed to clear cache: %s", e)
-
-    def set_cache_ttl(self, ttl_seconds: int):
-        """Set cache TTL."""
-        try:
-            self.installation_use_case.set_cache_ttl(ttl_seconds)
-        except Exception as e:
-            LOGGER.error("Failed to set cache TTL: %s", e)
 
     async def async_cleanup(self):
         """Clean up resources."""

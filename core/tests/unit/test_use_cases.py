@@ -376,53 +376,7 @@ class TestInstallationUseCaseImpl:
         self.mock_installation_repository.get_installation_services.\
             assert_called_once_with(installation_id, True)
 
-    def test_get_cache_info(self):
-        """Test cache info retrieval."""
-        # Arrange
-        cache_info = {
-            "cache_size": 1,
-            "ttl_seconds": 540,
-            "cached_installations": ["12345"],
-        }
 
-        self.mock_installation_repository.get_cache_info.return_value = (
-            cache_info
-        )
-
-        # Act
-        result = self.use_case.get_cache_info()
-
-        # Assert
-        # Check that the method was called and returned some data
-        assert result is not None
-        assert isinstance(result, dict)
-        self.mock_installation_repository.get_cache_info.assert_called_once()
-
-    def test_clear_cache(self):
-        """Test cache clearing."""
-        # Arrange
-        installation_id = "12345"
-
-        # Act
-        self.use_case.clear_cache(installation_id)
-
-        # Assert
-        self.mock_installation_repository.clear_cache.assert_called_once_with(
-            installation_id
-        )
-
-    def test_set_cache_ttl(self):
-        """Test cache TTL setting."""
-        # Arrange
-        ttl_seconds = 300
-
-        # Act
-        self.use_case.set_cache_ttl(ttl_seconds)
-
-        # Assert
-        self.mock_installation_repository.set_cache_ttl.assert_called_once_with(
-            ttl_seconds
-        )
 
 
 class TestAlarmUseCaseImpl:

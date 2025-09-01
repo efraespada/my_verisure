@@ -334,10 +334,4 @@ class ClientCompatibilityWrapper:
         """Verify OTP."""
         return await self._auth_use_case.verify_otp(otp_code)
     
-    def clear_installation_cache(self, installation_id: Optional[str] = None) -> None:
-        """Clear installation info cache."""
-        self._alarm_use_case.clear_installation_cache(installation_id)
-    
-    def set_installation_cache_ttl(self, ttl_seconds: int) -> None:
-        """Set installation cache TTL."""
-        self._alarm_use_case.set_cache_ttl(ttl_seconds)
+

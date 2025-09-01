@@ -429,8 +429,8 @@ class InstallationRepositoryImpl(InstallationRepository):
             _LOGGER.error("Error getting installation services: %s", e)
             raise
 
-    def get_cache_info(self) -> Dict[str, Any]:
-        """Get cache information."""
+    def _get_cache_info(self) -> Dict[str, Any]:
+        """Get cache information (internal method)."""
         try:
             client_cache_info = self.client.get_cache_info()
             
@@ -481,8 +481,8 @@ class InstallationRepositoryImpl(InstallationRepository):
             _LOGGER.error("Error getting cache info: %s", e)
             return {}
 
-    def clear_cache(self, installation_id: Optional[str] = None) -> None:
-        """Clear installation services cache."""
+    def _clear_cache(self, installation_id: Optional[str] = None) -> None:
+        """Clear installation services cache (internal method)."""
         try:
             # Clear client cache
             self.client.clear_installation_services_cache(installation_id)
@@ -530,8 +530,8 @@ class InstallationRepositoryImpl(InstallationRepository):
         except Exception as e:
             _LOGGER.error("Error clearing cache: %s", e)
 
-    def set_cache_ttl(self, ttl_seconds: int) -> None:
-        """Set cache TTL."""
+    def _set_cache_ttl(self, ttl_seconds: int) -> None:
+        """Set cache TTL (internal method)."""
         try:
             # Set client cache TTL
             self.client.set_cache_ttl(ttl_seconds)
