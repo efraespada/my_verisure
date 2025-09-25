@@ -6,11 +6,9 @@ import logging
 import os
 import sys
 
-# Add custom_components to path
-components_path = os.path.join(os.path.dirname(__file__), "..", "..", "custom_components")
-sys.path.insert(0, os.path.abspath(components_path))
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "custom_components", "my_verisure"))
 
-from my_verisure.core.dependency_injection.providers import (
+from core.dependency_injection.providers import (
     setup_dependencies,
     get_auth_use_case,
     get_installation_use_case,
@@ -20,7 +18,7 @@ from my_verisure.core.dependency_injection.providers import (
     get_alarm_client,
     clear_dependencies,
 )
-from my_verisure.core.api.exceptions import (
+from core.api.exceptions import (
     MyVerisureAuthenticationError,
     MyVerisureConnectionError,
     MyVerisureError,
@@ -405,46 +403,42 @@ class SessionManager:
 
     async def cleanup(self):
         """Clean up resources."""
+        # Disconnect all specific clients if dependencies are available
         try:
-            # Disconnect all specific clients
-            try:
-                auth_client = get_auth_client()
-                if auth_client:
-                    print_info("Desconectando cliente de autenticación...")
-                    await auth_client.disconnect()
-                    print_success("Cliente de autenticación desconectado")
-            except Exception as e:
-                print_info(f"No se pudo desconectar el cliente de autenticación: {e}")
-
-            try:
-                session_client = get_session_client()
-                if session_client:
-                    print_info("Desconectando cliente de sesión...")
-                    await session_client.disconnect()
-                    print_success("Cliente de sesión desconectado")
-            except Exception as e:
-                print_info(f"No se pudo desconectar el cliente de sesión: {e}")
-
-            try:
-                installation_client = get_installation_client()
-                if installation_client:
-                    print_info("Desconectando cliente de instalación...")
-                    await installation_client.disconnect()
-                    print_success("Cliente de instalación desconectado")
-            except Exception as e:
-                print_info(f"No se pudo desconectar el cliente de instalación: {e}")
-
-            try:
-                alarm_client = get_alarm_client()
-                if alarm_client:
-                    print_info("Desconectando cliente de alarma...")
-                    await alarm_client.disconnect()
-                    print_success("Cliente de alarma desconectado")
-            except Exception as e:
-                print_info(f"No se pudo desconectar el cliente de alarma: {e}")
-
+            auth_client = get_auth_client()
+            if auth_client:
+                print_info("Desconectando cliente de autenticación...")
+                await auth_client.disconnect()
+                print_success("Cliente de autenticación desconectado")
         except Exception as e:
-            print_info(f"Error obteniendo clientes: {e}")
+            print_info(f"No se pudo desconectar el cliente de autenticación: {e}")
+
+        try:
+            session_client = get_session_client()
+            if session_client:
+                print_info("Desconectando cliente de sesión...")
+                await session_client.disconnect()
+                print_success("Cliente de sesión desconectado")
+        except Exception as e:
+            print_info(f"No se pudo desconectar el cliente de sesión: {e}")
+
+        try:
+            installation_client = get_installation_client()
+            if installation_client:
+                print_info("Desconectando cliente de instalación...")
+                await installation_client.disconnect()
+                print_success("Cliente de instalación desconectado")
+        except Exception as e:
+            print_info(f"No se pudo desconectar el cliente de instalación: {e}")
+
+        try:
+            alarm_client = get_alarm_client()
+            if alarm_client:
+                print_info("Desconectando cliente de alarma...")
+                await alarm_client.disconnect()
+                print_success("Cliente de alarma desconectado")
+        except Exception as e:
+            print_info(f"No se pudo desconectar el cliente de alarma: {e}")
 
         # Clear dependencies
         print_info("Limpiando dependencias...")
