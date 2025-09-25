@@ -2,8 +2,8 @@
 
 from abc import ABC, abstractmethod
 
-from core.api.models.domain.auth import Auth, AuthResult
-from core.api.models.domain.session import DeviceIdentifiers
+from ...api.models.domain.auth import Auth, AuthResult
+from ...api.models.domain.session import DeviceIdentifiers
 
 
 class AuthRepository(ABC):

@@ -6,11 +6,10 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Optional
 
-# Add custom_components to path
-components_path = os.path.join(os.path.dirname(__file__), "..", "..", "custom_components")
-sys.path.insert(0, os.path.abspath(components_path))
 
-from my_verisure.core.dependency_injection.providers import (
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "custom_components", "my_verisure"))
+
+from core.dependency_injection.providers import (
     get_auth_use_case,
     get_alarm_use_case,
     get_installation_use_case,

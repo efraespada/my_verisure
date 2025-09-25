@@ -3,9 +3,9 @@
 import logging
 from typing import Optional
 
-from core.api.models.domain.session import SessionData
-from core.repositories.interfaces.session_repository import SessionRepository
-from core.use_cases.interfaces.session_use_case import SessionUseCase
+from ...api.models.domain.session import SessionData
+from ...repositories.interfaces.session_repository import SessionRepository
+from ..interfaces.session_use_case import SessionUseCase
 
 _LOGGER = logging.getLogger(__name__)
 

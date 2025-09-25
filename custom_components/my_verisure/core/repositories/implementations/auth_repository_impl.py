@@ -3,11 +3,11 @@
 import logging
 from typing import List, Dict, Any
 
-from core.api.models.domain.auth import Auth, AuthResult
-from core.api.models.domain.session import DeviceIdentifiers
-from core.api.models.dto.auth_dto import AuthDTO
-from core.repositories.interfaces.auth_repository import AuthRepository
-from core.api.exceptions import (
+from ...api.models.domain.auth import Auth, AuthResult
+from ...api.models.domain.session import DeviceIdentifiers
+from ...api.models.dto.auth_dto import AuthDTO
+from ..interfaces.auth_repository import AuthRepository
+from ...api.exceptions import (
     MyVerisureAuthenticationError,
     MyVerisureOTPError,
     MyVerisureDeviceAuthorizationError,

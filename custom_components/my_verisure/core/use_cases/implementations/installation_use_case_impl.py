@@ -3,11 +3,11 @@
 import logging
 from typing import List
 
-from core.api.models.domain.installation import Installation, InstallationServices
-from core.repositories.interfaces.installation_repository import (
+from ...api.models.domain.installation import Installation, InstallationServices
+from ...repositories.interfaces.installation_repository import (
     InstallationRepository,
 )
-from core.use_cases.interfaces.installation_use_case import InstallationUseCase
+from ..interfaces.installation_use_case import InstallationUseCase
 
 _LOGGER = logging.getLogger(__name__)
 

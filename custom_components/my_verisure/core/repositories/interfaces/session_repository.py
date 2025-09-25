@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from typing import Optional
 
-from core.api.models.domain.session import SessionData
+from ...api.models.domain.session import SessionData
 
 
 class SessionRepository(ABC):

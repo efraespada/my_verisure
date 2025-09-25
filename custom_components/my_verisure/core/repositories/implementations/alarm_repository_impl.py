@@ -2,8 +2,8 @@
 
 import logging
 
-from core.api.models.domain.alarm import AlarmStatus, ArmResult, DisarmResult
-from core.repositories.interfaces.alarm_repository import AlarmRepository
+from ...api.models.domain.alarm import AlarmStatus, ArmResult, DisarmResult
+from ..interfaces.alarm_repository import AlarmRepository
 
 _LOGGER = logging.getLogger(__name__)
 

@@ -4,8 +4,8 @@ import logging
 import time
 from typing import Optional
 
-from core.api.models.domain.session import SessionData
-from core.repositories.interfaces.session_repository import SessionRepository
+from ...api.models.domain.session import SessionData
+from ..interfaces.session_repository import SessionRepository
 
 _LOGGER = logging.getLogger(__name__)
 

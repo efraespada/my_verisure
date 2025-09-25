@@ -4,38 +4,36 @@ import logging
 from typing import Dict, Any
 
 from .container import register_singleton
-from core.api.auth_client import AuthClient
-from core.api.session_client import SessionClient
-from core.api.installation_client import InstallationClient
-from core.api.alarm_client import AlarmClient
-from core.repositories.interfaces.auth_repository import AuthRepository
-from core.repositories.interfaces.session_repository import SessionRepository
-from core.repositories.interfaces.installation_repository import (
-    InstallationRepository,
-)
-from core.repositories.interfaces.alarm_repository import AlarmRepository
-from core.repositories.implementations.auth_repository_impl import (
+from ..api.auth_client import AuthClient
+from ..api.session_client import SessionClient
+from ..api.installation_client import InstallationClient
+from ..api.alarm_client import AlarmClient
+from ..repositories.interfaces.auth_repository import AuthRepository
+from ..repositories.interfaces.session_repository import SessionRepository
+from ..repositories.interfaces.installation_repository import InstallationRepository
+from ..repositories.interfaces.alarm_repository import AlarmRepository
+from ..repositories.implementations.auth_repository_impl import (
     AuthRepositoryImpl,
 )
-from core.repositories.implementations.session_repository_impl import (
+from ..repositories.implementations.session_repository_impl import (
     SessionRepositoryImpl,
 )
-from core.repositories.implementations.installation_repository_impl import (
+from ..repositories.implementations.installation_repository_impl import (
     InstallationRepositoryImpl,
 )
-from core.repositories.implementations.alarm_repository_impl import (
+from ..repositories.implementations.alarm_repository_impl import (
     AlarmRepositoryImpl,
 )
-from core.use_cases.interfaces.auth_use_case import AuthUseCase
-from core.use_cases.interfaces.session_use_case import SessionUseCase
-from core.use_cases.interfaces.installation_use_case import InstallationUseCase
-from core.use_cases.interfaces.alarm_use_case import AlarmUseCase
-from core.use_cases.implementations.auth_use_case_impl import AuthUseCaseImpl
-from core.use_cases.implementations.session_use_case_impl import SessionUseCaseImpl
-from core.use_cases.implementations.installation_use_case_impl import (
+from ..use_cases.interfaces.auth_use_case import AuthUseCase
+from ..use_cases.interfaces.session_use_case import SessionUseCase
+from ..use_cases.interfaces.installation_use_case import InstallationUseCase
+from ..use_cases.interfaces.alarm_use_case import AlarmUseCase
+from ..use_cases.implementations.auth_use_case_impl import AuthUseCaseImpl
+from ..use_cases.implementations.session_use_case_impl import SessionUseCaseImpl
+from ..use_cases.implementations.installation_use_case_impl import (
     InstallationUseCaseImpl,
 )
-from core.use_cases.implementations.alarm_use_case_impl import AlarmUseCaseImpl
+from ..use_cases.implementations.alarm_use_case_impl import AlarmUseCaseImpl
 
 _LOGGER = logging.getLogger(__name__)
 

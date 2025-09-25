@@ -6,14 +6,12 @@ import os
 import time
 from typing import List, Dict, Any, Optional
 
-from core.api.models.domain.installation import Installation, InstallationServices
-from core.api.models.dto.installation_dto import (
+from ...api.models.domain.installation import Installation, InstallationServices
+from ...api.models.dto.installation_dto import (
     InstallationDTO,
     InstallationServicesDTO,
 )
-from core.repositories.interfaces.installation_repository import (
-    InstallationRepository,
-)
+from ..interfaces.installation_repository import InstallationRepository
 
 _LOGGER = logging.getLogger(__name__)
 

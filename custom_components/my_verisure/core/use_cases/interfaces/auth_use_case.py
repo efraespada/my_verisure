@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from typing import List
 
-from core.api.models.domain.auth import AuthResult
+from ...api.models.domain.auth import AuthResult
 
 
 class AuthUseCase(ABC):

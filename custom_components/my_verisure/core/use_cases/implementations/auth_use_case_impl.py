@@ -3,11 +3,11 @@
 import logging
 from typing import List
 
-from core.api.models.domain.auth import Auth, AuthResult
-from core.api.models.domain.session import DeviceIdentifiers
-from core.repositories.interfaces.auth_repository import AuthRepository
-from core.use_cases.interfaces.auth_use_case import AuthUseCase
-from core.api.exceptions import MyVerisureOTPError
+from ...api.models.domain.auth import Auth, AuthResult
+from ...api.models.domain.session import DeviceIdentifiers
+from ...repositories.interfaces.auth_repository import AuthRepository
+from ..interfaces.auth_use_case import AuthUseCase
+from ...api.exceptions import MyVerisureOTPError
 
 _LOGGER = logging.getLogger(__name__)
 

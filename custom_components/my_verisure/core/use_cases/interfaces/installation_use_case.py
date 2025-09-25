@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from typing import List
 
-from core.api.models.domain.installation import Installation, InstallationServices
+from ...api.models.domain.installation import Installation, InstallationServices
 
 
 class InstallationUseCase(ABC):

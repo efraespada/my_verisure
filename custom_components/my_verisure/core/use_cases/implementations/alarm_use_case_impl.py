@@ -2,12 +2,12 @@
 
 import logging
 
-from core.api.models.domain.alarm import AlarmStatus
-from core.repositories.interfaces.alarm_repository import AlarmRepository
-from core.repositories.interfaces.installation_repository import (
+from ...api.models.domain.alarm import AlarmStatus
+from ...repositories.interfaces.alarm_repository import AlarmRepository
+from ...repositories.interfaces.installation_repository import (
     InstallationRepository,
 )
-from core.use_cases.interfaces.alarm_use_case import AlarmUseCase
+from ..interfaces.alarm_use_case import AlarmUseCase
 
 _LOGGER = logging.getLogger(__name__)
 
