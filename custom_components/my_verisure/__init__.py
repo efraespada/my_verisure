@@ -5,7 +5,9 @@ __version__ = "1.0.0"
 # Import from core
 import sys
 import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'core'))
+# Add the my_verisure directory to the path so we can import core
+my_verisure_path = os.path.dirname(__file__)
+sys.path.insert(0, my_verisure_path)
 
 # Import specific modules as needed
 # Note: These imports are used by the integration

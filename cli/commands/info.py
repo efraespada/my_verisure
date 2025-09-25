@@ -88,13 +88,11 @@ class InfoCommand(BaseCommand):
                 f"Obteniendo servicios para instalación: {installation_id}"
             )
 
-            services_data = (
-                await self.installation_use_case.get_installation_services(
-                    installation_id
-                )
+            services_data = await self.installation_use_case.get_installation_services(
+                installation_id
             )
 
-            if services_data.success:
+            if services_data.services and len(services_data.services) > 0:
                 print_services_info(services_data)
                 return True
             else:

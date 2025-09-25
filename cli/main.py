@@ -7,8 +7,9 @@ import logging
 import sys
 import os
 
-# Add core to path
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "core"))
+# Add custom_components to path
+components_path = os.path.join(os.path.dirname(__file__), "..", "custom_components")
+sys.path.insert(0, os.path.abspath(components_path))
 
 from .commands.auth import AuthCommand
 from .commands.info import InfoCommand

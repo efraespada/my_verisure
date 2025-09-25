@@ -6,10 +6,11 @@ import logging
 import os
 import sys
 
-# Add core to path
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "core"))
+# Add custom_components to path
+components_path = os.path.join(os.path.dirname(__file__), "..", "..", "custom_components")
+sys.path.insert(0, os.path.abspath(components_path))
 
-from core.dependency_injection.providers import (
+from my_verisure.core.dependency_injection.providers import (
     setup_dependencies,
     get_auth_use_case,
     get_installation_use_case,
@@ -19,7 +20,7 @@ from core.dependency_injection.providers import (
     get_alarm_client,
     clear_dependencies,
 )
-from core.api.exceptions import (
+from my_verisure.core.api.exceptions import (
     MyVerisureAuthenticationError,
     MyVerisureConnectionError,
     MyVerisureError,
