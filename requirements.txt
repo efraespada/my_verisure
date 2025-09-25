@@ -2,6 +2,7 @@
 aiohttp>=3.8.0
 gql[requests]>=3.4.0
 voluptuous>=0.13.0
+injector>=0.21.0
 
 # Development dependencies
 pytest>=8.4.0
