@@ -43,7 +43,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         for entry_id, coordinator in hass.data[DOMAIN].items():
             if coordinator.config_entry.data.get("installation_id") == installation_id:
                 try:
-                    success = await coordinator.client.arm_alarm_away(installation_id)
+                    success = await coordinator.async_arm_away()
                     if success:
                         LOGGER.info("Alarm armed away successfully via service")
                     else:
@@ -62,7 +62,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         for entry_id, coordinator in hass.data[DOMAIN].items():
             if coordinator.config_entry.data.get("installation_id") == installation_id:
                 try:
-                    success = await coordinator.client.arm_alarm_home(installation_id)
+                    success = await coordinator.async_arm_home()
                     if success:
                         LOGGER.info("Alarm armed home successfully via service")
                     else:
@@ -81,7 +81,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         for entry_id, coordinator in hass.data[DOMAIN].items():
             if coordinator.config_entry.data.get("installation_id") == installation_id:
                 try:
-                    success = await coordinator.client.arm_alarm_night(installation_id)
+                    success = await coordinator.async_arm_night()
                     if success:
                         LOGGER.info("Alarm armed night successfully via service")
                     else:
@@ -101,7 +101,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         for entry_id, coordinator in hass.data[DOMAIN].items():
             if coordinator.config_entry.data.get("installation_id") == installation_id:
                 try:
-                    success = await coordinator.client.disarm_alarm(installation_id)
+                    success = await coordinator.async_disarm()
                     if success:
                         LOGGER.info("Alarm disarmed successfully via service")
                     else:

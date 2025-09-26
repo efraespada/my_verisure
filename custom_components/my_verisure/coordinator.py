@@ -245,6 +245,50 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
 
 
 
+    def has_valid_session(self) -> bool:
+        """Check if we have a valid session."""
+        try:
+            return self.session_use_case.is_session_valid()
+        except Exception:
+            return False
+
+    def get_session_hash(self) -> str | None:
+        """Get the current session hash token."""
+        try:
+            # This is a bit of a hack, but we need to access the session data
+            # In a real implementation, we'd have a proper getter method
+            return getattr(self.session_use_case, '_hash_token', None)
+        except Exception:
+            return None
+
+    def can_operate_without_login(self) -> bool:
+        """Check if the coordinator can operate without requiring login."""
+        return self.has_valid_session()
+
+    async def async_load_session(self) -> bool:
+        """Load session data asynchronously."""
+        try:
+            if hasattr(self, 'session_file'):
+                return await self.session_use_case.load_session(self.session_file)
+            return False
+        except Exception as e:
+            LOGGER.error("Error loading session: %s", e)
+            return False
+
+    async def async_config_entry_first_refresh(self) -> None:
+        """Perform the first refresh of the coordinator."""
+        try:
+            await self.async_request_refresh()
+        except Exception as e:
+            LOGGER.error("Error during first refresh: %s", e)
+
+    async def async_request_refresh(self) -> None:
+        """Request a refresh of the coordinator data."""
+        try:
+            await self._async_update_data()
+        except Exception as e:
+            LOGGER.error("Error during refresh: %s", e)
+
     async def async_cleanup(self):
         """Clean up resources."""
         try:
