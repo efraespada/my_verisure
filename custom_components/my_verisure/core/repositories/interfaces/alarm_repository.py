@@ -21,6 +21,7 @@ class AlarmRepository(ABC):
         installation_id: str,
         request: str,
         panel: str,
+        capabilities: str,
         current_status: str = "E",
     ) -> ArmResult:
         """Arm the alarm panel."""
@@ -28,7 +29,7 @@ class AlarmRepository(ABC):
 
     @abstractmethod
     async def disarm_panel(
-        self, installation_id: str, panel: str
+        self, installation_id: str, panel: str, capabilities: str
     ) -> DisarmResult:
         """Disarm the alarm panel."""
         pass

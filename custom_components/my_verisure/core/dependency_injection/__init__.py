@@ -5,6 +5,7 @@ from .module import MyVerisureModule
 from .providers import (
     setup_dependencies,
     clear_dependencies,
+    update_auth_tokens,
     get_auth_use_case,
     get_session_use_case,
     get_installation_use_case,
@@ -17,12 +18,13 @@ from .providers import (
 
 __all__ = [
     "get_injector",
-    "setup_injector", 
+    "setup_injector",
     "get_dependency",
     "clear_injector",
     "MyVerisureModule",
     "setup_dependencies",
     "clear_dependencies",
+    "update_auth_tokens",
     "get_auth_use_case",
     "get_session_use_case",
     "get_installation_use_case",

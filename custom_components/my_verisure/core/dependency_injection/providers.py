@@ -76,6 +76,31 @@ def get_alarm_client() -> AlarmClient:
     return get_dependency(AlarmClient)
 
 
+def update_auth_tokens(hash_token: str, session_data: Dict[str, Any]) -> None:
+    """Update authentication tokens for all existing clients."""
+    try:
+        # Get all clients and update their tokens
+        auth_client = get_auth_client()
+        if auth_client:
+            auth_client.update_auth_token(hash_token, session_data)
+        
+        session_client = get_session_client()
+        if session_client:
+            session_client.update_auth_token(hash_token, session_data)
+        
+        installation_client = get_installation_client()
+        if installation_client:
+            installation_client.update_auth_token(hash_token, session_data)
+        
+        alarm_client = get_alarm_client()
+        if alarm_client:
+            alarm_client.update_auth_token(hash_token, session_data)
+        
+        logger.info("Authentication tokens updated for all clients")
+    except Exception as e:
+        logger.warning(f"Could not update auth tokens: {e}")
+
+
 def clear_dependencies() -> None:
     """Clear all registered dependencies."""
     clear_injector()

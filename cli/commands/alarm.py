@@ -144,8 +144,8 @@ class AlarmCommand(BaseCommand):
             if not installation_id:
                 return False
 
-            # Confirm action if requested
-            if confirm:
+            # Confirm action if requested and interactive
+            if confirm and interactive:
                 if not confirm_action("desarmar la alarma"):
                     print_info("Acción cancelada")
                     return False

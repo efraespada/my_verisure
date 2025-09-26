@@ -297,7 +297,7 @@ class ClientCompatibilityWrapper:
         services = await self._installation_use_case.get_installation_services(installation_id, force_refresh)
         return services.dict()
     
-    async def get_alarm_status(self, installation_id: str, capabilities: str = "") -> dict:
+    async def get_alarm_status(self, installation_id: str, capabilities: str) -> dict:
         """Get alarm status."""
         alarm_status = await self._alarm_use_case.get_alarm_status(installation_id)
         return alarm_status.dict()

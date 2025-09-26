@@ -186,7 +186,7 @@ class AlarmClient(BaseClient):
 
     def __init__(self, hash_token: Optional[str] = None, session_data: Optional[Dict[str, Any]] = None) -> None:
         """Initialize the alarm client."""
-        super().__init__()
+        super().__init__(hash_token, session_data)
         self._hash = hash_token
         self._session_data = session_data or {}
 
@@ -492,6 +492,7 @@ class AlarmClient(BaseClient):
         self,
         installation_id: str,
         request: str,
+        capabilities: str,
         current_status: str = "E",
         hash_token: Optional[str] = None,
         session_data: Optional[Dict[str, Any]] = None,
@@ -504,9 +505,13 @@ class AlarmClient(BaseClient):
                 installation_id,
             )
 
-            # Get installation services to get the panel info
+            # Ensure client is connected
+            if not self._client:
+                _LOGGER.warning("Client not connected, connecting now...")
+                await self.connect()
+
+            # Get panel info (default for now)
             panel = "panel1"  # This should come from installation services
-            capabilities = ""  # This should come from installation services
 
             if not panel:
                 _LOGGER.error(
@@ -637,6 +642,7 @@ class AlarmClient(BaseClient):
     async def disarm_alarm(
         self,
         installation_id: str,
+        capabilities: str,
         hash_token: Optional[str] = None,
         session_data: Optional[Dict[str, Any]] = None,
     ) -> bool:
@@ -646,9 +652,13 @@ class AlarmClient(BaseClient):
                 "Disarming alarm for installation %s", installation_id
             )
 
-            # Get installation services to get the panel info
+            # Ensure client is connected
+            if not self._client:
+                _LOGGER.warning("Client not connected, connecting now...")
+                await self.connect()
+
+            # Get panel info (default for now)
             panel = "panel1"  # This should come from installation services
-            capabilities = ""  # This should come from installation services
 
             if not panel:
                 _LOGGER.error(
@@ -778,6 +788,7 @@ class AlarmClient(BaseClient):
     async def arm_alarm_away(
         self,
         installation_id: str,
+        capabilities: str,
         hash_token: Optional[str] = None,
         session_data: Optional[Dict[str, Any]] = None,
     ) -> bool:
@@ -785,6 +796,7 @@ class AlarmClient(BaseClient):
         return await self.send_alarm_command(
             installation_id,
             "ARM1",
+            capabilities=capabilities,
             hash_token=hash_token,
             session_data=session_data,
         )
@@ -792,6 +804,7 @@ class AlarmClient(BaseClient):
     async def arm_alarm_home(
         self,
         installation_id: str,
+        capabilities: str,
         hash_token: Optional[str] = None,
         session_data: Optional[Dict[str, Any]] = None,
     ) -> bool:
@@ -799,6 +812,7 @@ class AlarmClient(BaseClient):
         return await self.send_alarm_command(
             installation_id,
             "PERI1",
+            capabilities=capabilities,
             hash_token=hash_token,
             session_data=session_data,
         )
@@ -806,6 +820,7 @@ class AlarmClient(BaseClient):
     async def arm_alarm_night(
         self,
         installation_id: str,
+        capabilities: str,
         hash_token: Optional[str] = None,
         session_data: Optional[Dict[str, Any]] = None,
     ) -> bool:
@@ -813,6 +828,7 @@ class AlarmClient(BaseClient):
         return await self.send_alarm_command(
             installation_id,
             "ARMNIGHT1",
+            capabilities=capabilities,
             hash_token=hash_token,
             session_data=session_data,
         )
@@ -910,8 +926,8 @@ class AlarmClient(BaseClient):
         installation_id: str,
         panel: str,
         request: str,
+        capabilities: str,
         current_status: str = "E",
-        capabilities: str = "",
         hash_token: Optional[str] = None,
         session_data: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
@@ -961,7 +977,7 @@ class AlarmClient(BaseClient):
         request: str,
         reference_id: str,
         counter: int,
-        capabilities: str = "",
+        capabilities: str,
         hash_token: Optional[str] = None,
         session_data: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
@@ -1010,7 +1026,7 @@ class AlarmClient(BaseClient):
         installation_id: str,
         panel: str,
         request: str,
-        capabilities: str = "",
+        capabilities: str,
         hash_token: Optional[str] = None,
         session_data: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
@@ -1019,6 +1035,13 @@ class AlarmClient(BaseClient):
             raise MyVerisureConnectionError("Client not connected")
 
         try:
+            _LOGGER.info("Executing disarm panel with variables: %s", {
+                "numinst": installation_id,
+                "request": request,
+                "panel": panel,
+                "capabilities": capabilities
+            })
+
             # Prepare variables
             variables = {
                 "numinst": installation_id,
@@ -1033,17 +1056,22 @@ class AlarmClient(BaseClient):
                 else None
             )
 
+            _LOGGER.info("Session headers: %s", headers)
+
             # Add alarm-specific headers
             if headers:
                 headers["numinst"] = installation_id
                 headers["panel"] = panel
                 headers["x-capabilities"] = capabilities
 
+            _LOGGER.info("Final headers: %s", headers)
+
             # Make direct request
             result = await self._execute_query_direct(
                 DISARM_PANEL_MUTATION.loc.source.body, variables, headers
             )
 
+            _LOGGER.info("Disarm panel result: %s", result)
             return result
 
         except Exception as e:
@@ -1057,7 +1085,7 @@ class AlarmClient(BaseClient):
         request: str,
         reference_id: str,
         counter: int,
-        capabilities: str = "",
+        capabilities: str,
         hash_token: Optional[str] = None,
         session_data: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:

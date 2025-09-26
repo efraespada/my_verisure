@@ -71,13 +71,13 @@ def print_alarm_status(status) -> None:
 
 def print_services_info(services_data) -> None:
     """Imprime información de servicios de una instalación."""
-    if not services_data.success:
-        print_error(f"Error obteniendo servicios: {services_data.message}")
+    if not services_data.services or len(services_data.services) == 0:
+        print_error("No se encontraron servicios para esta instalación")
         return
 
     services = services_data.services
     print_success(f"Se encontraron {len(services)} servicios")
-
+    
     # Mostrar información básica de la instalación
     installation_info = services_data.installation_data or {}
     print(f"   📊 Estado: {installation_info.get('status', 'N/A')}")
@@ -88,25 +88,56 @@ def print_services_info(services_data) -> None:
     print()
 
     # Mostrar servicios activos
-    active_services = [s for s in services if s.active]
+    # Los servicios pueden ser diccionarios o objetos Service
+    def get_service_active(service):
+        if isinstance(service, dict):
+            return service.get('active', False)
+        return service.active
+    
+    def get_service_id(service):
+        if isinstance(service, dict):
+            return service.get('idService', service.get('id_service', 'N/A'))
+        return service.id_service
+    
+    def get_service_request(service):
+        if isinstance(service, dict):
+            return service.get('request', 'N/A')
+        return service.request or "N/A"
+    
+    def get_service_visible(service):
+        if isinstance(service, dict):
+            return service.get('visible', False)
+        return service.visible
+    
+    def get_service_premium(service):
+        if isinstance(service, dict):
+            return service.get('isPremium', False)
+        return service.is_premium
+    
+    def get_service_bde(service):
+        if isinstance(service, dict):
+            return service.get('bde', False)
+        return service.bde
+
+    active_services = [s for s in services if get_service_active(s)]
     print(f"   ✅ Servicios activos ({len(active_services)}):")
     for service in active_services:
-        service_id = service.id_service
-        service_request = service.request or "N/A"
-        service_visible = "👁️" if service.visible else "🙈"
-        service_premium = "⭐" if service.is_premium else ""
-        service_bde = "💰" if service.bde else ""
+        service_id = get_service_id(service)
+        service_request = get_service_request(service)
+        service_visible = "👁️" if get_service_visible(service) else "🙈"
+        service_premium = "⭐" if get_service_premium(service) else ""
+        service_bde = "💰" if get_service_bde(service) else ""
         print(
             f"      {service_visible} {service_id}: {service_request} {service_premium}{service_bde}"
         )
 
     # Mostrar servicios inactivos (solo si hay pocos)
-    inactive_services = [s for s in services if not s.active]
+    inactive_services = [s for s in services if not get_service_active(s)]
     if inactive_services and len(inactive_services) <= 5:
         print(f"   ❌ Servicios inactivos ({len(inactive_services)}):")
         for service in inactive_services:
-            service_id = service.id_service
-            service_request = service.request or "N/A"
+            service_id = get_service_id(service)
+            service_request = get_service_request(service)
             print(f"      ❌ {service_id}: {service_request}")
 
     # Capacidades

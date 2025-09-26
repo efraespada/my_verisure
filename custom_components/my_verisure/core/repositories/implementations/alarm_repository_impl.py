@@ -86,6 +86,7 @@ class AlarmRepositoryImpl(AlarmRepository):
         installation_id: str,
         request: str,
         panel: str,
+        capabilities: str,
         current_status: str = "E",
     ) -> ArmResult:
         """Arm the alarm panel."""
@@ -100,26 +101,30 @@ class AlarmRepositoryImpl(AlarmRepository):
             if request == "ARM1":
                 result = await self.client.arm_alarm_away(
                     installation_id,
+                    capabilities=capabilities,
                     hash_token=self.client._hash,
                     session_data=self.client._session_data
                 )
             elif request == "PERI1":
                 result = await self.client.arm_alarm_home(
                     installation_id,
+                    capabilities=capabilities,
                     hash_token=self.client._hash,
                     session_data=self.client._session_data
                 )
             elif request == "ARMNIGHT1":
                 result = await self.client.arm_alarm_night(
                     installation_id,
+                    capabilities=capabilities,
                     hash_token=self.client._hash,
                     session_data=self.client._session_data
                 )
             else:
                 result = await self.client.send_alarm_command(
                     installation_id, 
-                    request, 
-                    current_status,
+                    request,
+                    capabilities=capabilities,
+                    current_status=current_status,
                     hash_token=self.client._hash,
                     session_data=self.client._session_data
                 )
@@ -142,7 +147,7 @@ class AlarmRepositoryImpl(AlarmRepository):
             raise
 
     async def disarm_panel(
-        self, installation_id: str, panel: str
+        self, installation_id: str, panel: str, capabilities: str
     ) -> DisarmResult:
         """Disarm the alarm panel."""
         try:
@@ -153,6 +158,7 @@ class AlarmRepositoryImpl(AlarmRepository):
 
             result = await self.client.disarm_alarm(
                 installation_id,
+                capabilities=capabilities,
                 hash_token=self.client._hash,
                 session_data=self.client._session_data
             )

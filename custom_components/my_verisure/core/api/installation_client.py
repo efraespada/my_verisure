@@ -96,7 +96,7 @@ class InstallationClient(BaseClient):
 
     def __init__(self, hash_token: Optional[str] = None, session_data: Optional[Dict[str, Any]] = None) -> None:
         """Initialize the installation client."""
-        super().__init__()
+        super().__init__(hash_token, session_data)
         self._hash = hash_token
         self._session_data = session_data or {}
 

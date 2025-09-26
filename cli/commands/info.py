@@ -96,9 +96,7 @@ class InfoCommand(BaseCommand):
                 print_services_info(services_data)
                 return True
             else:
-                print_error(
-                    f"Error obteniendo servicios: {services_data.message}"
-                )
+                print_error("No se encontraron servicios para esta instalación")
                 return False
 
         except Exception as e:

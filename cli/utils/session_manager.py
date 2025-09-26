@@ -10,6 +10,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "custom_comp
 
 from core.dependency_injection.providers import (
     setup_dependencies,
+    update_auth_tokens,
     get_auth_use_case,
     get_installation_use_case,
     get_auth_client,
@@ -156,6 +157,21 @@ class SessionManager:
             import time
             self.session_timestamp = time.time()
             logger.info("Session tokens updated")
+            
+            # Update tokens for all existing clients
+            try:
+                session_data = {
+                    'user': self.username,
+                    'lang': 'ES',
+                    'legals': True,
+                    'changePassword': False,
+                    'needDeviceAuthorization': None,
+                    'login_time': self.session_timestamp,
+                }
+                update_auth_tokens(self.hash_token, session_data)
+                logger.info("Client authentication tokens updated")
+            except Exception as e:
+                logger.warning(f"Could not update client tokens: {e}")
         else:
             logger.warning("No valid auth result to update tokens")
 

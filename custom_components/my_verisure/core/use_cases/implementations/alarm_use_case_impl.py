@@ -100,12 +100,12 @@ class AlarmUseCaseImpl(AlarmUseCase):
                 installation_id,
             )
 
-            # Get panel from installation services
-            panel, _ = await self._get_installation_info(installation_id)
+            # Get panel and capabilities from installation services
+            panel, capabilities = await self._get_installation_info(installation_id)
             current_status = "E"  # Default current status
 
             result = await self.alarm_repository.arm_panel(
-                installation_id, "ARM1", panel, current_status
+                installation_id, "ARM1", panel, capabilities, current_status
             )
 
             if result.success:
@@ -129,12 +129,12 @@ class AlarmUseCaseImpl(AlarmUseCase):
                 installation_id,
             )
 
-            # Get panel from installation services
-            panel, _ = await self._get_installation_info(installation_id)
+            # Get panel and capabilities from installation services
+            panel, capabilities = await self._get_installation_info(installation_id)
             current_status = "E"  # Default current status
 
             result = await self.alarm_repository.arm_panel(
-                installation_id, "PERI1", panel, current_status
+                installation_id, "PERI1", panel, capabilities, current_status
             )
 
             if result.success:
@@ -158,12 +158,12 @@ class AlarmUseCaseImpl(AlarmUseCase):
                 installation_id,
             )
 
-            # Get panel from installation services
-            panel, _ = await self._get_installation_info(installation_id)
+            # Get panel and capabilities from installation services
+            panel, capabilities = await self._get_installation_info(installation_id)
             current_status = "E"  # Default current status
 
             result = await self.alarm_repository.arm_panel(
-                installation_id, "ARMNIGHT1", panel, current_status
+                installation_id, "ARMNIGHT1", panel, capabilities, current_status
             )
 
             if result.success:
@@ -186,11 +186,11 @@ class AlarmUseCaseImpl(AlarmUseCase):
                 "Disarming alarm for installation %s", installation_id
             )
 
-            # Get panel from installation services
-            panel, _ = await self._get_installation_info(installation_id)
+            # Get panel and capabilities from installation services
+            panel, capabilities = await self._get_installation_info(installation_id)
 
             result = await self.alarm_repository.disarm_panel(
-                installation_id, panel
+                installation_id, panel, capabilities
             )
 
             if result.success:
