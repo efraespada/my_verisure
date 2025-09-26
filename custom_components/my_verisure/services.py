@@ -6,7 +6,7 @@ from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers import config_validation as cv
 import voluptuous as vol
 
-from .const import DOMAIN, LOGGER
+from .core.const import DOMAIN, LOGGER
 
 # Service schemas
 SERVICE_ARM_AWAY_SCHEMA = vol.Schema({

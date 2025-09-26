@@ -7,7 +7,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.entity import DeviceInfo
 
-from .const import DOMAIN, DEVICE_INFO
+from .core.const import DOMAIN, DEVICE_INFO
 
 
 def get_device_info(config_entry: ConfigEntry) -> DeviceInfo:

@@ -14,17 +14,13 @@ from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.storage import STORAGE_DIR
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-import sys
-import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'core'))
-
-from core.api.exceptions import (
+from .core.api.exceptions import (
     MyVerisureAuthenticationError,
     MyVerisureConnectionError,
     MyVerisureError,
     MyVerisureOTPError,
 )
-from core.dependency_injection.providers import (
+from .core.dependency_injection.providers import (
     setup_dependencies,
     get_auth_use_case,
     get_session_use_case,
@@ -32,7 +28,7 @@ from core.dependency_injection.providers import (
     get_alarm_use_case,
     clear_dependencies,
 )
-from .const import CONF_INSTALLATION_ID, CONF_USER, DEFAULT_SCAN_INTERVAL, DOMAIN, LOGGER, CONF_SCAN_INTERVAL
+from .core.const import CONF_INSTALLATION_ID, CONF_USER, DEFAULT_SCAN_INTERVAL, DOMAIN, LOGGER, CONF_SCAN_INTERVAL
 
 
 class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
