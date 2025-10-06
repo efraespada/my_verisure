@@ -1,7 +1,6 @@
 """Dependency injection providers for My Verisure integration."""
 
 import logging
-from typing import Dict, Any
 
 from .container import setup_injector, get_dependency, clear_injector
 from .module import MyVerisureModule
@@ -18,16 +17,11 @@ from ..use_cases.interfaces.alarm_use_case import AlarmUseCase
 logger = logging.getLogger(__name__)
 
 
-def setup_dependencies(username: str, password: str, hash_token: str = None, session_data: Dict[str, Any] = None) -> None:
+def setup_dependencies() -> None:
     """Set up all dependencies for the My Verisure integration."""
     logger.info("Setting up My Verisure dependencies")
     
-    module = MyVerisureModule(
-        username=username,
-        password=password,
-        hash_token=hash_token,
-        session_data=session_data
-    )
+    module = MyVerisureModule()
     
     setup_injector(module)
     logger.info("My Verisure dependencies setup completed")

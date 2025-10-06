@@ -47,8 +47,8 @@ class AuthRepositoryImpl(AuthRepository):
 
             _ = device_identifiers.to_dto()
 
-            # Call the client's login method
-            result = await self.client.login()
+            # Call the client's login method with credentials
+            result = await self.client.login(auth.username, auth.password)
 
             # Debug: Check client state after login
             _LOGGER.info("Login result: %s", result)
@@ -96,12 +96,8 @@ class AuthRepositoryImpl(AuthRepository):
 
         except MyVerisureOTPError as e:
             _LOGGER.info("OTP authentication required: %s", e)
-            return AuthResult(
-                success=False,
-                message=f"OTP authentication required: {e}",
-                hash=None,
-                refresh_token=None,
-            )
+            # Re-raise the OTP error so it can be handled by the use case
+            raise
         except MyVerisureAuthenticationError as e:
             _LOGGER.error("Authentication failed: %s", e)
             return AuthResult(
@@ -137,12 +133,7 @@ class AuthRepositoryImpl(AuthRepository):
             _LOGGER.error("Error sending OTP: %s", e)
             raise MyVerisureOTPError(f"Failed to send OTP: {e}") from e
 
-    async def verify_otp(
-        self,
-        otp_code: str,
-        otp_hash: str,
-        device_identifiers: DeviceIdentifiers,
-    ) -> AuthResult:
+    async def verify_otp(self, otp_code: str) -> AuthResult:
         """Verify OTP code."""
         try:
             _LOGGER.info("Verifying OTP code")

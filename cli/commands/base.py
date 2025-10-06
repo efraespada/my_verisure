@@ -42,13 +42,8 @@ class BaseCommand(ABC):
             if not await session_manager.ensure_authenticated(interactive):
                 return False        
             
-            # Setup dependencies with current session data
-            setup_dependencies(
-                username=session_manager.username,
-                password=session_manager.password,
-                hash_token=session_manager.hash_token,
-                session_data=session_manager.get_current_session_data()
-            )
+            # Setup dependencies
+            setup_dependencies()
 
             # Get use cases
             self.auth_use_case = get_auth_use_case()

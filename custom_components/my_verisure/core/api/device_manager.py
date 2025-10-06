@@ -16,9 +16,8 @@ _LOGGER = logging.getLogger(__name__)
 class DeviceManager:
     """Manages device identifiers and device authorization."""
 
-    def __init__(self, user: str) -> None:
+    def __init__(self) -> None:
         """Initialize the device manager."""
-        self.user = user
         self._device_identifiers: Optional[Dict[str, str]] = None
 
     def _get_device_identifiers_file(self) -> str:
@@ -30,13 +29,13 @@ class DeviceManager:
             storage_dir = "."
 
         return os.path.join(
-            storage_dir, f"my_verisure_device_{self.user}.json"
+            storage_dir, "my_verisure_device.json"
         )
 
     def _generate_device_identifiers(self) -> Dict[str, str]:
-        """Generate device identifiers based on user and system info."""
-        # Generate consistent device UUID based on user and system info
-        device_seed = f"{self.user}_{platform.system()}_{platform.machine()}"
+        """Generate device identifiers based on system info."""
+        # Generate consistent device UUID based on system info
+        device_seed = f"my_verisure_{platform.system()}_{platform.machine()}"
         device_uuid = hashlib.sha256(device_seed.encode()).hexdigest()
 
         # Format as UUID string
@@ -53,7 +52,7 @@ class DeviceManager:
         )
 
         # Generate Indigitall UUID (random but consistent for this device)
-        indigitall_seed = f"{self.user}_indigitall_{platform.system()}"
+        indigitall_seed = f"my_verisure_indigitall_{platform.system()}"
         indigitall_uuid = hashlib.sha256(indigitall_seed.encode()).hexdigest()
         formatted_indigitall = (
             indigitall_uuid[:8]

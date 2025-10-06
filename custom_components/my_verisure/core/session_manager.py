@@ -211,6 +211,13 @@ class SessionManager:
             print("🔐 Contraseña: [HIDDEN]")
             return "16633776S", "Papipupepo2@"
 
+    async def logout(self) -> None:
+        """Logout and clear session."""
+        logger.info("Logging out and clearing session")
+        self.clear_credentials()
+        self._clear_session_file()
+        logger.info("Logout completed")
+
     async def cleanup(self) -> None:
         """Clean up resources."""
         # This method will be implemented by the CLI's session manager

@@ -10,11 +10,13 @@ from gql import gql
 from .base_client import BaseClient
 from .device_manager import DeviceManager
 from .exceptions import (
+    MyVerisureError,
     MyVerisureAuthenticationError,
     MyVerisureOTPError,
     MyVerisureDeviceAuthorizationError,
 )
 from .models.dto.auth_dto import AuthDTO, PhoneDTO
+from ..session_manager import get_session_manager
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -89,18 +91,16 @@ SEND_OTP_MUTATION = gql(
 class AuthClient(BaseClient):
     """Authentication client for My Verisure API."""
 
-    def __init__(self, user: str, password: str) -> None:
+    def __init__(self) -> None:
         """Initialize the authentication client."""
         super().__init__()
-        self.user = user
-        self.password = password
         self._hash: Optional[str] = None
         self._refresh_token: Optional[str] = None
         self._session_data: Dict[str, Any] = {}
         self._otp_data: Optional[Dict[str, Any]] = None
-        self._device_manager = DeviceManager(user)
+        self._device_manager = DeviceManager()
 
-    async def login(self) -> AuthDTO:
+    async def login(self, user: str, password: str) -> AuthDTO:
         """Login to My Verisure API (Native App Simulation)."""
         # Ensure device identifiers are loaded or generated
         self._device_manager.ensure_device_identifiers()
@@ -112,8 +112,8 @@ class AuthClient(BaseClient):
         variables = self._device_manager.get_login_variables(session_id)
         variables.update(
             {
-                "user": self.user,
-                "password": self.password,
+                "user": user,
+                "password": password,
             }
         )
 
@@ -147,7 +147,7 @@ class AuthClient(BaseClient):
             if login_data and login_data.get("res") == "OK":
                 # Store session data
                 self._session_data = {
-                    "user": self.user,
+                    "user": user,
                     "lang": login_data.get("lang", "ES"),
                     "legals": login_data.get("legals", False),
                     "changePassword": login_data.get("changePassword", False),
@@ -289,7 +289,11 @@ class AuthClient(BaseClient):
         if not auth_phones or not otp_hash:
             raise MyVerisureOTPError("Invalid OTP data received")
 
-        # Store OTP data for later use
+        # Store OTP data for later use - add otp_hash to each phone
+        for phone in auth_phones:
+            phone["otp_hash"] = otp_hash
+            phone["record_id"] = phone.get("id")  # Use phone ID as record_id
+        
         self._otp_data = {"phones": auth_phones, "otp_hash": otp_hash}
 
         _LOGGER.info("📱 Available phone numbers for OTP:")
@@ -345,6 +349,10 @@ class AuthClient(BaseClient):
             _LOGGER.warning("=== SENDING OTP ===")
             _LOGGER.warning("Record ID: %s", record_id)
             _LOGGER.warning("OTP Hash: %s", otp_hash)
+            
+            # Update OTP data with the current hash
+            if self._otp_data:
+                self._otp_data["otp_hash"] = otp_hash
 
             # Use direct aiohttp request for OTP
             result = await self._execute_query_direct(
@@ -499,12 +507,24 @@ class AuthClient(BaseClient):
         # Generate unique ID for this session
         session_id = f"OWI______________________"
 
+        # Get user credentials from session data
+        user = self._session_data.get("user")
+        if not user:
+            raise MyVerisureAuthenticationError("No user data available for post-OTP login")
+        
+        # We need to get the password from the session manager
+        session_manager = get_session_manager()
+        password = session_manager.password
+        
+        if not password:
+            raise MyVerisureAuthenticationError("No password available for post-OTP login")
+
         # Prepare variables for the login mutation
         variables = self._device_manager.get_login_variables(session_id)
         variables.update(
             {
-                "user": self.user,
-                "password": self.password,
+                "user": user,
+                "password": password,
             }
         )
 
@@ -529,7 +549,7 @@ class AuthClient(BaseClient):
             if login_data and login_data.get("res") == "OK":
                 # Store updated session data
                 self._session_data = {
-                    "user": self.user,
+                    "user": user,
                     "lang": login_data.get("lang", "ES"),
                     "legals": login_data.get("legals", False),
                     "changePassword": login_data.get("changePassword", False),

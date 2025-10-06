@@ -10,6 +10,18 @@ class PhoneDTO:
 
     id: int
     phone: str
+    record_id: Optional[int] = None
+    otp_hash: Optional[str] = None
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "PhoneDTO":
+        """Create PhoneDTO from dictionary."""
+        return cls(
+            id=data.get("id", 0),
+            phone=data.get("phone", ""),
+            record_id=data.get("record_id"),
+            otp_hash=data.get("otp_hash")
+        )
 
 
 @dataclass

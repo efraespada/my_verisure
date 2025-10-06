@@ -1,7 +1,6 @@
 """Dependency injection module for My Verisure integration."""
 
 import logging
-from typing import Dict, Any
 from injector import Module, provider, singleton
 
 from ..api.auth_client import AuthClient
@@ -26,32 +25,28 @@ logger = logging.getLogger(__name__)
 class MyVerisureModule(Module):
     """My Verisure dependency injection module."""
 
-    def __init__(self, username: str = None, password: str = None, 
-                 hash_token: str = None, session_data: Dict[str, Any] = None):
-        """Initialize the module with session data."""
-        self.username = username
-        self.password = password
-        self.hash_token = hash_token
-        self.session_data = session_data or {}
+    def __init__(self):
+        """Initialize the module."""
+        pass
 
     @singleton
     @provider
     def provide_auth_client(self) -> AuthClient:
         """Provide AuthClient instance."""
-        return AuthClient(user=self.username, password=self.password)
+        return AuthClient()
 
 
     @singleton
     @provider
     def provide_installation_client(self) -> InstallationClient:
         """Provide InstallationClient instance."""
-        return InstallationClient(hash_token=self.hash_token, session_data=self.session_data)
+        return InstallationClient()
 
     @singleton
     @provider
     def provide_alarm_client(self) -> AlarmClient:
         """Provide AlarmClient instance."""
-        return AlarmClient(hash_token=self.hash_token, session_data=self.session_data)
+        return AlarmClient()
 
     @singleton
     @provider

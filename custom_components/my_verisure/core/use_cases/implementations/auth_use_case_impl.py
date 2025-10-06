@@ -79,39 +79,16 @@ class AuthUseCaseImpl(AuthUseCase):
     async def verify_otp(self, otp_code: str) -> bool:
         """Verify OTP code."""
         try:
-            _LOGGER.info("Verifying OTP code")
+            _LOGGER.info("Verifying OTP code: %s", otp_code)
 
-            if not self._otp_data:
-                raise ValueError("No OTP data available. Please login first.")
+            result = await self.auth_repository.verify_otp(otp_code)
 
-            # Get OTP hash from stored data
-            otp_hash = getattr(self._otp_data, "otp_hash", None)
-            if not otp_hash:
-                raise ValueError("No OTP hash available")
-
-            # Create device identifiers (same as in login)
-            device_identifiers = DeviceIdentifiers(
-                id_device="device_123",
-                uuid="uuid_456",
-                id_device_indigitall="indigitall_789",
-                device_name="HomeAssistant",
-                device_brand="HomeAssistant",
-                device_os_version="Linux 5.0",
-                device_version="10.154.0",
-            )
-
-            result = await self.auth_repository.verify_otp(
-                otp_code, otp_hash, device_identifiers
-            )
-
-            if result.success:
+            if result:
                 _LOGGER.info("OTP verification successful")
-                # Clear OTP data after successful verification
-                self._otp_data = None
             else:
                 _LOGGER.error("OTP verification failed")
 
-            return result.success
+            return result
 
         except Exception as e:
             _LOGGER.error("Error verifying OTP: %s", e)
@@ -119,12 +96,9 @@ class AuthUseCaseImpl(AuthUseCase):
 
     def get_available_phones(self) -> List[dict]:
         """Get available phone numbers for OTP."""
-        if not self._otp_data:
-            return []
-
-        # Extract phone data from OTP exception
-        phones = getattr(self._otp_data, "phones", [])
-        return [{"id": phone.id, "phone": phone.phone} for phone in phones]
+        # Delegate to the auth client which maintains the OTP state
+        phones = self.auth_repository.client.get_available_phones()
+        return [{"id": phone.id, "phone": phone.phone, "record_id": phone.record_id, "otp_hash": phone.otp_hash} for phone in phones]
 
     def select_phone(self, phone_id: int) -> bool:
         """Select a phone number for OTP."""
