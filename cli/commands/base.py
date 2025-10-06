@@ -10,13 +10,14 @@ from typing import Optional
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "custom_components", "my_verisure"))
 
 from core.dependency_injection.providers import (
+    setup_dependencies,
     get_auth_use_case,
     get_alarm_use_case,
     get_installation_use_case,
-    get_session_use_case,
 )
+from core.session_manager import get_session_manager
 
-from ..utils.session_manager import session_manager
+from ..utils.input_helpers import select_installation
 from ..utils.display import print_error, print_info
 
 logger = logging.getLogger(__name__)
@@ -34,15 +35,25 @@ class BaseCommand(ABC):
     async def setup(self, interactive: bool = True) -> bool:
         """Setup the command by ensuring authentication and getting use cases."""
         try:
+            # Get session manager
+            session_manager = get_session_manager()
+            
             # Ensure authentication
             if not await session_manager.ensure_authenticated(interactive):
-                return False
+                return False        
+            
+            # Setup dependencies with current session data
+            setup_dependencies(
+                username=session_manager.username,
+                password=session_manager.password,
+                hash_token=session_manager.hash_token,
+                session_data=session_manager.get_current_session_data()
+            )
 
             # Get use cases
             self.auth_use_case = get_auth_use_case()
             self.alarm_use_case = get_alarm_use_case()
             self.installation_use_case = get_installation_use_case()
-            self.session_use_case = get_session_use_case()
 
             return True
 
@@ -57,6 +68,7 @@ class BaseCommand(ABC):
 
     async def cleanup(self):
         """Clean up resources."""
+        session_manager = get_session_manager()
         await session_manager.cleanup()
 
     def get_installation_id(
@@ -66,6 +78,7 @@ class BaseCommand(ABC):
         if installation_id:
             return installation_id
 
+        session_manager = get_session_manager()
         if session_manager.current_installation:
             return session_manager.current_installation
 
@@ -75,17 +88,17 @@ class BaseCommand(ABC):
         self, installation_id: Optional[str] = None
     ) -> Optional[str]:
         """Select installation if not provided and multiple are available."""
-        from ..utils.input_helpers import select_installation
 
         if installation_id:
             return installation_id
 
+        session_manager = get_session_manager()
         if session_manager.current_installation:
             return session_manager.current_installation
 
         # Get all installations and let user select
         try:
-            installations = await session_manager.get_installations()
+            installations = await self.installation_use_case.get_installations()
             if not installations:
                 print_error("No hay instalaciones disponibles")
                 return None

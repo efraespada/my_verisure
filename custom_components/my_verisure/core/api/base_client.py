@@ -26,11 +26,6 @@ class BaseClient:
         self._hash = hash_token
         self._session_data = session_data or {}
 
-    def update_auth_token(self, hash_token: str, session_data: Dict[str, Any]) -> None:
-        """Update the authentication token and session data."""
-        self._hash = hash_token
-        self._session_data = session_data
-        _LOGGER.debug("Base client auth token updated")
 
     async def __aenter__(self):
         """Async context manager entry."""

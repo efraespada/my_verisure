@@ -5,13 +5,10 @@ from .module import MyVerisureModule
 from .providers import (
     setup_dependencies,
     clear_dependencies,
-    update_auth_tokens,
     get_auth_use_case,
-    get_session_use_case,
     get_installation_use_case,
     get_alarm_use_case,
     get_auth_client,
-    get_session_client,
     get_installation_client,
     get_alarm_client,
 )
@@ -24,13 +21,10 @@ __all__ = [
     "MyVerisureModule",
     "setup_dependencies",
     "clear_dependencies",
-    "update_auth_tokens",
     "get_auth_use_case",
-    "get_session_use_case",
     "get_installation_use_case",
     "get_alarm_use_case",
     "get_auth_client",
-    "get_session_client",
     "get_installation_client",
     "get_alarm_client",
 ]

@@ -1,7 +1,7 @@
 """Installation repository interface."""
 
 from abc import ABC, abstractmethod
-from typing import List
+from typing import List, Optional, Dict, Any
 
 from ...api.models.domain.installation import Installation, InstallationServices
 

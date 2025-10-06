@@ -5,23 +5,18 @@ from typing import Dict, Any
 from injector import Module, provider, singleton
 
 from ..api.auth_client import AuthClient
-from ..api.session_client import SessionClient
 from ..api.installation_client import InstallationClient
 from ..api.alarm_client import AlarmClient
 from ..repositories.interfaces.auth_repository import AuthRepository
-from ..repositories.interfaces.session_repository import SessionRepository
 from ..repositories.interfaces.installation_repository import InstallationRepository
 from ..repositories.interfaces.alarm_repository import AlarmRepository
 from ..repositories.implementations.auth_repository_impl import AuthRepositoryImpl
-from ..repositories.implementations.session_repository_impl import SessionRepositoryImpl
 from ..repositories.implementations.installation_repository_impl import InstallationRepositoryImpl
 from ..repositories.implementations.alarm_repository_impl import AlarmRepositoryImpl
 from ..use_cases.interfaces.auth_use_case import AuthUseCase
-from ..use_cases.interfaces.session_use_case import SessionUseCase
 from ..use_cases.interfaces.installation_use_case import InstallationUseCase
 from ..use_cases.interfaces.alarm_use_case import AlarmUseCase
 from ..use_cases.implementations.auth_use_case_impl import AuthUseCaseImpl
-from ..use_cases.implementations.session_use_case_impl import SessionUseCaseImpl
 from ..use_cases.implementations.installation_use_case_impl import InstallationUseCaseImpl
 from ..use_cases.implementations.alarm_use_case_impl import AlarmUseCaseImpl
 
@@ -45,11 +40,6 @@ class MyVerisureModule(Module):
         """Provide AuthClient instance."""
         return AuthClient(user=self.username, password=self.password)
 
-    @singleton
-    @provider
-    def provide_session_client(self) -> SessionClient:
-        """Provide SessionClient instance."""
-        return SessionClient(user=self.username, hash_token=self.hash_token, session_data=self.session_data)
 
     @singleton
     @provider
@@ -71,12 +61,6 @@ class MyVerisureModule(Module):
 
     @singleton
     @provider
-    def provide_session_repository(self, session_client: SessionClient) -> SessionRepository:
-        """Provide SessionRepository instance."""
-        return SessionRepositoryImpl(session_client)
-
-    @singleton
-    @provider
     def provide_installation_repository(self, installation_client: InstallationClient) -> InstallationRepository:
         """Provide InstallationRepository instance."""
         return InstallationRepositoryImpl(installation_client)
@@ -92,12 +76,6 @@ class MyVerisureModule(Module):
     def provide_auth_use_case(self, auth_repository: AuthRepository) -> AuthUseCase:
         """Provide AuthUseCase instance."""
         return AuthUseCaseImpl(auth_repository)
-
-    @singleton
-    @provider
-    def provide_session_use_case(self, session_repository: SessionRepository) -> SessionUseCase:
-        """Provide SessionUseCase instance."""
-        return SessionUseCaseImpl(session_repository)
 
     @singleton
     @provider

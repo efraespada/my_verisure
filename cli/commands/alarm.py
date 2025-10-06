@@ -45,18 +45,18 @@ class AlarmCommand(BaseCommand):
                 return False
 
             # Get installation ID
-            installation_id = await self.select_installation_if_needed(
+            selected_installation_id = await self.select_installation_if_needed(
                 installation_id
             )
-            if not installation_id:
+            if not selected_installation_id:
                 return False
 
             print_info(
-                f"Obteniendo estado de alarma para instalación: {installation_id}"
+                f"Obteniendo estado de alarma para instalación: {selected_installation_id}"
             )
 
             alarm_status = await self.alarm_use_case.get_alarm_status(
-                installation_id
+                selected_installation_id
             )
             print_alarm_status(alarm_status)
 

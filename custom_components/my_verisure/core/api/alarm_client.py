@@ -14,6 +14,7 @@ from .exceptions import (
     MyVerisureConnectionError,
     MyVerisureError,
 )
+from ..session_manager import get_session_manager
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -278,10 +279,18 @@ class AlarmClient(BaseClient):
         session_data: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Get alarm status from installation services and real-time check."""
+        # Get credentials from SessionManager if not provided
         if not hash_token:
-            raise MyVerisureAuthenticationError(
-                "Not authenticated. Please login first."
-            )
+            session_manager = get_session_manager()
+            hash_token = session_manager.get_current_hash_token()
+            if not hash_token:
+                raise MyVerisureAuthenticationError(
+                    "Not authenticated. Please login first."
+                )
+        
+        if not session_data:
+            session_manager = get_session_manager()
+            session_data = session_manager.get_current_session_data()
 
         if not installation_id:
             raise MyVerisureError("Installation ID is required")
@@ -1127,8 +1136,3 @@ class AlarmClient(BaseClient):
             _LOGGER.error("Direct disarm status failed: %s", e)
             return {"errors": [{"message": str(e), "data": {}}]}
 
-    def update_auth_token(self, hash_token: str, session_data: Dict[str, Any]) -> None:
-        """Update the authentication token and session data."""
-        self._hash = hash_token
-        self._session_data = session_data
-        _LOGGER.debug("Alarm client auth token updated")

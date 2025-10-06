@@ -370,11 +370,10 @@ class InstallationRepositoryImpl(InstallationRepository):
                 _LOGGER.info("Client not connected, connecting now...")
                 await self.client.connect()
 
+            # Client will get credentials automatically from SessionManager
             services_data = await self.client.get_installation_services(
                 installation_id, 
-                force_refresh,
-                hash_token=self.client._hash,
-                session_data=self.client._session_data
+                force_refresh
             )
 
             _LOGGER.info("Raw services data received: %s", type(services_data))

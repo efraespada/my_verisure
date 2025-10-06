@@ -47,6 +47,7 @@ class InstallationUseCaseImpl(InstallationUseCase):
             )
 
             # Get services from repository (cache is handled internally)
+            # Credentials are obtained automatically by the client from SessionManager
             services = (
                 await self.installation_repository.get_installation_services(
                     installation_id, force_refresh

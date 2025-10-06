@@ -15,7 +15,7 @@ from .commands.auth import AuthCommand
 from .commands.info import InfoCommand
 from .commands.alarm import AlarmCommand
 from .utils.display import print_header, print_error, print_info
-from .utils.session_manager import session_manager
+from core.session_manager import get_session_manager
 
 logger = logging.getLogger(__name__)
 
@@ -207,19 +207,22 @@ async def main():
             parser.print_help()
             return 0
 
-        # Cleanup (skip for auth status since it doesn't initialize dependencies)
-        if not (args.command == "auth" and args.action == "status"):
+        # Cleanup only for auth logout
+        if args.command == "auth" and args.action == "logout":
+            session_manager = get_session_manager()
             await session_manager.cleanup()
 
         return 0 if success else 1
 
     except KeyboardInterrupt:
         print("\n⏹️  Proceso interrumpido por el usuario")
+        session_manager = get_session_manager()
         await session_manager.cleanup()
         return 1
 
     except Exception as e:
         print_error(f"Error inesperado: {e}")
+        session_manager = get_session_manager()
         await session_manager.cleanup()
         return 1
 
