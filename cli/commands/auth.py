@@ -117,6 +117,12 @@ class AuthCommand(BaseCommand):
         else:
             print_info("👤 Usuario: No configurado")
 
+        # Try to ensure authentication (this will attempt automatic reauthentication if needed)
+        try:
+            await session_manager.ensure_authenticated(interactive=False)
+        except Exception as e:
+            print_warning(f"⚠️  Error durante verificación de autenticación: {e}")
+
         # Show authentication status
         if session_manager.is_authenticated:
             print_success("✅ Autenticado")

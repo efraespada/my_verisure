@@ -18,7 +18,7 @@ class SessionManager:
     """Manages authentication session for My Verisure integration."""
 
     def __init__(self):
-        self.is_authenticated = False
+        self._is_authenticated = False
         self.current_installation = None
         self.session_file = self._get_session_file_path()
         self.username = None
@@ -29,6 +29,16 @@ class SessionManager:
 
         # Try to load existing session
         self._load_session()
+
+    @property
+    def is_authenticated(self) -> bool:
+        """Check if user is currently authenticated."""
+        # Check if we have valid credentials and token
+        if not self.username or not self.password or not self.hash_token:
+            return False
+        
+        # Check if token is still valid
+        return self._is_token_valid()
 
     def _get_session_file_path(self) -> str:
         """Get the session file path."""
@@ -54,7 +64,7 @@ class SessionManager:
                 
                 # Check if session is still valid
                 if self._is_token_valid():
-                    self.is_authenticated = True
+                    self._is_authenticated = True
                     logger.info("Valid session loaded from file")
                 else:
                     logger.info("Session expired, will require re-authentication")
@@ -111,6 +121,50 @@ class SessionManager:
         logger.info(f"Token appears valid (age: {token_age:.1f} seconds)")
         return True
 
+    async def _try_automatic_reauthentication(self) -> bool:
+        """Try to reauthenticate automatically using stored credentials."""
+        try:
+            logger.info("Attempting automatic reauthentication with stored credentials...")
+            
+            # Import here to avoid circular imports
+            from .dependency_injection.providers import (
+                setup_dependencies,
+                get_auth_use_case,
+                clear_dependencies,
+            )
+            
+            # Setup dependencies
+            setup_dependencies()
+            
+            try:
+                # Get auth use case and perform login
+                auth_use_case = get_auth_use_case()
+                
+                # Perform login with stored credentials
+                auth_result = await auth_use_case.login(self.username, self.password)
+                
+                if auth_result.success:
+                    # Update credentials with new tokens
+                    self.update_credentials(
+                        self.username,
+                        self.password,
+                        auth_result.hash,
+                        auth_result.refresh_token
+                    )
+                    logger.info("Automatic reauthentication successful")
+                    return True
+                else:
+                    logger.warning(f"Automatic reauthentication failed: {auth_result.message}")
+                    return False
+                    
+            finally:
+                # Clean up dependencies
+                clear_dependencies()
+                
+        except Exception as e:
+            logger.warning(f"Automatic reauthentication failed: {e}")
+            return False
+
     def update_credentials(self, username: str, password: str, hash_token: str, refresh_token: str = None) -> None:
         """Update credentials after successful authentication."""
         self.username = username
@@ -118,7 +172,7 @@ class SessionManager:
         self.hash_token = hash_token
         self.refresh_token = refresh_token
         self.session_timestamp = time.time()
-        self.is_authenticated = True
+        self._is_authenticated = True
         
         # Save session
         self._save_session()
@@ -126,7 +180,7 @@ class SessionManager:
 
     def clear_credentials(self) -> None:
         """Clear all credentials and session data."""
-        self.is_authenticated = False
+        self._is_authenticated = False
         self.current_installation = None
         self.username = None
         self.password = None
@@ -191,7 +245,9 @@ class SessionManager:
                 logger.error("No credentials available and non-interactive mode")
                 return False
         
-        return True  # We have credentials, let the use case handle the login
+        # We have credentials but session is expired, try automatic reauthentication
+        logger.info("Session expired but credentials available, attempting automatic reauthentication...")
+        return await self._try_automatic_reauthentication()
 
     def _get_user_credentials(self) -> tuple[str, str]:
         """Get user credentials interactively."""
