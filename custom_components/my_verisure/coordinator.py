@@ -23,11 +23,11 @@ from .core.api.exceptions import (
 from .core.dependency_injection.providers import (
     setup_dependencies,
     get_auth_use_case,
-    get_session_use_case,
     get_installation_use_case,
     get_alarm_use_case,
     clear_dependencies,
 )
+from .core.session_manager import get_session_manager
 from .core.const import CONF_INSTALLATION_ID, CONF_USER, DEFAULT_SCAN_INTERVAL, DOMAIN, LOGGER, CONF_SCAN_INTERVAL
 
 
@@ -46,17 +46,24 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             STORAGE_DIR, f"my_verisure_{entry.data[CONF_USER]}.json"
         )
         
-        # Setup dependencies with credentials
-        setup_dependencies(
-            username=entry.data[CONF_USER],
-            password=entry.data[CONF_PASSWORD],
-        )
+        # Setup dependencies (no credentials needed, clients will get them from SessionManager)
+        setup_dependencies()
         
         # Get use cases
         self.auth_use_case = get_auth_use_case()
-        self.session_use_case = get_session_use_case()
         self.installation_use_case = get_installation_use_case()
         self.alarm_use_case = get_alarm_use_case()
+        
+        # Get session manager
+        self.session_manager = get_session_manager()
+        
+        # Set credentials in session manager
+        self.session_manager.update_credentials(
+            entry.data[CONF_USER],
+            entry.data[CONF_PASSWORD],
+            "",  # hash_token will be set after login
+            ""   # refresh_token will be set after login
+        )
         
         # Store session file path for later loading
         self.session_file = session_file
@@ -86,7 +93,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         """Login to My Verisure."""
         try:
             # Check if we have a valid session
-            if self.session_use_case.is_session_valid():
+            if self.session_manager.is_authenticated:
                 LOGGER.warning("Using existing valid session")
                 # Try to use the session by making a test request
                 try:
@@ -118,8 +125,8 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         """Try to refresh the session using saved session data."""
         try:
             # Try to load and validate session
-            if await self.session_use_case.load_session(self.session_file):
-                if self.session_use_case.is_session_valid():
+            if await self.session_manager.ensure_authenticated(interactive=False):
+                if self.session_manager.is_authenticated:
                     LOGGER.warning("Session refreshed successfully")
                     return True
                 else:
@@ -144,8 +151,13 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             auth_result = await self.auth_use_case.login(username, password)
             
             if auth_result.success:
-                # Save session after successful login
-                await self.session_use_case.save_session(self.session_file)
+                # Update session manager with new credentials
+                self.session_manager.update_credentials(
+                    self.session_manager.username,
+                    self.session_manager.password,
+                    auth_result.hash,
+                    auth_result.refresh_token
+                )
                 LOGGER.warning("New login successful and session saved")
                 return True
             else:
@@ -244,16 +256,14 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
     def has_valid_session(self) -> bool:
         """Check if we have a valid session."""
         try:
-            return self.session_use_case.is_session_valid()
+            return self.session_manager.is_authenticated
         except Exception:
             return False
 
     def get_session_hash(self) -> str | None:
         """Get the current session hash token."""
         try:
-            # This is a bit of a hack, but we need to access the session data
-            # In a real implementation, we'd have a proper getter method
-            return getattr(self.session_use_case, '_hash_token', None)
+            return self.session_manager.get_current_hash_token()
         except Exception:
             return None
 
@@ -264,9 +274,9 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
     async def async_load_session(self) -> bool:
         """Load session data asynchronously."""
         try:
-            if hasattr(self, 'session_file'):
-                return await self.session_use_case.load_session(self.session_file)
-            return False
+            # SessionManager automatically loads session on initialization
+            # Just check if we have valid credentials
+            return self.session_manager.is_authenticated
         except Exception as e:
             LOGGER.error("Error loading session: %s", e)
             return False

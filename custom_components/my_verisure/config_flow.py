@@ -26,10 +26,10 @@ from .core.api.exceptions import (
 from .core.dependency_injection.providers import (
     setup_dependencies,
     get_auth_use_case,
-    get_session_use_case,
     get_installation_use_case,
     clear_dependencies,
 )
+from .core.session_manager import get_session_manager
 from .core.const import (
     CONF_INSTALLATION_ID,
     CONF_USER,
@@ -50,7 +50,7 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
     user: str
     password: str
     auth_use_case: Any
-    session_use_case: Any
+    session_manager: Any
     installation_use_case: Any
 
     @staticmethod
@@ -71,13 +71,21 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
             self.user = user_input[CONF_USER]
             self.password = user_input[CONF_PASSWORD]
             
-            # Setup dependencies
-            setup_dependencies(username=self.user, password=self.password)
+            # Setup dependencies (no credentials needed, clients will get them from SessionManager)
+            setup_dependencies()
             
             # Get use cases
             self.auth_use_case = get_auth_use_case()
-            self.session_use_case = get_session_use_case()
+            self.session_manager = get_session_manager()
             self.installation_use_case = get_installation_use_case()
+            
+            # Set credentials in session manager
+            self.session_manager.update_credentials(
+                self.user,
+                self.password,
+                "",  # hash_token will be set after login
+                ""   # refresh_token will be set after login
+            )
 
             try:
                 # Perform login using auth use case
