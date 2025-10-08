@@ -52,6 +52,7 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
     auth_use_case: Any
     session_manager: Any
     installation_use_case: Any
+    _otp_error: bool = False
 
     @staticmethod
     @callback
@@ -104,11 +105,17 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                 errors["base"] = "cannot_connect"
             except MyVerisureOTPError:
                 LOGGER.debug("OTP authentication required")
+                # Store OTP error for later use
+                self._otp_error = True
                 # Check if we have phone numbers available
-                phones = self.auth_use_case.get_available_phones()
-                if phones:
-                    return await self.async_step_phone_selection()
-                else:
+                try:
+                    phones = self.auth_use_case.get_available_phones()
+                    if phones:
+                        return await self.async_step_phone_selection()
+                    else:
+                        errors["base"] = "otp_required"
+                except Exception as e:
+                    LOGGER.error("Error getting available phones: %s", e)
                     errors["base"] = "otp_required"
             except MyVerisureError as ex:
                 LOGGER.debug("Unexpected error from My Verisure: %s", ex)
@@ -163,15 +170,32 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                 clear_dependencies()
 
         # Get available phones
-        setup_dependencies(username=self.user, password=self.password)
+        setup_dependencies()
         self.auth_use_case = get_auth_use_case()
-        phones = self.auth_use_case.get_available_phones()
         
-        # Create phone options for the form
-        phone_options = {
-            str(phone.get("id")): f"{phone.get('phone', 'Unknown')} (ID: {phone.get('id')})"
-            for phone in phones
-        }
+        try:
+            phones = self.auth_use_case.get_available_phones()
+            
+            if not phones:
+                LOGGER.error("No phone numbers available for OTP")
+                return self.async_show_form(
+                    step_id="phone_selection",
+                    data_schema=vol.Schema({}),
+                    errors={"base": "no_phones_available"}
+                )
+            
+            # Create phone options for the form
+            phone_options = {
+                str(phone.get("id")): f"{phone.get('phone', 'Unknown')} (ID: {phone.get('id')})"
+                for phone in phones
+            }
+        except Exception as e:
+            LOGGER.error("Error getting available phones: %s", e)
+            return self.async_show_form(
+                step_id="phone_selection",
+                data_schema=vol.Schema({}),
+                errors={"base": "phone_retrieval_failed"}
+            )
 
         return self.async_show_form(
             step_id="phone_selection",

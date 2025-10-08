@@ -116,13 +116,25 @@ class DeviceManager:
             # Ensure directory exists
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
-            with open(file_path, "w") as f:
-                json.dump(self._device_identifiers, f, indent=2)
+            # Use asyncio to run file operations in thread pool
+            import asyncio
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                # If we're in an async context, run in thread pool
+                loop.run_in_executor(None, self._write_device_identifiers_file, file_path)
+            else:
+                # If not in async context, write directly
+                self._write_device_identifiers_file(file_path)
 
             _LOGGER.warning("Device identifiers saved to %s", file_path)
 
         except Exception as e:
             _LOGGER.error("Failed to save device identifiers: %s", e)
+
+    def _write_device_identifiers_file(self, file_path: str) -> None:
+        """Write device identifiers to file (blocking operation)."""
+        with open(file_path, "w") as f:
+            json.dump(self._device_identifiers, f, indent=2)
 
     def ensure_device_identifiers(self) -> None:
         """Ensure device identifiers are loaded or generated."""

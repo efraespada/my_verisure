@@ -84,12 +84,24 @@ class SessionManager:
                 'current_installation': self.current_installation,
             }
             
-            with open(self.session_file, 'w') as f:
-                json.dump(session_data, f)
-                
+            # Use asyncio to run file operations in thread pool
+            import asyncio
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                # If we're in an async context, run in thread pool
+                loop.run_in_executor(None, self._write_session_file, session_data)
+            else:
+                # If not in async context, write directly
+                self._write_session_file(session_data)
+            
             logger.info("Session saved to file")
         except Exception as e:
             logger.error(f"Could not save session: {e}")
+
+    def _write_session_file(self, session_data: dict) -> None:
+        """Write session data to file (blocking operation)."""
+        with open(self.session_file, 'w') as f:
+            json.dump(session_data, f)
 
     def _clear_session_file(self) -> None:
         """Clear session file."""
