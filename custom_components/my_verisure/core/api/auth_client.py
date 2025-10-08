@@ -165,9 +165,20 @@ class AuthClient(BaseClient):
                 _LOGGER.warning("Successfully logged in to My Verisure")
                 _LOGGER.warning("Session data: %s", self._session_data)
 
-                # Update other clients with the auth token
-                if hasattr(self, '_update_other_clients'):
-                    self._update_other_clients(self._hash, self._session_data)
+
+                # Update SessionManager with new credentials
+                session_manager = get_session_manager()
+                _LOGGER.warning("AuthClient updating SessionManager:")
+                _LOGGER.warning("  - SessionManager instance ID: %s", id(session_manager))
+                _LOGGER.warning("  - Username: %s", user)
+                _LOGGER.warning("  - Hash token: %s", self._hash[:50] + "..." if self._hash else "None")
+                session_manager.update_credentials(
+                    user,
+                    password,
+                    self._hash,
+                    self._refresh_token
+                )
+                _LOGGER.warning("SessionManager updated with new credentials")
 
                 # Convert to DTO
                 auth_dto = AuthDTO.from_dict(login_data)
@@ -640,9 +651,6 @@ class AuthClient(BaseClient):
                 if self._refresh_token:
                     self._session_data["refreshToken"] = self._refresh_token
 
-                # Update other clients with the auth token
-                if hasattr(self, '_update_other_clients'):
-                    self._update_other_clients(self._hash, self._session_data)
 
                 # Update SessionManager with new credentials
                 session_manager = get_session_manager()
