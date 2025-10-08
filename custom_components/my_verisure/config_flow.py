@@ -109,10 +109,13 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                 self._otp_error = True
                 # Check if we have phone numbers available
                 try:
+                    LOGGER.debug("Attempting to get available phones after OTP error")
                     phones = self.auth_use_case.get_available_phones()
+                    LOGGER.debug("Got %d phones from auth use case", len(phones))
                     if phones:
                         return await self.async_step_phone_selection()
                     else:
+                        LOGGER.error("No phone numbers available for OTP")
                         errors["base"] = "otp_required"
                 except Exception as e:
                     LOGGER.error("Error getting available phones: %s", e)

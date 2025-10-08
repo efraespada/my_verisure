@@ -174,9 +174,18 @@ class AuthClient(BaseClient):
                 # Check if device authorization is needed
                 if login_data.get("needDeviceAuthorization"):
                     _LOGGER.info(
-                        "Device authorization required - proceeding with device validation"
+                        "Device authorization required - checking if device is already authorized"
                     )
-                    return await self._complete_device_authorization()
+                    # First try to check if device is already authorized
+                    try:
+                        return await self._check_device_authorization()
+                    except MyVerisureOTPError:
+                        # Device needs OTP authorization
+                        _LOGGER.info("Device requires OTP authorization")
+                        return await self._complete_device_authorization()
+                    except Exception as e:
+                        _LOGGER.warning("Device authorization check failed, proceeding with OTP: %s", e)
+                        return await self._complete_device_authorization()
 
                 return auth_dto
             else:
@@ -196,6 +205,56 @@ class AuthClient(BaseClient):
         except Exception as e:
             _LOGGER.error("Unexpected error during login: %s", e)
             raise MyVerisureAuthenticationError(f"Login failed: {e}") from e
+
+    async def _check_device_authorization(self) -> AuthDTO:
+        """Check if device is already authorized without requiring OTP."""
+        # Ensure device identifiers are loaded or generated
+        self._device_manager.ensure_device_identifiers()
+
+        # Prepare variables for device validation
+        variables = self._device_manager.get_validation_variables()
+
+        try:
+            _LOGGER.info("Checking if device is already authorized...")
+
+            # Use session headers for device validation
+            session_headers = self._get_session_headers(
+                self._session_data, self._hash
+            )
+
+            # Use direct aiohttp request to get better control over the response
+            result = await self._execute_query_direct(
+                VALIDATE_DEVICE_MUTATION.loc.source.body,
+                variables,
+                session_headers,
+            )
+
+            device_data = result.get("data", {}).get("validateDevice", {})
+            
+            if device_data.get("res") == "OK":
+                _LOGGER.info("Device is already authorized - no OTP required")
+                # Device is authorized, return success
+                return AuthDTO(
+                    res="OK",
+                    msg="Device already authorized",
+                    hash=self._hash,
+                    refresh_token=self._refresh_token,
+                    lang=self._session_data.get("lang"),
+                    legals=self._session_data.get("legals"),
+                    change_password=self._session_data.get("changePassword"),
+                    need_device_authorization=False,
+                )
+            else:
+                # Device needs authorization
+                _LOGGER.info("Device requires authorization")
+                raise MyVerisureOTPError("Device authorization required")
+
+        except MyVerisureOTPError:
+            # Re-raise OTP errors
+            raise
+        except Exception as e:
+            _LOGGER.warning("Device authorization check failed: %s", e)
+            raise MyVerisureOTPError(f"Device authorization required: {e}") from e
 
     async def _complete_device_authorization(self) -> AuthDTO:
         """Complete device authorization process with OTP."""
@@ -307,10 +366,13 @@ class AuthClient(BaseClient):
 
     def get_available_phones(self) -> list[PhoneDTO]:
         """Get available phone numbers for OTP."""
+        _LOGGER.debug("Getting available phones, _otp_data: %s", self._otp_data)
         if not self._otp_data:
+            _LOGGER.warning("No OTP data available")
             return []
 
         phones = self._otp_data.get("phones", [])
+        _LOGGER.debug("Found %d phones in OTP data", len(phones))
         return [PhoneDTO.from_dict(phone) for phone in phones]
 
     def select_phone(self, phone_id: int) -> bool:

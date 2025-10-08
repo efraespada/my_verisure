@@ -96,9 +96,13 @@ class AuthUseCaseImpl(AuthUseCase):
 
     def get_available_phones(self) -> List[dict]:
         """Get available phone numbers for OTP."""
+        _LOGGER.debug("Getting available phones from auth use case")
         # Delegate to the auth client which maintains the OTP state
         phones = self.auth_repository.client.get_available_phones()
-        return [{"id": phone.id, "phone": phone.phone, "record_id": phone.record_id, "otp_hash": phone.otp_hash} for phone in phones]
+        _LOGGER.debug("Auth client returned %d phones", len(phones))
+        result = [{"id": phone.id, "phone": phone.phone, "record_id": phone.record_id, "otp_hash": phone.otp_hash} for phone in phones]
+        _LOGGER.debug("Returning %d phones to config flow", len(result))
+        return result
 
     def select_phone(self, phone_id: int) -> bool:
         """Select a phone number for OTP."""
