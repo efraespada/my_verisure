@@ -20,13 +20,13 @@ class AlarmRepositoryImpl(AlarmRepository):
     ) -> AlarmStatus:
         """Get alarm status."""
         try:
-            _LOGGER.info(
+            _LOGGER.warning(
                 "Getting alarm status for installation %s", installation_id
             )
 
             # Ensure client is connected
             if not self.client._client:
-                _LOGGER.info("Client not connected, connecting now...")
+                _LOGGER.warning("Client not connected, connecting now...")
                 await self.client.connect()
 
             alarm_status_data = await self.client.get_alarm_status(
@@ -38,7 +38,7 @@ class AlarmRepositoryImpl(AlarmRepository):
 
             # The client returns a processed alarm status with internal/external structure
             # We need to convert this to our AlarmStatus domain model
-            _LOGGER.info("Raw alarm status data: %s", alarm_status_data)
+            _LOGGER.warning("Raw alarm status data: %s", alarm_status_data)
 
             # Extract the alarm message from the processed data
             # The client processes the alarm message and returns a structured response
@@ -70,7 +70,7 @@ class AlarmRepositoryImpl(AlarmRepository):
                 forced_armed=False,
             )
 
-            _LOGGER.info(
+            _LOGGER.warning(
                 "Retrieved alarm status for installation %s: %s",
                 installation_id,
                 alarm_message,
@@ -91,7 +91,7 @@ class AlarmRepositoryImpl(AlarmRepository):
     ) -> ArmResult:
         """Arm the alarm panel."""
         try:
-            _LOGGER.info(
+            _LOGGER.warning(
                 "Arming panel for installation %s with request %s",
                 installation_id,
                 request,
@@ -151,7 +151,7 @@ class AlarmRepositoryImpl(AlarmRepository):
     ) -> DisarmResult:
         """Disarm the alarm panel."""
         try:
-            _LOGGER.info(
+            _LOGGER.warning(
                 "Disarming panel for installation %s",
                 installation_id,
             )
@@ -182,7 +182,7 @@ class AlarmRepositoryImpl(AlarmRepository):
     async def arm_alarm_away(self, installation_id: str) -> bool:
         """Arm the alarm in away mode."""
         try:
-            _LOGGER.info(
+            _LOGGER.warning(
                 "Arming alarm away for installation %s", installation_id
             )
             result = await self.client.arm_alarm_away(
@@ -198,7 +198,7 @@ class AlarmRepositoryImpl(AlarmRepository):
     async def arm_alarm_home(self, installation_id: str) -> bool:
         """Arm the alarm in home mode."""
         try:
-            _LOGGER.info(
+            _LOGGER.warning(
                 "Arming alarm home for installation %s", installation_id
             )
             result = await self.client.arm_alarm_home(
@@ -214,7 +214,7 @@ class AlarmRepositoryImpl(AlarmRepository):
     async def arm_alarm_night(self, installation_id: str) -> bool:
         """Arm the alarm in night mode."""
         try:
-            _LOGGER.info(
+            _LOGGER.warning(
                 "Arming alarm night for installation %s", installation_id
             )
             result = await self.client.arm_alarm_night(
@@ -230,7 +230,7 @@ class AlarmRepositoryImpl(AlarmRepository):
     async def disarm_alarm(self, installation_id: str) -> bool:
         """Disarm the alarm."""
         try:
-            _LOGGER.info(
+            _LOGGER.warning(
                 "Disarming alarm for installation %s", installation_id
             )
             result = await self.client.disarm_alarm(
