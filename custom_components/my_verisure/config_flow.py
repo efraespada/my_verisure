@@ -127,9 +127,7 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
             except MyVerisureError as ex:
                 LOGGER.debug("Unexpected error from My Verisure: %s", ex)
                 errors["base"] = "unknown"
-            finally:
-                # Clean up dependencies
-                clear_dependencies()
+            # Don't clear dependencies here - they're needed for the next step
 
         return self.async_show_form(
             step_id="user",
@@ -173,12 +171,12 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
             except Exception as e:
                 LOGGER.error("Error in phone selection: %s", e)
                 errors["base"] = "unknown"
-            finally:
-                clear_dependencies()
+            # Don't clear dependencies here - they're needed for the next step
 
-        # Get available phones
-        setup_dependencies()
-        self.auth_use_case = get_auth_use_case()
+        # Get available phones - dependencies should already be set up
+        if not hasattr(self, 'auth_use_case') or self.auth_use_case is None:
+            setup_dependencies()
+            self.auth_use_case = get_auth_use_case()
         
         try:
             phones = self.auth_use_case.get_available_phones()
@@ -239,8 +237,7 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
             except Exception as e:
                 LOGGER.error("Error in OTP verification: %s", e)
                 errors["base"] = "unknown"
-            finally:
-                clear_dependencies()
+            # Don't clear dependencies here - they're needed for the next step
 
         return self.async_show_form(
             step_id="otp_verification",
@@ -289,8 +286,7 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
             except Exception as e:
                 LOGGER.error("Error in installation selection: %s", e)
                 errors["base"] = "unknown"
-            finally:
-                clear_dependencies()
+            # Don't clear dependencies here - they're needed for the next step
 
         # Get available installations
         setup_dependencies(username=self.user, password=self.password)
@@ -362,8 +358,7 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
             except MyVerisureError as ex:
                 LOGGER.debug("Unexpected error from My Verisure: %s", ex)
                 errors["base"] = "unknown"
-            finally:
-                clear_dependencies()
+            # Don't clear dependencies here - they're needed for the next step
 
         return self.async_show_form(
             step_id="reauth",
