@@ -129,6 +129,12 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
             LOGGER.warning("Returning transition state: %s", self._transition_state)
             return self._transition_state
 
+        LOGGER.warning("Checking coordinator data...")
+        LOGGER.warning("Coordinator exists: %s", hasattr(self, 'coordinator'))
+        LOGGER.warning("Coordinator type: %s", type(self.coordinator))
+        LOGGER.warning("Coordinator has data attribute: %s", hasattr(self.coordinator, 'data'))
+        LOGGER.warning("Coordinator data: %s", getattr(self.coordinator, 'data', 'NO DATA ATTRIBUTE'))
+        
         if not self.coordinator.data:
             LOGGER.warning("No coordinator data available")
             return None

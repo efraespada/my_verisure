@@ -174,6 +174,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
 
     async def _async_update_data(self) -> Dict[str, Any]:
         """Update data via My Verisure API."""
+        LOGGER.warning("_async_update_data called")
         try:
             # Ensure we're logged in
             if not await self.async_login():
@@ -185,10 +186,21 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             LOGGER.warning("Alarm status retrieved successfully: %s", type(alarm_status))
             
             # Convert to dictionary format expected by Home Assistant
-            return {
-                "alarm_status": alarm_status.dict() if hasattr(alarm_status, 'dict') else alarm_status,
+            if hasattr(alarm_status, 'dict'):
+                alarm_dict = alarm_status.dict()
+                LOGGER.warning("Alarm status converted to dict: %s", alarm_dict)
+            else:
+                alarm_dict = alarm_status
+                LOGGER.warning("Alarm status used as-is (no dict method): %s", alarm_dict)
+            
+            result = {
+                "alarm_status": alarm_dict,
                 "last_update": time.time(),
             }
+            LOGGER.warning("Coordinator returning data: %s", result)
+            LOGGER.warning("Coordinator data type: %s", type(result))
+            LOGGER.warning("Coordinator data keys: %s", result.keys())
+            return result
             
         except MyVerisureAuthenticationError as ex:
             LOGGER.error("Authentication error: %s", ex)
