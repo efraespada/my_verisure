@@ -644,6 +644,16 @@ class AuthClient(BaseClient):
                 if hasattr(self, '_update_other_clients'):
                     self._update_other_clients(self._hash, self._session_data)
 
+                # Update SessionManager with new credentials
+                session_manager = get_session_manager()
+                session_manager.update_credentials(
+                    user,
+                    password,
+                    self._hash,
+                    self._refresh_token
+                )
+                _LOGGER.warning("SessionManager updated with new credentials")
+
                 _LOGGER.warning("Post-OTP login successful!")
                 _LOGGER.warning(
                     "Updated hash token obtained: %s",

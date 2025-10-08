@@ -219,6 +219,9 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
             try:
                 # Verify OTP
                 if await self.auth_use_case.verify_otp(otp_code):
+                    # Small delay to ensure SessionManager is fully updated
+                    import asyncio
+                    await asyncio.sleep(0.1)
                     return await self.async_step_installation()
                 else:
                     errors["base"] = "invalid_otp"
@@ -247,6 +250,15 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             installation_id = user_input[CONF_INSTALLATION_ID]
+            
+            # Check SessionManager state before getting installations
+            session_manager = get_session_manager()
+            LOGGER.warning("SessionManager state before getting installations:")
+            LOGGER.warning("  - SessionManager instance ID: %s", id(session_manager))
+            LOGGER.warning("  - Is authenticated: %s", session_manager.is_authenticated)
+            LOGGER.warning("  - Has hash token: %s", bool(session_manager.get_current_hash_token()))
+            LOGGER.warning("  - Username: %s", session_manager.username)
+            LOGGER.warning("  - Hash token (first 50 chars): %s", session_manager.get_current_hash_token()[:50] + "..." if session_manager.get_current_hash_token() else "None")
             
             self.installation_use_case = get_installation_use_case()
 

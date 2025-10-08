@@ -111,7 +111,12 @@ class InstallationClient(BaseClient):
         # Get credentials from SessionManager if not provided
         if not hash_token:
             session_manager = get_session_manager()
+            _LOGGER.warning("InstallationClient getting credentials from SessionManager:")
+            _LOGGER.warning("  - SessionManager instance ID: %s", id(session_manager))
+            _LOGGER.warning("  - Is authenticated: %s", session_manager.is_authenticated)
+            _LOGGER.warning("  - Username: %s", session_manager.username)
             hash_token = session_manager.get_current_hash_token()
+            _LOGGER.warning("  - Hash token obtained: %s", hash_token[:50] + "..." if hash_token else "None")
             if not hash_token:
                 raise MyVerisureAuthenticationError(
                     "Not authenticated. Please login first."
