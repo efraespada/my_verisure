@@ -174,7 +174,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
 
     async def _async_update_data(self) -> Dict[str, Any]:
         """Update data via My Verisure API."""
-        LOGGER.warning("_async_update_data called")
+        LOGGER.warning("_async_update_data called (coordinator id=%s)", id(self))
         try:
             # Ensure we're logged in
             if not await self.async_login():
@@ -200,6 +200,12 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             LOGGER.warning("Coordinator returning data: %s", result)
             LOGGER.warning("Coordinator data type: %s", type(result))
             LOGGER.warning("Coordinator data keys: %s", result.keys())
+            # Ensure data is set on the coordinator
+            try:
+                self.async_set_updated_data(result)
+                LOGGER.warning("Coordinator data explicitly set (id=%s)", id(self))
+            except Exception as set_err:
+                LOGGER.error("Failed to set coordinator data explicitly: %s", set_err)
             return result
             
         except MyVerisureAuthenticationError as ex:
