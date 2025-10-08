@@ -122,18 +122,25 @@ class AuthUseCaseImpl(AuthUseCase):
 
     def select_phone(self, phone_id: int) -> bool:
         """Select a phone number for OTP."""
-        _LOGGER.debug("Selecting phone ID: %d", phone_id)
+        _LOGGER.warning("Selecting phone ID: %d", phone_id)
+        _LOGGER.warning("OTP data available: %s", bool(self._otp_data))
 
         if not self._otp_data:
             _LOGGER.error("No OTP data available")
             return False
 
-        phones = getattr(self._otp_data, "phones", [])
-        selected_phone = next((p for p in phones if p.id == phone_id), None)
+        # Check if _otp_data is a dictionary with phones
+        if isinstance(self._otp_data, dict) and "phones" in self._otp_data:
+            phones = self._otp_data["phones"]
+            _LOGGER.warning("Available phones from stored data: %s", [{"id": p.get("id"), "phone": p.get("phone")} for p in phones])
+            selected_phone = next((p for p in phones if p.get("id") == phone_id), None)
+        else:
+            _LOGGER.error("OTP data is not a dictionary with phones: %s", type(self._otp_data))
+            return False
 
         if selected_phone:
-            _LOGGER.info(
-                "Phone selected: ID %d - %s", phone_id, selected_phone.phone
+            _LOGGER.warning(
+                "Phone selected: ID %d - %s", phone_id, selected_phone.get("phone")
             )
             return True
         else:

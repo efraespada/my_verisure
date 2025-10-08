@@ -98,20 +98,20 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                     errors["base"] = "invalid_auth"
                     
             except MyVerisureAuthenticationError:
-                LOGGER.debug("Invalid credentials for My Verisure")
+                LOGGER.warning("Invalid credentials for My Verisure")
                 errors["base"] = "invalid_auth"
             except MyVerisureConnectionError:
-                LOGGER.debug("Connection error to My Verisure")
+                LOGGER.warning("Connection error to My Verisure")
                 errors["base"] = "cannot_connect"
             except MyVerisureOTPError:
-                LOGGER.debug("OTP authentication required")
+                LOGGER.warning("OTP authentication required")
                 # Store OTP error for later use
                 self._otp_error = True
                 # Check if we have phone numbers available
                 try:
-                    LOGGER.debug("Attempting to get available phones after OTP error")
+                    LOGGER.warning("Attempting to get available phones after OTP error")
                     phones = self.auth_use_case.get_available_phones()
-                    LOGGER.debug("Got %d phones from auth use case", len(phones))
+                    LOGGER.warning("Got %d phones from auth use case", len(phones))
                     if phones:
                         return await self.async_step_phone_selection()
                     else:
@@ -125,7 +125,7 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                     LOGGER.warning("Proceeding without OTP - device may already be authorized")
                     return await self.async_step_installation()
             except MyVerisureError as ex:
-                LOGGER.debug("Unexpected error from My Verisure: %s", ex)
+                LOGGER.warning("Unexpected error from My Verisure: %s", ex)
                 errors["base"] = "unknown"
             # Don't clear dependencies here - they're needed for the next step
 
@@ -147,7 +147,8 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            phone_id = user_input[CONF_PHONE_ID]
+            phone_id = int(user_input[CONF_PHONE_ID])  # Convert to int
+            _LOGGER.warning("Selected phone ID: %d", phone_id)
             
             try:
                 # Select phone and send OTP
@@ -342,7 +343,7 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                 # For reauth, we'll just show an error instead of handling OTP
                 errors["base"] = "otp_required"
             except MyVerisureError as ex:
-                LOGGER.debug("Unexpected error from My Verisure: %s", ex)
+                LOGGER.warning("Unexpected error from My Verisure: %s", ex)
                 errors["base"] = "unknown"
             # Don't clear dependencies here - they're needed for the next step
 
