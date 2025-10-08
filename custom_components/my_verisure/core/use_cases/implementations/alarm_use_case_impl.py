@@ -35,11 +35,13 @@ class AlarmUseCaseImpl(AlarmUseCase):
             )
 
             # Get installation services from InstallationRepository
+            _LOGGER.warning("Getting installation services for: %s", installation_id)
             services_data = (
                 await self.installation_repository.get_installation_services(
                     installation_id
                 )
             )
+            _LOGGER.warning("Installation services retrieved: %s", type(services_data))
 
             # Extract panel from installation data
             installation_data = services_data.installation_data or {}
@@ -70,20 +72,24 @@ class AlarmUseCaseImpl(AlarmUseCase):
     async def get_alarm_status(self, installation_id: str) -> AlarmStatus:
         """Get alarm status."""
         try:
-            _LOGGER.info(
+            _LOGGER.warning(
                 "Getting alarm status for installation %s", installation_id
             )
 
             # Get panel and capabilities from installation services
+            _LOGGER.warning("Getting installation info for: %s", installation_id)
             panel, capabilities = await self._get_installation_info(
                 installation_id
             )
+            _LOGGER.warning("Installation info retrieved - panel: %s, capabilities: %s", panel, capabilities)
 
+            _LOGGER.warning("Getting alarm status from repository...")
             alarm_status = await self.alarm_repository.get_alarm_status(
                 installation_id, panel, capabilities
             )
+            _LOGGER.warning("Alarm status retrieved from repository: %s", type(alarm_status))
 
-            _LOGGER.info(
+            _LOGGER.warning(
                 "Retrieved alarm status for installation %s", installation_id
             )
             return alarm_status
@@ -95,7 +101,7 @@ class AlarmUseCaseImpl(AlarmUseCase):
     async def arm_away(self, installation_id: str) -> bool:
         """Arm the alarm in away mode."""
         try:
-            _LOGGER.info(
+            _LOGGER.warning(
                 "Arming alarm in away mode for installation %s",
                 installation_id,
             )
@@ -109,7 +115,7 @@ class AlarmUseCaseImpl(AlarmUseCase):
             )
 
             if result.success:
-                _LOGGER.info("Alarm armed in away mode successfully")
+                _LOGGER.warning("Alarm armed in away mode successfully")
             else:
                 _LOGGER.error(
                     "Failed to arm alarm in away mode: %s", result.message
@@ -124,7 +130,7 @@ class AlarmUseCaseImpl(AlarmUseCase):
     async def arm_home(self, installation_id: str) -> bool:
         """Arm the alarm in home mode."""
         try:
-            _LOGGER.info(
+            _LOGGER.warning(
                 "Arming alarm in home mode for installation %s",
                 installation_id,
             )
@@ -138,7 +144,7 @@ class AlarmUseCaseImpl(AlarmUseCase):
             )
 
             if result.success:
-                _LOGGER.info("Alarm armed in home mode successfully")
+                _LOGGER.warning("Alarm armed in home mode successfully")
             else:
                 _LOGGER.error(
                     "Failed to arm alarm in home mode: %s", result.message
@@ -153,7 +159,7 @@ class AlarmUseCaseImpl(AlarmUseCase):
     async def arm_night(self, installation_id: str) -> bool:
         """Arm the alarm in night mode."""
         try:
-            _LOGGER.info(
+            _LOGGER.warning(
                 "Arming alarm in night mode for installation %s",
                 installation_id,
             )
@@ -167,7 +173,7 @@ class AlarmUseCaseImpl(AlarmUseCase):
             )
 
             if result.success:
-                _LOGGER.info("Alarm armed in night mode successfully")
+                _LOGGER.warning("Alarm armed in night mode successfully")
             else:
                 _LOGGER.error(
                     "Failed to arm alarm in night mode: %s", result.message
@@ -182,7 +188,7 @@ class AlarmUseCaseImpl(AlarmUseCase):
     async def disarm(self, installation_id: str) -> bool:
         """Disarm the alarm."""
         try:
-            _LOGGER.info(
+            _LOGGER.warning(
                 "Disarming alarm for installation %s", installation_id
             )
 
@@ -194,7 +200,7 @@ class AlarmUseCaseImpl(AlarmUseCase):
             )
 
             if result.success:
-                _LOGGER.info("Alarm disarmed successfully")
+                _LOGGER.warning("Alarm disarmed successfully")
             else:
                 _LOGGER.error("Failed to disarm alarm: %s", result.message)
 

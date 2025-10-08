@@ -180,7 +180,9 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
                 raise UpdateFailed("Failed to login to My Verisure")
 
             # Get alarm status using alarm use case
+            LOGGER.warning("Attempting to get alarm status for installation: %s", self.installation_id)
             alarm_status = await self.alarm_use_case.get_alarm_status(self.installation_id)
+            LOGGER.warning("Alarm status retrieved successfully: %s", type(alarm_status))
             
             # Convert to dictionary format expected by Home Assistant
             return {
@@ -300,6 +302,6 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         try:
             # Clear dependencies
             clear_dependencies()
-            LOGGER.info("Coordinator cleanup completed")
+            LOGGER.warning("Coordinator cleanup completed")
         except Exception as e:
             LOGGER.error("Error during cleanup: %s", e) 

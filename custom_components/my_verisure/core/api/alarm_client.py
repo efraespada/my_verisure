@@ -191,7 +191,7 @@ class AlarmClient(BaseClient):
         self._hash = hash_token
         self._session_data = session_data or {}
 
-    def _load_alarm_status_config(self) -> Dict[str, Any]:
+    async def _load_alarm_status_config(self) -> Dict[str, Any]:
         """Load alarm status configuration from JSON file."""
         try:
             # Get the directory where this file is located and go up one level
@@ -199,8 +199,15 @@ class AlarmClient(BaseClient):
             current_dir = os.path.dirname(os.path.abspath(__file__))
             config_path = os.path.join(current_dir, "alarm_status.json")
 
-            with open(config_path, "r") as f:
-                config = json.load(f)
+            # Use asyncio to run file operations in thread pool
+            import asyncio
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                # If we're in an async context, run in thread pool
+                config = await loop.run_in_executor(None, self._read_alarm_status_file, config_path)
+            else:
+                # If not in async context, read directly
+                config = self._read_alarm_status_file(config_path)
 
             _LOGGER.debug(
                 "Alarm status configuration loaded from %s", config_path
@@ -219,12 +226,17 @@ class AlarmClient(BaseClient):
                 "external": {"alarm": []},
             }
 
-    def _process_alarm_message(self, message: str) -> Dict[str, Any]:
+    def _read_alarm_status_file(self, config_path: str) -> Dict[str, Any]:
+        """Read alarm status configuration file (blocking operation)."""
+        with open(config_path, "r") as f:
+            return json.load(f)
+
+    async def _process_alarm_message(self, message: str) -> Dict[str, Any]:
         """Process alarm message and return status structure."""
         if not message:
             return self._get_default_alarm_status()
 
-        config = self._load_alarm_status_config()
+        config = await self._load_alarm_status_config()
 
         # Initialize response structure
         response = {
@@ -243,7 +255,7 @@ class AlarmClient(BaseClient):
                     alarm_messages = subsection_config.get("alarm", [])
                     if message in alarm_messages:
                         response["internal"][subsection]["status"] = True
-                        _LOGGER.info(
+                        _LOGGER.warning(
                             "Alarm message '%s' matches %s.%s",
                             message,
                             section,
@@ -253,7 +265,7 @@ class AlarmClient(BaseClient):
                 alarm_messages = section_config.get("alarm", [])
                 if message in alarm_messages:
                     response["external"]["status"] = True
-                    _LOGGER.info(
+                    _LOGGER.warning(
                         "Alarm message '%s' matches %s", message, section
                     )
 
@@ -300,7 +312,7 @@ class AlarmClient(BaseClient):
             _LOGGER.warning("Client not connected, connecting now...")
             await self.connect()
 
-        _LOGGER.info(
+        _LOGGER.warning(
             "Getting alarm status for installation %s", installation_id
         )
 
@@ -316,7 +328,7 @@ class AlarmClient(BaseClient):
                 service_id = "EST"
                 service_request = "EST"
 
-                _LOGGER.info(
+                _LOGGER.warning(
                     "Getting real-time alarm status for EST service: %s "
                     "(request: %s)",
                     service_id,
@@ -363,7 +375,7 @@ class AlarmClient(BaseClient):
                     )
                     return self._get_default_alarm_status()
 
-                _LOGGER.info("Obtained referenceId: %s", reference_id)
+                _LOGGER.warning("Obtained referenceId: %s", reference_id)
 
                 alarm_message = await self._get_real_time_alarm_status(
                     numinst=installation_id,
@@ -377,8 +389,8 @@ class AlarmClient(BaseClient):
 
                 # Process the alarm message and return the structured response
                 if alarm_message:
-                    _LOGGER.info("Received alarm message: %s", alarm_message)
-                    return self._process_alarm_message(alarm_message)
+                    _LOGGER.warning("Received alarm message: %s", alarm_message)
+                    return await self._process_alarm_message(alarm_message)
                 else:
                     _LOGGER.warning("No alarm message received")
                     return self._get_default_alarm_status()
@@ -409,7 +421,7 @@ class AlarmClient(BaseClient):
     ) -> str:
         """Get real-time alarm status using the CheckAlarmStatus query with polling."""
         try:
-            _LOGGER.info(
+            _LOGGER.warning(
                 "Getting real-time alarm status with numinst: %s, panel: %s, "
                 "idService: %s, referenceId: %s",
                 numinst,
@@ -508,7 +520,7 @@ class AlarmClient(BaseClient):
     ) -> bool:
         """Send an alarm command to the specified installation using the correct flow."""
         try:
-            _LOGGER.info(
+            _LOGGER.warning(
                 "Sending alarm command '%s' to installation %s",
                 request,
                 installation_id,
@@ -562,7 +574,7 @@ class AlarmClient(BaseClient):
                 )
                 return False
 
-            _LOGGER.info(
+            _LOGGER.warning(
                 "Arm command sent successfully, referenceId: %s", reference_id
             )
 
@@ -616,7 +628,7 @@ class AlarmClient(BaseClient):
                 )
 
                 if status_res == "OK":
-                    _LOGGER.info(
+                    _LOGGER.warning(
                         "Alarm command '%s' completed successfully: %s",
                         request,
                         status_msg,
@@ -657,7 +669,7 @@ class AlarmClient(BaseClient):
     ) -> bool:
         """Disarm the alarm for the specified installation using the correct flow."""
         try:
-            _LOGGER.info(
+            _LOGGER.warning(
                 "Disarming alarm for installation %s", installation_id
             )
 
@@ -708,7 +720,7 @@ class AlarmClient(BaseClient):
                 _LOGGER.error("Failed to send disarm command: %s", disarm_msg)
                 return False
 
-            _LOGGER.info(
+            _LOGGER.warning(
                 "Disarm command sent successfully, referenceId: %s",
                 reference_id,
             )
@@ -768,7 +780,7 @@ class AlarmClient(BaseClient):
                 )
 
                 if status_res == "OK":
-                    _LOGGER.info("Alarm disarmed successfully: %s", status_msg)
+                    _LOGGER.warning("Alarm disarmed successfully: %s", status_msg)
                     return True
                 elif status_res == "WAIT":
                     # Need to wait and retry
@@ -1044,7 +1056,7 @@ class AlarmClient(BaseClient):
             raise MyVerisureConnectionError("Client not connected")
 
         try:
-            _LOGGER.info("Executing disarm panel with variables: %s", {
+            _LOGGER.warning("Executing disarm panel with variables: %s", {
                 "numinst": installation_id,
                 "request": request,
                 "panel": panel,
@@ -1065,7 +1077,7 @@ class AlarmClient(BaseClient):
                 else None
             )
 
-            _LOGGER.info("Session headers: %s", headers)
+            _LOGGER.warning("Session headers: %s", headers)
 
             # Add alarm-specific headers
             if headers:
@@ -1073,14 +1085,14 @@ class AlarmClient(BaseClient):
                 headers["panel"] = panel
                 headers["x-capabilities"] = capabilities
 
-            _LOGGER.info("Final headers: %s", headers)
+            _LOGGER.warning("Final headers: %s", headers)
 
             # Make direct request
             result = await self._execute_query_direct(
                 DISARM_PANEL_MUTATION.loc.source.body, variables, headers
             )
 
-            _LOGGER.info("Disarm panel result: %s", result)
+            _LOGGER.warning("Disarm panel result: %s", result)
             return result
 
         except Exception as e:
