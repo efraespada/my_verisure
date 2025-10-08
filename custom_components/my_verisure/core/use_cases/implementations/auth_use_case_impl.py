@@ -96,13 +96,26 @@ class AuthUseCaseImpl(AuthUseCase):
 
     def get_available_phones(self) -> List[dict]:
         """Get available phone numbers for OTP."""
-        _LOGGER.debug("Getting available phones from auth use case")
-        # Delegate to the auth client which maintains the OTP state
-        phones = self.auth_repository.client.get_available_phones()
-        _LOGGER.debug("Auth client returned %d phones", len(phones))
-        result = [{"id": phone.id, "phone": phone.phone, "record_id": phone.record_id, "otp_hash": phone.otp_hash} for phone in phones]
-        _LOGGER.debug("Returning %d phones to config flow", len(result))
-        return result
+        _LOGGER.warning("Getting available phones from auth use case")
+        _LOGGER.warning("AuthUseCase _otp_data: %s", self._otp_data)
+        
+        if not self._otp_data:
+            _LOGGER.warning("No OTP data available in AuthUseCase")
+            return []
+        
+        # Get phones from the stored OTP data
+        if hasattr(self._otp_data, 'args') and self._otp_data.args:
+            # If _otp_data is an exception, try to get data from the client
+            _LOGGER.warning("_otp_data is an exception, delegating to client")
+            phones = self.auth_repository.client.get_available_phones()
+            _LOGGER.warning("Auth client returned %d phones", len(phones))
+            result = [{"id": phone.id, "phone": phone.phone, "record_id": phone.record_id, "otp_hash": phone.otp_hash} for phone in phones]
+            _LOGGER.warning("Returning %d phones to config flow", len(result))
+            return result
+        else:
+            _LOGGER.warning("Using stored OTP data from AuthUseCase")
+            # Use stored OTP data
+            return []
 
     def select_phone(self, phone_id: int) -> bool:
         """Select a phone number for OTP."""

@@ -93,6 +93,7 @@ class AuthClient(BaseClient):
 
     def __init__(self) -> None:
         """Initialize the authentication client."""
+        _LOGGER.warning("🔧 AuthClient constructor called - instance: %s", id(self))
         super().__init__()
         self._hash: Optional[str] = None
         self._refresh_token: Optional[str] = None
@@ -359,25 +360,28 @@ class AuthClient(BaseClient):
             phone["record_id"] = phone.get("id")  # Use phone ID as record_id
         
         self._otp_data = {"phones": auth_phones, "otp_hash": otp_hash}
+        _LOGGER.warning("🔧 OTP data set: %s", self._otp_data)
 
         _LOGGER.warning("📱 Available phone numbers for OTP:")
         for phone in auth_phones:
             _LOGGER.warning("  ID %d: %s", phone.get("id"), phone.get("phone"))
 
         # Don't automatically send OTP - let the config flow handle it
+        _LOGGER.warning("🚨 Raising MyVerisureOTPError - OTP data should be preserved")
+        _LOGGER.warning("🔧 Final OTP data before exception: %s", self._otp_data)
         raise MyVerisureOTPError(
             "OTP authentication required - please select phone number"
         )
 
     def get_available_phones(self) -> list[PhoneDTO]:
         """Get available phone numbers for OTP."""
-        _LOGGER.debug("Getting available phones, _otp_data: %s", self._otp_data)
+        _LOGGER.warning("Getting available phones, _otp_data: %s", self._otp_data)
         if not self._otp_data:
             _LOGGER.warning("No OTP data available - device may already be authorized")
             return []
 
         phones = self._otp_data.get("phones", [])
-        _LOGGER.debug("Found %d phones in OTP data", len(phones))
+        _LOGGER.warning("Found %d phones in OTP data", len(phones))
         return [PhoneDTO.from_dict(phone) for phone in phones]
 
     def select_phone(self, phone_id: int) -> bool:
