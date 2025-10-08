@@ -149,10 +149,6 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             phone_id = user_input[CONF_PHONE_ID]
             
-            # Setup dependencies again
-            setup_dependencies(username=self.user, password=self.password)
-            self.auth_use_case = get_auth_use_case()
-            
             try:
                 # Select phone and send OTP
                 if self.auth_use_case.select_phone(phone_id):
@@ -176,11 +172,6 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                 errors["base"] = "unknown"
             # Don't clear dependencies here - they're needed for the next step
 
-        # Get available phones - dependencies should already be set up
-        if not hasattr(self, 'auth_use_case') or self.auth_use_case is None:
-            setup_dependencies()
-            self.auth_use_case = get_auth_use_case()
-        
         try:
             phones = self.auth_use_case.get_available_phones()
             
@@ -224,11 +215,6 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             otp_code = user_input[CONF_OTP_CODE]
             
-            # Setup dependencies again
-            setup_dependencies(username=self.user, password=self.password)
-            self.auth_use_case = get_auth_use_case()
-            self.installation_use_case = get_installation_use_case()
-            
             try:
                 # Verify OTP
                 if await self.auth_use_case.verify_otp(otp_code):
@@ -261,9 +247,8 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             installation_id = user_input[CONF_INSTALLATION_ID]
             
-            # Setup dependencies again
-            setup_dependencies(username=self.user, password=self.password)
             self.installation_use_case = get_installation_use_case()
+
             
             try:
                 # Verify the installation exists and is accessible
@@ -291,9 +276,6 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                 errors["base"] = "unknown"
             # Don't clear dependencies here - they're needed for the next step
 
-        # Get available installations
-        setup_dependencies(username=self.user, password=self.password)
-        self.installation_use_case = get_installation_use_case()
         installations = await self.installation_use_case.get_installations()
         
         # Create installation options for the form
@@ -322,9 +304,10 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
             self.user = user_input[CONF_USER]
             self.password = user_input[CONF_PASSWORD]
             
-            # Setup dependencies
-            setup_dependencies(username=self.user, password=self.password)
-            self.auth_use_case = get_auth_use_case()
+            # Dependencies should already be set up from previous step
+            if not hasattr(self, 'auth_use_case') or self.auth_use_case is None:
+                setup_dependencies()
+                self.auth_use_case = get_auth_use_case()
             
             try:
                 # Perform login using auth use case
