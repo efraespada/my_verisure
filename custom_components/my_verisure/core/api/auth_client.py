@@ -230,6 +230,7 @@ class AuthClient(BaseClient):
             )
 
             device_data = result.get("data", {}).get("validateDevice", {})
+            _LOGGER.debug("Device validation response: %s", device_data)
             
             if device_data.get("res") == "OK":
                 _LOGGER.info("Device is already authorized - no OTP required")
@@ -246,7 +247,7 @@ class AuthClient(BaseClient):
                 )
             else:
                 # Device needs authorization
-                _LOGGER.info("Device requires authorization")
+                _LOGGER.info("Device requires authorization - response: %s", device_data)
                 raise MyVerisureOTPError("Device authorization required")
 
         except MyVerisureOTPError:
@@ -368,7 +369,7 @@ class AuthClient(BaseClient):
         """Get available phone numbers for OTP."""
         _LOGGER.debug("Getting available phones, _otp_data: %s", self._otp_data)
         if not self._otp_data:
-            _LOGGER.warning("No OTP data available")
+            _LOGGER.warning("No OTP data available - device may already be authorized")
             return []
 
         phones = self._otp_data.get("phones", [])

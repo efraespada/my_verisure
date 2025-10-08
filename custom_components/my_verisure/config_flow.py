@@ -115,11 +115,15 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                     if phones:
                         return await self.async_step_phone_selection()
                     else:
-                        LOGGER.error("No phone numbers available for OTP")
-                        errors["base"] = "otp_required"
+                        LOGGER.warning("No phone numbers available for OTP - device may already be authorized")
+                        # If no phones available, it might mean device is already authorized
+                        # Try to proceed with installation selection
+                        return await self.async_step_installation()
                 except Exception as e:
                     LOGGER.error("Error getting available phones: %s", e)
-                    errors["base"] = "otp_required"
+                    # If we can't get phones, try to proceed anyway
+                    LOGGER.warning("Proceeding without OTP - device may already be authorized")
+                    return await self.async_step_installation()
             except MyVerisureError as ex:
                 LOGGER.debug("Unexpected error from My Verisure: %s", ex)
                 errors["base"] = "unknown"
