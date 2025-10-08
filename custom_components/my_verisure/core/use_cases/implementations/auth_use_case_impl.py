@@ -50,9 +50,10 @@ class AuthUseCaseImpl(AuthUseCase):
             return result
 
         except MyVerisureOTPError as e:
-            _LOGGER.info("OTP authentication required: %s", e)
-            # Store OTP data for later use
-            self._otp_data = e
+            _LOGGER.warning("OTP authentication required: %s", e)
+            # Store OTP data from the auth client for later use
+            self._otp_data = self.auth_repository.client._otp_data
+            _LOGGER.warning("Stored OTP data in AuthUseCase: %s", self._otp_data)
             raise
         except Exception as e:
             _LOGGER.error("Unexpected error during login: %s", e)
@@ -103,19 +104,21 @@ class AuthUseCaseImpl(AuthUseCase):
             _LOGGER.warning("No OTP data available in AuthUseCase")
             return []
         
-        # Get phones from the stored OTP data
-        if hasattr(self._otp_data, 'args') and self._otp_data.args:
-            # If _otp_data is an exception, try to get data from the client
-            _LOGGER.warning("_otp_data is an exception, delegating to client")
+        # Check if _otp_data is a dictionary with phones
+        if isinstance(self._otp_data, dict) and "phones" in self._otp_data:
+            _LOGGER.warning("Using stored OTP data from AuthUseCase")
+            phones = self._otp_data.get("phones", [])
+            result = [{"id": phone.get("id"), "phone": phone.get("phone"), "record_id": phone.get("record_id"), "otp_hash": phone.get("otp_hash")} for phone in phones]
+            _LOGGER.warning("Returning %d phones from stored data", len(result))
+            return result
+        else:
+            # Fallback to client
+            _LOGGER.warning("_otp_data is not a dict, delegating to client")
             phones = self.auth_repository.client.get_available_phones()
             _LOGGER.warning("Auth client returned %d phones", len(phones))
             result = [{"id": phone.id, "phone": phone.phone, "record_id": phone.record_id, "otp_hash": phone.otp_hash} for phone in phones]
             _LOGGER.warning("Returning %d phones to config flow", len(result))
             return result
-        else:
-            _LOGGER.warning("Using stored OTP data from AuthUseCase")
-            # Use stored OTP data
-            return []
 
     def select_phone(self, phone_id: int) -> bool:
         """Select a phone number for OTP."""

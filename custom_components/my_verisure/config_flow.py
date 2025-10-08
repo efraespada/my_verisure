@@ -156,15 +156,18 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
             try:
                 # Select phone and send OTP
                 if self.auth_use_case.select_phone(phone_id):
-                    # Send OTP using the phone_id as record_id and the stored otp_hash
-                    otp_hash = getattr(self.auth_use_case._otp_data, "otp_hash", None)
-                    if otp_hash:
+                    # Get OTP hash from the stored OTP data
+                    otp_data = self.auth_use_case._otp_data
+                    if isinstance(otp_data, dict) and "otp_hash" in otp_data:
+                        otp_hash = otp_data["otp_hash"]
+                        _LOGGER.warning("Using OTP hash from stored data: %s", otp_hash[:50] + "..." if otp_hash else "None")
                         otp_sent = await self.auth_use_case.send_otp(phone_id, otp_hash)
                         if otp_sent:
                             return await self.async_step_otp_verification()
                         else:
                             errors["base"] = "otp_send_failed"
                     else:
+                        _LOGGER.error("No OTP hash found in stored data: %s", otp_data)
                         errors["base"] = "otp_data_missing"
                 else:
                     errors["base"] = "phone_selection_failed"
