@@ -161,8 +161,8 @@ class AuthClient(BaseClient):
                 self._hash = login_data.get("hash")
                 self._refresh_token = login_data.get("refreshToken")
 
-                _LOGGER.info("Successfully logged in to My Verisure")
-                _LOGGER.info("Session data: %s", self._session_data)
+                _LOGGER.warning("Successfully logged in to My Verisure")
+                _LOGGER.warning("Session data: %s", self._session_data)
 
                 # Update other clients with the auth token
                 if hasattr(self, '_update_other_clients'):
@@ -173,10 +173,10 @@ class AuthClient(BaseClient):
 
                 # Check if device authorization is needed
                 need_device_auth = login_data.get("needDeviceAuthorization")
-                _LOGGER.debug("needDeviceAuthorization: %s", need_device_auth)
+                _LOGGER.warning("needDeviceAuthorization: %s", need_device_auth)
                 
                 if need_device_auth is True:
-                    _LOGGER.info(
+                    _LOGGER.warning(
                         "Device authorization required - checking if device is already authorized"
                     )
                     # First try to check if device is already authorized
@@ -184,13 +184,13 @@ class AuthClient(BaseClient):
                         return await self._check_device_authorization()
                     except MyVerisureOTPError:
                         # Device needs OTP authorization
-                        _LOGGER.info("Device requires OTP authorization")
+                        _LOGGER.warning("Device requires OTP authorization")
                         return await self._complete_device_authorization()
                     except Exception as e:
                         _LOGGER.warning("Device authorization check failed, proceeding with OTP: %s", e)
                         return await self._complete_device_authorization()
                 else:
-                    _LOGGER.info("Device authorization not required - login successful")
+                    _LOGGER.warning("Device authorization not required - login successful")
                     return auth_dto
             else:
                 error_msg = (
@@ -219,7 +219,7 @@ class AuthClient(BaseClient):
         variables = self._device_manager.get_validation_variables()
 
         try:
-            _LOGGER.info("Checking if device is already authorized...")
+            _LOGGER.warning("Checking if device is already authorized...")
 
             # Use session headers for device validation
             session_headers = self._get_session_headers(
@@ -237,7 +237,7 @@ class AuthClient(BaseClient):
             _LOGGER.debug("Device validation response: %s", device_data)
             
             if device_data.get("res") == "OK":
-                _LOGGER.info("Device is already authorized - no OTP required")
+                _LOGGER.warning("Device is already authorized - no OTP required")
                 # Device is authorized, return success
                 return AuthDTO(
                     res="OK",
@@ -251,7 +251,7 @@ class AuthClient(BaseClient):
                 )
             else:
                 # Device needs authorization
-                _LOGGER.info("Device requires authorization - response: %s", device_data)
+                _LOGGER.warning("Device requires authorization - response: %s", device_data)
                 raise MyVerisureOTPError("Device authorization required")
 
         except MyVerisureOTPError:
@@ -270,7 +270,7 @@ class AuthClient(BaseClient):
         variables = self._device_manager.get_validation_variables()
 
         try:
-            _LOGGER.info("Validating device...")
+            _LOGGER.warning("Validating device...")
 
             # Use session headers for device validation
             session_headers = self._get_session_headers(
@@ -289,7 +289,7 @@ class AuthClient(BaseClient):
             if device_data and device_data.get("res") == "OK":
                 self._hash = device_data.get("hash")
                 self._refresh_token = device_data.get("refreshToken")
-                _LOGGER.info("Device validation successful")
+                _LOGGER.warning("Device validation successful")
                 return AuthDTO.from_dict(device_data)
 
             # Check for errors that require OTP
@@ -299,14 +299,14 @@ class AuthClient(BaseClient):
                 auth_code = error_data.get("auth-code")
                 auth_type = error_data.get("auth-type")
 
-                _LOGGER.info(
+                _LOGGER.warning(
                     "Device validation error - auth-code: %s, auth-type: %s",
                     auth_code,
                     auth_type,
                 )
 
                 if auth_type == "OTP" or auth_code == "10001":
-                    _LOGGER.info("OTP authentication required")
+                    _LOGGER.warning("OTP authentication required")
                     return await self._handle_otp_authentication(error_data)
                 elif auth_code == "10010":
                     _LOGGER.error(
@@ -360,9 +360,9 @@ class AuthClient(BaseClient):
         
         self._otp_data = {"phones": auth_phones, "otp_hash": otp_hash}
 
-        _LOGGER.info("📱 Available phone numbers for OTP:")
+        _LOGGER.warning("📱 Available phone numbers for OTP:")
         for phone in auth_phones:
-            _LOGGER.info("  ID %d: %s", phone.get("id"), phone.get("phone"))
+            _LOGGER.warning("  ID %d: %s", phone.get("id"), phone.get("phone"))
 
         # Don't automatically send OTP - let the config flow handle it
         raise MyVerisureOTPError(
@@ -395,7 +395,7 @@ class AuthClient(BaseClient):
 
         if selected_phone:
             self._otp_data["selected_phone"] = selected_phone
-            _LOGGER.info(
+            _LOGGER.warning(
                 "📞 Phone selected: ID %d - %s",
                 phone_id,
                 selected_phone.get("phone"),
@@ -439,10 +439,10 @@ class AuthClient(BaseClient):
             otp_response = data.get("xSSendOtp", {})
 
             if otp_response and otp_response.get("res") == "OK":
-                _LOGGER.info(
+                _LOGGER.warning(
                     "OTP sent successfully: %s", otp_response.get("msg")
                 )
-                _LOGGER.info(
+                _LOGGER.warning(
                     "Please check your phone for the SMS and enter the OTP code"
                 )
                 return True
@@ -535,7 +535,7 @@ class AuthClient(BaseClient):
                     )
 
                 # Now perform a new login to get updated tokens
-                _LOGGER.info(
+                _LOGGER.warning(
                     "OTP verification successful! Performing new login to get updated tokens..."
                 )
 
@@ -596,9 +596,9 @@ class AuthClient(BaseClient):
         )
 
         try:
-            _LOGGER.info("Performing post-OTP login to get updated tokens...")
-            _LOGGER.info("Device UUID: %s", variables.get("uuid"))
-            _LOGGER.info("Device Name: %s", variables.get("deviceName"))
+            _LOGGER.warning("Performing post-OTP login to get updated tokens...")
+            _LOGGER.warning("Device UUID: %s", variables.get("uuid"))
+            _LOGGER.warning("Device Name: %s", variables.get("deviceName"))
 
             result = await self._execute_query(LOGIN_MUTATION, variables)
 
@@ -640,12 +640,12 @@ class AuthClient(BaseClient):
                 if hasattr(self, '_update_other_clients'):
                     self._update_other_clients(self._hash, self._session_data)
 
-                _LOGGER.info("Post-OTP login successful!")
-                _LOGGER.info(
+                _LOGGER.warning("Post-OTP login successful!")
+                _LOGGER.warning(
                     "Updated hash token obtained: %s",
                     self._hash[:50] + "..." if self._hash else "None",
                 )
-                _LOGGER.info(
+                _LOGGER.warning(
                     "Updated refresh token obtained: %s",
                     (
                         self._refresh_token[:50] + "..."
