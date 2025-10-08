@@ -172,7 +172,10 @@ class AuthClient(BaseClient):
                 auth_dto = AuthDTO.from_dict(login_data)
 
                 # Check if device authorization is needed
-                if login_data.get("needDeviceAuthorization"):
+                need_device_auth = login_data.get("needDeviceAuthorization")
+                _LOGGER.debug("needDeviceAuthorization: %s", need_device_auth)
+                
+                if need_device_auth is True:
                     _LOGGER.info(
                         "Device authorization required - checking if device is already authorized"
                     )
@@ -186,8 +189,9 @@ class AuthClient(BaseClient):
                     except Exception as e:
                         _LOGGER.warning("Device authorization check failed, proceeding with OTP: %s", e)
                         return await self._complete_device_authorization()
-
-                return auth_dto
+                else:
+                    _LOGGER.info("Device authorization not required - login successful")
+                    return auth_dto
             else:
                 error_msg = (
                     login_data.get("msg", "Unknown error")
