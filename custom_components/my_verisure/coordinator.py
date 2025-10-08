@@ -186,7 +186,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             
             # Convert to dictionary format expected by Home Assistant
             return {
-                "alarm_status": alarm_status.to_dict() if hasattr(alarm_status, 'to_dict') else alarm_status,
+                "alarm_status": alarm_status.dict() if hasattr(alarm_status, 'dict') else alarm_status,
                 "last_update": time.time(),
             }
             
