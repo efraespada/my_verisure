@@ -232,7 +232,10 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
     async def async_arm_away(self) -> bool:
         """Arm the alarm in away mode."""
         try:
-            return await self.alarm_use_case.arm_away(self.installation_id)
+            LOGGER.warning("Coordinator: Arming alarm away for installation %s", self.installation_id)
+            result = await self.alarm_use_case.arm_away(self.installation_id)
+            LOGGER.warning("Coordinator: Arm away result: %s", result)
+            return result
         except Exception as e:
             LOGGER.error("Failed to arm away: %s", e)
             return False
@@ -240,7 +243,10 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
     async def async_arm_home(self) -> bool:
         """Arm the alarm in home mode."""
         try:
-            return await self.alarm_use_case.arm_home(self.installation_id)
+            LOGGER.warning("Coordinator: Arming alarm home for installation %s", self.installation_id)
+            result = await self.alarm_use_case.arm_home(self.installation_id)
+            LOGGER.warning("Coordinator: Arm home result: %s", result)
+            return result
         except Exception as e:
             LOGGER.error("Failed to arm home: %s", e)
             return False
@@ -248,7 +254,10 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
     async def async_arm_night(self) -> bool:
         """Arm the alarm in night mode."""
         try:
-            return await self.alarm_use_case.arm_night(self.installation_id)
+            LOGGER.warning("Coordinator: Arming alarm night for installation %s", self.installation_id)
+            result = await self.alarm_use_case.arm_night(self.installation_id)
+            LOGGER.warning("Coordinator: Arm night result: %s", result)
+            return result
         except Exception as e:
             LOGGER.error("Failed to arm night: %s", e)
             return False
@@ -256,7 +265,10 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
     async def async_disarm(self) -> bool:
         """Disarm the alarm."""
         try:
-            return await self.alarm_use_case.disarm(self.installation_id)
+            LOGGER.warning("Coordinator: Disarming alarm for installation %s", self.installation_id)
+            result = await self.alarm_use_case.disarm(self.installation_id)
+            LOGGER.warning("Coordinator: Disarm result: %s", result)
+            return result
         except Exception as e:
             LOGGER.error("Failed to disarm: %s", e)
             return False

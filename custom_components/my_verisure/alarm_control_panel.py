@@ -240,7 +240,7 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
         try:
             installation_id = self.config_entry.data.get("installation_id")
             if installation_id:
-                success = await self.coordinator.client.disarm_alarm(installation_id)
+                success = await self.coordinator.async_disarm()
                 if success:
                     LOGGER.info("Alarm disarmed successfully")
                 else:
@@ -268,7 +268,7 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
         try:
             installation_id = self.config_entry.data.get("installation_id")
             if installation_id:
-                success = await self.coordinator.client.arm_alarm_away(installation_id)
+                success = await self.coordinator.async_arm_away()
                 if success:
                     LOGGER.info("Alarm armed away successfully")
                 else:
@@ -296,7 +296,7 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
         try:
             installation_id = self.config_entry.data.get("installation_id")
             if installation_id:
-                success = await self.coordinator.client.arm_alarm_home(installation_id)
+                success = await self.coordinator.async_arm_home()
                 if success:
                     LOGGER.info("Alarm armed home successfully")
                 else:
@@ -324,7 +324,7 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
         try:
             installation_id = self.config_entry.data.get("installation_id")
             if installation_id:
-                success = await self.coordinator.client.arm_alarm_night(installation_id)
+                success = await self.coordinator.async_arm_night()
                 if success:
                     LOGGER.info("Alarm armed night successfully")
                 else:
