@@ -169,16 +169,21 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
+        LOGGER.warning("extra_state_attributes: coordinator has data=%s", bool(self.coordinator.data))
+        LOGGER.warning("extra_state_attributes: coordinator.data=%s", getattr(self.coordinator, 'data', None))
         if not self.coordinator.data:
             return {}
 
         alarm_data = self.coordinator.data.get("alarm_status", {})
+        LOGGER.warning("extra_state_attributes: alarm_data=%s", alarm_data)
+        LOGGER.warning("extra_state_attributes: keys=%s", list(self.coordinator.data.keys()))
 
         # Get detailed state analysis
         _, detailed_states = self._analyze_alarm_states(alarm_data)
 
         # Get installation info from services
         services_data = self.coordinator.data.get("services", {})
+        LOGGER.warning("extra_state_attributes: services=%s", services_data)
         installation_info = services_data.get("installation", {})
 
         attributes = {

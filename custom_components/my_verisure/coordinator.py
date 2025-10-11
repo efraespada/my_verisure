@@ -204,6 +204,8 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             try:
                 self.async_set_updated_data(result)
                 LOGGER.warning("Coordinator data explicitly set (id=%s)", id(self))
+                LOGGER.warning("Coordinator data after set: %s", self.data)
+                LOGGER.warning("Coordinator data after set keys: %s", list(self.data.keys()) if isinstance(self.data, dict) else self.data)
             except Exception as set_err:
                 LOGGER.error("Failed to set coordinator data explicitly: %s", set_err)
             return result
