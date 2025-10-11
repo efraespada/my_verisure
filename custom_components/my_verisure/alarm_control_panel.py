@@ -189,7 +189,10 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
         # Get installation info from services
         services_data = self.coordinator.data.get("services", {})
         LOGGER.warning("extra_state_attributes: services=%s", services_data)
-        installation_info = services_data.get("installation", {})
+        LOGGER.warning("extra_state_attributes: services type=%s", type(services_data))
+        
+        installation_info = services_data.installation_data or {}
+        LOGGER.warning("extra_state_attributes: installation_data=%s", installation_info)
 
         attributes = {
             "installation_id": self.config_entry.data.get("installation_id", "Unknown"),
