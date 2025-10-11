@@ -71,12 +71,16 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
         Returns:
             tuple: (primary_state, detailed_states_dict)
         """
+        LOGGER.warning("_analyze_alarm_states: raw alarm_data=%s", alarm_data)
+        LOGGER.warning("_analyze_alarm_states: type=%s keys=%s", type(alarm_data), list(alarm_data.keys()) if isinstance(alarm_data, dict) else 'N/A')
         if not alarm_data:
             return AlarmControlPanelState.DISARMED, {}
 
         # Parse the JSON structure with internal/external sections
         internal = alarm_data.get("internal", {})
         external = alarm_data.get("external", {})
+
+        LOGGER.warning("_analyze_alarm_states: internal=%s external=%s", internal, external)
 
         # Check internal states
         internal_day = internal.get("day", {}).get("status", False)
@@ -85,6 +89,14 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
 
         # Check external state
         external_status = external.get("status", False)
+
+        LOGGER.warning(
+            "_analyze_alarm_states: flags -> day=%s night=%s total=%s external=%s",
+            internal_day,
+            internal_night,
+            internal_total,
+            external_status,
+        )
 
         # Create detailed state information
         detailed_states = {
@@ -119,6 +131,11 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
         else:
             primary_state = AlarmControlPanelState.DISARMED
 
+        LOGGER.warning(
+            "_analyze_alarm_states: primary_state=%s active_alarms=%s",
+            primary_state,
+            detailed_states.get("active_alarms", []),
+        )
         return primary_state, detailed_states
 
     @property
