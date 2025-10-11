@@ -188,17 +188,21 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
 
         # Get installation info from services
         services_data = self.coordinator.data.get("services", {})
-        LOGGER.warning("extra_state_attributes: services=%s", services_data)
-        LOGGER.warning("extra_state_attributes: services type=%s", type(services_data))
+        # LOGGER.warning("extra_state_attributes: services=%s", services_data)
+        # LOGGER.warning("extra_state_attributes: services type=%s", type(services_data))
         
         installation_info = services_data.installation_data or {}
-        LOGGER.warning("extra_state_attributes: installation_data=%s", installation_info)
+        # LOGGER.warning("extra_state_attributes: installation_data=%s", installation_info)
 
         attributes = {
-            "installation_id": self.config_entry.data.get("installation_id", "Unknown"),
+            "installation_id": installation_info.get("numinst", "Unknown"),
             "installation_alias": installation_info.get("alias", "Unknown"),
             "installation_status": installation_info.get("status", "Unknown"),
             "installation_panel": installation_info.get("panel", "Unknown"),
+            "installation_role": installation_info.get("role", "Unknown"),
+            "installation_sim": installation_info.get("sim", "Unknown"),
+            "installation_instIbs": installation_info.get("instIbs", "Unknown"),
+            "installation_capabilities": installation_info.get("capabilities", "Unknown"),
         }
 
         # Add detailed alarm state information
@@ -209,6 +213,18 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
             "external_status": detailed_states.get("external", False),
             "active_alarms": detailed_states.get("active_alarms", []),
             "alarm_count": len(detailed_states.get("active_alarms", [])),
+        })
+        
+        # Add services information
+        services_list = installation_info.get("services", [])
+        active_services = [s for s in services_list if s.get("active", False)]
+        visible_services = [s for s in services_list if s.get("visible", False)]
+        
+        attributes.update({
+            "total_services": len(services_list),
+            "active_services": len(active_services),
+            "visible_services": len(visible_services),
+            "services_available": [s.get("request", "Unknown") for s in active_services],
         })
 
         return attributes
