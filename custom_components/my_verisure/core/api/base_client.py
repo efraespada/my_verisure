@@ -18,13 +18,11 @@ _LOGGER = logging.getLogger(__name__)
 class BaseClient:
     """Base client with HTTP and GraphQL functionality."""
 
-    def __init__(self, hash_token: Optional[str] = None, session_data: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self) -> None:
         """Initialize the base client."""
         self._session: Optional[aiohttp.ClientSession] = None
         self._client: Optional[Client] = None
         self._cookies: Dict[str, str] = {}
-        self._hash = hash_token
-        self._session_data = session_data or {}
 
 
     async def __aenter__(self):
@@ -43,9 +41,12 @@ class BaseClient:
 
         headers = self._get_headers()
         
+        # Get current credentials from SessionManager
+        hash_token, session_data = self._get_current_credentials()
+        
         # Add authentication headers if available
-        if self._hash and self._session_data:
-            auth_headers = self._get_session_headers(self._session_data, self._hash)
+        if hash_token and session_data:
+            auth_headers = self._get_session_headers(session_data, hash_token)
             headers.update(auth_headers)
         
         transport = AIOHTTPTransport(
@@ -86,10 +87,19 @@ class BaseClient:
 
         return headers
 
+    def _get_current_credentials(self) -> tuple[Optional[str], Dict[str, Any]]:
+        """Get current credentials from SessionManager."""
+        from ..session_manager import get_session_manager
+        session_manager = get_session_manager()
+        return session_manager.hash_token, session_manager.get_current_session_data()
+
+
     def _get_session_headers(
         self, session_data: Dict[str, Any], hash_token: Optional[str] = None
     ) -> Dict[str, str]:
         """Get headers with session data for device validation."""
+        _LOGGER.warning("_get_session_headers called with session_data=%s, hash_token=%s", session_data, hash_token)
+        
         if not session_data:
             _LOGGER.warning("No session data available, using basic headers")
             return self._get_headers()
@@ -104,9 +114,13 @@ class BaseClient:
             "callby": "OWI_10",
             "hash": hash_token if hash_token else None,
         }
+        
+        _LOGGER.warning("Created session_header: %s", session_header)
 
         headers = self._get_headers()
         headers["auth"] = json.dumps(session_header)
+        
+        _LOGGER.warning("Final headers: %s", headers)
 
         return headers
 

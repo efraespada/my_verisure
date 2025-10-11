@@ -95,36 +95,23 @@ query Srv($numinst: String!, $uuid: String) {
 class InstallationClient(BaseClient):
     """Installation client for My Verisure API."""
 
-    def __init__(self, hash_token: Optional[str] = None, session_data: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self) -> None:
         """Initialize the installation client."""
-        super().__init__(hash_token, session_data)
-        self._hash = hash_token
-        self._session_data = session_data or {}
+        super().__init__()
 
 
-    async def get_installations(
-        self,
-        hash_token: Optional[str] = None,
-        session_data: Optional[Dict[str, Any]] = None,
-    ) -> List[InstallationDTO]:
+    async def get_installations(self) -> List[InstallationDTO]:
         """Get user installations."""
-        # Get credentials from SessionManager if not provided
-        if not hash_token:
-            session_manager = get_session_manager()
-            _LOGGER.warning("InstallationClient getting credentials from SessionManager:")
-            _LOGGER.warning("  - SessionManager instance ID: %s", id(session_manager))
-            _LOGGER.warning("  - Is authenticated: %s", session_manager.is_authenticated)
-            _LOGGER.warning("  - Username: %s", session_manager.username)
-            hash_token = session_manager.get_current_hash_token()
-            _LOGGER.warning("  - Hash token obtained: %s", hash_token[:50] + "..." if hash_token else "None")
-            if not hash_token:
-                raise MyVerisureAuthenticationError(
-                    "Not authenticated. Please login first."
-                )
+        # Get credentials from SessionManager
+        hash_token, session_data = self._get_current_credentials()
         
-        if not session_data:
-            session_manager = get_session_manager()
-            session_data = session_manager.get_current_session_data()
+        _LOGGER.warning("InstallationClient getting credentials from SessionManager:")
+        _LOGGER.warning("  - Hash token obtained: %s", hash_token[:50] + "..." if hash_token else "None")
+        
+        if not hash_token:
+            raise MyVerisureAuthenticationError(
+                "Not authenticated. Please login first."
+            )
 
         _LOGGER.info("Getting user installations...")
 
@@ -182,22 +169,15 @@ class InstallationClient(BaseClient):
         self,
         installation_id: str,
         force_refresh: bool = False,
-        hash_token: Optional[str] = None,
-        session_data: Optional[Dict[str, Any]] = None,
     ) -> InstallationServicesDTO:
         """Get detailed services and configuration for an installation."""
-        # Get credentials from SessionManager if not provided
-        if not hash_token:
-            session_manager = get_session_manager()
-            hash_token = session_manager.get_current_hash_token()
-            if not hash_token:
-                raise MyVerisureAuthenticationError(
-                    "Not authenticated. Please login first."
-                )
+        # Get credentials from SessionManager
+        hash_token, session_data = self._get_current_credentials()
         
-        if not session_data:
-            session_manager = get_session_manager()
-            session_data = session_manager.get_current_session_data()
+        if not hash_token:
+            raise MyVerisureAuthenticationError(
+                "Not authenticated. Please login first."
+            )
 
         if not installation_id:
             raise MyVerisureError("Installation ID is required")

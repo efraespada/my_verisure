@@ -95,9 +95,6 @@ class AuthClient(BaseClient):
         """Initialize the authentication client."""
         _LOGGER.warning("🔧 AuthClient constructor called - instance: %s", id(self))
         super().__init__()
-        self._hash: Optional[str] = None
-        self._refresh_token: Optional[str] = None
-        self._session_data: Dict[str, Any] = {}
         self._otp_data: Optional[Dict[str, Any]] = None
         self._device_manager = DeviceManager()
 

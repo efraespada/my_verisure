@@ -115,8 +115,10 @@ class InstallationRepositoryImpl(InstallationRepository):
             return None
 
     def _get_current_hash(self) -> Optional[str]:
-        """Get current hash from client."""
-        return getattr(self.client, '_hash', None)
+        """Get current hash from SessionManager."""
+        from ...session_manager import get_session_manager
+        session_manager = get_session_manager()
+        return session_manager.hash_token
 
     def _is_installations_cache_valid(self) -> bool:
         """Check if installations cache is valid."""
@@ -312,11 +314,11 @@ class InstallationRepositoryImpl(InstallationRepository):
                 return cached_installations
 
             # Debug: Check client state before calling get_installations
+            current_hash = self._get_current_hash()
             _LOGGER.info(
-                "Client hash token present: %s",
-                "Yes" if self.client._hash else "No",
+                "Hash token present: %s",
+                "Yes" if current_hash else "No",
             )
-            _LOGGER.info("Client session data: %s", self.client._session_data)
             _LOGGER.info(
                 "Client connected: %s", "Yes" if self.client._client else "No"
             )
@@ -326,10 +328,7 @@ class InstallationRepositoryImpl(InstallationRepository):
                 _LOGGER.info("Client not connected, connecting now...")
                 await self.client.connect()
 
-            installations_data = await self.client.get_installations(
-                hash_token=self.client._hash,
-                session_data=self.client._session_data
-            )
+            installations_data = await self.client.get_installations()
 
             # Convert DTOs to domain models
             installations = []

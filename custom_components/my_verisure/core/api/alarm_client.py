@@ -185,11 +185,9 @@ CHECK_ALARM_STATUS_QUERY = gql(
 class AlarmClient(BaseClient):
     """Alarm client for My Verisure API."""
 
-    def __init__(self, hash_token: Optional[str] = None, session_data: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self) -> None:
         """Initialize the alarm client."""
-        super().__init__(hash_token, session_data)
-        self._hash = hash_token
-        self._session_data = session_data or {}
+        super().__init__()
 
     async def _load_alarm_status_config(self) -> Dict[str, Any]:
         """Load alarm status configuration from JSON file."""
@@ -287,22 +285,15 @@ class AlarmClient(BaseClient):
         self,
         installation_id: str,
         capabilities: str,
-        hash_token: Optional[str] = None,
-        session_data: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Get alarm status from installation services and real-time check."""
-        # Get credentials from SessionManager if not provided
-        if not hash_token:
-            session_manager = get_session_manager()
-            hash_token = session_manager.get_current_hash_token()
-            if not hash_token:
-                raise MyVerisureAuthenticationError(
-                    "Not authenticated. Please login first."
-                )
+        # Get credentials from SessionManager
+        hash_token, session_data = self._get_current_credentials()
         
-        if not session_data:
-            session_manager = get_session_manager()
-            session_data = session_manager.get_current_session_data()
+        if not hash_token:
+            raise MyVerisureAuthenticationError(
+                "Not authenticated. Please login first."
+            )
 
         if not installation_id:
             raise MyVerisureError("Installation ID is required")
@@ -515,8 +506,6 @@ class AlarmClient(BaseClient):
         request: str,
         capabilities: str,
         current_status: str = "E",
-        hash_token: Optional[str] = None,
-        session_data: Optional[Dict[str, Any]] = None,
     ) -> bool:
         """Send an alarm command to the specified installation using the correct flow."""
         try:
@@ -525,6 +514,10 @@ class AlarmClient(BaseClient):
                 request,
                 installation_id,
             )
+            
+            # Get current credentials from SessionManager
+            hash_token, session_data = self._get_current_credentials()
+            _LOGGER.warning("Using current credentials: hash=%s, session=%s", hash_token, session_data)
 
             # Ensure client is connected
             if not self._client:
@@ -664,14 +657,16 @@ class AlarmClient(BaseClient):
         self,
         installation_id: str,
         capabilities: str,
-        hash_token: Optional[str] = None,
-        session_data: Optional[Dict[str, Any]] = None,
     ) -> bool:
         """Disarm the alarm for the specified installation using the correct flow."""
         try:
             _LOGGER.warning(
                 "Disarming alarm for installation %s", installation_id
             )
+            
+            # Get current credentials from SessionManager
+            hash_token, session_data = self._get_current_credentials()
+            _LOGGER.warning("Using current credentials: hash=%s, session=%s", hash_token, session_data)
 
             # Ensure client is connected
             if not self._client:
@@ -810,48 +805,36 @@ class AlarmClient(BaseClient):
         self,
         installation_id: str,
         capabilities: str,
-        hash_token: Optional[str] = None,
-        session_data: Optional[Dict[str, Any]] = None,
     ) -> bool:
         """Arm the alarm in away mode for the specified installation."""
         return await self.send_alarm_command(
             installation_id,
             "ARM1",
             capabilities=capabilities,
-            hash_token=hash_token,
-            session_data=session_data,
         )
 
     async def arm_alarm_home(
         self,
         installation_id: str,
         capabilities: str,
-        hash_token: Optional[str] = None,
-        session_data: Optional[Dict[str, Any]] = None,
     ) -> bool:
         """Arm the alarm in home mode for the specified installation."""
         return await self.send_alarm_command(
             installation_id,
             "PERI1",
             capabilities=capabilities,
-            hash_token=hash_token,
-            session_data=session_data,
         )
 
     async def arm_alarm_night(
         self,
         installation_id: str,
         capabilities: str,
-        hash_token: Optional[str] = None,
-        session_data: Optional[Dict[str, Any]] = None,
     ) -> bool:
         """Arm the alarm in night mode for the specified installation."""
         return await self.send_alarm_command(
             installation_id,
             "ARMNIGHT1",
             capabilities=capabilities,
-            hash_token=hash_token,
-            session_data=session_data,
         )
 
     # Helper methods for direct GraphQL execution
@@ -1062,6 +1045,11 @@ class AlarmClient(BaseClient):
                 "panel": panel,
                 "capabilities": capabilities
             })
+            
+            _LOGGER.warning("Session data received: %s", session_data)
+            _LOGGER.warning("Hash token received: %s", hash_token)
+            _LOGGER.warning("Session data type: %s", type(session_data))
+            _LOGGER.warning("Hash token type: %s", type(hash_token))
 
             # Prepare variables
             variables = {
@@ -1071,6 +1059,7 @@ class AlarmClient(BaseClient):
             }
 
             # Get session headers (Auth header with token)
+            _LOGGER.warning("Calling _get_session_headers with session_data=%s, hash_token=%s", session_data, hash_token)
             headers = (
                 self._get_session_headers(session_data or {}, hash_token)
                 if session_data

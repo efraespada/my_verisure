@@ -31,9 +31,7 @@ class AlarmRepositoryImpl(AlarmRepository):
 
             alarm_status_data = await self.client.get_alarm_status(
                 installation_id, 
-                capabilities,
-                hash_token=self.client._hash,
-                session_data=self.client._session_data
+                capabilities
             )
 
             # The client returns a processed alarm status with internal/external structure
@@ -102,32 +100,24 @@ class AlarmRepositoryImpl(AlarmRepository):
             if request == "ARM1":
                 result = await self.client.arm_alarm_away(
                     installation_id,
-                    capabilities=capabilities,
-                    hash_token=self.client._hash,
-                    session_data=self.client._session_data
+                    capabilities=capabilities
                 )
             elif request == "PERI1":
                 result = await self.client.arm_alarm_home(
                     installation_id,
-                    capabilities=capabilities,
-                    hash_token=self.client._hash,
-                    session_data=self.client._session_data
+                    capabilities=capabilities
                 )
             elif request == "ARMNIGHT1":
                 result = await self.client.arm_alarm_night(
                     installation_id,
-                    capabilities=capabilities,
-                    hash_token=self.client._hash,
-                    session_data=self.client._session_data
+                    capabilities=capabilities
                 )
             else:
                 result = await self.client.send_alarm_command(
                     installation_id, 
                     request,
                     capabilities=capabilities,
-                    current_status=current_status,
-                    hash_token=self.client._hash,
-                    session_data=self.client._session_data
+                    current_status=current_status
                 )
 
             if result:
@@ -159,9 +149,7 @@ class AlarmRepositoryImpl(AlarmRepository):
 
             result = await self.client.disarm_alarm(
                 installation_id,
-                capabilities=capabilities,
-                hash_token=self.client._hash,
-                session_data=self.client._session_data
+                capabilities=capabilities
             )
 
             if result:
@@ -187,9 +175,7 @@ class AlarmRepositoryImpl(AlarmRepository):
                 "Arming alarm away for installation %s", installation_id
             )
             result = await self.client.arm_alarm_away(
-                installation_id,
-                hash_token=self.client._hash,
-                session_data=self.client._session_data
+                installation_id
             )
             return result
         except Exception as e:
@@ -203,9 +189,7 @@ class AlarmRepositoryImpl(AlarmRepository):
                 "Arming alarm home for installation %s", installation_id
             )
             result = await self.client.arm_alarm_home(
-                installation_id,
-                hash_token=self.client._hash,
-                session_data=self.client._session_data
+                installation_id
             )
             return result
         except Exception as e:
@@ -219,9 +203,7 @@ class AlarmRepositoryImpl(AlarmRepository):
                 "Arming alarm night for installation %s", installation_id
             )
             result = await self.client.arm_alarm_night(
-                installation_id,
-                hash_token=self.client._hash,
-                session_data=self.client._session_data
+                installation_id
             )
             return result
         except Exception as e:
@@ -235,9 +217,7 @@ class AlarmRepositoryImpl(AlarmRepository):
                 "Disarming alarm for installation %s", installation_id
             )
             result = await self.client.disarm_alarm(
-                installation_id,
-                hash_token=self.client._hash,
-                session_data=self.client._session_data
+                installation_id
             )
             return result
         except Exception as e:
