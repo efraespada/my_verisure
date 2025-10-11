@@ -155,7 +155,7 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
         LOGGER.warning("Coordinator exists: %s", hasattr(self, 'coordinator'))
         LOGGER.warning("Coordinator type: %s", type(self.coordinator))
         LOGGER.warning("Coordinator has data attribute: %s", hasattr(self.coordinator, 'data'))
-        LOGGER.warning("Coordinator data: %s", getattr(self.coordinator, 'data', 'NO DATA ATTRIBUTE'))
+        # LOGGER.warning("Coordinator data: %s", getattr(self.coordinator, 'data', 'NO DATA ATTRIBUTE'))
         
         if not self.coordinator.data:
             LOGGER.warning("No coordinator data available")
