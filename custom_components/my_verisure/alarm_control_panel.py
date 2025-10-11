@@ -77,8 +77,13 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
             return AlarmControlPanelState.DISARMED, {}
 
         # Parse the JSON structure with internal/external sections
-        internal = alarm_data.get("internal", {})
-        external = alarm_data.get("external", {})
+        # The internal/external data is nested under the "data" field
+        raw_data = alarm_data.get("data", {})
+        if not raw_data:
+            return AlarmControlPanelState.DISARMED, {}
+            
+        internal = raw_data.get("internal", {})
+        external = raw_data.get("external", {})
 
         LOGGER.warning("_analyze_alarm_states: internal=%s external=%s", internal, external)
 

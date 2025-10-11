@@ -83,6 +83,8 @@ class AlarmStatus:
     protom_response: Optional[str] = None
     protom_response_date: Optional[str] = None
     forced_armed: Optional[bool] = None
+    # Raw structured alarm status data returned by the client (internal/external)
+    data: Optional[Dict[str, Any]] = None
 
     @classmethod
     def from_dto(cls, dto: AlarmStatusDTO) -> "AlarmStatus":

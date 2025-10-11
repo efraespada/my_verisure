@@ -68,6 +68,7 @@ class AlarmRepositoryImpl(AlarmRepository):
                 protom_response=alarm_message,
                 protom_response_date=None,
                 forced_armed=False,
+                data=alarm_status_data,
             )
 
             _LOGGER.warning(

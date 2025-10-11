@@ -185,6 +185,11 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             alarm_status = await self.alarm_use_case.get_alarm_status(self.installation_id)
             LOGGER.warning("Alarm status retrieved successfully: %s", type(alarm_status))
             
+            # Get installation services
+            LOGGER.warning("Getting installation services for: %s", self.installation_id)
+            services_data = await self.installation_use_case.get_installation_services(self.installation_id)
+            LOGGER.warning("Installation services retrieved: %s", type(services_data))
+            
             # Convert to dictionary format expected by Home Assistant
             if hasattr(alarm_status, 'dict'):
                 alarm_dict = alarm_status.dict()
@@ -195,6 +200,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             
             result = {
                 "alarm_status": alarm_dict,
+                "services": services_data,
                 "last_update": time.time(),
             }
             LOGGER.warning("Coordinator returning data: %s", result)
