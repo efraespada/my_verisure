@@ -182,11 +182,6 @@ class InstallationClient(BaseClient):
         if not installation_id:
             raise MyVerisureError("Installation ID is required")
 
-        # Ensure client is connected
-        if not self._client:
-            _LOGGER.warning("Client not connected, connecting now...")
-            await self.connect()
-
         _LOGGER.info(
             "Getting services for installation %s (force_refresh=%s)",
             installation_id,
