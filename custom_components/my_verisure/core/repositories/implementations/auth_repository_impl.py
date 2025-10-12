@@ -30,10 +30,7 @@ class AuthRepositoryImpl(AuthRepository):
         try:
             _LOGGER.info("Attempting login for user: %s", auth.username)
 
-            # Ensure client is connected
-            if not self.client._client:
-                _LOGGER.info("Client not connected, connecting now...")
-                await self.client.connect()
+            # Client will manage its own session internally
 
             # Convert domain models to DTOs for the client
             # Note: DTOs are created but not used in this implementation

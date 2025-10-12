@@ -120,7 +120,12 @@ class AuthClient(BaseClient):
             _LOGGER.warning("Device UUID: %s", variables.get("uuid"))
             _LOGGER.warning("Device Name: %s", variables.get("deviceName"))
 
-            result = await self._execute_query(LOGIN_MUTATION, variables)
+            # Use direct aiohttp request to control headers/session lifecycle
+            result = await self._execute_query_direct(
+                LOGIN_MUTATION.loc.source.body,
+                variables,
+                self._get_headers(),
+            )
 
             # Check for GraphQL errors first
             if "errors" in result and result["errors"]:
@@ -141,7 +146,8 @@ class AuthClient(BaseClient):
                     )
 
             # Check for successful response
-            login_data = result.get("xSLoginToken", {})
+            data_wrapper = result.get("data", {})
+            login_data = data_wrapper.get("xSLoginToken", {}) if isinstance(data_wrapper, dict) else {}
             if login_data and login_data.get("res") == "OK":
                 # Store session data
                 self._session_data = {
@@ -612,7 +618,11 @@ class AuthClient(BaseClient):
             _LOGGER.warning("Device UUID: %s", variables.get("uuid"))
             _LOGGER.warning("Device Name: %s", variables.get("deviceName"))
 
-            result = await self._execute_query(LOGIN_MUTATION, variables)
+            result = await self._execute_query_direct(
+                LOGIN_MUTATION.loc.source.body,
+                variables,
+                self._get_headers(),
+            )
 
             # Check for GraphQL errors first
             if "errors" in result and result["errors"]:
@@ -624,7 +634,8 @@ class AuthClient(BaseClient):
                 )
 
             # Check for successful response
-            login_data = result.get("xSLoginToken", {})
+            data_wrapper = result.get("data", {})
+            login_data = data_wrapper.get("xSLoginToken", {}) if isinstance(data_wrapper, dict) else {}
             if login_data and login_data.get("res") == "OK":
                 # Store updated session data
                 self._session_data = {

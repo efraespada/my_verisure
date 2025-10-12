@@ -54,7 +54,7 @@ class SessionManager:
             if os.path.exists(self.session_file):
                 with open(self.session_file, 'r') as f:
                     session_data = json.load(f)
-                
+
                 self.username = session_data.get('username')
                 self.password = session_data.get('password')
                 self.hash_token = session_data.get('hash_token')
@@ -68,7 +68,7 @@ class SessionManager:
                     logger.info("Valid session loaded from file")
                 else:
                     logger.info("Session expired, will require re-authentication")
-                    
+
         except Exception as e:
             logger.warning(f"Could not load session: {e}")
 
@@ -154,7 +154,7 @@ class SessionManager:
                 
                 # Perform login with stored credentials
                 auth_result = await auth_use_case.login(self.username, self.password)
-                
+
                 if auth_result.success:
                     # Update credentials with new tokens
                     self.update_credentials(
@@ -168,11 +168,11 @@ class SessionManager:
                 else:
                     logger.warning(f"Automatic reauthentication failed: {auth_result.message}")
                     return False
-                    
+
             finally:
                 # Clean up dependencies
-                clear_dependencies()
-                
+                await clear_dependencies()
+
         except Exception as e:
             logger.warning(f"Automatic reauthentication failed: {e}")
             return False
@@ -274,10 +274,7 @@ class SessionManager:
             password = input("🔐 Contraseña: ").strip()
             return username, password
         except EOFError:
-            # For testing purposes, use hardcoded credentials
-            print("📋 User ID (DNI/NIE): 16633776S")
-            print("🔐 Contraseña: [HIDDEN]")
-            return "16633776S", "Papipupepo2@"
+            raise RuntimeError("No se pueden obtener credenciales en modo no interactivo")
 
     async def logout(self) -> None:
         """Logout and clear session."""

@@ -319,14 +319,7 @@ class InstallationRepositoryImpl(InstallationRepository):
                 "Hash token present: %s",
                 "Yes" if current_hash else "No",
             )
-            _LOGGER.info(
-                "Client connected: %s", "Yes" if self.client._client else "No"
-            )
-
-            # Ensure client is connected
-            if not self.client._client:
-                _LOGGER.info("Client not connected, connecting now...")
-                await self.client.connect()
+            # Client will manage its own session internally
 
             installations_data = await self.client.get_installations()
 
@@ -364,10 +357,7 @@ class InstallationRepositoryImpl(InstallationRepository):
                     _LOGGER.info("Using cached services for installation %s", installation_id)
                     return cached_services
 
-            # Ensure client is connected
-            if not self.client._client:
-                _LOGGER.info("Client not connected, connecting now...")
-                await self.client.connect()
+            # Client will manage its own session internally
 
             # Client will get credentials automatically from SessionManager
             services_data = await self.client.get_installation_services(

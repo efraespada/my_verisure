@@ -298,10 +298,7 @@ class AlarmClient(BaseClient):
         if not installation_id:
             raise MyVerisureError("Installation ID is required")
 
-        # Ensure client is connected
-        if not self._client:
-            _LOGGER.warning("Client not connected, connecting now...")
-            await self.connect()
+        # Session will be managed automatically by _execute_query_direct
 
         _LOGGER.warning(
             "Getting alarm status for installation %s", installation_id
@@ -519,10 +516,7 @@ class AlarmClient(BaseClient):
             hash_token, session_data = self._get_current_credentials()
             _LOGGER.warning("Using current credentials: hash=%s, session=%s", hash_token, session_data)
 
-            # Ensure client is connected
-            if not self._client:
-                _LOGGER.warning("Client not connected, connecting now...")
-                await self.connect()
+            # Session will be managed automatically by _execute_query_direct
 
             # Get panel info (default for now)
             panel = "panel1"  # This should come from installation services
@@ -668,10 +662,7 @@ class AlarmClient(BaseClient):
             hash_token, session_data = self._get_current_credentials()
             _LOGGER.warning("Using current credentials: hash=%s, session=%s", hash_token, session_data)
 
-            # Ensure client is connected
-            if not self._client:
-                _LOGGER.warning("Client not connected, connecting now...")
-                await self.connect()
+            # Session will be managed automatically by _execute_query_direct
 
             # Get panel info (default for now)
             panel = "panel1"  # This should come from installation services
@@ -847,8 +838,6 @@ class AlarmClient(BaseClient):
         session_data: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Execute CheckAlarm query using direct aiohttp request to get referenceId."""
-        if not self._session:
-            raise MyVerisureConnectionError("Client not connected")
 
         try:
             # Prepare variables
@@ -889,8 +878,6 @@ class AlarmClient(BaseClient):
         session_data: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Execute alarm status check query using direct aiohttp request."""
-        if not self._session:
-            raise MyVerisureConnectionError("Client not connected")
 
         try:
             # Prepare variables
@@ -936,9 +923,7 @@ class AlarmClient(BaseClient):
         session_data: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Execute arm panel mutation using direct aiohttp request."""
-        if not self._session:
-            raise MyVerisureConnectionError("Client not connected")
-
+        
         try:
             # Prepare variables
             variables = {
@@ -986,8 +971,6 @@ class AlarmClient(BaseClient):
         session_data: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Execute arm status query using direct aiohttp request."""
-        if not self._session:
-            raise MyVerisureConnectionError("Client not connected")
 
         try:
             # Prepare variables
@@ -1035,8 +1018,6 @@ class AlarmClient(BaseClient):
         session_data: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Execute disarm panel mutation using direct aiohttp request."""
-        if not self._session:
-            raise MyVerisureConnectionError("Client not connected")
 
         try:
             _LOGGER.warning("Executing disarm panel with variables: %s", {
@@ -1100,8 +1081,6 @@ class AlarmClient(BaseClient):
         session_data: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Execute disarm status query using direct aiohttp request."""
-        if not self._session:
-            raise MyVerisureConnectionError("Client not connected")
 
         try:
             # Prepare variables

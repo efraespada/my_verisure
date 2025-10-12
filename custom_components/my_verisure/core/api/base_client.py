@@ -6,8 +6,6 @@ import time
 from typing import Any, Dict, Optional
 
 import aiohttp
-from gql import Client
-from gql.transport.aiohttp import AIOHTTPTransport
 
 from .exceptions import MyVerisureConnectionError
 from .fields import VERISURE_GRAPHQL_URL
@@ -21,52 +19,38 @@ class BaseClient:
     def __init__(self) -> None:
         """Initialize the base client."""
         self._session: Optional[aiohttp.ClientSession] = None
-        self._client: Optional[Client] = None
         self._cookies: Dict[str, str] = {}
 
 
     async def __aenter__(self):
         """Async context manager entry."""
-        await self.connect()
+        await self._connect()
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
         """Async context manager exit."""
-        await self.disconnect()
+        await self._disconnect()
 
-    async def connect(self) -> None:
-        """Connect to My Verisure API."""
+    async def _connect(self) -> None:
+        """Connect to My Verisure API (private)."""
         if self._session is None:
             self._session = aiohttp.ClientSession()
 
-        headers = self._get_headers()
-        
-        # Get current credentials from SessionManager
-        hash_token, session_data = self._get_current_credentials()
-        
-        # Add authentication headers if available
-        if hash_token and session_data:
-            auth_headers = self._get_session_headers(session_data, hash_token)
-            headers.update(auth_headers)
-        
-        transport = AIOHTTPTransport(
-            url=VERISURE_GRAPHQL_URL,
-            headers=headers,
-            cookies=self._get_cookies(),
-        )
-
-        self._client = Client(
-            transport=transport, fetch_schema_from_transport=False
-        )
-
-    async def disconnect(self) -> None:
-        """Disconnect from My Verisure API."""
-        if self._client:
-            self._client = None
-
+    async def _disconnect(self) -> None:
+        """Disconnect from My Verisure API (private)."""
+        _LOGGER.warning("🔌 BaseClient._disconnect() called - session: %s", self._session)
         if self._session:
-            await self._session.close()
+            # Close the aiohttp session properly
+            if not self._session.closed:
+                _LOGGER.warning("🔌 Closing aiohttp session")
+                await self._session.close()
             self._session = None
+            _LOGGER.warning("🔌 Session closed and set to None")
+
+    async def _ensure_session(self) -> None:
+        """Ensure session is ready for use."""
+        if self._session is None:
+            await self._connect()
 
     def _get_native_app_headers(self) -> Dict[str, str]:
         """Get native app headers for better authentication."""
@@ -136,35 +120,7 @@ class BaseClient:
                     self._cookies[name] = value
                     _LOGGER.debug("Updated cookie: %s", name)
 
-    async def _execute_query(
-        self, query: Any, variables: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
-        """Execute a GraphQL query."""
-        if not self._client:
-            raise MyVerisureConnectionError("Client not connected")
-
-        try:
-            result = await self._client.execute_async(
-                query, variable_values=variables
-            )
-            return result
-        except Exception as e:
-            _LOGGER.error("GraphQL query failed: %s", e)
-            # Check if this is a GraphQL error response
-            if "errors" in str(e):
-                try:
-                    error_str = str(e)
-                    if "{" in error_str and "}" in error_str:
-                        start = error_str.find("{")
-                        end = error_str.rfind("}") + 1
-                        error_json = error_str[start:end]
-                        error_data = json.loads(error_json)
-                        return error_data
-                except:
-                    pass
-
-            # Return a generic error if we can't parse it
-            return {"errors": [{"message": str(e), "data": {}}]}
+    
 
     async def _execute_query_direct(
         self,
@@ -173,12 +129,11 @@ class BaseClient:
         headers: Optional[Dict[str, str]] = None,
     ) -> Dict[str, Any]:
         """Execute a GraphQL query using direct aiohttp request."""
-        if not self._session:
-            raise MyVerisureConnectionError("Client not connected")
-
+        # Ensure session is ready
+        await self._ensure_session()
+        
         try:
             request_data = {"query": query, "variables": variables or {}}
-
             request_headers = headers or self._get_headers()
 
             async with self._session.post(
@@ -192,3 +147,6 @@ class BaseClient:
         except Exception as e:
             _LOGGER.error("Direct GraphQL query failed: %s", e)
             return {"errors": [{"message": str(e), "data": {}}]}
+        finally:
+            # Always disconnect after the request
+            await self._disconnect()

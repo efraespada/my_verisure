@@ -24,10 +24,7 @@ class AlarmRepositoryImpl(AlarmRepository):
                 "Getting alarm status for installation %s", installation_id
             )
 
-            # Ensure client is connected
-            if not self.client._client:
-                _LOGGER.warning("Client not connected, connecting now...")
-                await self.client.connect()
+            # Client will manage its own session internally
 
             alarm_status_data = await self.client.get_alarm_status(
                 installation_id, 
