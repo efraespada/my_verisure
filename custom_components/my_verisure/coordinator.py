@@ -72,8 +72,8 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         # Store session file path for later loading
         self.session_file = session_file
 
-        # Get scan interval from config entry
-        scan_interval_minutes = entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+        # Get scan interval from config entry (options override data)
+        scan_interval_minutes = entry.options.get(CONF_SCAN_INTERVAL, entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL))
         # Ensure it's an integer
         try:
             scan_interval_minutes = int(scan_interval_minutes)
