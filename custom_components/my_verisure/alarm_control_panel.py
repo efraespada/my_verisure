@@ -191,7 +191,7 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
         # LOGGER.warning("extra_state_attributes: services=%s", services_data)
         # LOGGER.warning("extra_state_attributes: services type=%s", type(services_data))
         
-        installation_info = services_data.installation_data or {}
+        installation_info = services_data.get("installation_data", {})
         # LOGGER.warning("extra_state_attributes: installation_data=%s", installation_info)
 
         attributes = {
