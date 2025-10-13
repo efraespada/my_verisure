@@ -195,9 +195,9 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
                 LOGGER.warning("Alarm status used as-is (no dict method): %s", alarm_dict)
             
             result = {
+                "last_update": time.time(),
                 "alarm_status": alarm_dict,
                 "services": services_data,
-                "last_update": time.time(),
             }
             # Ensure data is set on the coordinator
             try:
