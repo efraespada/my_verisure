@@ -178,3 +178,6 @@ site/
 # Local development
 local_config.py
 dev_config.py 
+
+# Data files
+custom_components/my_verisure/data/

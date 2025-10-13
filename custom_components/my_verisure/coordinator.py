@@ -27,6 +27,7 @@ from .core.dependency_injection.providers import (
     get_alarm_use_case,
     clear_dependencies,
 )
+from .core.file_manager import get_file_manager
 from .core.session_manager import get_session_manager
 from .core.const import CONF_INSTALLATION_ID, CONF_USER, DEFAULT_SCAN_INTERVAL, DOMAIN, LOGGER, CONF_SCAN_INTERVAL
 
@@ -56,6 +57,9 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         
         # Get session manager
         self.session_manager = get_session_manager()
+        
+        # Get file manager for data persistence
+        self.file_manager = get_file_manager()
         
         # Set credentials in session manager
         self.session_manager.update_credentials(
@@ -174,21 +178,13 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
 
     async def _async_update_data(self) -> Dict[str, Any]:
         """Update data via My Verisure API."""
-        LOGGER.warning("_async_update_data called (coordinator id=%s)", id(self))
         try:
             # Ensure we're logged in
             if not await self.async_login():
                 raise UpdateFailed("Failed to login to My Verisure")
 
-            # Get alarm status using alarm use case
-            LOGGER.warning("Attempting to get alarm status for installation: %s", self.installation_id)
             alarm_status = await self.alarm_use_case.get_alarm_status(self.installation_id)
-            LOGGER.warning("Alarm status retrieved successfully: %s", type(alarm_status))
-            
-            # Get installation services
-            LOGGER.warning("Getting installation services for: %s", self.installation_id)
             services_data = await self.installation_use_case.get_installation_services(self.installation_id)
-            LOGGER.warning("Installation services retrieved: %s", type(services_data))
             
             # Convert to dictionary format expected by Home Assistant
             if hasattr(alarm_status, 'dict'):
@@ -203,15 +199,16 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
                 "services": services_data,
                 "last_update": time.time(),
             }
-            LOGGER.warning("Coordinator returning data: %s", result)
-            LOGGER.warning("Coordinator data type: %s", type(result))
-            LOGGER.warning("Coordinator data keys: %s", result.keys())
             # Ensure data is set on the coordinator
             try:
                 self.async_set_updated_data(result)
-                LOGGER.warning("Coordinator data explicitly set (id=%s)", id(self))
-                LOGGER.warning("Coordinator data after set: %s", self.data)
-                LOGGER.warning("Coordinator data after set keys: %s", list(self.data.keys()) if isinstance(self.data, dict) else self.data)
+                try:
+                    save_success = self.file_manager.save_json("alarm_data.json", result)
+                    if not save_success:
+                        LOGGER.error("Failed to save coordinator data to alarm_data.json")
+                except Exception as save_err:
+                    LOGGER.error("Error saving coordinator data to alarm_data.json: %s", save_err)
+                    
             except Exception as set_err:
                 LOGGER.error("Failed to set coordinator data explicitly: %s", set_err)
             return result
@@ -229,13 +226,40 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             LOGGER.error("Unexpected error: %s", ex)
             raise UpdateFailed(f"Unexpected error: {ex}") from ex
 
+    def load_alarm_info(self) -> Dict[str, Any]:
+        """Load the last saved data from alarm_info.json."""
+        try:
+            alarm_info = self.file_manager.load_json("alarm_data.json")
+            if alarm_info:
+                return alarm_info
+            else:
+                LOGGER.warning("No last data found in alarm_data.json")
+                return {}
+        except Exception as e:
+            LOGGER.error("Failed to load last data from alarm_data.json: %s", e)
+            return {}
+
+    def get_alarm_info_info(self) -> Dict[str, Any]:
+        """Get information about the last saved data file."""
+        try:
+            file_path = self.file_manager.get_file_path("alarm_data.json")
+            file_size = self.file_manager.get_file_size("alarm_data.json")
+            exists = self.file_manager.file_exists("alarm_data.json")
+            
+            return {
+                "file_path": str(file_path),
+                "exists": exists,
+                "file_size": file_size,
+                "last_modified": file_path.stat().st_mtime if exists else None
+            }
+        except Exception as e:
+            LOGGER.error("Failed to get last data info: %s", e)
+            return {"error": str(e)}
+
     async def async_arm_away(self) -> bool:
         """Arm the alarm in away mode."""
         try:
-            LOGGER.warning("Coordinator: Arming alarm away for installation %s", self.installation_id)
-            result = await self.alarm_use_case.arm_away(self.installation_id)
-            LOGGER.warning("Coordinator: Arm away result: %s", result)
-            return result
+            return await self.alarm_use_case.arm_away(self.installation_id)
         except Exception as e:
             LOGGER.error("Failed to arm away: %s", e)
             return False
@@ -243,10 +267,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
     async def async_arm_home(self) -> bool:
         """Arm the alarm in home mode."""
         try:
-            LOGGER.warning("Coordinator: Arming alarm home for installation %s", self.installation_id)
-            result = await self.alarm_use_case.arm_home(self.installation_id)
-            LOGGER.warning("Coordinator: Arm home result: %s", result)
-            return result
+            return await self.alarm_use_case.arm_home(self.installation_id)
         except Exception as e:
             LOGGER.error("Failed to arm home: %s", e)
             return False
@@ -254,10 +275,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
     async def async_arm_night(self) -> bool:
         """Arm the alarm in night mode."""
         try:
-            LOGGER.warning("Coordinator: Arming alarm night for installation %s", self.installation_id)
-            result = await self.alarm_use_case.arm_night(self.installation_id)
-            LOGGER.warning("Coordinator: Arm night result: %s", result)
-            return result
+            return await self.alarm_use_case.arm_night(self.installation_id)
         except Exception as e:
             LOGGER.error("Failed to arm night: %s", e)
             return False
@@ -265,10 +283,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
     async def async_disarm(self) -> bool:
         """Disarm the alarm."""
         try:
-            LOGGER.warning("Coordinator: Disarming alarm for installation %s", self.installation_id)
-            result = await self.alarm_use_case.disarm(self.installation_id)
-            LOGGER.warning("Coordinator: Disarm result: %s", result)
-            return result
+            return await self.alarm_use_case.disarm(self.installation_id)
         except Exception as e:
             LOGGER.error("Failed to disarm: %s", e)
             return False
