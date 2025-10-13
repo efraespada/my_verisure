@@ -186,20 +186,12 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             alarm_status = await self.alarm_use_case.get_alarm_status(self.installation_id)
             services_data = await self.installation_use_case.get_installation_services(self.installation_id, True)
             
-            # Convert to dictionary format expected by Home Assistant
-            if hasattr(alarm_status, 'dict'):
-                alarm_dict = alarm_status.dict()
-                LOGGER.warning("Alarm status converted to dict: %s", alarm_dict)
-            else:
-                alarm_dict = alarm_status
-                LOGGER.warning("Alarm status used as-is (no dict method): %s", alarm_dict)
-            
             result = {
                 "last_update": time.time(),
-                "alarm_status": alarm_dict,
-                "services": services_data,
+                "alarm_status": alarm_status.dict(),
+                "services": services_data.dict(),
             }
-            # Ensure data is set on the coordinator
+
             try:
                 self.async_set_updated_data(result)
                 try:
