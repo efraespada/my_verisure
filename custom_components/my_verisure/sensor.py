@@ -100,8 +100,10 @@ class MyVerisureAlarmStatusSensor(SensorEntity):
             return "Desconocido"
 
         # Analizar el estado de la alarma
-        internal = alarm_status.get("internal", {})
-        external = alarm_status.get("external", {})
+        # Los datos están en alarm_status.data
+        alarm_data = alarm_status.get("data", {})
+        internal = alarm_data.get("internal", {})
+        external = alarm_data.get("external", {})
         
         # Determinar el estado general
         internal_day = internal.get("day", {}).get("status", False)
@@ -136,8 +138,10 @@ class MyVerisureAlarmStatusSensor(SensorEntity):
         if not alarm_status:
             return {}
 
-        internal = alarm_status.get("internal", {})
-        external = alarm_status.get("external", {})
+        # Los datos están en alarm_status.data
+        alarm_data = alarm_status.get("data", {})
+        internal = alarm_data.get("internal", {})
+        external = alarm_data.get("external", {})
         
         return {
             "internal_day_status": internal.get("day", {}).get("status", False),
@@ -195,8 +199,10 @@ class MyVerisureActiveAlarmsSensor(SensorEntity):
             return "Desconectado"
 
         # Analizar el estado de la alarma
-        internal = alarm_status.get("internal", {})
-        external = alarm_status.get("external", {})
+        # Los datos están en alarm_status.data
+        alarm_data = alarm_status.get("data", {})
+        internal = alarm_data.get("internal", {})
+        external = alarm_data.get("external", {})
         
         # Determinar qué alarmas están activas
         active_alarms = []
@@ -233,8 +239,10 @@ class MyVerisureActiveAlarmsSensor(SensorEntity):
             return {}
 
         # Analyze alarm state
-        internal = alarm_status.get("internal", {})
-        external = alarm_status.get("external", {})
+        # Los datos están en alarm_status.data
+        alarm_data = alarm_status.get("data", {})
+        internal = alarm_data.get("internal", {})
+        external = alarm_data.get("external", {})
         
         # Determine which alarms are active
         active_alarms = []
@@ -410,8 +418,10 @@ class MyVerisurePanelStateSensor(SensorEntity):
         if not alarm_status:
             return {}
 
-        internal = alarm_status.get("internal", {})
-        external = alarm_status.get("external", {})
+        # Los datos están en alarm_status.data
+        alarm_data = alarm_status.get("data", {})
+        internal = alarm_data.get("internal", {})
+        external = alarm_data.get("external", {})
         
         return {
             "internal_day_status": internal.get("day", {}).get("status", False),
