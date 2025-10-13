@@ -25,26 +25,11 @@ class AuthUseCaseImpl(AuthUseCase):
         try:
             _LOGGER.info("Starting login process for user: %s", username)
 
-            # Create domain models
-            auth = Auth(username=username, password=password)
-
-            # Generate device identifiers (change this)
-            device_identifiers = DeviceIdentifiers(
-                id_device="device_123",
-                uuid="uuid_456",
-                id_device_indigitall="indigitall_789",
-                device_name="HomeAssistant",
-                device_brand="HomeAssistant",
-                device_os_version="Linux 5.0",
-                device_version="10.154.0",
+            result = await self.auth_repository.login(
+                Auth(username=username, password=password)
             )
 
-            # Call repository
-            result = await self.auth_repository.login(auth, device_identifiers)
-
-            if result.success:
-                _LOGGER.info("Login successful for user: %s", username)
-            else:
+            if not result.success:
                 _LOGGER.warning("Login failed for user: %s", username)
 
             return result
