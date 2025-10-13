@@ -187,7 +187,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             services_data = await self.installation_use_case.get_installation_services(self.installation_id, True)
             
             result = {
-                "last_update": time.time(),
+                "last_updated": time.time(),
                 "alarm_status": alarm_status.dict(),
                 "services": services_data.dict(),
             }
