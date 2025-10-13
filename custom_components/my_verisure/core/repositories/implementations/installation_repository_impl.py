@@ -11,6 +11,7 @@ from ...api.models.dto.installation_dto import (
     InstallationDTO,
     InstallationServicesDTO,
 )
+from ...session_manager import get_session_manager
 from ..interfaces.installation_repository import InstallationRepository
 
 _LOGGER = logging.getLogger(__name__)
@@ -116,7 +117,6 @@ class InstallationRepositoryImpl(InstallationRepository):
 
     def _get_current_hash(self) -> Optional[str]:
         """Get current hash from SessionManager."""
-        from ...session_manager import get_session_manager
         session_manager = get_session_manager()
         return session_manager.hash_token
 
@@ -305,21 +305,16 @@ class InstallationRepositoryImpl(InstallationRepository):
     async def get_installations(self) -> List[Installation]:
         """Get user installations."""
         try:
-            _LOGGER.info("Getting user installations")
-
-            # Check cache first
             cached_installations = self._get_cached_installations()
             if cached_installations:
                 _LOGGER.info("Using cached installations (%d found)", len(cached_installations))
                 return cached_installations
 
-            # Debug: Check client state before calling get_installations
             current_hash = self._get_current_hash()
             _LOGGER.info(
                 "Hash token present: %s",
                 "Yes" if current_hash else "No",
             )
-            # Client will manage its own session internally
 
             installations_data = await self.client.get_installations()
 
@@ -344,46 +339,28 @@ class InstallationRepositoryImpl(InstallationRepository):
     ) -> InstallationServices:
         """Get installation services."""
         try:
-            _LOGGER.info(
-                "Getting services for installation %s (force_refresh=%s)",
-                installation_id,
-                force_refresh,
-            )
-
-            # Check cache first (unless force_refresh is True)
             if not force_refresh:
                 cached_services = self._get_cached_services(installation_id)
                 if cached_services:
                     _LOGGER.info("Using cached services for installation %s", installation_id)
                     return cached_services
 
-            # Client will manage its own session internally
-
-            # Client will get credentials automatically from SessionManager
             services_data = await self.client.get_installation_services(
                 installation_id, 
                 force_refresh
             )
-
-            _LOGGER.info("Raw services data received: %s", type(services_data))
             
-            # The client always returns InstallationServicesDTO
             services_dto = services_data
-            _LOGGER.info("DTO received directly from client")
 
             try:
                 services = InstallationServices.from_dto(services_dto)
-                _LOGGER.info("Domain model conversion successful")
             except Exception as domain_error:
                 _LOGGER.error(
                     "Error converting to domain model: %s", domain_error
                 )
                 raise
 
-            # Cache the result
             self._cache_services(installation_id, services)
-
-            _LOGGER.info("✅ Retrieved and CACHED services for installation %s", installation_id)
             return services
 
         except Exception as e:

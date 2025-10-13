@@ -171,7 +171,7 @@ class SessionManager:
 
             finally:
                 # Clean up dependencies
-                await clear_dependencies()
+                clear_dependencies()
 
         except Exception as e:
             logger.warning(f"Automatic reauthentication failed: {e}")

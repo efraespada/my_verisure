@@ -4,8 +4,6 @@ import logging
 from typing import List, Dict, Any
 
 from ...api.models.domain.auth import Auth, AuthResult
-from ...api.models.domain.session import DeviceIdentifiers
-from ...api.models.dto.auth_dto import AuthDTO
 from ..interfaces.auth_repository import AuthRepository
 from ...api.exceptions import (
     MyVerisureAuthenticationError,
@@ -24,51 +22,17 @@ class AuthRepositoryImpl(AuthRepository):
         self.client = client
 
     async def login(
-        self, auth: Auth, device_identifiers: DeviceIdentifiers
+        self, auth: Auth
     ) -> AuthResult:
         """Login with username and password."""
         try:
             _LOGGER.info("Attempting login for user: %s", auth.username)
 
-            # Client will manage its own session internally
-
-            # Convert domain models to DTOs for the client
-            # Note: DTOs are created but not used in this implementation
-            # as the client handles the conversion internally
-            _ = AuthDTO(
-                res="",  # Will be filled by client
-                msg="",
-                hash=None,
-                refresh_token=None,
-            )
-
-            _ = device_identifiers.to_dto()
-
-            # Call the client's login method with credentials
             result = await self.client.login(auth.username, auth.password)
 
-            # Debug: Check client state after login
             _LOGGER.info("Login result: %s", result)
-            _LOGGER.info(
-                "Client hash token after login: %s",
-                "Yes" if self.client._hash else "No",
-            )
-            _LOGGER.info(
-                "Client session data after login: %s",
-                self.client._session_data,
-            )
 
-            # The client.login() returns a boolean, but the token is stored internally
-            # Check if the client has the hash token after login
             if result and self.client._hash:
-                _LOGGER.info(
-                    "Login successful with token: %s",
-                    (
-                        self.client._hash[:50] + "..."
-                        if self.client._hash
-                        else "None"
-                    ),
-                )
                 return AuthResult(
                     success=True,
                     message="Login successful",
@@ -163,34 +127,6 @@ class AuthRepositoryImpl(AuthRepository):
         except Exception as e:
             _LOGGER.error("Unexpected error during OTP verification: %s", e)
             raise MyVerisureOTPError(f"OTP verification failed: {e}") from e
-
-    async def validate_device(
-        self, device_identifiers: DeviceIdentifiers
-    ) -> AuthResult:
-        """Validate device with the API."""
-        try:
-            _LOGGER.info("Validating device")
-
-            # This would typically call the client's device validation method
-            # For now, we'll assume the device is already validated if we have a hash
-            if self.client._hash:
-                return AuthResult(
-                    success=True,
-                    message="Device validation successful",
-                    hash=self.client._hash,
-                    refresh_token=self.client._refresh_token,
-                )
-            else:
-                return AuthResult(
-                    success=False,
-                    message="Device validation failed - no hash available",
-                )
-
-        except Exception as e:
-            _LOGGER.error("Error validating device: %s", e)
-            raise MyVerisureDeviceAuthorizationError(
-                f"Device validation failed: {e}"
-            ) from e
 
     def get_available_phones(self) -> List[Dict[str, Any]]:
         """Get available phone numbers for OTP."""

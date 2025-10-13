@@ -26,42 +26,32 @@ def setup_dependencies() -> None:
     setup_injector(module)
     logger.info("My Verisure dependencies setup completed")
 
-
 def get_auth_use_case() -> AuthUseCase:
     """Get the authentication use case."""
     return get_dependency(AuthUseCase)
-
-
-
 
 def get_installation_use_case() -> InstallationUseCase:
     """Get the installation use case."""
     return get_dependency(InstallationUseCase)
 
-
 def get_alarm_use_case() -> AlarmUseCase:
     """Get the alarm use case."""
     return get_dependency(AlarmUseCase)
-
 
 def get_auth_client() -> AuthClient:
     """Get the authentication client."""
     return get_dependency(AuthClient)
 
-
-
-
 def get_installation_client() -> InstallationClient:
     """Get the installation client."""
     return get_dependency(InstallationClient)
-
 
 def get_alarm_client() -> AlarmClient:
     """Get the alarm client."""
     return get_dependency(AlarmClient)
 
-
 def clear_dependencies() -> None:
     """Clear all registered dependencies."""
     clear_injector()
     logger.info("My Verisure dependencies cleared")
+    

@@ -4,9 +4,7 @@ import logging
 from typing import List
 
 from ...api.models.domain.installation import Installation, InstallationServices
-from ...repositories.interfaces.installation_repository import (
-    InstallationRepository,
-)
+from ...repositories.interfaces.installation_repository import InstallationRepository
 from ..interfaces.installation_use_case import InstallationUseCase
 
 _LOGGER = logging.getLogger(__name__)
@@ -22,14 +20,7 @@ class InstallationUseCaseImpl(InstallationUseCase):
     async def get_installations(self) -> List[Installation]:
         """Get user installations."""
         try:
-            _LOGGER.info("Getting user installations")
-
-            installations = (
-                await self.installation_repository.get_installations()
-            )
-
-            _LOGGER.info("Retrieved %d installations", len(installations))
-            return installations
+            return await self.installation_repository.get_installations()
 
         except Exception as e:
             _LOGGER.error("Error getting installations: %s", e)
@@ -40,25 +31,7 @@ class InstallationUseCaseImpl(InstallationUseCase):
     ) -> InstallationServices:
         """Get installation services with caching handled by repository."""
         try:
-            _LOGGER.info(
-                "Getting services for installation %s (force_refresh=%s)",
-                installation_id,
-                force_refresh,
-            )
-
-            # Get services from repository (cache is handled internally)
-            # Credentials are obtained automatically by the client from SessionManager
-            services = (
-                await self.installation_repository.get_installation_services(
-                    installation_id, force_refresh
-                )
-            )
-
-            _LOGGER.info(
-                "Retrieved services for installation %s",
-                installation_id,
-            )
-            return services
+            return await self.installation_repository.get_installation_services(installation_id, force_refresh)
 
         except Exception as e:
             _LOGGER.error("Error getting installation services: %s", e)

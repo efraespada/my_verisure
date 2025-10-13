@@ -298,32 +298,11 @@ class AlarmClient(BaseClient):
         if not installation_id:
             raise MyVerisureError("Installation ID is required")
 
-        # Session will be managed automatically by _execute_query_direct
-
-        _LOGGER.warning(
-            "Getting alarm status for installation %s", installation_id
-        )
-
         try:
-            # Try to get real-time alarm status for EST service
             try:
-                # Prepare parameters for real-time alarm status check
-                panel = "panel1"  # This should come from installation services
-
-                # Find EST service for alarm status check
-                # This would normally come from installation services
-                # For now, we'll use a default service ID
+                panel = "panel1"
                 service_id = "EST"
-                service_request = "EST"
 
-                _LOGGER.warning(
-                    "Getting real-time alarm status for EST service: %s "
-                    "(request: %s)",
-                    service_id,
-                    service_request,
-                )
-
-                # First, get the referenceId for the alarm status check
                 check_alarm_result = await self._execute_check_alarm_direct(
                     installation_id,
                     panel,
@@ -409,16 +388,6 @@ class AlarmClient(BaseClient):
     ) -> str:
         """Get real-time alarm status using the CheckAlarmStatus query with polling."""
         try:
-            _LOGGER.warning(
-                "Getting real-time alarm status with numinst: %s, panel: %s, "
-                "idService: %s, referenceId: %s",
-                numinst,
-                panel,
-                id_service,
-                reference_id,
-            )
-
-            # Poll for alarm status with retries
             max_retries = 10  # Maximum number of retries
             retry_count = 0
 
@@ -506,20 +475,8 @@ class AlarmClient(BaseClient):
     ) -> bool:
         """Send an alarm command to the specified installation using the correct flow."""
         try:
-            _LOGGER.warning(
-                "Sending alarm command '%s' to installation %s",
-                request,
-                installation_id,
-            )
-            
-            # Get current credentials from SessionManager
             hash_token, session_data = self._get_current_credentials()
-            _LOGGER.warning("Using current credentials: hash=%s, session=%s", hash_token, session_data)
-
-            # Session will be managed automatically by _execute_query_direct
-
-            # Get panel info (default for now)
-            panel = "panel1"  # This should come from installation services
+            panel = "panel1"
 
             if not panel:
                 _LOGGER.error(
@@ -528,7 +485,6 @@ class AlarmClient(BaseClient):
                 )
                 return False
 
-            # Step 1: Send the arm command
             arm_result = await self._execute_arm_panel_direct(
                 installation_id=installation_id,
                 panel=panel,
@@ -561,11 +517,6 @@ class AlarmClient(BaseClient):
                 )
                 return False
 
-            _LOGGER.warning(
-                "Arm command sent successfully, referenceId: %s", reference_id
-            )
-
-            # Step 2: Poll for status until completion
             max_retries = 30  # Maximum number of retries
             retry_count = 0
 
@@ -615,11 +566,6 @@ class AlarmClient(BaseClient):
                 )
 
                 if status_res == "OK":
-                    _LOGGER.warning(
-                        "Alarm command '%s' completed successfully: %s",
-                        request,
-                        status_msg,
-                    )
                     return True
                 elif status_res == "WAIT":
                     # Need to wait and retry
@@ -654,18 +600,8 @@ class AlarmClient(BaseClient):
     ) -> bool:
         """Disarm the alarm for the specified installation using the correct flow."""
         try:
-            _LOGGER.warning(
-                "Disarming alarm for installation %s", installation_id
-            )
-            
-            # Get current credentials from SessionManager
             hash_token, session_data = self._get_current_credentials()
-            _LOGGER.warning("Using current credentials: hash=%s, session=%s", hash_token, session_data)
-
-            # Session will be managed automatically by _execute_query_direct
-
-            # Get panel info (default for now)
-            panel = "panel1"  # This should come from installation services
+            panel = "panel1"
 
             if not panel:
                 _LOGGER.error(
@@ -766,7 +702,6 @@ class AlarmClient(BaseClient):
                 )
 
                 if status_res == "OK":
-                    _LOGGER.warning("Alarm disarmed successfully: %s", status_msg)
                     return True
                 elif status_res == "WAIT":
                     # Need to wait and retry
@@ -840,23 +775,19 @@ class AlarmClient(BaseClient):
         """Execute CheckAlarm query using direct aiohttp request to get referenceId."""
 
         try:
-            # Prepare variables
             variables = {"numinst": installation_id, "panel": panel}
 
-            # Get session headers (Auth header with token)
             headers = (
                 self._get_session_headers(session_data or {}, hash_token)
                 if session_data
                 else None
             )
 
-            # Add alarm-specific headers
             if headers:
                 headers["numinst"] = installation_id
                 headers["panel"] = panel
                 headers["x-capabilities"] = capabilities
 
-            # Make direct request
             result = await self._execute_query_direct(
                 CHECK_ALARM_QUERY.loc.source.body, variables, headers
             )
@@ -880,7 +811,6 @@ class AlarmClient(BaseClient):
         """Execute alarm status check query using direct aiohttp request."""
 
         try:
-            # Prepare variables
             variables = {
                 "numinst": installation_id,
                 "panel": panel,
@@ -888,20 +818,17 @@ class AlarmClient(BaseClient):
                 "referenceId": reference_id,
             }
 
-            # Get session headers (Auth header with token)
             headers = (
                 self._get_session_headers(session_data or {}, hash_token)
                 if session_data
                 else None
             )
 
-            # Add alarm-specific headers
             if headers:
                 headers["numinst"] = installation_id
                 headers["panel"] = panel
                 headers["x-capabilities"] = capabilities
 
-            # Make direct request
             result = await self._execute_query_direct(
                 CHECK_ALARM_STATUS_QUERY.loc.source.body, variables, headers
             )
@@ -925,7 +852,6 @@ class AlarmClient(BaseClient):
         """Execute arm panel mutation using direct aiohttp request."""
         
         try:
-            # Prepare variables
             variables = {
                 "numinst": installation_id,
                 "request": request,
@@ -935,20 +861,17 @@ class AlarmClient(BaseClient):
                 "armAndLock": False,
             }
 
-            # Get session headers (Auth header with token)
             headers = (
                 self._get_session_headers(session_data or {}, hash_token)
                 if session_data
                 else None
             )
 
-            # Add alarm-specific headers
             if headers:
                 headers["numinst"] = installation_id
                 headers["panel"] = panel
                 headers["x-capabilities"] = capabilities
 
-            # Make direct request
             result = await self._execute_query_direct(
                 ARM_PANEL_MUTATION.loc.source.body, variables, headers
             )
@@ -973,7 +896,6 @@ class AlarmClient(BaseClient):
         """Execute arm status query using direct aiohttp request."""
 
         try:
-            # Prepare variables
             variables = {
                 "numinst": installation_id,
                 "request": request,
@@ -984,20 +906,17 @@ class AlarmClient(BaseClient):
                 "armAndLock": False,
             }
 
-            # Get session headers (Auth header with token)
             headers = (
                 self._get_session_headers(session_data or {}, hash_token)
                 if session_data
                 else None
             )
 
-            # Add alarm-specific headers
             if headers:
                 headers["numinst"] = installation_id
                 headers["panel"] = panel
                 headers["x-capabilities"] = capabilities
 
-            # Make direct request
             result = await self._execute_query_direct(
                 ARM_STATUS_QUERY.loc.source.body, variables, headers
             )
@@ -1020,49 +939,27 @@ class AlarmClient(BaseClient):
         """Execute disarm panel mutation using direct aiohttp request."""
 
         try:
-            _LOGGER.warning("Executing disarm panel with variables: %s", {
-                "numinst": installation_id,
-                "request": request,
-                "panel": panel,
-                "capabilities": capabilities
-            })
-            
-            _LOGGER.warning("Session data received: %s", session_data)
-            _LOGGER.warning("Hash token received: %s", hash_token)
-            _LOGGER.warning("Session data type: %s", type(session_data))
-            _LOGGER.warning("Hash token type: %s", type(hash_token))
-
-            # Prepare variables
             variables = {
                 "numinst": installation_id,
                 "request": request,
                 "panel": panel,
             }
 
-            # Get session headers (Auth header with token)
-            _LOGGER.warning("Calling _get_session_headers with session_data=%s, hash_token=%s", session_data, hash_token)
             headers = (
                 self._get_session_headers(session_data or {}, hash_token)
                 if session_data
                 else None
             )
 
-            _LOGGER.warning("Session headers: %s", headers)
-
-            # Add alarm-specific headers
             if headers:
                 headers["numinst"] = installation_id
                 headers["panel"] = panel
                 headers["x-capabilities"] = capabilities
 
-            _LOGGER.warning("Final headers: %s", headers)
-
-            # Make direct request
             result = await self._execute_query_direct(
                 DISARM_PANEL_MUTATION.loc.source.body, variables, headers
             )
 
-            _LOGGER.warning("Disarm panel result: %s", result)
             return result
 
         except Exception as e:
@@ -1083,7 +980,6 @@ class AlarmClient(BaseClient):
         """Execute disarm status query using direct aiohttp request."""
 
         try:
-            # Prepare variables
             variables = {
                 "numinst": installation_id,
                 "panel": panel,
@@ -1092,20 +988,17 @@ class AlarmClient(BaseClient):
                 "request": request,
             }
 
-            # Get session headers (Auth header with token)
             headers = (
                 self._get_session_headers(session_data or {}, hash_token)
                 if session_data
                 else None
             )
 
-            # Add alarm-specific headers
             if headers:
                 headers["numinst"] = installation_id
                 headers["panel"] = panel
                 headers["x-capabilities"] = capabilities
 
-            # Make direct request
             result = await self._execute_query_direct(
                 DISARM_STATUS_QUERY.loc.source.body, variables, headers
             )

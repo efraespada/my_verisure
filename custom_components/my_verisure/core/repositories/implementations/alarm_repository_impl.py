@@ -31,10 +31,6 @@ class AlarmRepositoryImpl(AlarmRepository):
                 capabilities
             )
 
-            # The client returns a processed alarm status with internal/external structure
-            # We need to convert this to our AlarmStatus domain model
-            _LOGGER.warning("Raw alarm status data: %s", alarm_status_data)
-
             # Extract the alarm message from the processed data
             # The client processes the alarm message and returns a structured response
             # We'll use the first alarm message we find or a default one
@@ -66,11 +62,6 @@ class AlarmRepositoryImpl(AlarmRepository):
                 data=alarm_status_data,
             )
 
-            _LOGGER.warning(
-                "Retrieved alarm status for installation %s: %s",
-                installation_id,
-                alarm_message,
-            )
             return alarm_status
 
         except Exception as e:
@@ -87,7 +78,7 @@ class AlarmRepositoryImpl(AlarmRepository):
     ) -> ArmResult:
         """Arm the alarm panel."""
         try:
-            _LOGGER.warning(
+            _LOGGER.info(
                 "Arming panel for installation %s with request %s",
                 installation_id,
                 request,
@@ -139,7 +130,7 @@ class AlarmRepositoryImpl(AlarmRepository):
     ) -> DisarmResult:
         """Disarm the alarm panel."""
         try:
-            _LOGGER.warning(
+            _LOGGER.info(
                 "Disarming panel for installation %s",
                 installation_id,
             )
@@ -168,7 +159,7 @@ class AlarmRepositoryImpl(AlarmRepository):
     async def arm_alarm_away(self, installation_id: str) -> bool:
         """Arm the alarm in away mode."""
         try:
-            _LOGGER.warning(
+            _LOGGER.info(
                 "Arming alarm away for installation %s", installation_id
             )
             result = await self.client.arm_alarm_away(
@@ -182,7 +173,7 @@ class AlarmRepositoryImpl(AlarmRepository):
     async def arm_alarm_home(self, installation_id: str) -> bool:
         """Arm the alarm in home mode."""
         try:
-            _LOGGER.warning(
+            _LOGGER.info(
                 "Arming alarm home for installation %s", installation_id
             )
             result = await self.client.arm_alarm_home(
@@ -196,7 +187,7 @@ class AlarmRepositoryImpl(AlarmRepository):
     async def arm_alarm_night(self, installation_id: str) -> bool:
         """Arm the alarm in night mode."""
         try:
-            _LOGGER.warning(
+            _LOGGER.info(
                 "Arming alarm night for installation %s", installation_id
             )
             result = await self.client.arm_alarm_night(
@@ -210,7 +201,7 @@ class AlarmRepositoryImpl(AlarmRepository):
     async def disarm_alarm(self, installation_id: str) -> bool:
         """Disarm the alarm."""
         try:
-            _LOGGER.warning(
+            _LOGGER.info(
                 "Disarming alarm for installation %s", installation_id
             )
             result = await self.client.disarm_alarm(
@@ -219,57 +210,4 @@ class AlarmRepositoryImpl(AlarmRepository):
             return result
         except Exception as e:
             _LOGGER.error("Error disarming alarm: %s", e)
-            raise
-
-    async def check_arm_status(
-        self,
-        installation_id: str,
-        panel: str,
-        request: str,
-        reference_id: str,
-        counter: int,
-    ) -> ArmResult:
-        """Check arm status."""
-        try:
-            _LOGGER.debug(
-                "Checking arm status for installation %s, reference %s, counter %d",
-                installation_id,
-                reference_id,
-                counter,
-            )
-
-            # This would typically call a specific method to check arm status
-            # For now, we'll return a success result
-            return ArmResult(
-                success=True,
-                message="Arm status check completed",
-                reference_id=reference_id,
-            )
-
-        except Exception as e:
-            _LOGGER.error("Error checking arm status: %s", e)
-            raise
-
-    async def check_disarm_status(
-        self, installation_id: str, panel: str, reference_id: str, counter: int
-    ) -> DisarmResult:
-        """Check disarm status."""
-        try:
-            _LOGGER.debug(
-                "Checking disarm status for installation %s, reference %s, counter %d",
-                installation_id,
-                reference_id,
-                counter,
-            )
-
-            # This would typically call a specific method to check disarm status
-            # For now, we'll return a success result
-            return DisarmResult(
-                success=True,
-                message="Disarm status check completed",
-                reference_id=reference_id,
-            )
-
-        except Exception as e:
-            _LOGGER.error("Error checking disarm status: %s", e)
             raise

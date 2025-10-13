@@ -29,36 +29,15 @@ class AlarmUseCaseImpl(AlarmUseCase):
     ) -> tuple[str, str]:
         """Get panel and capabilities for an installation."""
         try:
-            _LOGGER.debug(
-                "Getting installation info for %s from InstallationRepository",
-                installation_id,
-            )
-
-            # Get installation services from InstallationRepository
-            _LOGGER.warning("Getting installation services for: %s", installation_id)
-            services_data = (
-                await self.installation_repository.get_installation_services(
-                    installation_id
-                )
-            )
-            _LOGGER.warning("Installation services retrieved: %s", type(services_data))
-
-            # Extract panel from installation data
+            services_data = await self.installation_repository.get_installation_services(installation_id)
             installation_data = services_data.installation_data or {}
             panel = installation_data.get(
                 "panel", "PROTOCOL"
             )  # Fallback to default
-
-            # Get capabilities
             capabilities = (
                 services_data.capabilities or "default_capabilities"
             )  # Fallback to default
 
-            _LOGGER.debug(
-                "Installation info retrieved - Panel: %s, Capabilities: %s",
-                panel,
-                capabilities,
-            )
             return panel, capabilities
 
         except Exception as e:
@@ -72,27 +51,10 @@ class AlarmUseCaseImpl(AlarmUseCase):
     async def get_alarm_status(self, installation_id: str) -> AlarmStatus:
         """Get alarm status."""
         try:
-            _LOGGER.warning(
-                "Getting alarm status for installation %s", installation_id
-            )
-
-            # Get panel and capabilities from installation services
-            _LOGGER.warning("Getting installation info for: %s", installation_id)
-            panel, capabilities = await self._get_installation_info(
-                installation_id
-            )
-            _LOGGER.warning("Installation info retrieved - panel: %s, capabilities: %s", panel, capabilities)
-
-            _LOGGER.warning("Getting alarm status from repository...")
-            alarm_status = await self.alarm_repository.get_alarm_status(
+            panel, capabilities = await self._get_installation_info(installation_id)
+            return await self.alarm_repository.get_alarm_status(
                 installation_id, panel, capabilities
             )
-            _LOGGER.warning("Alarm status retrieved from repository: %s", type(alarm_status))
-
-            _LOGGER.warning(
-                "Retrieved alarm status for installation %s", installation_id
-            )
-            return alarm_status
 
         except Exception as e:
             _LOGGER.error("Error getting alarm status: %s", e)
@@ -101,15 +63,8 @@ class AlarmUseCaseImpl(AlarmUseCase):
     async def arm_away(self, installation_id: str) -> bool:
         """Arm the alarm in away mode."""
         try:
-            _LOGGER.warning(
-                "Arming alarm in away mode for installation %s",
-                installation_id,
-            )
-
-            # Get panel and capabilities from installation services
             panel, capabilities = await self._get_installation_info(installation_id)
             current_status = "E"  # Default current status
-
             result = await self.alarm_repository.arm_panel(
                 installation_id, "ARM1", panel, capabilities, current_status
             )
@@ -130,15 +85,8 @@ class AlarmUseCaseImpl(AlarmUseCase):
     async def arm_home(self, installation_id: str) -> bool:
         """Arm the alarm in home mode."""
         try:
-            _LOGGER.warning(
-                "Arming alarm in home mode for installation %s",
-                installation_id,
-            )
-
-            # Get panel and capabilities from installation services
             panel, capabilities = await self._get_installation_info(installation_id)
             current_status = "E"  # Default current status
-
             result = await self.alarm_repository.arm_panel(
                 installation_id, "PERI1", panel, capabilities, current_status
             )
@@ -159,15 +107,8 @@ class AlarmUseCaseImpl(AlarmUseCase):
     async def arm_night(self, installation_id: str) -> bool:
         """Arm the alarm in night mode."""
         try:
-            _LOGGER.warning(
-                "Arming alarm in night mode for installation %s",
-                installation_id,
-            )
-
-            # Get panel and capabilities from installation services
             panel, capabilities = await self._get_installation_info(installation_id)
             current_status = "E"  # Default current status
-
             result = await self.alarm_repository.arm_panel(
                 installation_id, "ARMNIGHT1", panel, capabilities, current_status
             )
@@ -188,13 +129,7 @@ class AlarmUseCaseImpl(AlarmUseCase):
     async def disarm(self, installation_id: str) -> bool:
         """Disarm the alarm."""
         try:
-            _LOGGER.warning(
-                "Disarming alarm for installation %s", installation_id
-            )
-
-            # Get panel and capabilities from installation services
             panel, capabilities = await self._get_installation_info(installation_id)
-
             result = await self.alarm_repository.disarm_panel(
                 installation_id, panel, capabilities
             )

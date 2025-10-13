@@ -7,7 +7,6 @@ from typing import Any, Dict, Optional
 
 import aiohttp
 
-from .exceptions import MyVerisureConnectionError
 from .fields import VERISURE_GRAPHQL_URL
 
 _LOGGER = logging.getLogger(__name__)
@@ -38,14 +37,10 @@ class BaseClient:
 
     async def _disconnect(self) -> None:
         """Disconnect from My Verisure API (private)."""
-        _LOGGER.warning("🔌 BaseClient._disconnect() called - session: %s", self._session)
         if self._session:
-            # Close the aiohttp session properly
             if not self._session.closed:
-                _LOGGER.warning("🔌 Closing aiohttp session")
                 await self._session.close()
             self._session = None
-            _LOGGER.warning("🔌 Session closed and set to None")
 
     async def _ensure_session(self) -> None:
         """Ensure session is ready for use."""
@@ -81,14 +76,11 @@ class BaseClient:
     def _get_session_headers(
         self, session_data: Dict[str, Any], hash_token: Optional[str] = None
     ) -> Dict[str, str]:
-        """Get headers with session data for device validation."""
-        _LOGGER.warning("_get_session_headers called with session_data=%s, hash_token=%s", session_data, hash_token)
-        
+        """Get headers with session data for device validation."""        
         if not session_data:
             _LOGGER.warning("No session data available, using basic headers")
             return self._get_headers()
 
-        # Create session header as shown in the browser
         session_header = {
             "loginTimestamp": int(time.time() * 1000),
             "user": session_data.get("user", ""),
@@ -99,28 +91,10 @@ class BaseClient:
             "hash": hash_token if hash_token else None,
         }
         
-        _LOGGER.warning("Created session_header: %s", session_header)
-
         headers = self._get_headers()
         headers["auth"] = json.dumps(session_header)
         
-        _LOGGER.warning("Final headers: %s", headers)
-
         return headers
-
-    def _get_cookies(self) -> Dict[str, str]:
-        """Get cookies for API requests."""
-        return self._cookies.copy()
-
-    def _update_cookies_from_response(self, response_cookies: Any) -> None:
-        """Update cookies from response."""
-        if hasattr(response_cookies, "items"):
-            for name, value in response_cookies.items():
-                if value:
-                    self._cookies[name] = value
-                    _LOGGER.debug("Updated cookie: %s", name)
-
-    
 
     async def _execute_query_direct(
         self,
