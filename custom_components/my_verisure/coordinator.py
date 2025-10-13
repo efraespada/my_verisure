@@ -184,7 +184,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
                 raise UpdateFailed("Failed to login to My Verisure")
 
             alarm_status = await self.alarm_use_case.get_alarm_status(self.installation_id)
-            services_data = await self.installation_use_case.get_installation_services(self.installation_id)
+            services_data = await self.installation_use_case.get_installation_services(self.installation_id, True)
             
             # Convert to dictionary format expected by Home Assistant
             if hasattr(alarm_status, 'dict'):
