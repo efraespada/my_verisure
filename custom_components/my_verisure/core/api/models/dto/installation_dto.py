@@ -83,63 +83,50 @@ class InstallationDTO:
 
 
 @dataclass
-class InstallationServicesDTO:
-    """Installation services response DTO."""
-
-    language: Optional[str] = None
-    installation: Optional[Dict[str, Any]] = None
-    services: List[ServiceDTO] = None
+class InstallationDataDTO:
+    """Installation data DTO with strict typing."""
+    
+    numinst: str
+    role: str
+    alias: str
+    status: str
+    panel: str
+    sim: str
+    instIbs: str
+    services: List[ServiceDTO]
+    configRepoUser: Optional[str] = None
     capabilities: Optional[str] = None
 
-    def __post_init__(self):
-        """Initialize services list if None."""
-        if self.services is None:
-            self.services = []
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "InstallationDataDTO":
+        """Create InstallationDataDTO from dictionary."""
+        return cls(
+            numinst=data.get("numinst", ""),
+            role=data.get("role", ""),
+            alias=data.get("alias", ""),
+            status=data.get("status", ""),
+            panel=data.get("panel", ""),
+            sim=data.get("sim", ""),
+            instIbs=data.get("instIbs", ""),
+            services=[ServiceDTO.from_dict(s) for s in data.get("services", [])],
+            configRepoUser=data.get("configRepoUser"),
+            capabilities=data.get("capabilities"),
+        )
+
+
+@dataclass
+class InstallationServicesDTO:
+    """Installation services response DTO with strict typing."""
+
+    installation: InstallationDataDTO
+    language: str
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "InstallationServicesDTO":
         """Create InstallationServicesDTO from dictionary."""
-        services = []
-
-        # Handle different data structures
-        if "installation" in data and "services" in data["installation"]:
-            # GraphQL response structure
-            services = [
-                ServiceDTO.from_dict(s)
-                for s in data["installation"]["services"]
-            ]
-            language = data.get("language")
-            installation = data.get("installation")
-        elif "services" in data and "installation" in data:
-            # Client original structure - check if this is actually GraphQL response
-            # Check if we have the GraphQL structure nested inside
-            if "data" in data and "xSSrv" in data["data"]:
-                # This is actually a GraphQL response wrapped in client structure
-                graphql_data = data["data"]["xSSrv"]
-                services = [
-                    ServiceDTO.from_dict(s)
-                    for s in graphql_data["installation"]["services"]
-                ]
-                language = graphql_data.get("language")
-                installation = graphql_data.get("installation")
-            else:
-                # Client original structure
-                services = [ServiceDTO.from_dict(s) for s in data["services"]]
-                language = data.get("language")
-                installation = data.get("installation")
-        else:
-            # Fallback
-            language = data.get("language")
-            installation = data.get("installation")
-
-        # Extract capabilities from installation data
-        capabilities = data.get("capabilities")
-
         return cls(
-            language=language,
-            installation=installation,
-            services=services,
-            capabilities=capabilities,
+            installation=InstallationDataDTO.from_dict(data.get("installation", {})),
+            language=data.get("language", ""),
         )
 
 

@@ -134,12 +134,18 @@ class Installation:
 
 
 @dataclass
-class InstallationServices:
-    """Installation services domain model."""
-
-    language: Optional[str] = None
-    installation_data: Optional[Dict[str, Any]] = None
-    services: List[Service] = None
+class InstallationData:
+    """Installation data domain model with strict typing."""
+    
+    numinst: str
+    role: str
+    alias: str
+    status: str
+    panel: str
+    sim: str
+    instIbs: str
+    services: List[Service]
+    configRepoUser: Optional[str] = None
     capabilities: Optional[str] = None
 
     def __post_init__(self):
@@ -147,37 +153,66 @@ class InstallationServices:
         if self.services is None:
             self.services = []
 
+
+@dataclass
+class InstallationServices:
+    """Installation services domain model with strict typing."""
+
+    installation: InstallationData
+    language: str
+
+    def __post_init__(self):
+        """Initialize services list if None."""
+        if self.installation.services is None:
+            self.installation.services = []
+
     @classmethod
     def from_dto(cls, dto: InstallationServicesDTO) -> "InstallationServices":
         """Create InstallationServices from DTO."""
-        services = [Service.from_dto(s) for s in dto.services]
+        services = [Service.from_dto(s) for s in dto.installation.services]
 
-        # Extract capabilities from installation data if available
-        capabilities = None
-        if dto.installation and isinstance(dto.installation, dict):
-            capabilities = dto.installation.get("capabilities")
+        # Create installation data domain model
+        installation_data = InstallationData(
+            numinst=dto.installation.numinst,
+            role=dto.installation.role,
+            alias=dto.installation.alias,
+            status=dto.installation.status,
+            panel=dto.installation.panel,
+            sim=dto.installation.sim,
+            instIbs=dto.installation.instIbs,
+            services=services,
+            configRepoUser=dto.installation.configRepoUser,
+            capabilities=dto.installation.capabilities,
+        )
 
         return cls(
             language=dto.language,
-            installation_data=dto.installation,
-            services=services,
-            capabilities=capabilities,
+            installation=installation_data,
         )
 
     def to_dto(self) -> InstallationServicesDTO:
         """Convert to DTO."""
-        services = [s.to_dto() for s in self.services]
+        from ..dto.installation_dto import InstallationDataDTO
+        
+        services = [s.to_dto() for s in self.installation.services]
 
-        # Update installation data with capabilities if available
-        installation_data = self.installation_data or {}
-        if self.capabilities:
-            installation_data = installation_data.copy()
-            installation_data["capabilities"] = self.capabilities
+        # Create installation data DTO
+        installation_dto = InstallationDataDTO(
+            numinst=self.installation.numinst,
+            role=self.installation.role,
+            alias=self.installation.alias,
+            status=self.installation.status,
+            panel=self.installation.panel,
+            sim=self.installation.sim,
+            instIbs=self.installation.instIbs,
+            services=services,
+            configRepoUser=self.installation.configRepoUser,
+            capabilities=self.installation.capabilities,
+        )
 
         return InstallationServicesDTO(
             language=self.language,
-            installation=installation_data,
-            services=services,
+            installation=installation_dto,
         )
 
     def dict(self) -> Dict[str, Any]:

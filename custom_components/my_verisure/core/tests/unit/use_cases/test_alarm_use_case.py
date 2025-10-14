@@ -44,11 +44,22 @@ class TestAlarmUseCase:
         mock_repo.get_installation_services = AsyncMock()
 
         # Default mock response for installation services
-        mock_services = InstallationServices(
-            success=True,
-            message="Success",
-            installation_data={"panel": "PROTOCOL"},
+        from core.api.models.domain.installation import InstallationData
+        mock_installation_data = InstallationData(
+            numinst="6220569",
+            role="OWNER",
+            alias="Test Installation",
+            status="OP",
+            panel="PROTOCOL",
+            sim="123456789",
+            instIbs="16824809",
+            services=[],
+            configRepoUser=None,
             capabilities="default_capabilities",
+        )
+        mock_services = InstallationServices(
+            installation=mock_installation_data,
+            language="es",
         )
         mock_repo.get_installation_services.return_value = mock_services
 

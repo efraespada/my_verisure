@@ -185,35 +185,68 @@ class TestInstallationServicesDTO:
     def test_from_dict_with_services(self):
         """Test creating InstallationServicesDTO from dictionary with services."""
         data = {
-            "res": "OK",
-            "msg": "Success",
             "language": "es",
             "installation": {
+                "numinst": "6220569",
+                "role": "OWNER",
+                "alias": "Test Installation",
+                "status": "OP",
+                "panel": "SDVFAST",
+                "sim": "123456789",
+                "instIbs": "16824809",
                 "services": [
                     {"idService": "EST", "active": True, "visible": True}
-                ]
+                ],
+                "configRepoUser": None,
+                "capabilities": "test_capabilities"
             },
         }
 
         dto = InstallationServicesDTO.from_dict(data)
 
-        assert dto.res == "OK"
-        assert dto.msg == "Success"
         assert dto.language == "es"
-        assert len(dto.services) == 1
-        assert dto.services[0].id_service == "EST"
-        assert dto.services[0].active is True
+        assert dto.installation.numinst == "6220569"
+        assert dto.installation.role == "OWNER"
+        assert dto.installation.alias == "Test Installation"
+        assert dto.installation.status == "OP"
+        assert dto.installation.panel == "SDVFAST"
+        assert dto.installation.sim == "123456789"
+        assert dto.installation.instIbs == "16824809"
+        assert len(dto.installation.services) == 1
+        assert dto.installation.services[0].id_service == "EST"
+        assert dto.installation.services[0].active is True
+        assert dto.installation.capabilities == "test_capabilities"
 
     def test_from_dict_without_services(self):
         """Test creating InstallationServicesDTO from dictionary without services."""
-        data = {"res": "OK", "msg": "Success", "language": "es"}
+        data = {
+            "language": "es",
+            "installation": {
+                "numinst": "6220569",
+                "role": "OWNER",
+                "alias": "Test Installation",
+                "status": "OP",
+                "panel": "SDVFAST",
+                "sim": "123456789",
+                "instIbs": "16824809",
+                "services": [],
+                "configRepoUser": None,
+                "capabilities": None
+            },
+        }
 
         dto = InstallationServicesDTO.from_dict(data)
 
-        assert dto.res == "OK"
-        assert dto.msg == "Success"
         assert dto.language == "es"
-        assert len(dto.services) == 0
+        assert dto.installation.numinst == "6220569"
+        assert dto.installation.role == "OWNER"
+        assert dto.installation.alias == "Test Installation"
+        assert dto.installation.status == "OP"
+        assert dto.installation.panel == "SDVFAST"
+        assert dto.installation.sim == "123456789"
+        assert dto.installation.instIbs == "16824809"
+        assert len(dto.installation.services) == 0
+        assert dto.installation.capabilities is None
 
 
 class TestAlarmStatusDTO:

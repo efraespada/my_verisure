@@ -547,7 +547,7 @@ class InstallationRepositoryImpl(InstallationRepository):
                         installation_id, panel)
             
             services_data = await self.client.get_installation_services(installation_id, force_refresh)
-            capabilities = services_data.capabilities
+            capabilities = services_data.installation.capabilities
             
             devices_dto = await self.client.get_installation_devices(installation_id, panel, capabilities)
             devices = DeviceList.from_dto(devices_dto)

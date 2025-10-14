@@ -1,5 +1,6 @@
 """Installation client for My Verisure API."""
 
+import json
 import logging
 from typing import Any, Dict, List, Optional
 
@@ -11,6 +12,7 @@ from .models.dto.installation_dto import (
 )
 from .models.dto.device_dto import DeviceListDTO
 from ..session_manager import get_session_manager
+from ..file_manager import get_file_manager
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -264,10 +266,19 @@ class InstallationClient(BaseClient):
 
                 response_data = {
                     "installation": installation,
-                    "services": services,
-                    "capabilities": installation.get("capabilities"),
                     "language": services_data.get("language"),
                 }
+
+                # Save response data as JSON file
+                file_manager = get_file_manager()
+                try:
+                    save_success = file_manager.save_json("installation_services.json", response_data)
+                    if save_success:
+                        _LOGGER.info("Installation services data saved to installation_services.json")
+                    else:
+                        _LOGGER.warning("Failed to save installation services data to JSON file")
+                except Exception as save_err:
+                    _LOGGER.error("Error saving installation services data: %s", save_err)
 
                 # Convert to DTO
                 services_dto = InstallationServicesDTO.from_dict(response_data)

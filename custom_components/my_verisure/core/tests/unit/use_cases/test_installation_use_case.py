@@ -172,17 +172,22 @@ class TestInstallationUseCase:
             ),
         ]
 
-        expected_result = InstallationServices(
-            success=True,
+        from core.api.models.domain.installation import InstallationData
+        expected_installation_data = InstallationData(
+            numinst="6220569",
+            role="owner",
+            alias="Test Installation",
+            status="active",
+            panel="panel1",
+            sim="sim1",
+            instIbs="ibs1",
             services=expected_services,
-            installation_data={
-                "status": "active",
-                "panel": "panel1",
-                "sim": "sim1",
-                "instIbs": "ibs1",
-                "role": "owner",
-            },
-            message="Services retrieved successfully",
+            configRepoUser=None,
+            capabilities=None,
+        )
+        expected_result = InstallationServices(
+            installation=expected_installation_data,
+            language="es",
         )
 
         mock_installation_repository.get_installation_services.return_value = (
