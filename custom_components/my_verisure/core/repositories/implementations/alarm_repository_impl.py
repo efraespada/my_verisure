@@ -28,6 +28,7 @@ class AlarmRepositoryImpl(AlarmRepository):
 
             alarm_status_data = await self.client.get_alarm_status(
                 installation_id, 
+                panel,
                 capabilities
             )
 
@@ -88,21 +89,25 @@ class AlarmRepositoryImpl(AlarmRepository):
             if request == "ARM1":
                 result = await self.client.arm_alarm_away(
                     installation_id,
+                    panel,
                     capabilities=capabilities
                 )
             elif request == "PERI1":
                 result = await self.client.arm_alarm_home(
                     installation_id,
+                    panel,
                     capabilities=capabilities
                 )
             elif request == "ARMNIGHT1":
                 result = await self.client.arm_alarm_night(
                     installation_id,
+                    panel,
                     capabilities=capabilities
                 )
             else:
                 result = await self.client.send_alarm_command(
                     installation_id, 
+                    panel,
                     request,
                     capabilities=capabilities,
                     current_status=current_status
@@ -137,6 +142,7 @@ class AlarmRepositoryImpl(AlarmRepository):
 
             result = await self.client.disarm_alarm(
                 installation_id,
+                panel,
                 capabilities=capabilities
             )
 
@@ -156,56 +162,64 @@ class AlarmRepositoryImpl(AlarmRepository):
             _LOGGER.error("Error disarming panel: %s", e)
             raise
 
-    async def arm_alarm_away(self, installation_id: str) -> bool:
+    async def arm_alarm_away(self, installation_id: str, panel: str, capabilities: str) -> bool:
         """Arm the alarm in away mode."""
         try:
             _LOGGER.info(
                 "Arming alarm away for installation %s", installation_id
             )
             result = await self.client.arm_alarm_away(
-                installation_id
+                installation_id,
+                panel,
+                capabilities
             )
             return result
         except Exception as e:
             _LOGGER.error("Error arming alarm away: %s", e)
             raise
 
-    async def arm_alarm_home(self, installation_id: str) -> bool:
+    async def arm_alarm_home(self, installation_id: str, panel: str, capabilities: str) -> bool:
         """Arm the alarm in home mode."""
         try:
             _LOGGER.info(
                 "Arming alarm home for installation %s", installation_id
             )
             result = await self.client.arm_alarm_home(
-                installation_id
+                installation_id,
+                panel,
+                capabilities
             )
             return result
         except Exception as e:
             _LOGGER.error("Error arming alarm home: %s", e)
             raise
 
-    async def arm_alarm_night(self, installation_id: str) -> bool:
+    async def arm_alarm_night(self, installation_id: str, panel: str, capabilities: str) -> bool:
         """Arm the alarm in night mode."""
         try:
             _LOGGER.info(
                 "Arming alarm night for installation %s", installation_id
             )
             result = await self.client.arm_alarm_night(
-                installation_id
+                installation_id,
+                panel,
+                capabilities
             )
             return result
         except Exception as e:
             _LOGGER.error("Error arming alarm night: %s", e)
             raise
 
-    async def disarm_alarm(self, installation_id: str) -> bool:
+    async def disarm_alarm(self, installation_id: str, panel: str, capabilities: str) -> bool:
         """Disarm the alarm."""
         try:
             _LOGGER.info(
                 "Disarming alarm for installation %s", installation_id
             )
             result = await self.client.disarm_alarm(
-                installation_id
+                installation_id,
+                panel,
+                capabilities
             )
             return result
         except Exception as e:

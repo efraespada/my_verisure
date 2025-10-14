@@ -180,7 +180,7 @@ class InfoCommand(BaseCommand):
 
             # Get installation services to get panel info
             services = await self.installation_use_case.get_installation_services(installation_id)
-            panel = services.installation_data.get("panel", "SDVFAST")
+            panel = services.installation.panel or "SDVFAST"
             
             print_info(f"Obteniendo dispositivos para instalación {installation_id} con panel {panel}...")
             

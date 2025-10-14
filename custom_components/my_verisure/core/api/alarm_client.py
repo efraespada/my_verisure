@@ -284,6 +284,7 @@ class AlarmClient(BaseClient):
     async def get_alarm_status(
         self,
         installation_id: str,
+        panel: str,
         capabilities: str,
     ) -> Dict[str, Any]:
         """Get alarm status from installation services and real-time check."""
@@ -295,12 +296,8 @@ class AlarmClient(BaseClient):
                 "Not authenticated. Please login first."
             )
 
-        if not installation_id:
-            raise MyVerisureError("Installation ID is required")
-
         try:
             try:
-                panel = "panel1"
                 service_id = "EST"
 
                 check_alarm_result = await self._execute_check_alarm_direct(
@@ -469,6 +466,7 @@ class AlarmClient(BaseClient):
     async def send_alarm_command(
         self,
         installation_id: str,
+        panel: str,
         request: str,
         capabilities: str,
         current_status: str = "E",
@@ -476,14 +474,6 @@ class AlarmClient(BaseClient):
         """Send an alarm command to the specified installation using the correct flow."""
         try:
             hash_token, session_data = self._get_current_credentials()
-            panel = "panel1"
-
-            if not panel:
-                _LOGGER.error(
-                    "No panel information found for installation %s",
-                    installation_id,
-                )
-                return False
 
             arm_result = await self._execute_arm_panel_direct(
                 installation_id=installation_id,
@@ -596,19 +586,12 @@ class AlarmClient(BaseClient):
     async def disarm_alarm(
         self,
         installation_id: str,
+        panel: str,
         capabilities: str,
     ) -> bool:
         """Disarm the alarm for the specified installation using the correct flow."""
         try:
             hash_token, session_data = self._get_current_credentials()
-            panel = "panel1"
-
-            if not panel:
-                _LOGGER.error(
-                    "No panel information found for installation %s",
-                    installation_id,
-                )
-                return False
 
             # Step 1: Send the disarm command
             disarm_result = await self._execute_disarm_panel_direct(
@@ -730,11 +713,13 @@ class AlarmClient(BaseClient):
     async def arm_alarm_away(
         self,
         installation_id: str,
+        panel: str,
         capabilities: str,
     ) -> bool:
         """Arm the alarm in away mode for the specified installation."""
         return await self.send_alarm_command(
             installation_id,
+            panel,
             "ARM1",
             capabilities=capabilities,
         )
@@ -742,11 +727,13 @@ class AlarmClient(BaseClient):
     async def arm_alarm_home(
         self,
         installation_id: str,
+        panel: str,
         capabilities: str,
     ) -> bool:
         """Arm the alarm in home mode for the specified installation."""
         return await self.send_alarm_command(
             installation_id,
+            panel,
             "PERI1",
             capabilities=capabilities,
         )
@@ -754,11 +741,13 @@ class AlarmClient(BaseClient):
     async def arm_alarm_night(
         self,
         installation_id: str,
+        panel: str,
         capabilities: str,
     ) -> bool:
         """Arm the alarm in night mode for the specified installation."""
         return await self.send_alarm_command(
             installation_id,
+            panel,
             "ARMNIGHT1",
             capabilities=capabilities,
         )
