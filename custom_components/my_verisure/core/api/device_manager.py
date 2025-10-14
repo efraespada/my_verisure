@@ -1,14 +1,15 @@
 """Device manager for My Verisure API."""
 
 import hashlib
-import json
 import logging
 import os
 import platform
+import random
 import time
+import uuid
 from typing import Dict, Optional
 
-# No imports needed for this module
+from ..file_manager import get_file_manager
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -19,40 +20,71 @@ class DeviceManager:
     def __init__(self) -> None:
         """Initialize the device manager."""
         self._device_identifiers: Optional[Dict[str, str]] = None
+        self._file_manager = get_file_manager()
 
-    def _get_device_identifiers_file(self) -> str:
-        """Get the path to the device identifiers file."""
-        # Use the same directory as session files
-        storage_dir = os.path.expanduser("~/.storage")
-        if not os.path.exists(storage_dir):
-            # Fallback to current directory
-            storage_dir = "."
-
-        return os.path.join(
-            storage_dir, "my_verisure_device.json"
-        )
 
     def _generate_device_identifiers(self) -> Dict[str, str]:
-        """Generate device identifiers based on system info."""
-        # Generate consistent device UUID based on system info
-        device_seed = f"my_verisure_{platform.system()}_{platform.machine()}"
+        """Generate device identifiers with improved randomness."""
+        # Get system information for seeding
+        system_info = {
+            "system": platform.system(),
+            "machine": platform.machine(),
+            "processor": platform.processor(),
+            "node": platform.node(),
+            "platform": platform.platform(),
+            "python_version": platform.python_version(),
+        }
+        
+        # Get additional system-specific information
+        try:
+            # Get hostname for additional uniqueness
+            hostname = os.uname().nodename if hasattr(os, 'uname') else platform.node()
+        except:
+            hostname = platform.node()
+        
+        # Create a more complex seed with multiple factors
+        seed_components = [
+            f"my_verisure_{system_info['system']}",
+            f"_{system_info['machine']}",
+            f"_{system_info['node']}",
+            f"_{hostname}",
+            f"_{int(time.time())}",  # Current timestamp
+            f"_{random.randint(1000, 9999)}",  # Random component
+        ]
+        
+        # Combine all seed components
+        device_seed = "".join(seed_components)
         device_uuid = hashlib.sha256(device_seed.encode()).hexdigest()
 
-        # Format as UUID string
+        # Generate a more random UUID using system info + randomness
+        random_component = random.randint(10000, 99999)
+        timestamp_component = int(time.time() * 1000) % 1000000  # Microsecond precision
+        
+        uuid_seed = f"{device_seed}_{random_component}_{timestamp_component}"
+        uuid_hash = hashlib.sha256(uuid_seed.encode()).hexdigest()
+        
+        # Format as UUID string with better distribution
         formatted_uuid = (
-            device_uuid.upper()[:8]
+            uuid_hash.upper()[:8]
             + "-"
-            + device_uuid.upper()[8:12]
+            + uuid_hash.upper()[8:12]
             + "-"
-            + device_uuid.upper()[12:16]
+            + uuid_hash.upper()[12:16]
             + "-"
-            + device_uuid.upper()[16:20]
+            + uuid_hash.upper()[16:20]
             + "-"
-            + device_uuid.upper()[20:32]
+            + uuid_hash.upper()[20:32]
         )
 
-        # Generate Indigitall UUID (random but consistent for this device)
-        indigitall_seed = f"my_verisure_indigitall_{platform.system()}"
+        # Generate Indigitall UUID with different randomness
+        indigitall_components = [
+            f"indigitall_{system_info['system']}",
+            f"_{system_info['machine']}",
+            f"_{random.randint(100000, 999999)}",
+            f"_{int(time.time() * 1000000) % 1000000}",
+        ]
+        
+        indigitall_seed = "".join(indigitall_components)
         indigitall_uuid = hashlib.sha256(indigitall_seed.encode()).hexdigest()
         formatted_indigitall = (
             indigitall_uuid[:8]
@@ -66,13 +98,17 @@ class DeviceManager:
             + indigitall_uuid[20:32]
         )
 
+        # Generate device name with some randomness
+        device_name_suffix = random.randint(100, 999)
+        device_name = f"HomeAssistant-{system_info['system']}-{device_name_suffix}"
+
         return {
             "idDevice": device_uuid,
             "uuid": formatted_uuid,
             "idDeviceIndigitall": formatted_indigitall,
-            "deviceName": f"HomeAssistant-{platform.system()}",
+            "deviceName": device_name,
             "deviceBrand": "HomeAssistant",
-            "deviceOsVersion": f"{platform.system()} {platform.release()}",
+            "deviceOsVersion": f"{system_info['system']} {platform.release()}",
             "deviceVersion": "10.154.0",
             "deviceType": "",
             "deviceResolution": "",
@@ -81,24 +117,21 @@ class DeviceManager:
 
     def _load_device_identifiers(self) -> bool:
         """Load device identifiers from file."""
-        file_path = self._get_device_identifiers_file()
-
-        if not os.path.exists(file_path):
-            _LOGGER.warning(
-                "No device identifiers file found, will generate new ones"
-            )
-            return False
-
         try:
-            with open(file_path, "r") as f:
-                self._device_identifiers = json.load(f)
-
-            _LOGGER.warning("Device identifiers loaded from %s", file_path)
-            _LOGGER.warning(
-                "Device UUID: %s",
-                self._device_identifiers.get("uuid", "Unknown"),
-            )
-            return True
+            device_data = self._file_manager.load_json("device_identifiers.json")
+            if device_data:
+                self._device_identifiers = device_data
+                _LOGGER.warning("Device identifiers loaded from device_identifiers.json")
+                _LOGGER.warning(
+                    "Device UUID: %s",
+                    self._device_identifiers.get("uuid", "Unknown"),
+                )
+                return True
+            else:
+                _LOGGER.warning(
+                    "No device identifiers file found, will generate new ones"
+                )
+                return False
 
         except Exception as e:
             _LOGGER.error("Failed to load device identifiers: %s", e)
@@ -110,31 +143,16 @@ class DeviceManager:
             _LOGGER.warning("No device identifiers to save")
             return
 
-        file_path = self._get_device_identifiers_file()
-
         try:
-            # Ensure directory exists
-            os.makedirs(os.path.dirname(file_path), exist_ok=True)
-
-            # Use asyncio to run file operations in thread pool
-            import asyncio
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                # If we're in an async context, run in thread pool
-                loop.run_in_executor(None, self._write_device_identifiers_file, file_path)
+            success = self._file_manager.save_json("device_identifiers.json", self._device_identifiers)
+            if success:
+                _LOGGER.warning("Device identifiers saved to device_identifiers.json")
             else:
-                # If not in async context, write directly
-                self._write_device_identifiers_file(file_path)
-
-            _LOGGER.warning("Device identifiers saved to %s", file_path)
+                _LOGGER.error("Failed to save device identifiers to JSON file")
 
         except Exception as e:
             _LOGGER.error("Failed to save device identifiers: %s", e)
 
-    def _write_device_identifiers_file(self, file_path: str) -> None:
-        """Write device identifiers to file (blocking operation)."""
-        with open(file_path, "w") as f:
-            json.dump(self._device_identifiers, f, indent=2)
 
     def ensure_device_identifiers(self) -> None:
         """Ensure device identifiers are loaded or generated."""
