@@ -30,12 +30,9 @@ class AlarmUseCaseImpl(AlarmUseCase):
         """Get panel and capabilities for an installation."""
         try:
             services_data = await self.installation_repository.get_installation_services(installation_id)
-            installation_data = services_data.installation_data or {}
-            panel = installation_data.get(
-                "panel", "PROTOCOL"
-            )  # Fallback to default
+            panel = services_data.installation.panel or "PROTOCOL"  # Fallback to default
             capabilities = (
-                services_data.capabilities or "default_capabilities"
+                services_data.installation.capabilities or "default_capabilities"
             )  # Fallback to default
 
             return panel, capabilities

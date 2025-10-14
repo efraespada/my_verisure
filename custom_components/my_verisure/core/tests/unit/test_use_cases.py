@@ -398,8 +398,10 @@ class TestAlarmUseCaseImpl:
 
         # Mock installation services
         mock_services = Mock()
-        mock_services.installation_data = {"panel": "PROTOCOL"}
-        mock_services.capabilities = "default_capabilities"
+        mock_installation = Mock()
+        mock_installation.panel = "PROTOCOL"
+        mock_installation.capabilities = "default_capabilities"
+        mock_services.installation = mock_installation
         self.mock_installation_repository.get_installation_services = (
             AsyncMock(return_value=mock_services)
         )
@@ -438,8 +440,10 @@ class TestAlarmUseCaseImpl:
 
         # Mock installation services
         mock_services = Mock()
-        mock_services.installation_data = {"panel": "PROTOCOL"}
-        mock_services.capabilities = "default_capabilities"
+        mock_installation = Mock()
+        mock_installation.panel = "PROTOCOL"
+        mock_installation.capabilities = "default_capabilities"
+        mock_services.installation = mock_installation
         self.mock_installation_repository.get_installation_services = (
             AsyncMock(return_value=mock_services)
         )
@@ -472,8 +476,10 @@ class TestAlarmUseCaseImpl:
 
         # Mock installation services
         mock_services = Mock()
-        mock_services.installation_data = {"panel": "PROTOCOL"}
-        mock_services.capabilities = "default_capabilities"
+        mock_installation = Mock()
+        mock_installation.panel = "PROTOCOL"
+        mock_installation.capabilities = "default_capabilities"
+        mock_services.installation = mock_installation
         self.mock_installation_repository.get_installation_services = (
             AsyncMock(return_value=mock_services)
         )
@@ -501,8 +507,10 @@ class TestAlarmUseCaseImpl:
 
         # Mock installation services
         mock_services = Mock()
-        mock_services.installation_data = {"panel": "PROTOCOL"}
-        mock_services.capabilities = "default_capabilities"
+        mock_installation = Mock()
+        mock_installation.panel = "PROTOCOL"
+        mock_installation.capabilities = "default_capabilities"
+        mock_services.installation = mock_installation
         self.mock_installation_repository.get_installation_services = (
             AsyncMock(return_value=mock_services)
         )
@@ -535,8 +543,10 @@ class TestAlarmUseCaseImpl:
 
         # Mock installation services
         mock_services = Mock()
-        mock_services.installation_data = {"panel": "PROTOCOL"}
-        mock_services.capabilities = "default_capabilities"
+        mock_installation = Mock()
+        mock_installation.panel = "PROTOCOL"
+        mock_installation.capabilities = "default_capabilities"
+        mock_services.installation = mock_installation
         self.mock_installation_repository.get_installation_services = (
             AsyncMock(return_value=mock_services)
         )
@@ -570,8 +580,10 @@ class TestAlarmUseCaseImpl:
 
         # Mock installation services
         mock_services = Mock()
-        mock_services.installation_data = {"panel": "PROTOCOL"}
-        mock_services.capabilities = "default_capabilities"
+        mock_installation = Mock()
+        mock_installation.panel = "PROTOCOL"
+        mock_installation.capabilities = "default_capabilities"
+        mock_services.installation = mock_installation
         self.mock_installation_repository.get_installation_services = (
             AsyncMock(return_value=mock_services)
         )

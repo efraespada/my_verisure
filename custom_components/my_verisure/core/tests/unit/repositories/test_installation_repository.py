@@ -207,13 +207,13 @@ class TestInstallationRepository:
 
         # Assert
         assert result.language == "es"
-        assert len(result.services) == 2
-        assert result.services[0].id_service == "EST"
-        assert result.services[0].active is True
-        assert result.services[1].id_service == "CAM"
-        assert result.services[1].active is True
-        assert result.installation_data["status"] == "active"
-        assert result.installation_data["panel"] == "panel1"
+        assert len(result.installation.services) == 2
+        assert result.installation.services[0].id_service == "EST"
+        assert result.installation.services[0].active is True
+        assert result.installation.services[1].id_service == "CAM"
+        assert result.installation.services[1].active is True
+        assert result.installation.status == "active"
+        assert result.installation.panel == "panel1"
         mock_client.get_installation_services.assert_called_once_with(
             installation_id, False, hash_token="test_hash_token_12345", session_data=mock_client._session_data
         )

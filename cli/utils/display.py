@@ -71,20 +71,20 @@ def print_alarm_status(status) -> None:
 
 def print_services_info(services_data) -> None:
     """Imprime información de servicios de una instalación."""
-    if not services_data.services or len(services_data.services) == 0:
+    if not services_data.installation.services or len(services_data.installation.services) == 0:
         print_error("No se encontraron servicios para esta instalación")
         return
 
-    services = services_data.services
+    services = services_data.installation.services
     print_success(f"Se encontraron {len(services)} servicios")
     
     # Mostrar información básica de la instalación
-    installation_info = services_data.installation_data or {}
-    print(f"   📊 Estado: {installation_info.get('status', 'N/A')}")
-    print(f"   🛡️  Panel: {installation_info.get('panel', 'N/A')}")
-    print(f"   📱 SIM: {installation_info.get('sim', 'N/A')}")
-    print(f"   🎭 Rol: {installation_info.get('role', 'N/A')}")
-    print(f"   🔧 IBS: {installation_info.get('instIbs', 'N/A')}")
+    installation_info = services_data.installation
+    print(f"   📊 Estado: {installation_info.status}")
+    print(f"   🛡️  Panel: {installation_info.panel}")
+    print(f"   📱 SIM: {installation_info.sim}")
+    print(f"   🎭 Rol: {installation_info.role}")
+    print(f"   🔧 IBS: {installation_info.instIbs}")
     print()
 
     # Mostrar servicios activos
@@ -141,7 +141,7 @@ def print_services_info(services_data) -> None:
             print(f"      ❌ {service_id}: {service_request}")
 
     # Capacidades
-    capabilities = services_data.capabilities
+    capabilities = services_data.installation.capabilities
     if capabilities:
         print(
             f"   🔐 Capacidades: {capabilities[:30] + '...' if capabilities else 'None'}"

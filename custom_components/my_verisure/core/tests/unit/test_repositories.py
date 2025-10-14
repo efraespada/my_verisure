@@ -401,12 +401,10 @@ class TestInstallationRepositoryImpl:
         )
 
         # Assert
-        assert result.success is True
-        assert result.message == "Success"
         assert result.language == "es"
-        assert len(result.services) == 1
-        assert result.services[0].id_service == "EST"
-        assert result.services[0].active is True
+        assert len(result.installation.services) == 1
+        assert result.installation.services[0].id_service == "EST"
+        assert result.installation.services[0].active is True
 
         self.mock_client.get_installation_services.assert_called_once()
 
@@ -463,8 +461,7 @@ class TestInstallationRepositoryImpl:
 
         # Verify third call made API request due to hash change
         self.mock_client.get_installation_services.assert_called_once()
-        assert result3.success is True
-        assert result3.services[0].id_service != result1.services[0].id_service
+        assert result3.installation.services[0].id_service != result1.installation.services[0].id_service
 
     @pytest.mark.asyncio
     async def test_services_cache_invalidation_on_hash_change(self):
