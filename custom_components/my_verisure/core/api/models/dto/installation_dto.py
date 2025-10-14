@@ -89,6 +89,7 @@ class InstallationServicesDTO:
     language: Optional[str] = None
     installation: Optional[Dict[str, Any]] = None
     services: List[ServiceDTO] = None
+    capabilities: Optional[str] = None
 
     def __post_init__(self):
         """Initialize services list if None."""
@@ -131,10 +132,14 @@ class InstallationServicesDTO:
             language = data.get("language")
             installation = data.get("installation")
 
+        # Extract capabilities from installation data
+        capabilities = data.get("capabilities")
+
         return cls(
             language=language,
             installation=installation,
             services=services,
+            capabilities=capabilities,
         )
 
 

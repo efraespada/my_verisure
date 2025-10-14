@@ -32,6 +32,8 @@ class InfoCommand(BaseCommand):
             return await self._show_services(**kwargs)
         elif action == "status":
             return await self._show_status(**kwargs)
+        elif action == "devices":
+            return await self._show_devices(**kwargs)
         else:
             print_error(f"Acción de información desconocida: {action}")
             return False
@@ -135,4 +137,109 @@ class InfoCommand(BaseCommand):
 
         except Exception as e:
             print_error(f"Error obteniendo estado: {e}")
+            return False
+
+    async def _show_devices(self, installation_id: Optional[str] = None, interactive: bool = True) -> bool:
+        """Show devices for an installation."""
+        print_header("DISPOSITIVOS")
+
+        try:
+            if not await self.setup():
+                return False
+
+            # Get installation ID
+            if not installation_id:
+                installations = await self.installation_use_case.get_installations()
+                if not installations:
+                    print_error("No se encontraron instalaciones")
+                    return False
+                
+                if len(installations) == 1:
+                    installation_id = installations[0].numinst
+                    print_info(f"Usando instalación: {installations[0].alias or installation_id}")
+                else:
+                    print_info("Múltiples instalaciones encontradas:")
+                    for i, installation in enumerate(installations):
+                        print(f"  {i + 1}. {installation.alias or installation.numinst} ({installation.numinst})")
+                    
+                    if interactive:
+                        try:
+                            choice = int(input("\nSelecciona una instalación (número): ")) - 1
+                            if 0 <= choice < len(installations):
+                                installation_id = installations[choice].numinst
+                                print_info(f"Seleccionada: {installations[choice].alias or installation_id}")
+                            else:
+                                print_error("Selección inválida")
+                                return False
+                        except (ValueError, KeyboardInterrupt):
+                            print_error("Operación cancelada")
+                            return False
+                    else:
+                        print_error("Se requiere --installation-id cuando hay múltiples instalaciones")
+                        return False
+
+            # Get installation services to get panel info
+            services = await self.installation_use_case.get_installation_services(installation_id)
+            panel = services.installation_data.get("panel", "SDVFAST")
+            
+            print_info(f"Obteniendo dispositivos para instalación {installation_id} con panel {panel}...")
+            
+            # Get devices
+            devices = await self.get_installation_devices_use_case.get_installation_devices(
+                installation_id=installation_id,
+                panel=panel,
+                force_refresh=True
+            )
+
+            if devices.devices:
+                print_success(f"Se encontraron {len(devices.devices)} dispositivo(s)")
+                print()
+                
+                # Group devices by type
+                devices_by_type = {}
+                for device in devices.devices:
+                    device_type = device.type
+                    if device_type not in devices_by_type:
+                        devices_by_type[device_type] = []
+                    devices_by_type[device_type].append(device)
+                
+                # Show devices by type
+                for device_type, type_devices in devices_by_type.items():
+                    print_header(f"{device_type.upper()} ({len(type_devices)} dispositivos)")
+                    
+                    for i, device in enumerate(type_devices):
+                        print(f"  {i + 1}. {device.display_name}")
+                        print(f"     ID: {device.id}")
+                        print(f"     Código: {device.code}")
+                        print(f"     Subtipo: {device.subtype}")
+                        print(f"     Activo: {'Sí' if device.is_active else 'No'}")
+                        print(f"     Remoto: {'Sí' if device.remote_use else 'No'}")
+                        if device.serial_number:
+                            print(f"     Serial: {device.serial_number}")
+                        if device.config and device.config.flags:
+                            flags = []
+                            if device.config.flags.pin_code:
+                                flags.append("PIN")
+                            if device.config.flags.doorbell_button:
+                                flags.append("Timbre")
+                            if flags:
+                                print(f"     Configuración: {', '.join(flags)}")
+                        print()
+                    
+                    if device_type != list(devices_by_type.keys())[-1]:
+                        print_separator()
+                
+                # Summary
+                active_devices = devices.active_devices
+                remote_devices = devices.remote_devices
+                
+                print_info(f"Resumen: {len(devices.devices)} total, {len(active_devices)} activos, {len(remote_devices)} remotos")
+                
+            else:
+                print_info("No se encontraron dispositivos")
+
+            return True
+
+        except Exception as e:
+            print_error(f"Error obteniendo dispositivos: {e}")
             return False

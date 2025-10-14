@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from typing import List, Optional, Dict, Any
 
 from ...api.models.domain.installation import Installation, InstallationServices
+from ...api.models.domain.device import DeviceList
 
 
 class InstallationRepository(ABC):
@@ -19,4 +20,11 @@ class InstallationRepository(ABC):
         self, installation_id: str, force_refresh: bool = False
     ) -> InstallationServices:
         """Get installation services."""
+        pass
+
+    @abstractmethod
+    async def get_installation_devices(
+        self, installation_id: str, panel: str, force_refresh: bool = False
+    ) -> DeviceList:
+        """Get installation devices."""
         pass

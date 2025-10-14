@@ -13,6 +13,7 @@ from ..repositories.interfaces.alarm_repository import AlarmRepository
 from ..use_cases.interfaces.auth_use_case import AuthUseCase
 from ..use_cases.interfaces.installation_use_case import InstallationUseCase
 from ..use_cases.interfaces.alarm_use_case import AlarmUseCase
+from ..use_cases.interfaces.get_installation_devices_use_case import GetInstallationDevicesUseCase
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +38,10 @@ def get_installation_use_case() -> InstallationUseCase:
 def get_alarm_use_case() -> AlarmUseCase:
     """Get the alarm use case."""
     return get_dependency(AlarmUseCase)
+
+def get_get_installation_devices_use_case() -> GetInstallationDevicesUseCase:
+    """Get the get installation devices use case."""
+    return get_dependency(GetInstallationDevicesUseCase)
 
 def get_auth_client() -> AuthClient:
     """Get the authentication client."""

@@ -7,10 +7,12 @@ import time
 from typing import List, Dict, Any, Optional
 
 from ...api.models.domain.installation import Installation, InstallationServices
+from ...api.models.domain.device import DeviceList
 from ...api.models.dto.installation_dto import (
     InstallationDTO,
     InstallationServicesDTO,
 )
+from ...api.models.dto.device_dto import DeviceListDTO
 from ...session_manager import get_session_manager
 from ..interfaces.installation_repository import InstallationRepository
 
@@ -33,6 +35,11 @@ class InstallationRepositoryImpl(InstallationRepository):
         self._services_cache: Dict[str, Dict[str, InstallationServices]] = {}
         self._services_timestamps: Dict[str, Dict[str, float]] = {}
         self._services_ttl: int = 300  # 5 minutes default TTL
+        
+        # Cache for installation devices based on hash, installation_id and panel
+        self._devices_cache: Dict[str, Dict[str, DeviceList]] = {}
+        self._devices_timestamps: Dict[str, Dict[str, float]] = {}
+        self._devices_ttl: int = 300  # 5 minutes default TTL
         
         # Setup cache directory
         if cache_dir is None:
@@ -471,6 +478,111 @@ class InstallationRepositoryImpl(InstallationRepository):
             # Set services cache TTL
             self._services_ttl = ttl_seconds
             
+            # Set devices cache TTL
+            self._devices_ttl = ttl_seconds
+            
             _LOGGER.info("Cache TTL set to %d seconds", ttl_seconds)
         except Exception as e:
             _LOGGER.error("Error setting cache TTL: %s", e)
+
+    async def get_installation_devices(
+        self, installation_id: str, panel: str, force_refresh: bool = False
+    ) -> DeviceList:
+        """Get installation devices."""
+        try:
+            # Get current hash for cache key
+            current_hash = self._get_current_hash()
+            if not current_hash:
+                _LOGGER.warning("No session hash available, cannot use cache")
+                force_refresh = True
+
+            # Check cache first (unless force refresh)
+            if not force_refresh and current_hash:
+                cache_key = f"{installation_id}_{panel}"
+                
+                # Check memory cache
+                if (current_hash in self._devices_cache and 
+                    cache_key in self._devices_cache[current_hash]):
+                    
+                    # Check timestamp
+                    if (current_hash in self._devices_timestamps and 
+                        cache_key in self._devices_timestamps[current_hash]):
+                        
+                        timestamp = self._devices_timestamps[current_hash][cache_key]
+                        if time.time() - timestamp < self._devices_ttl:
+                            _LOGGER.info("Returning devices from memory cache")
+                            return self._devices_cache[current_hash][cache_key]
+                
+                # Try to load from disk cache
+                try:
+                    cache_file = self._get_cache_file_path(current_hash, "devices", cache_key)
+                    if os.path.exists(cache_file):
+                        with open(cache_file, 'r', encoding='utf-8') as f:
+                            cached_data = json.load(f)
+                        
+                        # Check if cache is still valid
+                        cache_timestamp = cached_data.get('timestamp', 0)
+                        if time.time() - cache_timestamp < self._devices_ttl:
+                            _LOGGER.info("Loading devices from disk cache")
+                            devices_dto = DeviceListDTO.from_dict(cached_data['data'])
+                            devices = DeviceList.from_dto(devices_dto)
+                            
+                            # Store in memory cache
+                            if current_hash not in self._devices_cache:
+                                self._devices_cache[current_hash] = {}
+                            if current_hash not in self._devices_timestamps:
+                                self._devices_timestamps[current_hash] = {}
+                            
+                            self._devices_cache[current_hash][cache_key] = devices
+                            self._devices_timestamps[current_hash][cache_key] = cache_timestamp
+                            
+                            return devices
+                        else:
+                            _LOGGER.info("Disk cache expired, will refresh")
+                except Exception as e:
+                    _LOGGER.warning("Error loading devices from disk cache: %s", e)
+
+            # Fetch from API
+            _LOGGER.info("Fetching devices from API for installation %s with panel %s", 
+                        installation_id, panel)
+            
+            services_data = await self.client.get_installation_services(installation_id, force_refresh)
+            capabilities = services_data.capabilities
+            
+            devices_dto = await self.client.get_installation_devices(installation_id, panel, capabilities)
+            devices = DeviceList.from_dto(devices_dto)
+            
+            # Store in cache
+            if current_hash:
+                cache_key = f"{installation_id}_{panel}"
+                
+                # Store in memory cache
+                if current_hash not in self._devices_cache:
+                    self._devices_cache[current_hash] = {}
+                if current_hash not in self._devices_timestamps:
+                    self._devices_timestamps[current_hash] = {}
+                
+                self._devices_cache[current_hash][cache_key] = devices
+                self._devices_timestamps[current_hash][cache_key] = time.time()
+                
+                # Store in disk cache
+                try:
+                    cache_file = self._get_cache_file_path(current_hash, "devices", cache_key)
+                    cache_data = {
+                        'timestamp': time.time(),
+                        'data': devices_dto.to_dict()
+                    }
+                    
+                    os.makedirs(os.path.dirname(cache_file), exist_ok=True)
+                    with open(cache_file, 'w', encoding='utf-8') as f:
+                        json.dump(cache_data, f, indent=2, ensure_ascii=False)
+                    
+                    _LOGGER.info("Devices cached to disk: %s", cache_file)
+                except Exception as e:
+                    _LOGGER.warning("Error saving devices to disk cache: %s", e)
+            
+            return devices
+            
+        except Exception as e:
+            _LOGGER.error("Error getting installation devices: %s", e)
+            raise

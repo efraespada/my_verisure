@@ -14,7 +14,9 @@ from core.dependency_injection.providers import (
     get_auth_use_case,
     get_alarm_use_case,
     get_installation_use_case,
+    get_get_installation_devices_use_case
 )
+
 from core.session_manager import get_session_manager
 
 from ..utils.input_helpers import select_installation
@@ -30,6 +32,7 @@ class BaseCommand(ABC):
         self.auth_use_case = None
         self.alarm_use_case = None
         self.installation_use_case = None
+        self.get_installation_devices_use_case = None
         self.session_use_case = None
 
     async def setup(self, interactive: bool = True) -> bool:
@@ -49,6 +52,7 @@ class BaseCommand(ABC):
             self.auth_use_case = get_auth_use_case()
             self.alarm_use_case = get_alarm_use_case()
             self.installation_use_case = get_installation_use_case()
+            self.get_installation_devices_use_case = get_get_installation_devices_use_case()
 
             return True
 

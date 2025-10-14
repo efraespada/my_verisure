@@ -45,6 +45,7 @@ Examples:
   my_verisure info installations
   my_verisure info services --installation-id 12345
   my_verisure info status --installation-id 12345
+  my_verisure info devices --installation-id 12345
 
   # Alarm control
   my_verisure alarm status --installation-id 12345
@@ -101,6 +102,11 @@ Examples:
         "status", help="Show installation status"
     )
     status_parser.add_argument("--installation-id", help="Installation ID")
+
+    devices_parser = info_subparsers.add_parser(
+        "devices", help="List installation devices"
+    )
+    devices_parser.add_argument("--installation-id", help="Installation ID")
 
     # Alarm command
     alarm_parser = subparsers.add_parser("alarm", help="Alarm control")
@@ -167,6 +173,12 @@ async def main():
                     interactive=not args.non_interactive,
                 )
             elif args.action == "status":
+                success = await command.execute(
+                    args.action,
+                    installation_id=args.installation_id,
+                    interactive=not args.non_interactive,
+                )
+            elif args.action == "devices":
                 success = await command.execute(
                     args.action,
                     installation_id=args.installation_id,

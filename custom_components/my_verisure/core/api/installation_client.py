@@ -9,6 +9,7 @@ from .models.dto.installation_dto import (
     InstallationDTO,
     InstallationServicesDTO,
 )
+from .models.dto.device_dto import DeviceListDTO
 from ..session_manager import get_session_manager
 
 _LOGGER = logging.getLogger(__name__)
@@ -86,6 +87,31 @@ query Srv($numinst: String!, $uuid: String) {
         }
       }
       capabilities
+    }
+  }
+}
+"""
+
+INSTALLATION_DEVICES_QUERY = """
+query xSDeviceList($numinst: String!, $panel: String!) {
+  xSDeviceList(numinst: $numinst, panel: $panel) {
+    res
+    devices {
+      id
+      code
+      name
+      type
+      subtype
+      remoteUse
+      idService
+      isActive
+      serialNumber
+      config {
+        flags {
+          pinCode
+          doorbellButton
+        }
+      }
     }
   }
 }
@@ -264,4 +290,116 @@ class InstallationClient(BaseClient):
             )
             raise MyVerisureError(
                 f"Failed to get installation services: {e}"
+            ) from e
+
+    async def get_installation_devices(
+        self,
+        installation_id: str,
+        panel: str,
+        capabilities: str,
+    ) -> DeviceListDTO:
+        """Get devices for an installation."""
+        # Get credentials from SessionManager
+        hash_token, session_data = self._get_current_credentials()
+        
+        if not hash_token:
+            raise MyVerisureAuthenticationError(
+                "Not authenticated. Please login first."
+            )
+
+        if not installation_id:
+            raise MyVerisureError("Installation ID is required")
+        
+        if not panel:
+            raise MyVerisureError("Panel is required")
+
+        _LOGGER.info(
+            "Getting devices for installation %s with panel %s",
+            installation_id,
+            panel,
+        )
+
+        try:
+            # Prepare variables
+            variables = {
+                "numinst": installation_id,
+                "panel": panel
+            }
+
+            # Execute the devices query
+            headers = (
+                self._get_session_headers(session_data or {}, hash_token)
+                if session_data
+                else None
+            )
+            
+            # Add capabilities header if provided
+            if capabilities and headers:
+                headers["x-capabilities"] = capabilities
+
+            result = await self._execute_query_direct(
+                INSTALLATION_DEVICES_QUERY, variables, headers
+            )
+
+            # Check for errors first
+            if "errors" in result:
+                error = result["errors"][0] if result["errors"] else {}
+                error_msg = error.get("message", "Unknown error")
+                _LOGGER.error(
+                    "Failed to get installation devices: %s", error_msg
+                )
+                raise MyVerisureError(
+                    f"Failed to get installation devices: {error_msg}"
+                )
+
+            # Check for successful response
+            data = result.get("data", {})
+            devices_data = data.get("xSDeviceList", {})
+
+            if devices_data and devices_data.get("res") == "OK":
+                devices = devices_data.get("devices", [])
+
+                _LOGGER.info(
+                    "Found %d devices for installation %s",
+                    len(devices),
+                    installation_id,
+                )
+
+                # Log device details
+                for i, device in enumerate(devices):
+                    _LOGGER.info(
+                        "Device %d: %s (%s) - %s - Active: %s",
+                        i + 1,
+                        device.get("name", "Unknown"),
+                        device.get("id", "Unknown"),
+                        device.get("type", "Unknown"),
+                        device.get("isActive", False),
+                    )
+
+                response_data = {
+                    "res": devices_data.get("res", ""),
+                    "devices": devices,
+                }
+
+                # Convert to DTO
+                devices_dto = DeviceListDTO.from_dict(response_data)
+                return devices_dto
+            else:
+                error_msg = (
+                    devices_data.get("msg", "Unknown error")
+                    if devices_data
+                    else "No response data"
+                )
+                raise MyVerisureError(
+                    f"Failed to get installation devices: {error_msg}"
+                )
+
+        except MyVerisureError:
+            raise
+        except Exception as e:
+            _LOGGER.error(
+                "Unexpected error getting installation devices: %s", e
+            )
+            raise MyVerisureError(
+                f"Failed to get installation devices: {e}"
             ) from e
