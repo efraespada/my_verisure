@@ -4,10 +4,12 @@ import asyncio
 import logging
 from typing import List
 
-from ...api.models.domain.camera_request_image import CameraRequestImageResult
+from ...api.models.domain.camera_refresh import CameraRefresh
+from ...api.models.domain.camera_refresh_data import CameraRefreshData
 from ...repositories.interfaces.camera_repository import CameraRepository
 from ...repositories.interfaces.installation_repository import InstallationRepository
 from ..interfaces.refresh_camera_images_use_case import RefreshCameraImagesUseCase
+from datetime import datetime
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -30,7 +32,7 @@ class RefreshCameraImagesUseCaseImpl(RefreshCameraImagesUseCase):
         installation_id: str,
         max_attempts: int = 30,
         check_interval: int = 4,
-    ) -> CameraRequestImageResult:
+    ) -> CameraRefresh:
         """Refresh images from cameras."""
         try:
             _LOGGER.info(
@@ -64,9 +66,12 @@ class RefreshCameraImagesUseCaseImpl(RefreshCameraImagesUseCase):
             
             if not camera_devices:
                 _LOGGER.warning("No active camera devices (YR/YP) found in installation %s", installation_id)
-                return CameraRequestImageResult(
-                    success=False,
-                    message="No active camera devices found",
+                return CameraRefresh(
+                    refresh_data=[],
+                    total_cameras=0,
+                    successful_refreshes=0,
+                    failed_refreshes=0,
+                    timestamp=datetime.now().isoformat(),
                 )
             
             # Extract device IDs for camera request
@@ -112,6 +117,7 @@ class RefreshCameraImagesUseCaseImpl(RefreshCameraImagesUseCase):
                 len(device_ids)
             )
 
+            refresh_data = []
             # If we had any successful requests, wait 30 seconds and then get images from each camera
             if successful_requests > 0:
                 _LOGGER.info("Waiting 90 seconds before retrieving images from cameras...")
@@ -119,8 +125,6 @@ class RefreshCameraImagesUseCaseImpl(RefreshCameraImagesUseCase):
 
                 _LOGGER.info("Starting to retrieve images from each camera...")
                 
-                # Get images from each camera device
-                images_results = []
                 for camera_device in camera_devices:
                     try:
                         _LOGGER.info(
@@ -138,12 +142,13 @@ class RefreshCameraImagesUseCaseImpl(RefreshCameraImagesUseCase):
                             capabilities=capabilities,
                         )
                         
-                        images_results.append({
-                            "device": camera_device.name,
-                            "device_code": camera_device.code,
-                            "result": image_result,
-                        })
-                        
+                        refresh_data.append(
+                            CameraRefreshData(
+                                timestamp=datetime.now().isoformat(),
+                                num_images=image_result.get("images_saved", 0),
+                                camera_identifier=camera_device.type + camera_device.id,
+                            )
+                        )
                         _LOGGER.info(
                             "Images retrieved for camera %s. Success: %s, Images saved: %s",
                             camera_device.name,
@@ -157,38 +162,45 @@ class RefreshCameraImagesUseCaseImpl(RefreshCameraImagesUseCase):
                             camera_device.name,
                             e,
                         )
-                        images_results.append({
-                            "device": camera_device.name,
-                            "device_code": camera_device.code,
-                            "result": {
-                                "success": False,
-                                "error": str(e),
-                                "message": f"Failed to retrieve images from {camera_device.name}",
-                            },
-                        })
+                        
+                        refresh_data.append(
+                            CameraRefreshData(
+                                timestamp=datetime.now().isoformat(),
+                                num_images=0,
+                                camera_identifier=camera_device.type + camera_device.id,
+                            )
+                        )
 
                 _LOGGER.info(
                     "Camera images retrieval completed for %d cameras",
-                    len(images_results),
+                    len(camera_devices),
                 )
                 
                 # Return the original request result with additional images information
-                return CameraRequestImageResult(
-                    success=result.success,
-                    reference_id=result.reference_id,
-                    status=result.status,
-                    attempts=result.attempts,
-                    message=f"Camera images refresh completed. {len(images_results)} cameras processed.",
+                return CameraRefresh(
+                    refresh_data=refresh_data,
+                    total_cameras=len(camera_devices),
+                    successful_refreshes=len(refresh_data),
+                    failed_refreshes=len(camera_devices) - len(refresh_data),
+                    timestamp=datetime.now().isoformat(),
                 )
             else:
                 _LOGGER.warning("Camera images request failed, skipping image retrieval")
-                return result
+                return CameraRefresh(
+                    refresh_data=[],
+                    total_cameras=len(camera_devices),
+                    successful_refreshes=0,
+                    failed_refreshes=len(camera_devices),
+                    timestamp=datetime.now().isoformat(),
+                )
 
         except Exception as e:
             _LOGGER.error("Failed to refresh camera images: %s", e)
             # Return error result
-            return CameraRequestImageResult(
-                success=False,
-                error=str(e),
-                message=f"Camera images refresh failed: {str(e)}",
+            return CameraRefresh(
+                refresh_data=[],
+                total_cameras=0,
+                successful_refreshes=0,
+                failed_refreshes=0,
+                timestamp=datetime.now().isoformat(),
             )

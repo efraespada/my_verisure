@@ -122,26 +122,33 @@ class CameraCommand(BaseCommand):
                 check_interval=4,
             )
 
-            if result.success:
-                print_success("Camera images refresh completed successfully!")
-                print_info(f"Status: {result.status}")
-                print_info(f"Attempts: {result.attempts}")
-                if hasattr(result, 'images_results') and result.images_results:
-                    print_info(f"Processed {len(result.images_results)} cameras:")
-                    for camera_result in result.images_results:
-                        device_name = camera_result.get("device", "Unknown")
-                        device_code = camera_result.get("device_code", "Unknown")
-                        result_data = camera_result.get("result", {})
-                        
-                        if result_data.get("success", False):
-                            images_saved = result_data.get("images_saved", 0)
-                            print_success(f"  ✓ {device_name} ({device_code}): {images_saved} images saved")
-                        else:
-                            error_msg = result_data.get("message", "Unknown error")
-                            print_error(f"  ✗ {device_name} ({device_code}): {error_msg}")
+            # Display results using the new CameraRefresh structure
+            print_success("Camera images refresh completed!")
+            print_info(f"Timestamp: {result.timestamp}")
+            print_info(f"Total cameras: {result.total_cameras}")
+            print_info(f"Successful refreshes: {result.successful_refreshes}")
+            print_info(f"Failed refreshes: {result.failed_refreshes}")
+            print()
+
+            if result.refresh_data:
+                print_info("Camera refresh details:")
+                for i, camera_data in enumerate(result.refresh_data, 1):
+                    camera_id = camera_data.camera_identifier
+                    num_images = camera_data.num_images
+                    timestamp = camera_data.timestamp
+                    
+                    if num_images > 0:
+                        print_success(f"  {i}. {camera_id}: {num_images} images saved at {timestamp}")
+                    else:
+                        print_error(f"  {i}. {camera_id}: No images saved at {timestamp}")
             else:
-                print_error(f"Camera images refresh failed: {result.message}")
-                return False
+                print_info("No camera refresh data available")
+
+            # Show summary
+            if result.successful_refreshes > 0:
+                print_success(f"✓ Successfully refreshed {result.successful_refreshes} cameras")
+            if result.failed_refreshes > 0:
+                print_error(f"✗ Failed to refresh {result.failed_refreshes} cameras")
 
             return True
 

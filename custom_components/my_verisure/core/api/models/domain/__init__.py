@@ -17,6 +17,8 @@ from .alarm import (
 )
 from .session import SessionData, Session, DeviceIdentifiers
 from .service import Service
+from .camera_refresh_data import CameraRefreshData
+from .camera_refresh import CameraRefresh
 
 __all__ = [
     "Auth",
@@ -37,4 +39,6 @@ __all__ = [
     "Session",
     "DeviceIdentifiers",
     "Service",
+    "CameraRefreshData",
+    "CameraRefresh",
 ]

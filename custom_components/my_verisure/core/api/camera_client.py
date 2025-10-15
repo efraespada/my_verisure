@@ -269,20 +269,7 @@ class CameraClient(BaseClient):
                 headers,
             )
 
-            # Log the complete response for debugging
-            _LOGGER.info("=== THUMBNAIL QUERY RESPONSE ===")
-            _LOGGER.info("Full response: %s", thumbnail_result)
-            _LOGGER.info("Response type: %s", type(thumbnail_result))
-            if thumbnail_result:
-                _LOGGER.info("Response keys: %s", list(thumbnail_result.keys()) if isinstance(thumbnail_result, dict) else "Not a dict")
-            _LOGGER.info("=== END THUMBNAIL QUERY RESPONSE ===")
-
             if not thumbnail_result or "data" not in thumbnail_result or "xSGetThumbnail" not in thumbnail_result["data"]:
-                _LOGGER.error("Invalid response from thumbnail query")
-                _LOGGER.error("Expected 'data.xSGetThumbnail' key in response")
-                _LOGGER.error("Available keys: %s", list(thumbnail_result.keys()) if isinstance(thumbnail_result, dict) else "Response is not a dict")
-                if thumbnail_result and "data" in thumbnail_result:
-                    _LOGGER.error("Data keys: %s", list(thumbnail_result["data"].keys()) if isinstance(thumbnail_result["data"], dict) else "Data is not a dict")
                 raise MyVerisureError("Invalid response from thumbnail service")
 
             thumbnail_data = thumbnail_result["data"]["xSGetThumbnail"]
@@ -337,20 +324,7 @@ class CameraClient(BaseClient):
                 headers,
             )
 
-            # Log the complete response for debugging
-            _LOGGER.info("=== PHOTO IMAGES QUERY RESPONSE ===")
-            _LOGGER.info("Full response: %s", photo_result)
-            _LOGGER.info("Response type: %s", type(photo_result))
-            if photo_result:
-                _LOGGER.info("Response keys: %s", list(photo_result.keys()) if isinstance(photo_result, dict) else "Not a dict")
-            _LOGGER.info("=== END PHOTO IMAGES QUERY RESPONSE ===")
-
             if not photo_result or "data" not in photo_result or "xSGetPhotoImages" not in photo_result["data"]:
-                _LOGGER.error("Invalid response from photo images query")
-                _LOGGER.error("Expected 'data.xSGetPhotoImages' key in response")
-                _LOGGER.error("Available keys: %s", list(photo_result.keys()) if isinstance(photo_result, dict) else "Response is not a dict")
-                if photo_result and "data" in photo_result:
-                    _LOGGER.error("Data keys: %s", list(photo_result["data"].keys()) if isinstance(photo_result["data"], dict) else "Data is not a dict")
                 raise MyVerisureError("Invalid response from photo images service")
 
             photo_data = photo_result["data"]["xSGetPhotoImages"]
