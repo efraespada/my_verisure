@@ -6,12 +6,15 @@ from injector import Module, provider, singleton
 from ..api.auth_client import AuthClient
 from ..api.installation_client import InstallationClient
 from ..api.alarm_client import AlarmClient
+from ..api.camera_client import CameraClient
 from ..repositories.interfaces.auth_repository import AuthRepository
 from ..repositories.interfaces.installation_repository import InstallationRepository
 from ..repositories.interfaces.alarm_repository import AlarmRepository
+from ..repositories.interfaces.camera_repository import CameraRepository
 from ..repositories.implementations.auth_repository_impl import AuthRepositoryImpl
 from ..repositories.implementations.installation_repository_impl import InstallationRepositoryImpl
 from ..repositories.implementations.alarm_repository_impl import AlarmRepositoryImpl
+from ..repositories.implementations.camera_repository_impl import CameraRepositoryImpl
 from ..use_cases.interfaces.auth_use_case import AuthUseCase
 from ..use_cases.interfaces.installation_use_case import InstallationUseCase
 from ..use_cases.interfaces.alarm_use_case import AlarmUseCase
@@ -52,6 +55,12 @@ class MyVerisureModule(Module):
 
     @singleton
     @provider
+    def provide_camera_client(self) -> CameraClient:
+        """Provide CameraClient instance."""
+        return CameraClient()
+
+    @singleton
+    @provider
     def provide_auth_repository(self, auth_client: AuthClient) -> AuthRepository:
         """Provide AuthRepository instance."""
         return AuthRepositoryImpl(auth_client)
@@ -67,6 +76,12 @@ class MyVerisureModule(Module):
     def provide_alarm_repository(self, alarm_client: AlarmClient) -> AlarmRepository:
         """Provide AlarmRepository instance."""
         return AlarmRepositoryImpl(alarm_client)
+
+    @singleton
+    @provider
+    def provide_camera_repository(self, camera_client: CameraClient) -> CameraRepository:
+        """Provide CameraRepository instance."""
+        return CameraRepositoryImpl(camera_client)
 
     @singleton
     @provider

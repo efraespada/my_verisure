@@ -7,9 +7,11 @@ from .module import MyVerisureModule
 from ..api.auth_client import AuthClient
 from ..api.installation_client import InstallationClient
 from ..api.alarm_client import AlarmClient
+from ..api.camera_client import CameraClient
 from ..repositories.interfaces.auth_repository import AuthRepository
 from ..repositories.interfaces.installation_repository import InstallationRepository
 from ..repositories.interfaces.alarm_repository import AlarmRepository
+from ..repositories.interfaces.camera_repository import CameraRepository
 from ..use_cases.interfaces.auth_use_case import AuthUseCase
 from ..use_cases.interfaces.installation_use_case import InstallationUseCase
 from ..use_cases.interfaces.alarm_use_case import AlarmUseCase
@@ -54,6 +56,14 @@ def get_installation_client() -> InstallationClient:
 def get_alarm_client() -> AlarmClient:
     """Get the alarm client."""
     return get_dependency(AlarmClient)
+
+def get_camera_client() -> CameraClient:
+    """Get the camera client."""
+    return get_dependency(CameraClient)
+
+def get_camera_repository() -> CameraRepository:
+    """Get the camera repository."""
+    return get_dependency(CameraRepository)
 
 def clear_dependencies() -> None:
     """Clear all registered dependencies."""
