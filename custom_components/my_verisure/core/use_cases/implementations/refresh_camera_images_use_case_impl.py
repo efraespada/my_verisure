@@ -162,7 +162,6 @@ class RefreshCameraImagesUseCaseImpl(RefreshCameraImagesUseCase):
                     status=result.status,
                     attempts=result.attempts,
                     message=f"Camera images refresh completed. {len(images_results)} cameras processed.",
-                    images_results=images_results,  # Add images results
                 )
             else:
                 _LOGGER.warning("Camera images request failed, skipping image retrieval")

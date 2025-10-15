@@ -47,9 +47,8 @@ class CameraRepositoryImpl(CameraRepository):
                 check_interval=check_interval,
             )
 
-            # Convert to DTO and then to domain model
-            dto = CameraRequestImageResultDTO.from_dict(result)
-            domain_model = CameraRequestImageResult.from_dto(dto)
+            # The result is already a CameraRequestImageResult object
+            domain_model = result
 
             _LOGGER.info(
                 "Camera request completed. Success: %s, Status: %s, Attempts: %s",

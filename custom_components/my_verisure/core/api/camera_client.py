@@ -13,6 +13,7 @@ from .exceptions import (
 )
 from ..session_manager import get_session_manager
 from ..file_manager import get_file_manager
+from ..api.models.domain.camera_request_image import CameraRequestImageResult
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -153,6 +154,18 @@ class CameraClient(BaseClient):
                 headers["panel"] = panel
                 headers["x-capabilities"] = capabilities
 
+            # Log request details for debugging
+            _LOGGER.info("=== CAMERA REQUEST IMAGES REQUEST ===")
+            _LOGGER.info("Installation ID: %s", installation_id)
+            _LOGGER.info("Panel: %s", panel)
+            _LOGGER.info("Devices: %s", devices)
+            _LOGGER.info("Capabilities: %s", capabilities)
+            _LOGGER.info("Variables: %s", variables)
+            _LOGGER.info("Headers: %s", headers)
+            _LOGGER.info("Hash token: %s", hash_token[:50] + "..." if hash_token else "None")
+            _LOGGER.info("Session data: %s", session_data)
+            _LOGGER.info("=== END CAMERA REQUEST IMAGES REQUEST ===")
+
             # Execute the first mutation
             result = await self._execute_query_direct(
                 REQUEST_IMAGES_MUTATION,
@@ -160,14 +173,46 @@ class CameraClient(BaseClient):
                 headers,
             )
 
-            if not result or "xSRequestImages" not in result:
+            # Log the complete response for debugging
+            _LOGGER.info("=== CAMERA REQUEST IMAGES RESPONSE ===")
+            _LOGGER.info("Full response: %s", result)
+            _LOGGER.info("Response type: %s", type(result))
+            if result:
+                _LOGGER.info("Response keys: %s", list(result.keys()) if isinstance(result, dict) else "Not a dict")
+            _LOGGER.info("=== END CAMERA REQUEST IMAGES RESPONSE ===")
+
+            if not result or "data" not in result or "xSRequestImages" not in result["data"]:
                 _LOGGER.error("Invalid response from request images mutation")
+                _LOGGER.error("Expected 'data.xSRequestImages' key in response")
+                _LOGGER.error("Available keys: %s", list(result.keys()) if isinstance(result, dict) else "Response is not a dict")
+                if result and "data" in result:
+                    _LOGGER.error("Data keys: %s", list(result["data"].keys()) if isinstance(result["data"], dict) else "Data is not a dict")
                 raise MyVerisureError("Invalid response from camera service")
 
-            response = result["xSRequestImages"]
+            response = result["data"]["xSRequestImages"]
             
-            if not response.get("res"):
-                error_msg = response.get("msg", "Unknown error")
+            # Check for GraphQL errors first
+            if "errors" in result and result["errors"]:
+                error = result["errors"][0]
+                error_message = error.get("message", "Unknown GraphQL error")
+                _LOGGER.error("GraphQL error: %s", error_message)
+                
+                # Handle specific error cases
+                if "request_already_exists" in error_message:
+                    _LOGGER.info("Camera request already exists, this is normal - continuing with status check")
+                    # Return a successful result with a dummy reference ID
+                    return CameraRequestImageResult(
+                        success=True,
+                        reference_id="existing_request",
+                        status="EXISTING",
+                        attempts=1,
+                        message="Request already exists, continuing with status check"
+                    )
+                else:
+                    raise MyVerisureError(f"GraphQL error: {error_message}")
+            
+            if not response or not response.get("res"):
+                error_msg = response.get("msg", "Unknown error") if response else "No response data"
                 _LOGGER.error("Failed to request images: %s", error_msg)
                 raise MyVerisureError(f"Failed to request images: {error_msg}")
 
@@ -325,11 +370,23 @@ class CameraClient(BaseClient):
                 headers,
             )
 
-            if not thumbnail_result or "xSGetThumbnail" not in thumbnail_result:
+            # Log the complete response for debugging
+            _LOGGER.info("=== THUMBNAIL QUERY RESPONSE ===")
+            _LOGGER.info("Full response: %s", thumbnail_result)
+            _LOGGER.info("Response type: %s", type(thumbnail_result))
+            if thumbnail_result:
+                _LOGGER.info("Response keys: %s", list(thumbnail_result.keys()) if isinstance(thumbnail_result, dict) else "Not a dict")
+            _LOGGER.info("=== END THUMBNAIL QUERY RESPONSE ===")
+
+            if not thumbnail_result or "data" not in thumbnail_result or "xSGetThumbnail" not in thumbnail_result["data"]:
                 _LOGGER.error("Invalid response from thumbnail query")
+                _LOGGER.error("Expected 'data.xSGetThumbnail' key in response")
+                _LOGGER.error("Available keys: %s", list(thumbnail_result.keys()) if isinstance(thumbnail_result, dict) else "Response is not a dict")
+                if thumbnail_result and "data" in thumbnail_result:
+                    _LOGGER.error("Data keys: %s", list(thumbnail_result["data"].keys()) if isinstance(thumbnail_result["data"], dict) else "Data is not a dict")
                 raise MyVerisureError("Invalid response from thumbnail service")
 
-            thumbnail_data = thumbnail_result["xSGetThumbnail"]
+            thumbnail_data = thumbnail_result["data"]["xSGetThumbnail"]
             
             if not thumbnail_data.get("idSignal"):
                 error_msg = "No idSignal received from thumbnail query"
@@ -381,11 +438,23 @@ class CameraClient(BaseClient):
                 headers,
             )
 
-            if not photo_result or "xSGetPhotoImages" not in photo_result:
+            # Log the complete response for debugging
+            _LOGGER.info("=== PHOTO IMAGES QUERY RESPONSE ===")
+            _LOGGER.info("Full response: %s", photo_result)
+            _LOGGER.info("Response type: %s", type(photo_result))
+            if photo_result:
+                _LOGGER.info("Response keys: %s", list(photo_result.keys()) if isinstance(photo_result, dict) else "Not a dict")
+            _LOGGER.info("=== END PHOTO IMAGES QUERY RESPONSE ===")
+
+            if not photo_result or "data" not in photo_result or "xSGetPhotoImages" not in photo_result["data"]:
                 _LOGGER.error("Invalid response from photo images query")
+                _LOGGER.error("Expected 'data.xSGetPhotoImages' key in response")
+                _LOGGER.error("Available keys: %s", list(photo_result.keys()) if isinstance(photo_result, dict) else "Response is not a dict")
+                if photo_result and "data" in photo_result:
+                    _LOGGER.error("Data keys: %s", list(photo_result["data"].keys()) if isinstance(photo_result["data"], dict) else "Data is not a dict")
                 raise MyVerisureError("Invalid response from photo images service")
 
-            photo_data = photo_result["xSGetPhotoImages"]
+            photo_data = photo_result["data"]["xSGetPhotoImages"]
             
             if not photo_data.get("devices") or not photo_data["devices"]:
                 _LOGGER.warning("No devices found in photo images response")
