@@ -1,5 +1,6 @@
 """Refresh camera images use case implementation."""
 
+import asyncio
 import logging
 from typing import List
 
@@ -88,11 +89,84 @@ class RefreshCameraImagesUseCaseImpl(RefreshCameraImagesUseCase):
             )
 
             _LOGGER.info(
-                "Camera images refresh completed. Success: %s, Status: %s, Attempts: %s",
+                "Camera images request completed. Success: %s, Status: %s, Attempts: %s",
                 result.success,
                 result.status,
                 result.attempts,
             )
+
+            # If the request was successful, wait 30 seconds and then get images from each camera
+            if result.success:
+                _LOGGER.info("Waiting 30 seconds before retrieving images from cameras...")
+                await asyncio.sleep(30)
+
+                _LOGGER.info("Starting to retrieve images from each camera...")
+                
+                # Get images from each camera device
+                images_results = []
+                for camera_device in camera_devices:
+                    try:
+                        _LOGGER.info(
+                            "Retrieving images from camera %s (ID: %s, Device: %s)",
+                            camera_device.name,
+                            camera_device.id,
+                            camera_device.type + camera_device.code,
+                        )
+                        
+                        # Call get_images for each camera
+                        image_result = await self.camera_repository.get_images(
+                            installation_id=installation_id,
+                            panel=panel,
+                            device=camera_device.type + camera_device.code,  # Use type + code (e.g., "YR1", "YP2")
+                            capabilities=capabilities,
+                        )
+                        
+                        images_results.append({
+                            "device": camera_device.name,
+                            "device_code": camera_device.code,
+                            "result": image_result,
+                        })
+                        
+                        _LOGGER.info(
+                            "Images retrieved for camera %s. Success: %s, Images saved: %s",
+                            camera_device.name,
+                            image_result.get("success", False),
+                            image_result.get("images_saved", 0),
+                        )
+                        
+                    except Exception as e:
+                        _LOGGER.error(
+                            "Failed to retrieve images from camera %s: %s",
+                            camera_device.name,
+                            e,
+                        )
+                        images_results.append({
+                            "device": camera_device.name,
+                            "device_code": camera_device.code,
+                            "result": {
+                                "success": False,
+                                "error": str(e),
+                                "message": f"Failed to retrieve images from {camera_device.name}",
+                            },
+                        })
+
+                _LOGGER.info(
+                    "Camera images retrieval completed for %d cameras",
+                    len(images_results),
+                )
+                
+                # Return the original request result with additional images information
+                return CameraRequestImageResult(
+                    success=result.success,
+                    reference_id=result.reference_id,
+                    status=result.status,
+                    attempts=result.attempts,
+                    message=f"Camera images refresh completed. {len(images_results)} cameras processed.",
+                    images_results=images_results,  # Add images results
+                )
+            else:
+                _LOGGER.warning("Camera images request failed, skipping image retrieval")
+                return result
 
             return result
 
