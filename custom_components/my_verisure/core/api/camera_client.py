@@ -226,7 +226,7 @@ class CameraClient(BaseClient):
 
             # Step 2: Execute the second query (REQUEST_IMAGES_STATUS_QUERY) with polling
             for attempt in range(1, max_attempts + 1):
-                _LOGGER.debug(
+                _LOGGER.info(
                     "Checking images status (attempt %d/%d)",
                     attempt,
                     max_attempts,
@@ -265,9 +265,10 @@ class CameraClient(BaseClient):
 
                 status = status_response.get("res", "UNKNOWN")
                 message = status_response.get("msg", "UNKNOWN")
-                _LOGGER.debug(
-                    "Images status check completed. Status: %s, Counter: %d",
+                _LOGGER.info(
+                    "Images status check completed. Status: %s, Message: %s, Counter: %d",
                     status,
+                    message,
                     attempt,
                 )
                 
@@ -290,7 +291,7 @@ class CameraClient(BaseClient):
                         reference_id=reference_id
                     )
                 else:
-                    _LOGGER.debug(
+                    _LOGGER.info(
                         "Images request still in progress. Status: %s, waiting %d seconds...",
                         status,
                         check_interval,
