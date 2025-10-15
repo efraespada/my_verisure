@@ -114,8 +114,6 @@ class CameraClient(BaseClient):
         panel: str,
         devices: List[int],
         capabilities: str,
-        max_attempts: int = 30,
-        check_interval: int = 4,
     ) -> Dict[str, Any]:
         """Request images from cameras with automatic status checking."""
         try:
@@ -226,98 +224,37 @@ class CameraClient(BaseClient):
                 reference_id,
             )
 
-            # Step 2: Execute the second query (REQUEST_IMAGES_STATUS_QUERY) with polling
-            for attempt in range(1, max_attempts + 1):
-                _LOGGER.debug(
-                    "Checking images status (attempt %d/%d)",
-                    attempt,
-                    max_attempts,
-                )
+            # Prepare variables for status check
+            status_variables = {
+                "numinst": installation_id,
+                "panel": panel,
+                "devices": devices,
+                "referenceId": reference_id,
+                "counter": 1,
+            }
 
-                # Prepare variables for status check
-                status_variables = {
-                    "numinst": installation_id,
-                    "panel": panel,
-                    "devices": devices,
-                    "referenceId": reference_id,
-                    "counter": attempt,
-                }
+            # Log request details for debugging
+            _LOGGER.info("=== CAMERA STATUS QUERY REQUEST ===")
+            _LOGGER.info("Reference ID: %s", reference_id)
+            _LOGGER.info("Variables: %s", status_variables)
+            _LOGGER.info("Headers: %s", headers)
+            _LOGGER.info("=== END CAMERA STATUS QUERY REQUEST ===")
 
-                # Execute the status query
-                status_result = await self._execute_query_direct(
-                    REQUEST_IMAGES_STATUS_QUERY,
-                    status_variables,
-                    headers,
-                )
-
-                if not status_result or "data" not in status_result or "xSRequestImagesStatus" not in status_result["data"]:
-                    _LOGGER.error("Invalid response from images status query")
-                    _LOGGER.error("Expected 'data.xSRequestImagesStatus' key in response")
-                    _LOGGER.error("Available keys: %s", list(status_result.keys()) if isinstance(status_result, dict) else "Response is not a dict")
-                    if status_result and "data" in status_result:
-                        _LOGGER.error("Data keys: %s", list(status_result["data"].keys()) if isinstance(status_result["data"], dict) else "Data is not a dict")
-                    raise MyVerisureError("Invalid response from camera status service")
-
-                status_response = status_result["data"]["xSRequestImagesStatus"]
-                
-                if not status_response.get("res"):
-                    error_msg = status_response.get("msg", "Unknown error")
-                    _LOGGER.error("Failed to check images status: %s", error_msg)
-                    raise MyVerisureError(f"Failed to check images status: {error_msg}")
-
-                status = status_response.get("status", "UNKNOWN")
-                _LOGGER.debug(
-                    "Images status check completed. Status: %s, Counter: %d",
-                    status,
-                    attempt,
-                )
-                
-                if status == "OK":
-                    _LOGGER.info(
-                        "Images request completed successfully after %d attempts",
-                        attempt,
-                    )
-                    return {
-                        "success": True,
-                        "reference_id": reference_id,
-                        "status": status,
-                        "attempts": attempt,
-                        "message": "Images request completed successfully",
-                    }
-                elif status == "ERROR":
-                    _LOGGER.error(
-                        "Images request failed with error status after %d attempts",
-                        attempt,
-                    )
-                    return {
-                        "success": False,
-                        "reference_id": reference_id,
-                        "status": status,
-                        "attempts": attempt,
-                        "message": "Images request failed with error status",
-                    }
-                else:
-                    _LOGGER.debug(
-                        "Images request still in progress. Status: %s, waiting %d seconds...",
-                        status,
-                        check_interval,
-                    )
-                    
-                    if attempt < max_attempts:
-                        await asyncio.sleep(check_interval)
-
-            # If we get here, we've exceeded max attempts
-            _LOGGER.warning(
-                "Images request did not complete within %d attempts (%d seconds)",
-                max_attempts,
-                max_attempts * check_interval,
+            # Execute the status query
+            status_result = await self._execute_query_direct(
+                REQUEST_IMAGES_STATUS_QUERY,
+                status_variables,
+                headers,
             )
+
+            # Log the complete response for debugging
+            _LOGGER.info("=== CAMERA STATUS QUERY RESPONSE ===")
+            _LOGGER.info("Full response: %s", status_result)
+            _LOGGER.info("Response type: %s", type(status_result))
+               
             return {
-                "success": False,
+                "success": True,
                 "reference_id": reference_id,
-                "status": "TIMEOUT",
-                "attempts": max_attempts,
-                "message": f"Images request did not complete within {max_attempts} attempts",
             }
 
         except MyVerisureAuthenticationError:

@@ -25,8 +25,6 @@ class CameraRepositoryImpl(CameraRepository):
         panel: str,
         devices: List[int],
         capabilities: str,
-        max_attempts: int = 30,
-        check_interval: int = 4,
     ) -> CameraRequestImageResult:
         """Request images from cameras."""
         try:
@@ -43,18 +41,15 @@ class CameraRepositoryImpl(CameraRepository):
                 panel=panel,
                 devices=devices,
                 capabilities=capabilities,
-                max_attempts=max_attempts,
-                check_interval=check_interval,
             )
 
             # The result is already a CameraRequestImageResult object
             domain_model = result
 
             _LOGGER.info(
-                "Camera request completed. Success: %s, Status: %s, Attempts: %s",
+                "Camera request completed. Success: %s, Reference ID: %s",
                 domain_model.success,
-                domain_model.status,
-                domain_model.attempts,
+                domain_model.reference_id,
             )
 
             return domain_model

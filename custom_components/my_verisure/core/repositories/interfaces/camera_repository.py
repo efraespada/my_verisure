@@ -16,8 +16,6 @@ class CameraRepository(ABC):
         panel: str,
         devices: List[int],
         capabilities: str,
-        max_attempts: int = 30,
-        check_interval: int = 4,
     ) -> CameraRequestImageResult:
         """Request images from cameras."""
         pass

@@ -84,8 +84,6 @@ class RefreshCameraImagesUseCaseImpl(RefreshCameraImagesUseCase):
                 panel=panel,
                 devices=device_ids,
                 capabilities=capabilities,
-                max_attempts=max_attempts,
-                check_interval=check_interval,
             )
 
             _LOGGER.info(
