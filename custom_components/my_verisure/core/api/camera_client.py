@@ -250,11 +250,15 @@ class CameraClient(BaseClient):
                     headers,
                 )
 
-                if not status_result or "xSRequestImagesStatus" not in status_result:
+                if not status_result or "data" not in status_result or "xSRequestImagesStatus" not in status_result["data"]:
                     _LOGGER.error("Invalid response from images status query")
+                    _LOGGER.error("Expected 'data.xSRequestImagesStatus' key in response")
+                    _LOGGER.error("Available keys: %s", list(status_result.keys()) if isinstance(status_result, dict) else "Response is not a dict")
+                    if status_result and "data" in status_result:
+                        _LOGGER.error("Data keys: %s", list(status_result["data"].keys()) if isinstance(status_result["data"], dict) else "Data is not a dict")
                     raise MyVerisureError("Invalid response from camera status service")
 
-                status_response = status_result["xSRequestImagesStatus"]
+                status_response = status_result["data"]["xSRequestImagesStatus"]
                 
                 if not status_response.get("res"):
                     error_msg = status_response.get("msg", "Unknown error")
@@ -399,6 +403,13 @@ class CameraClient(BaseClient):
             timestamp = thumbnail_data.get("timestamp", "")
             thumbnail_image = thumbnail_data.get("image", "")
 
+            # Create timestamp-based directory name (replace spaces and special chars)
+            timestamp_dir = timestamp.replace(" ", "_").replace(":", "-").replace("/", "-")
+            if not timestamp_dir:
+                # Fallback to current timestamp if no timestamp provided
+                import datetime
+                timestamp_dir = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
             _LOGGER.info(
                 "Thumbnail received. ID Signal: %s, Signal Type: %s, Device: %s",
                 id_signal,
@@ -408,15 +419,8 @@ class CameraClient(BaseClient):
 
             # Save thumbnail image
             if thumbnail_image:
-                # Create incremental counter for this device
                 device_dir = f"cameras/{device}"
-                counter = 1
-                
-                # Find next available counter
-                while file_manager.file_exists(f"{device_dir}/{counter}/thumbnail.jpg"):
-                    counter += 1
-                
-                thumbnail_path = f"{device_dir}/{counter}/thumbnail.jpg"
+                thumbnail_path = f"{device_dir}/{timestamp_dir}/thumbnail.jpg"
                 success = file_manager.save_base64_image(thumbnail_path, thumbnail_image)
                 
                 if success:
@@ -481,15 +485,15 @@ class CameraClient(BaseClient):
                 if image_data:
                     # Save each image with appropriate filename
                     if image_id == "0":
-                        image_filename = "imagen_tiempo_A.jpg"
+                        image_filename = "1.jpg"
                     elif image_id == "1":
-                        image_filename = "imagen_tiempo_B.jpg"
+                        image_filename = "2.jpg"
                     elif image_id == "2":
-                        image_filename = "imagen_tiempo_C.jpg"
+                        image_filename = "3.jpg"
                     else:
                         image_filename = f"imagen_{image_id}.jpg"
                     
-                    image_path = f"{device_dir}/{counter}/{image_filename}"
+                    image_path = f"{device_dir}/{timestamp_dir}/{image_filename}"
                     success = file_manager.save_base64_image(image_path, image_data)
                     
                     if success:

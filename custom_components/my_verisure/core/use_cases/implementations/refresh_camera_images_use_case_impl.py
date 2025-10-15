@@ -167,8 +167,6 @@ class RefreshCameraImagesUseCaseImpl(RefreshCameraImagesUseCase):
                 _LOGGER.warning("Camera images request failed, skipping image retrieval")
                 return result
 
-            return result
-
         except Exception as e:
             _LOGGER.error("Failed to refresh camera images: %s", e)
             # Return error result
