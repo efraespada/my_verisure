@@ -112,6 +112,7 @@ class CameraClient(BaseClient):
         installation_id: str,
         panel: str,
         devices: List[int],
+        capabilities: str,
         max_attempts: int = 30,
         check_interval: int = 4,
     ) -> Dict[str, Any]:
@@ -140,12 +141,23 @@ class CameraClient(BaseClient):
                 "devices": devices,
             }
 
+            # Prepare headers
+            headers = (
+                self._get_session_headers(session_data or {}, hash_token)
+                if session_data
+                else None
+            )
+
+            if headers:
+                headers["numinst"] = installation_id
+                headers["panel"] = panel
+                headers["x-capabilities"] = capabilities
+
             # Execute the first mutation
             result = await self._execute_query_direct(
-                query=REQUEST_IMAGES_MUTATION,
-                variables=variables,
-                hash_token=hash_token,
-                session_data=session_data,
+                REQUEST_IMAGES_MUTATION,
+                variables,
+                headers,
             )
 
             if not result or "xSRequestImages" not in result:
@@ -188,10 +200,9 @@ class CameraClient(BaseClient):
 
                 # Execute the status query
                 status_result = await self._execute_query_direct(
-                    query=REQUEST_IMAGES_STATUS_QUERY,
-                    variables=status_variables,
-                    hash_token=hash_token,
-                    session_data=session_data,
+                    REQUEST_IMAGES_STATUS_QUERY,
+                    status_variables,
+                    headers,
                 )
 
                 if not status_result or "xSRequestImagesStatus" not in status_result:
@@ -275,6 +286,7 @@ class CameraClient(BaseClient):
         installation_id: str,
         panel: str,
         device: str,
+        capabilities: str,
     ) -> Dict[str, Any]:
         """Get images from a specific camera device."""
         try:
@@ -287,6 +299,18 @@ class CameraClient(BaseClient):
                 installation_id,
             )
 
+            # Prepare headers
+            headers = (
+                self._get_session_headers(session_data or {}, hash_token)
+                if session_data
+                else None
+            )
+
+            if headers:
+                headers["numinst"] = installation_id
+                headers["panel"] = panel
+                headers["x-capabilities"] = capabilities
+
             # Step 1: Get thumbnail and idSignal
             thumbnail_variables = {
                 "numinst": installation_id,
@@ -296,10 +320,9 @@ class CameraClient(BaseClient):
             }
 
             thumbnail_result = await self._execute_query_direct(
-                query=GET_THUMBNAIL_QUERY,
-                variables=thumbnail_variables,
-                hash_token=hash_token,
-                session_data=session_data,
+                GET_THUMBNAIL_QUERY,
+                thumbnail_variables,
+                headers,
             )
 
             if not thumbnail_result or "xSGetThumbnail" not in thumbnail_result:
@@ -353,10 +376,9 @@ class CameraClient(BaseClient):
             }
 
             photo_result = await self._execute_query_direct(
-                query=GET_PHOTO_IMAGES_QUERY,
-                variables=photo_variables,
-                hash_token=hash_token,
-                session_data=session_data,
+                GET_PHOTO_IMAGES_QUERY,
+                photo_variables,
+                headers,
             )
 
             if not photo_result or "xSGetPhotoImages" not in photo_result:
