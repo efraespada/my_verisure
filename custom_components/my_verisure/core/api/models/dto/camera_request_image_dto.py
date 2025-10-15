@@ -74,10 +74,6 @@ class CameraRequestImageResultDTO:
     
     success: bool
     reference_id: Optional[str] = None
-    status: Optional[str] = None
-    attempts: Optional[int] = None
-    message: Optional[str] = None
-    error: Optional[str] = None
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "CameraRequestImageResultDTO":
@@ -85,10 +81,6 @@ class CameraRequestImageResultDTO:
         return cls(
             success=data.get("success", False),
             reference_id=data.get("reference_id"),
-            status=data.get("status"),
-            attempts=data.get("attempts"),
-            message=data.get("message"),
-            error=data.get("error"),
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -96,8 +88,4 @@ class CameraRequestImageResultDTO:
         return {
             "success": self.success,
             "reference_id": self.reference_id,
-            "status": self.status,
-            "attempts": self.attempts,
-            "message": self.message,
-            "error": self.error,
         }

@@ -13,7 +13,7 @@ from .exceptions import (
 )
 from ..session_manager import get_session_manager
 from ..file_manager import get_file_manager
-from ..api.models.domain.camera_request_image import CameraRequestImageResult
+from ..api.models.dto.camera_request_image_dto import CameraRequestImageResultDTO
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -114,7 +114,7 @@ class CameraClient(BaseClient):
         panel: str,
         devices: List[int],
         capabilities: str,
-    ) -> Dict[str, Any]:
+    ) -> CameraRequestImageResultDTO:
         """Request images from cameras with automatic status checking."""
         try:
             hash_token, session_data = self._get_current_credentials()
@@ -199,12 +199,9 @@ class CameraClient(BaseClient):
                 if "request_already_exists" in error_message:
                     _LOGGER.info("Camera request already exists, this is normal - continuing with status check")
                     # Return a successful result with a dummy reference ID
-                    return CameraRequestImageResult(
+                    return CameraRequestImageResultDTO(
                         success=True,
-                        reference_id="existing_request",
-                        status="EXISTING",
-                        attempts=1,
-                        message="Request already exists, continuing with status check"
+                        reference_id="existing_request"
                     )
                 else:
                     raise MyVerisureError(f"GraphQL error: {error_message}")
@@ -252,10 +249,10 @@ class CameraClient(BaseClient):
             _LOGGER.info("Full response: %s", status_result)
             _LOGGER.info("Response type: %s", type(status_result))
                
-            return {
-                "success": True,
-                "reference_id": reference_id,
-            }
+            return CameraRequestImageResultDTO(
+                success=True,
+                reference_id=reference_id
+            )
 
         except MyVerisureAuthenticationError:
             _LOGGER.error("Authentication failed during camera request")

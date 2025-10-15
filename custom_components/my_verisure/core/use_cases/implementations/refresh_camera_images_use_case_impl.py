@@ -87,10 +87,9 @@ class RefreshCameraImagesUseCaseImpl(RefreshCameraImagesUseCase):
             )
 
             _LOGGER.info(
-                "Camera images request completed. Success: %s, Status: %s, Attempts: %s",
+                "Camera images request completed. Success: %s, Reference ID: %s",
                 result.success,
-                result.status,
-                result.attempts,
+                result.reference_id,
             )
 
             # If the request was successful, wait 30 seconds and then get images from each camera

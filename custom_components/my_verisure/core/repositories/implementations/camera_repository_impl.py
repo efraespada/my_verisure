@@ -5,7 +5,6 @@ from typing import Any, Dict, List
 
 from ...api.camera_client import CameraClient
 from ...api.models.domain.camera_request_image import CameraRequestImageResult
-from ...api.models.dto.camera_request_image_dto import CameraRequestImageResultDTO
 from ..interfaces.camera_repository import CameraRepository
 
 
@@ -43,8 +42,8 @@ class CameraRepositoryImpl(CameraRepository):
                 capabilities=capabilities,
             )
 
-            # The result is already a CameraRequestImageResult object
-            domain_model = result
+            # Convert DTO to domain model
+            domain_model = CameraRequestImageResult.from_dto(result)
 
             _LOGGER.info(
                 "Camera request completed. Success: %s, Reference ID: %s",
@@ -59,8 +58,7 @@ class CameraRepositoryImpl(CameraRepository):
             # Return error result
             return CameraRequestImageResult(
                 success=False,
-                error=str(e),
-                message=f"Camera request failed: {str(e)}",
+                reference_id=None
             )
 
     async def get_images(

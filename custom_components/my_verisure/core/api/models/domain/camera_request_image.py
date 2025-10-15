@@ -76,10 +76,6 @@ class CameraRequestImageResult:
     
     success: bool
     reference_id: Optional[str] = None
-    status: Optional[str] = None
-    attempts: Optional[int] = None
-    message: Optional[str] = None
-    error: Optional[str] = None
 
     @classmethod
     def from_dto(cls, dto: CameraRequestImageResultDTO) -> "CameraRequestImageResult":
@@ -87,10 +83,6 @@ class CameraRequestImageResult:
         return cls(
             success=dto.success,
             reference_id=dto.reference_id,
-            status=dto.status,
-            attempts=dto.attempts,
-            message=dto.message,
-            error=dto.error,
         )
 
     def to_dto(self) -> CameraRequestImageResultDTO:
@@ -98,8 +90,4 @@ class CameraRequestImageResult:
         return CameraRequestImageResultDTO(
             success=self.success,
             reference_id=self.reference_id,
-            status=self.status,
-            attempts=self.attempts,
-            message=self.message,
-            error=self.error,
         )
