@@ -53,7 +53,7 @@ class RefreshCameraImagesUseCaseImpl(RefreshCameraImagesUseCase):
 
             # Get installation devices
             devices_data = await self.installation_repository.get_installation_devices(
-                installation_id
+                installation_id, panel
             )
             
             # Filter devices to get only cameras (type "YR" or "YP")

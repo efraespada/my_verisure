@@ -14,6 +14,7 @@ sys.path.insert(0, os.path.abspath(components_path))
 from .commands.auth import AuthCommand
 from .commands.info import InfoCommand
 from .commands.alarm import AlarmCommand
+from .commands.cameras import CameraCommand
 from .utils.display import print_header, print_error, print_info
 from core.session_manager import get_session_manager
 
@@ -51,6 +52,10 @@ Examples:
   my_verisure alarm status --installation-id 12345
   my_verisure alarm arm --mode away --installation-id 12345
   my_verisure alarm disarm --installation-id 12345
+
+  # Camera management
+  my_verisure cameras info --installation-id 12345
+  my_verisure cameras refresh-images --installation-id 12345
 
   # Non-interactive mode (for scripts)
   my_verisure auth login --non-interactive
@@ -141,6 +146,22 @@ Examples:
         "--no-confirm", action="store_true", help="Skip confirmation prompt"
     )
 
+    # Camera command
+    camera_parser = subparsers.add_parser("cameras", help="Camera management")
+    camera_subparsers = camera_parser.add_subparsers(
+        dest="action", help="Camera actions"
+    )
+
+    camera_info_parser = camera_subparsers.add_parser(
+        "info", help="List camera devices"
+    )
+    camera_info_parser.add_argument("--installation-id", help="Installation ID")
+
+    camera_refresh_parser = camera_subparsers.add_parser(
+        "refresh-images", help="Refresh camera images"
+    )
+    camera_refresh_parser.add_argument("--installation-id", help="Installation ID")
+
     return parser
 
 
@@ -210,6 +231,23 @@ async def main():
                     args.action,
                     installation_id=args.installation_id,
                     confirm=not args.no_confirm,
+                    interactive=not args.non_interactive,
+                )
+            else:
+                success = False
+
+        elif args.command == "cameras":
+            command = CameraCommand()
+            if args.action == "info":
+                success = await command.execute(
+                    args.action,
+                    installation_id=args.installation_id,
+                    interactive=not args.non_interactive,
+                )
+            elif args.action == "refresh-images":
+                success = await command.execute(
+                    args.action,
+                    installation_id=args.installation_id,
                     interactive=not args.non_interactive,
                 )
             else:

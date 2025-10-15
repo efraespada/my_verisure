@@ -14,7 +14,8 @@ from core.dependency_injection.providers import (
     get_auth_use_case,
     get_alarm_use_case,
     get_installation_use_case,
-    get_get_installation_devices_use_case
+    get_get_installation_devices_use_case,
+    get_refresh_camera_images_use_case
 )
 
 from core.session_manager import get_session_manager
@@ -34,6 +35,7 @@ class BaseCommand(ABC):
         self.installation_use_case = None
         self.get_installation_devices_use_case = None
         self.session_use_case = None
+        self.refresh_camera_images_use_case = None
 
     async def setup(self, interactive: bool = True) -> bool:
         """Setup the command by ensuring authentication and getting use cases."""
@@ -53,7 +55,7 @@ class BaseCommand(ABC):
             self.alarm_use_case = get_alarm_use_case()
             self.installation_use_case = get_installation_use_case()
             self.get_installation_devices_use_case = get_get_installation_devices_use_case()
-
+            self.refresh_camera_images_use_case = get_refresh_camera_images_use_case()
             return True
 
         except Exception as e:
