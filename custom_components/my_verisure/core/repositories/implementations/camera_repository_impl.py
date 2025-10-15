@@ -1,7 +1,7 @@
 """Camera repository implementation."""
 
 import logging
-from typing import List
+from typing import Any, Dict, List
 
 from ...api.camera_client import CameraClient
 from ...api.models.domain.camera_request_image import CameraRequestImageResult
@@ -24,6 +24,7 @@ class CameraRepositoryImpl(CameraRepository):
         installation_id: str,
         panel: str,
         devices: List[int],
+        capabilities: str,
         max_attempts: int = 30,
         check_interval: int = 4,
     ) -> CameraRequestImageResult:
@@ -41,6 +42,7 @@ class CameraRepositoryImpl(CameraRepository):
                 installation_id=installation_id,
                 panel=panel,
                 devices=devices,
+                capabilities=capabilities,
                 max_attempts=max_attempts,
                 check_interval=check_interval,
             )
@@ -66,3 +68,44 @@ class CameraRepositoryImpl(CameraRepository):
                 error=str(e),
                 message=f"Camera request failed: {str(e)}",
             )
+
+    async def get_images(
+        self,
+        installation_id: str,
+        panel: str,
+        device: str,
+        capabilities: str,
+    ) -> Dict[str, Any]:
+        """Get images from a specific camera device."""
+        try:
+            _LOGGER.info(
+                "Getting images for device %s in installation %s",
+                device,
+                installation_id,
+            )
+
+            # Call the camera client
+            result = await self.client.get_images(
+                installation_id=installation_id,
+                panel=panel,
+                device=device,
+                capabilities=capabilities,
+            )
+
+            _LOGGER.info(
+                "Camera images retrieval completed. Success: %s, Device: %s, Images saved: %s",
+                result.get("success", False),
+                result.get("device", "unknown"),
+                result.get("images_saved", 0),
+            )
+
+            return result
+
+        except Exception as e:
+            _LOGGER.error("Failed to get camera images: %s", e)
+            # Return error result
+            return {
+                "success": False,
+                "error": str(e),
+                "message": f"Camera images retrieval failed: {str(e)}",
+            }

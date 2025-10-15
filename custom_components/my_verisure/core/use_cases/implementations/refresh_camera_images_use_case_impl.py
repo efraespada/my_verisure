@@ -82,6 +82,7 @@ class RefreshCameraImagesUseCaseImpl(RefreshCameraImagesUseCase):
                 installation_id=installation_id,
                 panel=panel,
                 devices=device_ids,
+                capabilities=capabilities,
                 max_attempts=max_attempts,
                 check_interval=check_interval,
             )

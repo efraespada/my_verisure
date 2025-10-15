@@ -15,8 +15,20 @@ class CameraRepository(ABC):
         installation_id: str,
         panel: str,
         devices: List[int],
+        capabilities: str,
         max_attempts: int = 30,
         check_interval: int = 4,
     ) -> CameraRequestImageResult:
         """Request images from cameras."""
+        pass
+
+    @abstractmethod
+    async def get_images(
+        self,
+        installation_id: str,
+        panel: str,
+        device: str,
+        capabilities: str,
+    ) -> Dict[str, Any]:
+        """Get images from a specific camera device."""
         pass
