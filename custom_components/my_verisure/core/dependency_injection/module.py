@@ -19,10 +19,12 @@ from ..use_cases.interfaces.auth_use_case import AuthUseCase
 from ..use_cases.interfaces.installation_use_case import InstallationUseCase
 from ..use_cases.interfaces.alarm_use_case import AlarmUseCase
 from ..use_cases.interfaces.get_installation_devices_use_case import GetInstallationDevicesUseCase
+from ..use_cases.interfaces.refresh_camera_images_use_case import RefreshCameraImagesUseCase
 from ..use_cases.implementations.auth_use_case_impl import AuthUseCaseImpl
 from ..use_cases.implementations.installation_use_case_impl import InstallationUseCaseImpl
 from ..use_cases.implementations.alarm_use_case_impl import AlarmUseCaseImpl
 from ..use_cases.implementations.get_installation_devices_use_case_impl import GetInstallationDevicesUseCaseImpl
+from ..use_cases.implementations.refresh_camera_images_use_case_impl import RefreshCameraImagesUseCaseImpl
 
 logger = logging.getLogger(__name__)
 
@@ -106,3 +108,9 @@ class MyVerisureModule(Module):
     def provide_get_installation_devices_use_case(self, installation_repository: InstallationRepository) -> GetInstallationDevicesUseCase:
         """Provide GetInstallationDevicesUseCase instance."""
         return GetInstallationDevicesUseCaseImpl(installation_repository)
+
+    @singleton
+    @provider
+    def provide_refresh_camera_images_use_case(self, camera_repository: CameraRepository, installation_repository: InstallationRepository) -> RefreshCameraImagesUseCase:
+        """Provide RefreshCameraImagesUseCase instance."""
+        return RefreshCameraImagesUseCaseImpl(camera_repository, installation_repository)
