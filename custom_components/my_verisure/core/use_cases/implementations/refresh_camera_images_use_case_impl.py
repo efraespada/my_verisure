@@ -78,24 +78,44 @@ class RefreshCameraImagesUseCaseImpl(RefreshCameraImagesUseCase):
                 [f"{device.name} (ID: {device.id})" for device in camera_devices],
             )
 
-            # Request images from cameras
-            result = await self.camera_repository.request_image(
-                installation_id=installation_id,
-                panel=panel,
-                devices=device_ids,
-                capabilities=capabilities,
-            )
+            # Request images from each camera individually
+            successful_requests = 0
+            for device_id in device_ids:
+                try:
+                    _LOGGER.info("Requesting images for camera device ID: %s", device_id)
+                    result = await self.camera_repository.request_image(
+                        installation_id=installation_id,
+                        panel=panel,
+                        devices=[device_id],  # Single device per request
+                        capabilities=capabilities,
+                    )
+
+                    _LOGGER.info(
+                        "Camera images request completed for device %s. Success: %s, Reference ID: %s",
+                        device_id,
+                        result.success,
+                        result.reference_id,
+                    )
+
+                    if result.success:
+                        successful_requests += 1
+                        _LOGGER.info("Successfully requested images for camera device %s", device_id)
+                    else:
+                        _LOGGER.warning("Failed to request images for camera device %s", device_id)
+
+                except Exception as e:
+                    _LOGGER.error("Error requesting images for camera device %s: %s", device_id, e)
 
             _LOGGER.info(
-                "Camera images request completed. Success: %s, Reference ID: %s",
-                result.success,
-                result.reference_id,
+                "Camera images requests completed. Successful requests: %d/%d",
+                successful_requests,
+                len(device_ids)
             )
 
-            # If the request was successful, wait 30 seconds and then get images from each camera
-            if result.success:
-                _LOGGER.info("Waiting 60 seconds before retrieving images from cameras...")
-                await asyncio.sleep(60)
+            # If we had any successful requests, wait 30 seconds and then get images from each camera
+            if successful_requests > 0:
+                _LOGGER.info("Waiting 90 seconds before retrieving images from cameras...")
+                await asyncio.sleep(90)
 
                 _LOGGER.info("Starting to retrieve images from each camera...")
                 
@@ -107,14 +127,14 @@ class RefreshCameraImagesUseCaseImpl(RefreshCameraImagesUseCase):
                             "Retrieving images from camera %s (ID: %s, Device: %s)",
                             camera_device.name,
                             camera_device.id,
-                            camera_device.type + camera_device.code,
+                            camera_device.type + camera_device.id,
                         )
                         
                         # Call get_images for each camera
                         image_result = await self.camera_repository.get_images(
                             installation_id=installation_id,
                             panel=panel,
-                            device=camera_device.type + camera_device.code,  # Use type + code (e.g., "YR1", "YP2")
+                            device=camera_device.type + camera_device.id,  # Use type + code (e.g., "YR1", "YP2")
                             capabilities=capabilities,
                         )
                         

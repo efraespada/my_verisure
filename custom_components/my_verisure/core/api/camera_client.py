@@ -152,18 +152,6 @@ class CameraClient(BaseClient):
                 headers["panel"] = panel
                 headers["x-capabilities"] = capabilities
 
-            # Log request details for debugging
-            _LOGGER.info("=== CAMERA REQUEST IMAGES REQUEST ===")
-            _LOGGER.info("Installation ID: %s", installation_id)
-            _LOGGER.info("Panel: %s", panel)
-            _LOGGER.info("Devices: %s", devices)
-            _LOGGER.info("Capabilities: %s", capabilities)
-            _LOGGER.info("Variables: %s", variables)
-            _LOGGER.info("Headers: %s", headers)
-            _LOGGER.info("Hash token: %s", hash_token[:50] + "..." if hash_token else "None")
-            _LOGGER.info("Session data: %s", session_data)
-            _LOGGER.info("=== END CAMERA REQUEST IMAGES REQUEST ===")
-
             # Execute the first mutation
             result = await self._execute_query_direct(
                 REQUEST_IMAGES_MUTATION,
@@ -171,20 +159,9 @@ class CameraClient(BaseClient):
                 headers,
             )
 
-            # Log the complete response for debugging
-            _LOGGER.info("=== CAMERA REQUEST IMAGES RESPONSE ===")
-            _LOGGER.info("Full response: %s", result)
-            _LOGGER.info("Response type: %s", type(result))
-            if result:
-                _LOGGER.info("Response keys: %s", list(result.keys()) if isinstance(result, dict) else "Not a dict")
-            _LOGGER.info("=== END CAMERA REQUEST IMAGES RESPONSE ===")
+            _LOGGER.info("Request images response: %s", result)
 
             if not result or "data" not in result or "xSRequestImages" not in result["data"]:
-                _LOGGER.error("Invalid response from request images mutation")
-                _LOGGER.error("Expected 'data.xSRequestImages' key in response")
-                _LOGGER.error("Available keys: %s", list(result.keys()) if isinstance(result, dict) else "Response is not a dict")
-                if result and "data" in result:
-                    _LOGGER.error("Data keys: %s", list(result["data"].keys()) if isinstance(result["data"], dict) else "Data is not a dict")
                 raise MyVerisureError("Invalid response from camera service")
 
             response = result["data"]["xSRequestImages"]
@@ -193,28 +170,22 @@ class CameraClient(BaseClient):
             if "errors" in result and result["errors"]:
                 error = result["errors"][0]
                 error_message = error.get("message", "Unknown GraphQL error")
-                _LOGGER.error("GraphQL error: %s", error_message)
                 
-                # Handle specific error cases
                 if "request_already_exists" in error_message:
                     _LOGGER.info("Camera request already exists, this is normal - continuing with status check")
-                    # Return a successful result with a dummy reference ID
                     return CameraRequestImageResultDTO(
                         success=True,
                         reference_id="existing_request"
                     )
                 else:
                     raise MyVerisureError(f"GraphQL error: {error_message}")
-            
-            if not response or not response.get("res"):
-                error_msg = response.get("msg", "Unknown error") if response else "No response data"
-                _LOGGER.error("Failed to request images: %s", error_msg)
-                raise MyVerisureError(f"Failed to request images: {error_msg}")
 
             reference_id = response.get("referenceId")
             if not reference_id:
-                _LOGGER.error("No reference ID received from request images")
-                raise MyVerisureError("No reference ID received from camera service")
+                return CameraRequestImageResultDTO(
+                    success=False,
+                    reference_id="none"
+                )
 
             _LOGGER.info(
                 "Images request submitted successfully. Reference ID: %s. Starting status checking...",
@@ -230,13 +201,6 @@ class CameraClient(BaseClient):
                 "counter": 1,
             }
 
-            # Log request details for debugging
-            _LOGGER.info("=== CAMERA STATUS QUERY REQUEST ===")
-            _LOGGER.info("Reference ID: %s", reference_id)
-            _LOGGER.info("Variables: %s", status_variables)
-            _LOGGER.info("Headers: %s", headers)
-            _LOGGER.info("=== END CAMERA STATUS QUERY REQUEST ===")
-
             # Execute the status query
             status_result = await self._execute_query_direct(
                 REQUEST_IMAGES_STATUS_QUERY,
@@ -244,10 +208,7 @@ class CameraClient(BaseClient):
                 headers,
             )
 
-            # Log the complete response for debugging
-            _LOGGER.info("=== CAMERA STATUS QUERY RESPONSE ===")
-            _LOGGER.info("Full response: %s", status_result)
-            _LOGGER.info("Response type: %s", type(status_result))
+            _LOGGER.info("Status check response: %s", status_result)
                
             return CameraRequestImageResultDTO(
                 success=True,
