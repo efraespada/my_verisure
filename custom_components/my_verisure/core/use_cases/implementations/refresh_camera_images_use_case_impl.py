@@ -27,16 +27,14 @@ class RefreshCameraImagesUseCaseImpl(RefreshCameraImagesUseCase):
     async def refresh_camera_images(
         self,
         installation_id: str,
-        devices: List[int],
         max_attempts: int = 30,
         check_interval: int = 4,
     ) -> CameraRequestImageResult:
         """Refresh images from cameras."""
         try:
             _LOGGER.info(
-                "Refreshing camera images for installation %s, devices %s",
+                "Refreshing camera images for installation %s",
                 installation_id,
-                devices,
             )
 
             # Get installation services to get panel and capabilities
@@ -52,11 +50,38 @@ class RefreshCameraImagesUseCaseImpl(RefreshCameraImagesUseCase):
                 capabilities,
             )
 
+            # Get installation devices
+            devices_data = await self.installation_repository.get_installation_devices(
+                installation_id
+            )
+            
+            # Filter devices to get only cameras (type "YR" or "YP")
+            camera_devices = [
+                device for device in devices_data.devices 
+                if device.type in ["YR", "YP"] and device.remote_use
+            ]
+            
+            if not camera_devices:
+                _LOGGER.warning("No active camera devices (YR/YP) found in installation %s", installation_id)
+                return CameraRequestImageResult(
+                    success=False,
+                    message="No active camera devices found",
+                )
+            
+            # Extract device IDs for camera request
+            device_ids = [int(device.id) for device in camera_devices]
+            
+            _LOGGER.info(
+                "Found %d active camera devices: %s",
+                len(camera_devices),
+                [f"{device.name} (ID: {device.id})" for device in camera_devices],
+            )
+
             # Request images from cameras
             result = await self.camera_repository.request_image(
                 installation_id=installation_id,
                 panel=panel,
-                devices=devices,
+                devices=device_ids,
                 max_attempts=max_attempts,
                 check_interval=check_interval,
             )
