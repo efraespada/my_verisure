@@ -97,8 +97,8 @@ class RefreshCameraImagesUseCaseImpl(RefreshCameraImagesUseCase):
 
             # If the request was successful, wait 30 seconds and then get images from each camera
             if result.success:
-                _LOGGER.info("Waiting 30 seconds before retrieving images from cameras...")
-                await asyncio.sleep(30)
+                _LOGGER.info("Waiting 60 seconds before retrieving images from cameras...")
+                await asyncio.sleep(60)
 
                 _LOGGER.info("Starting to retrieve images from each camera...")
                 
