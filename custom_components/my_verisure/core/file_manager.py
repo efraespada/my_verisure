@@ -139,6 +139,33 @@ class FileManager:
             _LOGGER.error("Failed to delete file %s: %s", filename, e)
             return False
     
+    def save_binary(self, filepath: str, content: bytes) -> bool:
+        """Save binary content to a file."""
+        try:
+            # Create full path including subdirectories
+            full_path = self._data_dir / filepath
+            # Ensure parent directories exist
+            full_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            with open(full_path, 'wb') as f:
+                f.write(content)
+            _LOGGER.info("Binary data saved to: %s", full_path)
+            return True
+        except Exception as e:
+            _LOGGER.error("Failed to save binary data to %s: %s", filepath, e)
+            return False
+    
+    def save_base64_image(self, filepath: str, base64_content: str) -> bool:
+        """Save base64 encoded image to a file."""
+        try:
+            import base64
+            # Decode base64 content
+            image_data = base64.b64decode(base64_content)
+            return self.save_binary(filepath, image_data)
+        except Exception as e:
+            _LOGGER.error("Failed to save base64 image to %s: %s", filepath, e)
+            return False
+    
     def list_files(self, pattern: str = "*") -> list[str]:
         """List files in the data directory matching a pattern."""
         try:

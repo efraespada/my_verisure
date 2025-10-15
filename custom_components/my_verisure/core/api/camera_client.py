@@ -12,6 +12,7 @@ from .exceptions import (
     MyVerisureError,
 )
 from ..session_manager import get_session_manager
+from ..file_manager import get_file_manager
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -47,6 +48,52 @@ query RequestImagesStatus($numinst: String!, $panel: String!, $devices: [Int!]!,
     msg
     numinst
     status
+  }
+}
+"""
+
+# New GraphQL queries for getting images
+GET_THUMBNAIL_QUERY = """
+query mkGetThumbnail($numinst: String!, $panel: String!, $device: String, $zoneId: String, $idSignal: String) {
+  xSGetThumbnail(
+    numinst: $numinst
+    device: $device
+    panel: $panel
+    zoneId: $zoneId
+    idSignal: $idSignal
+  ) {
+    idSignal
+    deviceId
+    deviceCode
+    deviceAlias
+    timestamp
+    signalType
+    image
+    type
+    quality
+  }
+}
+"""
+
+GET_PHOTO_IMAGES_QUERY = """
+query mkGetPhotoImages($numinst: String!, $idSignal: String!, $signalType: String!, $panel: String!) {
+  xSGetPhotoImages(
+    numinst: $numinst
+    idsignal: $idSignal
+    signaltype: $signalType
+    panel: $panel
+  ) {
+    devices {
+      id
+      code
+      name
+      quality
+      images {
+        id
+        image
+        type
+      }
+    }
   }
 }
 """
@@ -222,4 +269,169 @@ class CameraClient(BaseClient):
         except Exception as e:
             _LOGGER.error("Unexpected error during camera request: %s", e)
             raise MyVerisureError(f"Camera request failed: {str(e)}")
+
+    async def get_images(
+        self,
+        installation_id: str,
+        panel: str,
+        device: str,
+    ) -> Dict[str, Any]:
+        """Get images from a specific camera device."""
+        try:
+            hash_token, session_data = self._get_current_credentials()
+            file_manager = get_file_manager()
+            
+            _LOGGER.info(
+                "Getting images for device %s in installation %s",
+                device,
+                installation_id,
+            )
+
+            # Step 1: Get thumbnail and idSignal
+            thumbnail_variables = {
+                "numinst": installation_id,
+                "panel": panel,
+                "device": device.split()[0] if " " in device else device,  # Extract device type (YR/YP)
+                "zoneId": device,
+            }
+
+            thumbnail_result = await self._execute_query_direct(
+                query=GET_THUMBNAIL_QUERY,
+                variables=thumbnail_variables,
+                hash_token=hash_token,
+                session_data=session_data,
+            )
+
+            if not thumbnail_result or "xSGetThumbnail" not in thumbnail_result:
+                _LOGGER.error("Invalid response from thumbnail query")
+                raise MyVerisureError("Invalid response from thumbnail service")
+
+            thumbnail_data = thumbnail_result["xSGetThumbnail"]
+            
+            if not thumbnail_data.get("idSignal"):
+                error_msg = "No idSignal received from thumbnail query"
+                _LOGGER.error(error_msg)
+                raise MyVerisureError(error_msg)
+
+            id_signal = thumbnail_data["idSignal"]
+            signal_type = thumbnail_data.get("signalType", "16")
+            device_alias = thumbnail_data.get("deviceAlias", device)
+            timestamp = thumbnail_data.get("timestamp", "")
+            thumbnail_image = thumbnail_data.get("image", "")
+
+            _LOGGER.info(
+                "Thumbnail received. ID Signal: %s, Signal Type: %s, Device: %s",
+                id_signal,
+                signal_type,
+                device_alias,
+            )
+
+            # Save thumbnail image
+            if thumbnail_image:
+                # Create incremental counter for this device
+                device_dir = f"cameras/{device}"
+                counter = 1
+                
+                # Find next available counter
+                while file_manager.file_exists(f"{device_dir}/{counter}/thumbnail.jpg"):
+                    counter += 1
+                
+                thumbnail_path = f"{device_dir}/{counter}/thumbnail.jpg"
+                success = file_manager.save_base64_image(thumbnail_path, thumbnail_image)
+                
+                if success:
+                    _LOGGER.info("Thumbnail saved to: %s", thumbnail_path)
+                else:
+                    _LOGGER.error("Failed to save thumbnail image")
+
+            # Step 2: Get photo images using idSignal
+            photo_variables = {
+                "numinst": installation_id,
+                "idSignal": id_signal,
+                "signalType": signal_type,
+                "panel": panel,
+            }
+
+            photo_result = await self._execute_query_direct(
+                query=GET_PHOTO_IMAGES_QUERY,
+                variables=photo_variables,
+                hash_token=hash_token,
+                session_data=session_data,
+            )
+
+            if not photo_result or "xSGetPhotoImages" not in photo_result:
+                _LOGGER.error("Invalid response from photo images query")
+                raise MyVerisureError("Invalid response from photo images service")
+
+            photo_data = photo_result["xSGetPhotoImages"]
+            
+            if not photo_data.get("devices") or not photo_data["devices"]:
+                _LOGGER.warning("No devices found in photo images response")
+                return {
+                    "success": True,
+                    "device": device,
+                    "thumbnail_saved": bool(thumbnail_image),
+                    "images_saved": 0,
+                    "message": "Thumbnail saved, but no additional images found",
+                }
+
+            # Process and save images
+            images_saved = 0
+            device_data = photo_data["devices"][0]  # Get first device
+            images = device_data.get("images", [])
+            
+            _LOGGER.info("Found %d images to save for device %s", len(images), device)
+
+            for image in images:
+                image_id = image.get("id", "unknown")
+                image_data = image.get("image", "")
+                image_type = image.get("type", "BINARY")
+                
+                if image_data:
+                    # Save each image with appropriate filename
+                    if image_id == "0":
+                        image_filename = "imagen_tiempo_A.jpg"
+                    elif image_id == "1":
+                        image_filename = "imagen_tiempo_B.jpg"
+                    elif image_id == "2":
+                        image_filename = "imagen_tiempo_C.jpg"
+                    else:
+                        image_filename = f"imagen_{image_id}.jpg"
+                    
+                    image_path = f"{device_dir}/{counter}/{image_filename}"
+                    success = file_manager.save_base64_image(image_path, image_data)
+                    
+                    if success:
+                        _LOGGER.info("Image %s saved to: %s", image_id, image_path)
+                        images_saved += 1
+                    else:
+                        _LOGGER.error("Failed to save image %s", image_id)
+
+            _LOGGER.info(
+                "Images processing completed. Device: %s, Images saved: %d",
+                device,
+                images_saved,
+            )
+
+            return {
+                "success": True,
+                "device": device,
+                "device_alias": device_alias,
+                "timestamp": timestamp,
+                "id_signal": id_signal,
+                "thumbnail_saved": bool(thumbnail_image),
+                "images_saved": images_saved,
+                "total_images": len(images),
+                "message": f"Successfully processed {images_saved} images for device {device}",
+            }
+
+        except MyVerisureAuthenticationError:
+            _LOGGER.error("Authentication failed during image retrieval")
+            raise
+        except MyVerisureConnectionError:
+            _LOGGER.error("Connection failed during image retrieval")
+            raise
+        except Exception as e:
+            _LOGGER.error("Unexpected error during image retrieval: %s", e)
+            raise MyVerisureError(f"Image retrieval failed: {str(e)}")
 
