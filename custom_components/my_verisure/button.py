@@ -126,7 +126,7 @@ async def async_setup_entry(
         _LOGGER.info("Created refresh camera images button for installation %s", installation_id)
 
     if buttons:
-        async_add_entities(buttons, update_before_add=True)
+        # async_add_entities(buttons, update_before_add=True)
         _LOGGER.info("Added %d Verisure button entities", len(buttons))
     else:
         _LOGGER.info("No button entities created")

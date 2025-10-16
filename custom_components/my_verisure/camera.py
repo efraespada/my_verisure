@@ -200,7 +200,7 @@ async def async_setup_entry(
         _LOGGER.info("Created camera entity for %s (%s)", device['name'], f"{device['type']}{int(device['code']):02d}")
 
     if cameras:
-        async_add_entities(cameras, update_before_add=True)
+        # async_add_entities(cameras, update_before_add=True)
         _LOGGER.info("Added %d Verisure camera entities", len(cameras))
     else:
         _LOGGER.info("No camera devices found to create entities")
