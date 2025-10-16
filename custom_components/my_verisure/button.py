@@ -10,7 +10,11 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .core.const import DOMAIN
 from .coordinator import MyVerisureDataUpdateCoordinator
-from .core.dependency_injection.providers import get_refresh_camera_images_use_case
+from .core.dependency_injection.providers import (
+    setup_dependencies,
+    get_refresh_camera_images_use_case,
+    clear_dependencies,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -35,25 +39,33 @@ class RefreshCameraImagesButton(CoordinatorEntity, ButtonEntity):
         try:
             _LOGGER.info("🔄 Refreshing camera images for installation %s", self._installation_id)
             
-            # Get the refresh camera images use case
-            refresh_use_case = get_refresh_camera_images_use_case()
+            # Setup dependencies before using the use case
+            setup_dependencies()
             
-            # Execute the refresh camera images use case
-            result = await refresh_use_case.refresh_camera_images(
-                installation_id=self._installation_id,
-                max_attempts=30,
-                check_interval=4,
-            )
-            
-            _LOGGER.info(
-                "✅ Camera images refresh completed: %d cameras processed, %d successful, %d failed",
-                result.total_cameras,
-                result.successful_refreshes,
-                result.failed_refreshes
-            )
-            
-            # Update the coordinator data to trigger entity updates
-            await self.coordinator.async_request_refresh()
+            try:
+                # Get the refresh camera images use case
+                refresh_use_case = get_refresh_camera_images_use_case()
+                
+                # Execute the refresh camera images use case
+                result = await refresh_use_case.refresh_camera_images(
+                    installation_id=self._installation_id,
+                    max_attempts=30,
+                    check_interval=4,
+                )
+                
+                _LOGGER.info(
+                    "✅ Camera images refresh completed: %d cameras processed, %d successful, %d failed",
+                    result.total_cameras,
+                    result.successful_refreshes,
+                    result.failed_refreshes
+                )
+                
+                # Update the coordinator data to trigger entity updates
+                await self.coordinator.async_request_refresh()
+                
+            finally:
+                # Clean up dependencies
+                clear_dependencies()
             
         except Exception as e:
             _LOGGER.error("❌ Failed to refresh camera images: %s", e)
