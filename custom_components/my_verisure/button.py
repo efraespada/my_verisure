@@ -15,6 +15,7 @@ from .core.dependency_injection.providers import (
     get_refresh_camera_images_use_case,
     clear_dependencies,
 )
+from .core.session_manager import get_session_manager
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -25,6 +26,7 @@ class RefreshCameraImagesButton(CoordinatorEntity, ButtonEntity):
     def __init__(self, coordinator, installation_id: str):
         """Initialize the refresh camera images button."""
         super().__init__(coordinator)
+        self._coordinator = coordinator
         self._installation_id = installation_id
         self._attr_name = "Refresh Camera Images"
         self._attr_unique_id = f"verisure_refresh_camera_images_{installation_id}"
@@ -39,8 +41,25 @@ class RefreshCameraImagesButton(CoordinatorEntity, ButtonEntity):
         try:
             _LOGGER.warning("🔄 Refreshing camera images for installation %s", self._installation_id)
             
+            # Ensure coordinator is logged in and has valid session
+            if not await self._coordinator.async_login():
+                _LOGGER.error("❌ Failed to login to My Verisure")
+                return
+            
+            # Check SessionManager state
+            session_manager = get_session_manager()
+            _LOGGER.warning("🔑 SessionManager state - Authenticated: %s, Hash: %s", 
+                          session_manager.is_authenticated, 
+                          session_manager.get_current_hash_token()[:20] + "..." if session_manager.get_current_hash_token() else "None")
+            
             # Setup dependencies before using the use case
-            setup_dependencies()
+            # Note: Coordinator already has dependencies setup, but we need to ensure
+            # they are available for the use case
+            try:
+                setup_dependencies()
+                _LOGGER.warning("🔧 Dependencies configured successfully")
+            except Exception as dep_error:
+                _LOGGER.warning("⚠️ Dependencies already configured or error: %s", dep_error)
             
             try:
                 # Get the refresh camera images use case
@@ -61,7 +80,7 @@ class RefreshCameraImagesButton(CoordinatorEntity, ButtonEntity):
                 )
                 
                 # Update the coordinator data to trigger entity updates
-                await self.coordinator.async_request_refresh()
+                await self._coordinator.async_request_refresh()
                 
             finally:
                 # Clean up dependencies
