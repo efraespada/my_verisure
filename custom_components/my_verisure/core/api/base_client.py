@@ -121,6 +121,6 @@ class BaseClient:
         except Exception as e:
             _LOGGER.error("Direct GraphQL query failed: %s", e)
             return {"errors": [{"message": str(e), "data": {}}]}
-        finally:
+        # finally:
             # Always disconnect after the request
-            await self._disconnect()
+            # await self._disconnect()
