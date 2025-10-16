@@ -163,7 +163,6 @@ class CameraClient(BaseClient):
                     headers,
                 )
 
-                _LOGGER.info("Full response 1: %s", result)
                 if not result or "data" not in result or "xSRequestImages" not in result["data"]:
                     _LOGGER.error("Invalid response from request images mutation")
                     _LOGGER.error("Expected 'data.xSRequestImages' key in response")
