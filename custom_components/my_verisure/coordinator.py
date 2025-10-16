@@ -25,6 +25,7 @@ from .core.dependency_injection.providers import (
     get_auth_use_case,
     get_installation_use_case,
     get_alarm_use_case,
+    get_get_installation_devices_use_case,
     clear_dependencies,
 )
 from .core.file_manager import get_file_manager
@@ -53,6 +54,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         # Get use cases
         self.auth_use_case = get_auth_use_case()
         self.installation_use_case = get_installation_use_case()
+        self.get_installation_devices_use_case = get_get_installation_devices_use_case()
         self.alarm_use_case = get_alarm_use_case()
         
         # Get session manager
@@ -187,7 +189,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             services_data = await self.installation_use_case.get_installation_services(self.installation_id, True)
             
             # Get devices for this installation
-            devices_data = await self.installation_use_case.get_installation_devices(
+            devices_data = await self.get_installation_devices_use_case.get_installation_devices(
                 self.installation_id, 
                 services_data.installation.panel or "SDVFAST"
             )

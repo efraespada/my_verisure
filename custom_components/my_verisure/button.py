@@ -8,6 +8,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
+from .core.const import DOMAIN
+from .coordinator import MyVerisureDataUpdateCoordinator
 from .core.dependency_injection.providers import get_refresh_camera_images_use_case
 
 _LOGGER = logging.getLogger(__name__)
@@ -73,7 +75,9 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Verisure button entities."""
-    coordinator = hass.data[config_entry.entry_id]["coordinator"]
+    coordinator: MyVerisureDataUpdateCoordinator = hass.data[DOMAIN][
+        config_entry.entry_id
+    ]
     
     # Wait for coordinator data to be available
     if not coordinator.data:
