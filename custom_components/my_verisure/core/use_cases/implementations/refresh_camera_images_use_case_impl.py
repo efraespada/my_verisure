@@ -116,8 +116,8 @@ class RefreshCameraImagesUseCaseImpl(RefreshCameraImagesUseCase):
             _LOGGER.info("Starting to retrieve images from each camera...")
             
             for camera_device in camera_devices:
-                # Format device code with zero padding for single digits
-                formatted_code = camera_device.type + f"{camera_device.code:02d}"
+                code_int = int(camera_device.code)
+                formatted_code = f"{camera_device.type}{code_int:02d}"
                 
                 try:
                     # Call get_images for each camera

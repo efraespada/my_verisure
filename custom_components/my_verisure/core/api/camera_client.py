@@ -429,7 +429,7 @@ class CameraClient(BaseClient):
 
             id_signal = thumbnail_data["idSignal"]
             signal_type = thumbnail_data.get("signalType", "16")
-            device_alias = thumbnail_data.get("deviceAlias", device)
+            device_alias = thumbnail_data.get("deviceAlias", zone_id)
             timestamp = thumbnail_data.get("timestamp", "")
             thumbnail_image = thumbnail_data.get("image", "")
 
@@ -449,7 +449,7 @@ class CameraClient(BaseClient):
 
             # Save thumbnail image
             if thumbnail_image:
-                device_dir = f"cameras/{device}"
+                device_dir = f"cameras/{zone_id}"
                 thumbnail_path = f"{device_dir}/{timestamp_dir}/thumbnail.jpg"
                 success = file_manager.save_base64_image(thumbnail_path, thumbnail_image)
                 
