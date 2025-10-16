@@ -46,7 +46,7 @@ class VerisureCamera(CoordinatorEntity, Camera):
         try:
             # Get the camera directory path
             camera_dir = self._file_manager.get_data_path()
-            device_path = os.path.join(camera_dir, "cameras", f"{self._device['type']}{self._device['code']:02d}")
+            device_path = os.path.join(camera_dir, "cameras", f"{self._device['type']}{int(self._device['code']):02d}")
             
             if not os.path.exists(device_path):
                 _LOGGER.debug("Camera directory not found: %s", device_path)
