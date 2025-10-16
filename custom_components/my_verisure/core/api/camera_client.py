@@ -152,7 +152,7 @@ class CameraClient(BaseClient):
             reference_id = None
             for attempt in range(1, max_attempts + 1):
                 _LOGGER.info(
-                    "Requesting images (attempt %d/%d)",
+                    "📸 Requesting images (attempt %d/%d)",
                     attempt,
                     max_attempts,
                 )
@@ -180,12 +180,12 @@ class CameraClient(BaseClient):
                     
                     # Handle specific error cases
                     if "request_already_exists" in error_message:
-                        _LOGGER.info("Camera request already exists (attempt %d/%d), retrying...", attempt, max_attempts)
+                        _LOGGER.info("🔄 Camera request already exists (attempt %d/%d), retrying...", attempt, max_attempts)
                         if attempt < max_attempts:
                             await asyncio.sleep(check_interval)
                             continue
                         else:
-                            _LOGGER.warning("Max attempts reached for request_already_exists, continuing with status check")
+                            _LOGGER.warning("⚠️ Max attempts reached for request_already_exists, continuing with status check")
                             return CameraRequestImageResultDTO(
                                 success=False,
                                 successful_requests=0,
@@ -227,7 +227,7 @@ class CameraClient(BaseClient):
                     raise MyVerisureError("No reference ID received from camera service")
 
                 _LOGGER.info(
-                    "Images request submitted successfully. Reference ID: %s. Starting status checking...",
+                    "✅ Images request submitted successfully. Reference ID: %s. Starting status checking...",
                     reference_id,
                 )
                 break  # Exit the retry loop on success
@@ -239,7 +239,7 @@ class CameraClient(BaseClient):
             # Step 2: Execute the second query (REQUEST_IMAGES_STATUS_QUERY) with polling
             for attempt in range(1, max_attempts + 1):
                 _LOGGER.info(
-                    "Checking images status (attempt %d/%d)",
+                    "🔍 Checking images status (attempt %d/%d)",
                     attempt,
                     max_attempts,
                 )
@@ -267,7 +267,7 @@ class CameraClient(BaseClient):
                     _LOGGER.error("GraphQL error in status check: %s", error_message)
                     
                     if "alarm-manager.error_no_response_to_request" in error_message:
-                        _LOGGER.warning("No response to request error detected, exiting status check loop")
+                        _LOGGER.warning("⚠️ No response to request error detected, exiting status check loop")
                         return CameraRequestImageResultDTO(
                             success=False,
                             reference_id=reference_id
@@ -307,7 +307,7 @@ class CameraClient(BaseClient):
                 
                 if status == "OK" and message != "alarm-manager.photo-request.processing":
                     _LOGGER.info(
-                        "Images request completed successfully after %d attempts",
+                        "🎉 Images request completed successfully after %d attempts",
                         attempt,
                     )
                     return CameraRequestImageResultDTO(
@@ -317,7 +317,7 @@ class CameraClient(BaseClient):
                     )
                 elif status == "KO":
                     _LOGGER.error(
-                        "Images request failed with error status after %d attempts",
+                        "❌ Images request failed with error status after %d attempts",
                         attempt,
                     )
                     return CameraRequestImageResultDTO(
@@ -327,7 +327,7 @@ class CameraClient(BaseClient):
                     )
                 else:
                     _LOGGER.info(
-                        "Images request still in progress. Status: %s, waiting %d seconds...",
+                        "⏳ Images request still in progress. Status: %s, waiting %d seconds...",
                         status,
                         check_interval,
                     )
@@ -337,7 +337,7 @@ class CameraClient(BaseClient):
 
             # If we get here, we've exceeded max attempts
             _LOGGER.warning(
-                "Images request did not complete within %d attempts (%d seconds)",
+                "⏰ Images request did not complete within %d attempts (%d seconds)",
                 max_attempts,
                 max_attempts * check_interval,
             )
@@ -402,7 +402,7 @@ class CameraClient(BaseClient):
             thumbnail_data = thumbnail_result["data"]["xSGetThumbnail"]
             
             if not thumbnail_data.get("idSignal"):
-                error_msg = "No idSignal received from thumbnail query"
+                error_msg = "❌ No idSignal received from thumbnail query"
                 _LOGGER.error(error_msg)
                 raise MyVerisureError(error_msg)
 
@@ -425,9 +425,9 @@ class CameraClient(BaseClient):
                 success = file_manager.save_base64_image(thumbnail_path, thumbnail_image)
                 
                 if success:
-                    _LOGGER.info("Thumbnail saved to: %s", thumbnail_path)
+                    _LOGGER.info("💾 Thumbnail saved to: %s", thumbnail_path)
                 else:
-                    _LOGGER.error("Failed to save thumbnail image")
+                    _LOGGER.error("❌ Failed to save thumbnail image")
 
             # Step 2: Get photo images using idSignal
             photo_variables = {
@@ -449,7 +449,7 @@ class CameraClient(BaseClient):
             photo_data = photo_result["data"]["xSGetPhotoImages"]
             
             if not photo_data.get("devices") or not photo_data["devices"]:
-                _LOGGER.warning("No devices found in photo images response")
+                _LOGGER.warning("⚠️ No devices found in photo images response")
                 return {
                     "success": True,
                     "device": device,
@@ -482,10 +482,10 @@ class CameraClient(BaseClient):
                     success = file_manager.save_base64_image(image_path, image_data)
                     
                     if success:
-                        _LOGGER.info("Image %s saved to: %s", image_id, image_path)
+                        _LOGGER.info("💾 Image %s saved to: %s", image_id, image_path)
                         images_saved += 1
                     else:
-                        _LOGGER.error("Failed to save image %s", image_id)
+                        _LOGGER.error("❌ Failed to save image %s", image_id)
 
             return {
                 "success": True,

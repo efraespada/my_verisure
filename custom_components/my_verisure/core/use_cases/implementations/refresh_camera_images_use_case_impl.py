@@ -36,7 +36,7 @@ class RefreshCameraImagesUseCaseImpl(RefreshCameraImagesUseCase):
         """Refresh images from cameras."""
         try:
             _LOGGER.info(
-                "Refreshing camera images for installation %s",
+                "📸 Refreshing camera images for installation %s",
                 installation_id,
             )
 
@@ -59,7 +59,7 @@ class RefreshCameraImagesUseCaseImpl(RefreshCameraImagesUseCase):
             ]
             
             if not camera_devices:
-                _LOGGER.warning("No active camera devices (YR/YP) found in installation %s", installation_id)
+                _LOGGER.warning("⚠️ No active camera devices (YR/YP) found in installation %s", installation_id)
                 return CameraRefresh(
                     refresh_data=[],
                     total_cameras=0,
@@ -78,14 +78,14 @@ class RefreshCameraImagesUseCaseImpl(RefreshCameraImagesUseCase):
             )
 
             _LOGGER.info(
-                "Camera images requests completed. Successful requests: %d/%d",
+                "✅ Camera images requests completed. Successful requests: %d/%d",
                 result.successful_requests,
                 len(device_ids)
             )
 
             refresh_data = []
 
-            _LOGGER.info("Waiting 10 seconds before retrieving images from cameras...")
+            _LOGGER.info("⏳ Waiting 10 seconds before retrieving images from cameras...")
             await asyncio.sleep(10)
             
             for camera_device in camera_devices:
@@ -111,7 +111,7 @@ class RefreshCameraImagesUseCaseImpl(RefreshCameraImagesUseCase):
                     
                 except Exception as e:
                     _LOGGER.error(
-                        "Failed to retrieve images from camera %s: %s",
+                        "❌ Failed to retrieve images from camera %s: %s",
                         camera_device.name,
                         e,
                     )
@@ -125,7 +125,7 @@ class RefreshCameraImagesUseCaseImpl(RefreshCameraImagesUseCase):
                     )
 
             _LOGGER.info(
-                "Camera images retrieval completed for %d cameras",
+                "🎉 Camera images retrieval completed for %d cameras",
                 len(camera_devices),
             )
             
@@ -139,7 +139,7 @@ class RefreshCameraImagesUseCaseImpl(RefreshCameraImagesUseCase):
             )
 
         except Exception as e:
-            _LOGGER.error("Failed to refresh camera images: %s", e)
+            _LOGGER.error("💥 Failed to refresh camera images: %s", e)
             # Return error result
             return CameraRefresh(
                 refresh_data=[],
