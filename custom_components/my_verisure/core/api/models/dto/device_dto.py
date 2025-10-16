@@ -19,7 +19,7 @@ class DeviceConfigFlagsDTO:
             doorbell_button=data.get("doorbellButton"),
         )
     
-    def to_dict(self) -> Dict[str, Any]:
+    def dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
         return {
             "pinCode": self.pin_code,
@@ -41,10 +41,10 @@ class DeviceConfigDTO:
         
         return cls(flags=flags)
     
-    def to_dict(self) -> Dict[str, Any]:
+    def dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
         return {
-            "flags": self.flags.to_dict() if self.flags else {},
+            "flags": self.flags.dict() if self.flags else {},
         }
 
 
@@ -82,7 +82,7 @@ class DeviceDTO:
             config=config,
         )
     
-    def to_dict(self) -> Dict[str, Any]:
+    def dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
         return {
             "id": self.id,
@@ -94,7 +94,7 @@ class DeviceDTO:
             "idService": self.id_service,
             "isActive": self.is_active,
             "serialNumber": self.serial_number,
-            "config": self.config.to_dict() if self.config else {},
+            "config": self.config.dict() if self.config else {},
         }
 
 
@@ -116,9 +116,9 @@ class DeviceListDTO:
             devices=devices,
         )
     
-    def to_dict(self) -> Dict[str, Any]:
+    def dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
         return {
             "res": self.res,
-            "devices": [device.to_dict() for device in self.devices],
+            "devices": [device.dict() for device in self.devices],
         }

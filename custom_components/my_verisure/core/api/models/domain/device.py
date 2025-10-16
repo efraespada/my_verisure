@@ -19,7 +19,7 @@ class DeviceConfigFlags:
             doorbell_button=dto.doorbell_button,
         )
     
-    def to_dict(self) -> Dict[str, Any]:
+    def dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
         return {
             "pin_code": self.pin_code,
@@ -40,10 +40,10 @@ class DeviceConfig:
         
         return cls(flags=flags)
     
-    def to_dict(self) -> Dict[str, Any]:
+    def dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
         return {
-            "flags": self.flags.to_dict() if self.flags else {},
+            "flags": self.flags.dict() if self.flags else {},
         }
 
 
@@ -80,7 +80,7 @@ class Device:
             config=config,
         )
     
-    def to_dict(self) -> Dict[str, Any]:
+    def dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
         return {
             "id": self.id,
@@ -92,7 +92,7 @@ class Device:
             "id_service": self.id_service,
             "is_active": self.is_active,
             "serial_number": self.serial_number,
-            "config": self.config.to_dict() if self.config else {},
+            "config": self.config.dict() if self.config else {},
         }
     
     @property
@@ -138,11 +138,11 @@ class DeviceList:
             devices=devices,
         )
     
-    def to_dict(self) -> Dict[str, Any]:
+    def dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
         return {
             "result": self.result,
-            "devices": [device.to_dict() for device in self.devices],
+            "devices": [device.dict() for device in self.devices],
         }
     
     @property

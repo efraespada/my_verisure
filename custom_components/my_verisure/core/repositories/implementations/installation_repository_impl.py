@@ -586,7 +586,7 @@ class InstallationRepositoryImpl(InstallationRepository):
                     cache_file = self._get_cache_file_path(current_hash, "devices", cache_key)
                     cache_data = {
                         'timestamp': time.time(),
-                        'data': devices_dto.to_dict()
+                        'data': devices_dto.dict()
                     }
                     
                     os.makedirs(os.path.dirname(cache_file), exist_ok=True)
