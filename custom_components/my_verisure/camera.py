@@ -139,7 +139,7 @@ async def async_setup_entry(
     for device in camera_devices:
         camera = VerisureCamera(coordinator, device)
         cameras.append(camera)
-        _LOGGER.info("Created camera entity for %s (%s)", device['name'], f"{device['type']}{device['code']:02d}")
+        _LOGGER.info("Created camera entity for %s (%s)", device['name'], f"{device['type']}{int(device['code']):02d}")
 
     if cameras:
         async_add_entities(cameras, update_before_add=True)
