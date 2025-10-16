@@ -116,7 +116,7 @@ class CameraClient(BaseClient):
         devices: List[int],
         capabilities: str,
         max_attempts: int = 30,
-        check_interval: int = 10,
+        check_interval: int = 20,
     ) -> CameraRequestImageResultDTO:
         """Request images from cameras with automatic status checking."""
         try:
@@ -155,74 +155,91 @@ class CameraClient(BaseClient):
                 headers["panel"] = panel
                 headers["x-capabilities"] = capabilities
 
-            # Log request details for debugging
-            _LOGGER.info("=== CAMERA REQUEST IMAGES REQUEST ===")
-            _LOGGER.info("Installation ID: %s", installation_id)
-            _LOGGER.info("Panel: %s", panel)
-            _LOGGER.info("Devices: %s", devices)
-            _LOGGER.info("Capabilities: %s", capabilities)
-            _LOGGER.info("Variables: %s", variables)
-            _LOGGER.info("Headers: %s", headers)
-            _LOGGER.info("Hash token: %s", hash_token[:50] + "..." if hash_token else "None")
-            _LOGGER.info("Session data: %s", session_data)
-            _LOGGER.info("=== END CAMERA REQUEST IMAGES REQUEST ===")
+                # Step 1: Execute the first mutation with retry logic for "request_already_exists"
+            reference_id = None
+            for attempt in range(1, max_attempts + 1):
+                _LOGGER.info(
+                    "Requesting images (attempt %d/%d)",
+                    attempt,
+                    max_attempts,
+                )
 
-            # Execute the first mutation
-            result = await self._execute_query_direct(
-                REQUEST_IMAGES_MUTATION,
-                variables,
-                headers,
-            )
+                result = await self._execute_query_direct(
+                    REQUEST_IMAGES_MUTATION,
+                    variables,
+                    headers,
+                )
 
-            # Log the complete response for debugging
-            _LOGGER.info("=== CAMERA REQUEST IMAGES RESPONSE ===")
-            _LOGGER.info("Full response: %s", result)
-            _LOGGER.info("Response type: %s", type(result))
-            if result:
-                _LOGGER.info("Response keys: %s", list(result.keys()) if isinstance(result, dict) else "Not a dict")
-            _LOGGER.info("=== END CAMERA REQUEST IMAGES RESPONSE ===")
+                _LOGGER.info("Full response 1: %s", result)
+                if not result or "data" not in result or "xSRequestImages" not in result["data"]:
+                    _LOGGER.error("Invalid response from request images mutation")
+                    _LOGGER.error("Expected 'data.xSRequestImages' key in response")
+                    _LOGGER.error("Available keys: %s", list(result.keys()) if isinstance(result, dict) else "Response is not a dict")
+                    if result and "data" in result:
+                        _LOGGER.error("Data keys: %s", list(result["data"].keys()) if isinstance(result["data"], dict) else "Data is not a dict")
+                    raise MyVerisureError("Invalid response from camera service")
 
-            if not result or "data" not in result or "xSRequestImages" not in result["data"]:
-                _LOGGER.error("Invalid response from request images mutation")
-                _LOGGER.error("Expected 'data.xSRequestImages' key in response")
-                _LOGGER.error("Available keys: %s", list(result.keys()) if isinstance(result, dict) else "Response is not a dict")
-                if result and "data" in result:
-                    _LOGGER.error("Data keys: %s", list(result["data"].keys()) if isinstance(result["data"], dict) else "Data is not a dict")
-                raise MyVerisureError("Invalid response from camera service")
-
-            response = result["data"]["xSRequestImages"]
-            
-            # Check for GraphQL errors first
-            if "errors" in result and result["errors"]:
-                error = result["errors"][0]
-                error_message = error.get("message", "Unknown GraphQL error")
-                _LOGGER.error("GraphQL error: %s", error_message)
+                # Check for GraphQL errors first
+                if "errors" in result and result["errors"]:
+                    error = result["errors"][0]
+                    error_message = error.get("message", "Unknown GraphQL error")
+                    _LOGGER.error("GraphQL error: %s", error_message)
+                    
+                    # Handle specific error cases
+                    if "request_already_exists" in error_message:
+                        _LOGGER.info("Camera request already exists (attempt %d/%d), retrying...", attempt, max_attempts)
+                        if attempt < max_attempts:
+                            await asyncio.sleep(check_interval)
+                            continue
+                        else:
+                            _LOGGER.warning("Max attempts reached for request_already_exists, continuing with status check")
+                            return CameraRequestImageResultDTO(
+                                success=True,
+                                reference_id="existing_request"
+                            )
+                    else:
+                        raise MyVerisureError(f"GraphQL error: {error_message}")
                 
-                # Handle specific error cases
-                if "request_already_exists" in error_message:
-                    _LOGGER.info("Camera request already exists, this is normal - continuing with status check")
-                    # Return a successful result with a dummy reference ID
-                    return CameraRequestImageResultDTO(
-                        success=True,
-                        reference_id="existing_request"
-                    )
-                else:
-                    raise MyVerisureError(f"GraphQL error: {error_message}")
-            
-            if not response or not response.get("res"):
-                error_msg = response.get("msg", "Unknown error") if response else "No response data"
-                _LOGGER.error("Failed to request images: %s", error_msg)
-                raise MyVerisureError(f"Failed to request images: {error_msg}")
+                # Additional check for data structure
+                if not result.get("data") or not isinstance(result["data"], dict):
+                    _LOGGER.error("Invalid data structure in response: %s", result.get("data"))
+                    raise MyVerisureError("Invalid data structure in response")
+                
+                if "xSRequestImages" not in result["data"]:
+                    _LOGGER.error("Missing xSRequestImages in data: %s", list(result["data"].keys()))
+                    raise MyVerisureError("Missing xSRequestImages in response data")
+                
+                response = result["data"]["xSRequestImages"]
 
-            reference_id = response.get("referenceId")
+                if not response:
+                    _LOGGER.error("Response is None or empty")
+                    raise MyVerisureError("Empty response from camera service")
+
+                if not response.get("res"):
+                    if attempt < max_attempts:
+                        await asyncio.sleep(check_interval)
+                        continue
+                    else:
+                        _LOGGER.warning("Max attempts reached for request_already_exists, continuing with status check")
+                        return CameraRequestImageResultDTO(
+                            success=True,
+                            reference_id="existing_request"
+                        )
+
+                reference_id = response.get("referenceId")
+                if not reference_id:
+                    _LOGGER.error("No reference ID received from request images")
+                    raise MyVerisureError("No reference ID received from camera service")
+
+                _LOGGER.info(
+                    "Images request submitted successfully. Reference ID: %s. Starting status checking...",
+                    reference_id,
+                )
+                break  # Exit the retry loop on success
+
             if not reference_id:
-                _LOGGER.error("No reference ID received from request images")
-                raise MyVerisureError("No reference ID received from camera service")
-
-            _LOGGER.info(
-                "Images request submitted successfully. Reference ID: %s. Starting status checking...",
-                reference_id,
-            )
+                _LOGGER.error("Failed to get reference ID after %d attempts", max_attempts)
+                raise MyVerisureError("Failed to get reference ID after maximum attempts")
 
             # Step 2: Execute the second query (REQUEST_IMAGES_STATUS_QUERY) with polling
             for attempt in range(1, max_attempts + 1):
@@ -248,6 +265,7 @@ class CameraClient(BaseClient):
                     headers,
                 )
 
+                _LOGGER.info("Full response 2: %s", status_result)
                 if not status_result or "data" not in status_result or "xSRequestImagesStatus" not in status_result["data"]:
                     _LOGGER.error("Invalid response from images status query")
                     _LOGGER.error("Expected 'data.xSRequestImagesStatus' key in response")
@@ -257,6 +275,17 @@ class CameraClient(BaseClient):
                     raise MyVerisureError("Invalid response from camera status service")
 
                 status_response = status_result["data"]["xSRequestImagesStatus"]
+
+                if not status_response:
+                    if attempt < max_attempts:
+                        await asyncio.sleep(check_interval)
+                        continue
+                    else:
+                        _LOGGER.warning("Max attempts reached for request_already_exists, continuing with status check")
+                        return CameraRequestImageResultDTO(
+                            success=False,
+                            reference_id=reference_id
+                        )
                 
                 if not status_response.get("res"):
                     error_msg = status_response.get("msg", "Unknown error")

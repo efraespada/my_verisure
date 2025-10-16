@@ -47,12 +47,6 @@ class RefreshCameraImagesUseCaseImpl(RefreshCameraImagesUseCase):
             panel = services_data.installation.panel or "SDVFAST"
             capabilities = services_data.installation.capabilities or "default_capabilities"
 
-            _LOGGER.info(
-                "Using panel %s and capabilities %s for camera refresh",
-                panel,
-                capabilities,
-            )
-
             # Get installation devices
             devices_data = await self.installation_repository.get_installation_devices(
                 installation_id, panel
@@ -120,8 +114,8 @@ class RefreshCameraImagesUseCaseImpl(RefreshCameraImagesUseCase):
             refresh_data = []
             # If we had any successful requests, wait 30 seconds and then get images from each camera
             if successful_requests > 0:
-                _LOGGER.info("Waiting 90 seconds before retrieving images from cameras...")
-                await asyncio.sleep(90)
+                _LOGGER.info("Waiting 10 seconds before retrieving images from cameras...")
+                await asyncio.sleep(10)
 
                 _LOGGER.info("Starting to retrieve images from each camera...")
                 
