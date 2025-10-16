@@ -65,9 +65,9 @@ class SessionManager:
                 # Check if session is still valid
                 if self._is_token_valid():
                     self._is_authenticated = True
-                    logger.info("Valid session loaded from file")
+                    logger.warning("Valid session loaded from file")
                 else:
-                    logger.info("Session expired, will require re-authentication")
+                    logger.warning("Session expired, will require re-authentication")
 
         except Exception as e:
             logger.warning(f"Could not load session: {e}")
@@ -86,7 +86,7 @@ class SessionManager:
             
             # Write directly to avoid concurrency issues
             self._write_session_file(session_data)
-            logger.info("Session saved to file")
+            logger.warning("Session saved to file")
         except Exception as e:
             logger.error(f"Could not save session: {e}")
 
@@ -100,7 +100,7 @@ class SessionManager:
         try:
             if os.path.exists(self.session_file):
                 os.remove(self.session_file)
-                logger.info("Session file cleared")
+                logger.warning("Session file cleared")
         except Exception as e:
             logger.warning(f"Could not clear session file: {e}")
 
@@ -119,16 +119,16 @@ class SessionManager:
         token_age = current_time - self.session_timestamp
 
         if token_age > 360:  # 6 minutes
-            logger.info(f"Token expired (age: {token_age:.1f} seconds)")
+            logger.warning(f"Token expired (age: {token_age:.1f} seconds)")
             return False
 
-        logger.info(f"Token appears valid (age: {token_age:.1f} seconds)")
+        logger.warning(f"Token appears valid (age: {token_age:.1f} seconds)")
         return True
 
     async def _try_automatic_reauthentication(self) -> bool:
         """Try to reauthenticate automatically using stored credentials."""
         try:
-            logger.info("Attempting automatic reauthentication with stored credentials...")
+            logger.warning("Attempting automatic reauthentication with stored credentials...")
             
             # Import here to avoid circular imports
             from .dependency_injection.providers import (
@@ -155,7 +155,7 @@ class SessionManager:
                         auth_result.hash,
                         auth_result.refresh_token
                     )
-                    logger.info("Automatic reauthentication successful")
+                    logger.warning("Automatic reauthentication successful")
                     return True
                 else:
                     logger.warning(f"Automatic reauthentication failed: {auth_result.message}")
@@ -180,7 +180,7 @@ class SessionManager:
         
         # Save session
         self._save_session()
-        logger.info("Credentials updated and session saved")
+        logger.warning("Credentials updated and session saved")
 
     def clear_credentials(self) -> None:
         """Clear all credentials and session data."""
@@ -194,7 +194,7 @@ class SessionManager:
         
         # Clear session file
         self._clear_session_file()
-        logger.info("Session cleared and cleaned")
+        logger.warning("Session cleared and cleaned")
 
     def get_current_hash_token(self) -> Optional[str]:
         """Get current hash token."""
@@ -233,11 +233,11 @@ class SessionManager:
         """Check if we have valid credentials."""
         # Check if we already have valid credentials
         if self.is_session_valid():
-            logger.info("Valid session found, no authentication needed")
+            logger.warning("Valid session found, no authentication needed")
             return True
         
         # If we don't have valid credentials, we need to authenticate
-        logger.info("No valid session found, authentication required")
+        logger.warning("No valid session found, authentication required")
         
         # If we don't have credentials, we need to get them
         if not self.username or not self.password:
@@ -250,7 +250,7 @@ class SessionManager:
                 return False
         
         # We have credentials but session is expired, try automatic reauthentication
-        logger.info("Session expired but credentials available, attempting automatic reauthentication...")
+        logger.warning("Session expired but credentials available, attempting automatic reauthentication...")
         return await self._try_automatic_reauthentication()
 
     def _get_user_credentials(self) -> tuple[str, str]:
@@ -270,10 +270,10 @@ class SessionManager:
 
     async def logout(self) -> None:
         """Logout and clear session."""
-        logger.info("Logging out and clearing session")
+        logger.warning("Logging out and clearing session")
         self.clear_credentials()
         self._clear_session_file()
-        logger.info("Logout completed")
+        logger.warning("Logout completed")
 
     async def cleanup(self) -> None:
         """Clean up resources."""

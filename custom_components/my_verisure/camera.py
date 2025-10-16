@@ -40,7 +40,6 @@ class VerisureCamera(CoordinatorEntity, Camera):
         self._webrtc_provider = None
         self._stream_source = None
         self._supported_features = 0
-        self._access_tokens = []
         self._frontend_stream_type = None
         self._is_streaming = False
         self._stream = None
