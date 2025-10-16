@@ -186,10 +186,17 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             alarm_status = await self.alarm_use_case.get_alarm_status(self.installation_id)
             services_data = await self.installation_use_case.get_installation_services(self.installation_id, True)
             
+            # Get devices for this installation
+            devices_data = await self.installation_use_case.get_installation_devices(
+                self.installation_id, 
+                services_data.installation.panel or "SDVFAST"
+            )
+            
             result = {
                 "last_updated": time.time(),
                 "alarm_status": alarm_status.dict(),
                 "services": services_data.dict(),
+                "devices": [device.dict() for device in devices_data.devices]
             }
 
             try:
