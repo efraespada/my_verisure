@@ -113,8 +113,10 @@ class BaseClient:
             request_headers = headers or self._get_headers()
 
             # Log request details for debugging
-            _LOGGER.warning("Making GraphQL request to: %s", VERISURE_GRAPHQL_URL)
-            _LOGGER.warning("Request headers: %s", json.dumps(request_headers, indent=2))
+            _LOGGER.warning("Making GraphQL query to: %s", query)
+            _LOGGER.warning("Request headers: %s", json.dumps(headers, indent=2))
+            _LOGGER.warning("Request request_headers: %s", json.dumps(request_headers, indent=2))
+            _LOGGER.warning("Request data: %s", json.dumps(request_data, indent=2))
 
             async with self._session.post(
                 VERISURE_GRAPHQL_URL,
