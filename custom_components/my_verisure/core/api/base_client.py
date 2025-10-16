@@ -70,6 +70,8 @@ class BaseClient:
         """Get current credentials from SessionManager."""
         from ..session_manager import get_session_manager
         session_manager = get_session_manager()
+        _LOGGER.warning("🔑 SessionManager hash token: %s", session_manager.hash_token)
+        _LOGGER.warning("🔑 SessionManager session data: %s", session_manager.get_current_session_data())
         return session_manager.hash_token, session_manager.get_current_session_data()
 
 
