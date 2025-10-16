@@ -194,7 +194,8 @@ class CameraClient(BaseClient):
                         else:
                             _LOGGER.warning("Max attempts reached for request_already_exists, continuing with status check")
                             return CameraRequestImageResultDTO(
-                                success=True,
+                                success=False,
+                                successful_requests=0,
                                 reference_id="existing_request"
                             )
                     else:
@@ -222,7 +223,8 @@ class CameraClient(BaseClient):
                     else:
                         _LOGGER.warning("Max attempts reached for request_already_exists, continuing with status check")
                         return CameraRequestImageResultDTO(
-                            success=True,
+                            success=False,
+                            successful_requests=0,
                             reference_id="existing_request"
                         )
 
@@ -266,6 +268,20 @@ class CameraClient(BaseClient):
                 )
 
                 _LOGGER.info("Full response 2: %s", status_result)
+                
+                # Check for specific error that should exit the loop
+                if "errors" in status_result and status_result["errors"]:
+                    error = status_result["errors"][0]
+                    error_message = error.get("message", "Unknown error")
+                    _LOGGER.error("GraphQL error in status check: %s", error_message)
+                    
+                    if "alarm-manager.error_no_response_to_request" in error_message:
+                        _LOGGER.warning("No response to request error detected, exiting status check loop")
+                        return CameraRequestImageResultDTO(
+                            success=False,
+                            reference_id=reference_id
+                        )
+                
                 if not status_result or "data" not in status_result or "xSRequestImagesStatus" not in status_result["data"]:
                     _LOGGER.error("Invalid response from images status query")
                     _LOGGER.error("Expected 'data.xSRequestImagesStatus' key in response")
@@ -274,6 +290,8 @@ class CameraClient(BaseClient):
                         _LOGGER.error("Data keys: %s", list(status_result["data"].keys()) if isinstance(status_result["data"], dict) else "Data is not a dict")
                     raise MyVerisureError("Invalid response from camera status service")
 
+                # TODO 
+                
                 status_response = status_result["data"]["xSRequestImagesStatus"]
 
                 if not status_response:
@@ -284,6 +302,7 @@ class CameraClient(BaseClient):
                         _LOGGER.warning("Max attempts reached for request_already_exists, continuing with status check")
                         return CameraRequestImageResultDTO(
                             success=False,
+                            successful_requests=0,
                             reference_id=reference_id
                         )
                 
@@ -308,6 +327,7 @@ class CameraClient(BaseClient):
                     )
                     return CameraRequestImageResultDTO(
                         success=True,
+                        successful_requests=len(devices),
                         reference_id=reference_id
                     )
                 elif status == "KO":
@@ -317,6 +337,7 @@ class CameraClient(BaseClient):
                     )
                     return CameraRequestImageResultDTO(
                         success=False,
+                        successful_requests=0,
                         reference_id=reference_id
                     )
                 else:
@@ -337,6 +358,7 @@ class CameraClient(BaseClient):
             )
             return CameraRequestImageResultDTO(
                 success=False,
+                successful_requests=0,
                 reference_id=reference_id
             )
 
@@ -355,6 +377,7 @@ class CameraClient(BaseClient):
         installation_id: str,
         panel: str,
         device: str,
+        zone_id: str,
         capabilities: str,
     ) -> Dict[str, Any]:
         """Get images from a specific camera device."""
@@ -384,8 +407,8 @@ class CameraClient(BaseClient):
             thumbnail_variables = {
                 "numinst": installation_id,
                 "panel": panel,
-                "device": device.split()[0] if " " in device else device,  # Extract device type (YR/YP)
-                "zoneId": device,
+                "device": device,
+                "zoneId": zone_id,
             }
 
             thumbnail_result = await self._execute_query_direct(

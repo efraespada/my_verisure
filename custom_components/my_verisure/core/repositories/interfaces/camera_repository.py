@@ -26,6 +26,7 @@ class CameraRepository(ABC):
         installation_id: str,
         panel: str,
         device: str,
+        zone_id: str,
         capabilities: str,
     ) -> Dict[str, Any]:
         """Get images from a specific camera device."""

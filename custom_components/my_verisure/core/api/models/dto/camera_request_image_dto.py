@@ -73,6 +73,7 @@ class CameraRequestImageResultDTO:
     """DTO for camera image result."""
     
     success: bool
+    successful_requests: int
     reference_id: Optional[str] = None
 
     @classmethod
@@ -80,6 +81,7 @@ class CameraRequestImageResultDTO:
         """Create DTO from dictionary."""
         return cls(
             success=data.get("success", False),
+            successful_requests=data.get("successful_requests", 0),
             reference_id=data.get("reference_id"),
         )
 
@@ -87,5 +89,6 @@ class CameraRequestImageResultDTO:
         """Convert DTO to dictionary."""
         return {
             "success": self.success,
+            "successful_requests": self.successful_requests,
             "reference_id": self.reference_id,
         }

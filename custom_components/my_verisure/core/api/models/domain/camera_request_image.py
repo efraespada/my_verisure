@@ -75,6 +75,7 @@ class CameraRequestImageResult:
     """Domain model for camera image result."""
     
     success: bool
+    successful_requests: int
     reference_id: Optional[str] = None
 
     @classmethod
@@ -82,6 +83,7 @@ class CameraRequestImageResult:
         """Create domain model from DTO."""
         return cls(
             success=dto.success,
+            successful_requests=dto.successful_requests,
             reference_id=dto.reference_id,
         )
 
@@ -89,5 +91,6 @@ class CameraRequestImageResult:
         """Convert domain model to DTO."""
         return CameraRequestImageResultDTO(
             success=self.success,
+            successful_requests=self.successful_requests,
             reference_id=self.reference_id,
         )

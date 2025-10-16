@@ -66,6 +66,7 @@ class CameraRepositoryImpl(CameraRepository):
         installation_id: str,
         panel: str,
         device: str,
+        zone_id: str,
         capabilities: str,
     ) -> Dict[str, Any]:
         """Get images from a specific camera device."""
@@ -81,6 +82,7 @@ class CameraRepositoryImpl(CameraRepository):
                 installation_id=installation_id,
                 panel=panel,
                 device=device,
+                zone_id=zone_id,
                 capabilities=capabilities,
             )
 
