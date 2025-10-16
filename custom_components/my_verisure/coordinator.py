@@ -194,6 +194,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             
             result = {
                 "last_updated": time.time(),
+                "installation_id": self.installation_id,
                 "alarm_status": alarm_status.dict(),
                 "services": services_data.dict(),
                 "devices": [device.dict() for device in devices_data.devices]
