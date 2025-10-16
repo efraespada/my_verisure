@@ -24,13 +24,13 @@ class VerisureCamera(CoordinatorEntity, Camera):
         """Initialize the camera entity."""
         super().__init__(coordinator)
         self._device = device
-        self._attr_name = f"Verisure {device.name}"
-        self._attr_unique_id = f"verisure_camera_{device.code}"
+        self._attr_name = f"Verisure {device['name']}"
+        self._attr_unique_id = f"verisure_camera_{device['code']}"
         self._attr_device_info = {
-            "identifiers": {("verisure", device.code)},
-            "name": device.name,
+            "identifiers": {("verisure", device['code'])},
+            "name": device['name'],
             "manufacturer": "Verisure",
-            "model": f"{device.type} Camera",
+            "model": f"{device['type']} Camera",
         }
         self._file_manager = get_file_manager()
         self._latest_image_path = None
@@ -46,7 +46,7 @@ class VerisureCamera(CoordinatorEntity, Camera):
         try:
             # Get the camera directory path
             camera_dir = self._file_manager.get_data_path()
-            device_path = os.path.join(camera_dir, "cameras", f"{self._device.type}{self._device.code:02d}")
+            device_path = os.path.join(camera_dir, "cameras", f"{self._device['type']}{self._device['code']:02d}")
             
             if not os.path.exists(device_path):
                 _LOGGER.debug("Camera directory not found: %s", device_path)
@@ -72,7 +72,7 @@ class VerisureCamera(CoordinatorEntity, Camera):
                         continue
 
             if latest_timestamp_dir is None:
-                _LOGGER.debug("No valid timestamp directories found for camera %s", self._device.code)
+                _LOGGER.debug("No valid timestamp directories found for camera %s", self._device['code'])
                 return None
 
             # Look for thumbnail.jpg in the latest directory
@@ -82,27 +82,27 @@ class VerisureCamera(CoordinatorEntity, Camera):
                     image_data = f.read()
                     self._latest_image_path = thumbnail_path
                     self._latest_image_timestamp = latest_timestamp.isoformat()
-                    _LOGGER.debug("Loaded latest image for camera %s from %s", self._device.code, thumbnail_path)
+                    _LOGGER.debug("Loaded latest image for camera %s from %s", self._device['code'], thumbnail_path)
                     return image_data
             else:
                 _LOGGER.debug("Thumbnail not found in latest directory: %s", latest_timestamp_dir)
                 return None
 
         except Exception as e:
-            _LOGGER.error("Error getting latest image for camera %s: %s", self._device.code, e)
+            _LOGGER.error("Error getting latest image for camera %s: %s", self._device['code'], e)
             return None
 
     @property
     def extra_state_attributes(self):
         """Return additional state attributes."""
         return {
-            "device_type": self._device.type,
-            "device_code": self._device.code,
-            "device_name": self._device.name,
+            "device_type": self._device['type'],
+            "device_code": self._device['code'],
+            "device_name": self._device['name'],
             "latest_image_path": self._latest_image_path,
             "latest_image_timestamp": self._latest_image_timestamp,
-            "is_active": self._device.is_active,
-            "remote_use": self._device.remote_use,
+            "is_active": self._device.get('is_active'),
+            "remote_use": self._device.get('remote_use'),
         }
 
     async def async_camera_image(self) -> Optional[bytes]:
@@ -133,13 +133,13 @@ async def async_setup_entry(
     # Filter for camera devices (YP and YR)
     camera_devices = [
         device for device in devices 
-        if device.type in ["YP", "YR"] and device.remote_use
+        if device.get('type') in ["YP", "YR"] and device.get('remote_use')
     ]
     
     for device in camera_devices:
         camera = VerisureCamera(coordinator, device)
         cameras.append(camera)
-        _LOGGER.info("Created camera entity for %s (%s)", device.name, f"{device.type}{device.code:02d}")
+        _LOGGER.info("Created camera entity for %s (%s)", device['name'], f"{device['type']}{device['code']:02d}")
 
     if cameras:
         async_add_entities(cameras, update_before_add=True)
