@@ -70,8 +70,6 @@ class BaseClient:
         """Get current credentials from SessionManager."""
         from ..session_manager import get_session_manager
         session_manager = get_session_manager()
-        _LOGGER.warning("🔑 SessionManager hash token: %s", session_manager.hash_token)
-        _LOGGER.warning("🔑 SessionManager session data: %s", session_manager.get_current_session_data())
         return session_manager.hash_token, session_manager.get_current_session_data()
 
 
@@ -113,7 +111,6 @@ class BaseClient:
             request_headers = headers or self._get_headers()
 
             # Log request details for debugging
-            _LOGGER.warning("Making GraphQL query to: %s", query)
             _LOGGER.warning("Request headers: %s", json.dumps(headers, indent=2))
             _LOGGER.warning("Request request_headers: %s", json.dumps(request_headers, indent=2))
             _LOGGER.warning("Request data: %s", json.dumps(request_data, indent=2))
@@ -124,30 +121,8 @@ class BaseClient:
                 headers=request_headers,
             ) as response:
                 # Log response details
-                _LOGGER.warning("Response status: %s", response.status)
-                _LOGGER.warning("Response headers: %s", json.dumps(dict(response.headers), indent=2))
-                
-                # Check for authentication errors
-                if response.status == 403:
-                    _LOGGER.error("Authentication failed (403). Token may be expired or invalid.")
-                    # Try to read the response to see what error we got
-                    try:
-                        response_text = await response.text()
-                        _LOGGER.error("403 Response body: %s", response_text)
-                    except:
-                        pass
-                                            
-                # Check if response is JSON
-                content_type = response.headers.get('content-type', '')
-                if 'application/json' not in content_type:
-                    _LOGGER.error("Unexpected content type: %s (status: %s)", content_type, response.status)
-                    # Try to read the response text to see what we got
-                    try:
-                        response_text = await response.text()
-                        _LOGGER.error("Response body: %s", response_text)
-                    except:
-                        pass
-                    return {"errors": [{"message": f"Unexpected content type: {content_type}", "data": {}}]}
+                if (response.status != 200):
+                    _LOGGER.warning("Response status: %s", response.status)
                 
                 result = await response.json()
                 return result
@@ -155,6 +130,6 @@ class BaseClient:
         except Exception as e:
             _LOGGER.error("Direct GraphQL query failed: %s", e)
             return {"errors": [{"message": str(e), "data": {}}]}
-        # finally:
+        finally:
             # Always disconnect after the request
-            # await self._disconnect()
+            await self._disconnect()
