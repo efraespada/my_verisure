@@ -110,16 +110,39 @@ class InstallationRepositoryImpl(InstallationRepository):
                     "timestamp": data.get("timestamp", 0),
                     "data": installations
                 }
-            elif cache_type == "services" and "services" in data:
-                services = InstallationServices(**data["services"])
-                return {
-                    "timestamp": data.get("timestamp", 0),
-                    "data": services
-                }
+            elif cache_type == "services":
+                # Handle different data structures
+                _LOGGER.info("Loading services cache data structure: %s", type(data))
+                _LOGGER.info("Data keys: %s", list(data.keys()) if isinstance(data, dict) else "Not a dict")
+                
+                try:
+                    if "services" in data:
+                        _LOGGER.info("Found 'services' key in data")
+                        services = InstallationServices(**data["services"])
+                    elif "data" in data:
+                        _LOGGER.info("Found 'data' key in data")
+                        services = data["data"]
+                    else:
+                        _LOGGER.info("Using data directly")
+                        services = InstallationServices(**data)
+                    
+                    return {
+                        "timestamp": data.get("timestamp", 0),
+                        "data": services
+                    }
+                except Exception as services_error:
+                    _LOGGER.error("💥 Error processing services cache data: %s", services_error)
+                    _LOGGER.info("🧹 Clearing corrupted services cache...")
+                    # Clear the corrupted cache
+                    self._clear_cache()
+                    return None
             
             return data
         except Exception as e:
             _LOGGER.error("💥 Error loading cache from disk: %s", e)
+            _LOGGER.info("🧹 Clearing corrupted cache...")
+            # Clear the corrupted cache
+            self._clear_cache()
             return None
 
     def _get_current_hash(self) -> Optional[str]:
@@ -190,7 +213,7 @@ class InstallationRepositoryImpl(InstallationRepository):
             # Save to disk
             self._save_cache_to_disk(current_hash, "installations", installations)
             
-            _LOGGER.debug("Cached %d installations for hash %s", 
+            _LOGGER.info("Cached %d installations for hash %s", 
                          len(installations), current_hash[:20] + "...")
 
     def _cache_services(self, installation_id: str, services: InstallationServices) -> None:
@@ -209,7 +232,7 @@ class InstallationRepositoryImpl(InstallationRepository):
             # Save to disk
             self._save_cache_to_disk(current_hash, "services", services, installation_id)
             
-            _LOGGER.debug("Cached services for installation %s with hash %s", 
+            _LOGGER.info("Cached services for installation %s with hash %s", 
                          installation_id, current_hash[:20] + "...")
 
     def _get_cached_installations(self) -> Optional[List[Installation]]:
@@ -219,7 +242,7 @@ class InstallationRepositoryImpl(InstallationRepository):
             
         current_hash = self._get_current_hash()
         if current_hash and current_hash in self._installations_cache:
-            _LOGGER.debug("Using cached installations for hash %s", current_hash[:20] + "...")
+            _LOGGER.info("Using cached installations for hash %s", current_hash[:20] + "...")
             return self._installations_cache[current_hash]
             
         return None
@@ -231,7 +254,7 @@ class InstallationRepositoryImpl(InstallationRepository):
             
         current_hash = self._get_current_hash()
         if current_hash and current_hash in self._services_cache and installation_id in self._services_cache[current_hash]:
-            _LOGGER.debug("Using cached services for installation %s with hash %s", 
+            _LOGGER.info("Using cached services for installation %s with hash %s", 
                          installation_id, current_hash[:20] + "...")
             return self._services_cache[current_hash][installation_id]
             
@@ -255,9 +278,9 @@ class InstallationRepositoryImpl(InstallationRepository):
                     self._installations_cache[current_hash] = installations
                     self._installations_hash = current_hash
                     self._installations_timestamp = timestamp
-                    _LOGGER.debug("Loaded %d installations from disk cache", len(installations))
+                    _LOGGER.info("Loaded %d installations from disk cache", len(installations))
                 else:
-                    _LOGGER.debug("Disk cache expired, removing cache file")
+                    _LOGGER.info("Disk cache expired, removing cache file")
                     self._clear_cache_file(current_hash, "installations")
             
             # Try to load services cache for all installations
@@ -287,9 +310,9 @@ class InstallationRepositoryImpl(InstallationRepository):
                                 
                                 self._services_cache[current_hash][installation_id] = services
                                 self._services_timestamps[current_hash][installation_id] = timestamp
-                                _LOGGER.debug("Loaded services cache from disk for installation %s", installation_id)
+                                _LOGGER.info("Loaded services cache from disk for installation %s", installation_id)
                             else:
-                                _LOGGER.debug("Disk cache expired for installation %s, removing cache file", installation_id)
+                                _LOGGER.info("Disk cache expired for installation %s, removing cache file", installation_id)
                                 self._clear_cache_file(current_hash, "services", installation_id)
                 except Exception as e:
                     _LOGGER.error("Error loading cache file %s: %s", cache_file, e)
@@ -302,7 +325,7 @@ class InstallationRepositoryImpl(InstallationRepository):
             cache_file = self._get_cache_file_path(hash_token, cache_type, installation_id)
             if os.path.exists(cache_file):
                 os.remove(cache_file)
-                _LOGGER.debug("Removed cache file: %s", cache_file)
+                _LOGGER.info("Removed cache file: %s", cache_file)
         except Exception as e:
             _LOGGER.error("Error removing cache file: %s", e)
 
@@ -538,10 +561,6 @@ class InstallationRepositoryImpl(InstallationRepository):
                             _LOGGER.info("Disk cache expired, will refresh")
                 except Exception as e:
                     _LOGGER.warning("Error loading devices from disk cache: %s", e)
-
-            # Fetch from API
-            _LOGGER.info("Fetching devices from API for installation %s with panel %s", 
-                        installation_id, panel)
             
             services_data = await self.client.get_installation_services(installation_id, force_refresh)
             capabilities = services_data.installation.capabilities

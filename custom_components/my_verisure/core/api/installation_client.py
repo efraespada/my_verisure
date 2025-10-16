@@ -167,16 +167,6 @@ class InstallationClient(BaseClient):
 
             _LOGGER.info("✅ Found %d installations", len(installations))
 
-            # Log installation details (only for debugging)
-            # for i, installation in enumerate(installations):
-            #     _LOGGER.info(
-            #         "Installation %d: %s (%s) - %s",
-            #         i + 1,
-            #         installation.get("alias", "Unknown"),
-            #         installation.get("numinst", "Unknown"),
-            #         installation.get("type", "Unknown"),
-            #     )
-
             # Convert to DTOs
             installation_dtos = [
                 InstallationDTO.from_dict(inst) for inst in installations
@@ -309,12 +299,6 @@ class InstallationClient(BaseClient):
         if not panel:
             raise MyVerisureError("Panel is required")
 
-        _LOGGER.info(
-            "Getting devices for installation %s with panel %s",
-            installation_id,
-            panel,
-        )
-
         try:
             # Prepare variables
             variables = {
@@ -354,23 +338,6 @@ class InstallationClient(BaseClient):
 
             if devices_data and devices_data.get("res") == "OK":
                 devices = devices_data.get("devices", [])
-
-                _LOGGER.info(
-                    "Found %d devices for installation %s",
-                    len(devices),
-                    installation_id,
-                )
-
-                # Log device details
-                for i, device in enumerate(devices):
-                    _LOGGER.info(
-                        "Device %d: %s (%s) - %s - Active: %s",
-                        i + 1,
-                        device.get("name", "Unknown"),
-                        device.get("id", "Unknown"),
-                        device.get("type", "Unknown"),
-                        device.get("isActive", False),
-                    )
 
                 response_data = {
                     "res": devices_data.get("res", ""),
