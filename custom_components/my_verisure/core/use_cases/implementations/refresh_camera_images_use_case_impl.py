@@ -70,51 +70,46 @@ class RefreshCameraImagesUseCaseImpl(RefreshCameraImagesUseCase):
                     timestamp=datetime.now().isoformat(),
                 )
             
-            device_ids = [int(device.code) for device in camera_devices]
-
-            index = 0
-            for device_id in device_ids:
-                result = await self.camera_repository.request_image(
-                    installation_id=installation_id,
-                    panel=panel,
-                    devices=[device_id],
-                    capabilities=capabilities,
-                )
-
-                index = index + result.successful_requests
-
-                _LOGGER.info(
-                    "✅ Camera images requests completed. Successful requests: %d/%d",
-                    index,
-                    len(device_ids)
-                )
-
             refresh_data = []
-
-            _LOGGER.info("⏳ Waiting 10 seconds before retrieving images from cameras...")
-            await asyncio.sleep(10)
-            
+            index = 0
             for camera_device in camera_devices:
-                code_int = int(camera_device.code)
-                formatted_code = f"{camera_device.type}{code_int:02d}"
-                
                 try:
-                    image_result = await self.camera_repository.get_images(
+                    result = await self.camera_repository.request_image(
                         installation_id=installation_id,
                         panel=panel,
-                        device=camera_device.type,
-                        zone_id=formatted_code,
+                        devices=[int(camera_device.code)],
                         capabilities=capabilities,
                     )
-                    
-                    refresh_data.append(
-                        CameraRefreshData(
-                            timestamp=datetime.now().isoformat(),
-                            num_images=image_result.get("images_saved", 0),
-                            camera_identifier=formatted_code,
+
+                    if (result.successful_requests > 0):
+                        _LOGGER.info("⏳ Waiting 3 seconds before retrieving images from camera %s...", formatted_code)
+                        await asyncio.sleep(3)
+
+                        formatted_code = f"{camera_device.type}{int(camera_device.code):02d}"
+                        image_result = await self.camera_repository.get_images(
+                            installation_id=installation_id,
+                            panel=panel,
+                            device=camera_device.type,
+                            zone_id=formatted_code,
+                            capabilities=capabilities,
                         )
-                    )
-                    
+                        
+                        refresh_data.append(
+                            CameraRefreshData(
+                                timestamp=datetime.now().isoformat(),
+                                num_images=image_result.get("images_saved", 0),
+                                camera_identifier=formatted_code,
+                            )
+                        )
+
+                        index = index + result.successful_requests
+
+                        _LOGGER.info(
+                            "✅ Camera images requests completed. Successful requests: %d/%d",
+                            index,
+                            len(camera_devices)
+                        )
+
                 except Exception as e:
                     _LOGGER.error(
                         "❌ Failed to retrieve images from camera %s: %s",

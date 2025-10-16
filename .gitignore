@@ -181,3 +181,5 @@ dev_config.py
 
 # Data files
 custom_components/my_verisure/data/
+
+device_identifiers.json

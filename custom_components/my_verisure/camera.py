@@ -35,6 +35,11 @@ class VerisureCamera(CoordinatorEntity, Camera):
         self._file_manager = get_file_manager()
         self._latest_image_path = None
         self._latest_image_timestamp = None
+        
+        # Required attributes for Camera entity
+        self._webrtc_provider = None
+        self._stream_source = None
+        self._supported_features = 0
 
     @property
     def camera_image(self) -> Optional[bytes]:
@@ -108,6 +113,27 @@ class VerisureCamera(CoordinatorEntity, Camera):
     async def async_camera_image(self) -> Optional[bytes]:
         """Return the latest camera image asynchronously."""
         return self._get_latest_image()
+
+    @property
+    def supported_features(self) -> int:
+        """Return supported features for this camera."""
+        return self._supported_features
+
+    @property
+    def webrtc_provider(self) -> Optional[str]:
+        """Return the WebRTC provider for this camera."""
+        return self._webrtc_provider
+
+    @property
+    def stream_source(self) -> Optional[str]:
+        """Return the stream source for this camera."""
+        return self._stream_source
+
+    async def async_refresh_providers(self, write_state: bool = True) -> None:
+        """Refresh camera providers."""
+        # This method is required by Home Assistant Camera component
+        # We don't need to implement WebRTC or streaming for static images
+        pass
 
 
 async def async_setup_entry(
