@@ -43,6 +43,7 @@ class VerisureCamera(CoordinatorEntity, Camera):
         self._frontend_stream_type = None
         self._is_streaming = False
         self._stream = None
+        self._access_tokens = []
 
     @property
     def camera_image(self) -> Optional[bytes]:
@@ -118,8 +119,11 @@ class VerisureCamera(CoordinatorEntity, Camera):
             "remote_use": self._device.get('remote_use'),
         }
 
-    async def async_camera_image(self) -> Optional[bytes]:
-        """Return the latest camera image asynchronously."""
+    async def async_camera_image(self, width: Optional[int] = None, height: Optional[int] = None) -> Optional[bytes]:
+        """Return the latest camera image asynchronously.
+
+        Width and height are ignored because this camera only serves static images.
+        """
         return self._get_latest_image()
 
     @property
