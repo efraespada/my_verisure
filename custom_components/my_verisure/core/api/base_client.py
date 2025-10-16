@@ -110,11 +110,41 @@ class BaseClient:
             request_data = {"query": query, "variables": variables or {}}
             request_headers = headers or self._get_headers()
 
+            # Log request details for debugging
+            _LOGGER.warning("Making GraphQL request to: %s", VERISURE_GRAPHQL_URL)
+            _LOGGER.warning("Request headers: %s", json.dumps(request_headers, indent=2))
+
             async with self._session.post(
                 VERISURE_GRAPHQL_URL,
                 json=request_data,
                 headers=request_headers,
             ) as response:
+                # Log response details
+                _LOGGER.warning("Response status: %s", response.status)
+                _LOGGER.warning("Response headers: %s", json.dumps(dict(response.headers), indent=2))
+                
+                # Check for authentication errors
+                if response.status == 403:
+                    _LOGGER.error("Authentication failed (403). Token may be expired or invalid.")
+                    # Try to read the response to see what error we got
+                    try:
+                        response_text = await response.text()
+                        _LOGGER.error("403 Response body: %s", response_text)
+                    except:
+                        pass
+                                            
+                # Check if response is JSON
+                content_type = response.headers.get('content-type', '')
+                if 'application/json' not in content_type:
+                    _LOGGER.error("Unexpected content type: %s (status: %s)", content_type, response.status)
+                    # Try to read the response text to see what we got
+                    try:
+                        response_text = await response.text()
+                        _LOGGER.error("Response body: %s", response_text)
+                    except:
+                        pass
+                    return {"errors": [{"message": f"Unexpected content type: {content_type}", "data": {}}]}
+                
                 result = await response.json()
                 return result
 
