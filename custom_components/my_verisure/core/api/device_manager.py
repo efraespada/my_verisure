@@ -118,7 +118,7 @@ class DeviceManager:
     def _load_device_identifiers(self) -> bool:
         """Load device identifiers from file."""
         try:
-            device_data = self._file_manager.load_json("device_identifiers.json")
+            device_data = self._file_manager.load_device_identifiers()
             if device_data:
                 self._device_identifiers = device_data
                 _LOGGER.warning("Device identifiers loaded from device_identifiers.json")
@@ -144,7 +144,7 @@ class DeviceManager:
             return
 
         try:
-            success = self._file_manager.save_json("device_identifiers.json", self._device_identifiers)
+            success = self._file_manager.save_device_identifiers(self._device_identifiers)
             if success:
                 _LOGGER.warning("Device identifiers saved to device_identifiers.json")
             else:

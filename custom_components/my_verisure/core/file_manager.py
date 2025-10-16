@@ -194,6 +194,41 @@ class FileManager:
             _LOGGER.error("Failed to get file size for %s: %s", filename, e)
             return None
 
+    def save_device_identifiers(self, data: Dict[str, Any]) -> bool:
+        """Save device identifiers to the execution directory."""
+        try:
+            # Save to the execution directory (not in /data)
+            file_path = Path.cwd() / "device_identifiers.json"
+            with open(file_path, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+            _LOGGER.info("Device identifiers saved to: %s", file_path)
+            return True
+        except Exception as e:
+            _LOGGER.error("Failed to save device identifiers: %s", e)
+            return False
+
+    def load_device_identifiers(self) -> Optional[Dict[str, Any]]:
+        """Load device identifiers from the execution directory."""
+        try:
+            # Load from the execution directory (not from /data)
+            file_path = Path.cwd() / "device_identifiers.json"
+            if not file_path.exists():
+                _LOGGER.warning("Device identifiers file not found: %s", file_path)
+                return None
+            
+            with open(file_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            _LOGGER.info("Device identifiers loaded from: %s", file_path)
+            return data
+        except Exception as e:
+            _LOGGER.error("Failed to load device identifiers: %s", e)
+            return None
+
+    def device_identifiers_exists(self) -> bool:
+        """Check if device identifiers file exists in the execution directory."""
+        file_path = Path.cwd() / "device_identifiers.json"
+        return file_path.exists()
+
 
 # Global instance
 _file_manager_instance: Optional[FileManager] = None
