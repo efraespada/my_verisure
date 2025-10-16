@@ -41,7 +41,7 @@ class CameraRepositoryImpl(CameraRepository):
             return domain_model
 
         except Exception as e:
-            _LOGGER.error("❌ Failed to request camera images: %s", e)
+            _LOGGER.error("💥 Failed to request camera images: %s", e)
             # Return error result
             return CameraRequestImageResult(
                 success=False,
@@ -71,7 +71,7 @@ class CameraRepositoryImpl(CameraRepository):
             return result
 
         except Exception as e:
-            _LOGGER.error("❌ Failed to get camera images: %s", e)
+            _LOGGER.error("💥 Failed to get camera images: %s", e)
             # Return error result
             return {
                 "success": False,

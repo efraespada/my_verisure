@@ -130,15 +130,14 @@ class InstallationClient(BaseClient):
         # Get credentials from SessionManager
         hash_token, session_data = self._get_current_credentials()
         
-        _LOGGER.warning("InstallationClient getting credentials from SessionManager:")
-        _LOGGER.warning("  - Hash token obtained: %s", hash_token[:50] + "..." if hash_token else "None")
+        # Credentials obtained from SessionManager
         
         if not hash_token:
             raise MyVerisureAuthenticationError(
                 "Not authenticated. Please login first."
             )
 
-        _LOGGER.info("Getting user installations...")
+        _LOGGER.info("🏠 Getting user installations...")
 
         try:
             # Execute the installations query
@@ -166,17 +165,17 @@ class InstallationClient(BaseClient):
             installations_data = data.get("xSInstallations", {})
             installations = installations_data.get("installations", [])
 
-            _LOGGER.info("Found %d installations", len(installations))
+            _LOGGER.info("✅ Found %d installations", len(installations))
 
-            # Log installation details
-            for i, installation in enumerate(installations):
-                _LOGGER.info(
-                    "Installation %d: %s (%s) - %s",
-                    i + 1,
-                    installation.get("alias", "Unknown"),
-                    installation.get("numinst", "Unknown"),
-                    installation.get("type", "Unknown"),
-                )
+            # Log installation details (only for debugging)
+            # for i, installation in enumerate(installations):
+            #     _LOGGER.info(
+            #         "Installation %d: %s (%s) - %s",
+            #         i + 1,
+            #         installation.get("alias", "Unknown"),
+            #         installation.get("numinst", "Unknown"),
+            #         installation.get("type", "Unknown"),
+            #     )
 
             # Convert to DTOs
             installation_dtos = [
@@ -208,7 +207,7 @@ class InstallationClient(BaseClient):
             raise MyVerisureError("Installation ID is required")
 
         _LOGGER.info(
-            "Getting services for installation %s (force_refresh=%s)",
+            "🔧 Getting services for installation %s (force_refresh=%s)",
             installation_id,
             force_refresh,
         )
@@ -248,16 +247,16 @@ class InstallationClient(BaseClient):
                 services = installation.get("services", [])
 
                 _LOGGER.info(
-                    "Found %d services for installation %s",
+                    "✅ Found %d services for installation %s",
                     len(services),
                     installation_id,
                 )
                 _LOGGER.info(
-                    "Installation status: %s",
+                    "📊 Installation status: %s",
                     installation.get("status", "Unknown"),
                 )
                 _LOGGER.info(
-                    "Installation panel: %s",
+                    "🔧 Installation panel: %s",
                     installation.get("panel", "Unknown"),
                 )
 

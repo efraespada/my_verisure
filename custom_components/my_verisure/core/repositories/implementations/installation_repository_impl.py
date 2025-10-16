@@ -82,9 +82,9 @@ class InstallationRepositoryImpl(InstallationRepository):
             with open(cache_file, 'w', encoding='utf-8') as f:
                 json.dump(serializable_data, f, indent=2, ensure_ascii=False)
             
-            _LOGGER.debug("Saved %s cache to disk for hash %s", cache_type, hash_token[:20] + "...")
+            # Cache saved to disk
         except Exception as e:
-            _LOGGER.error("Error saving cache to disk: %s", e)
+            _LOGGER.error("💥 Error saving cache to disk: %s", e)
 
     def _load_cache_data_from_disk(self, hash_token: str = None, cache_type: str = "installations", installation_id: str = None) -> Optional[Any]:
         """Load cache data from disk."""
@@ -119,7 +119,7 @@ class InstallationRepositoryImpl(InstallationRepository):
             
             return data
         except Exception as e:
-            _LOGGER.error("Error loading cache from disk: %s", e)
+            _LOGGER.error("💥 Error loading cache from disk: %s", e)
             return None
 
     def _get_current_hash(self) -> Optional[str]:
@@ -137,8 +137,7 @@ class InstallationRepositoryImpl(InstallationRepository):
             
         # If hash changed, cache is invalid
         if self._installations_hash != current_hash:
-            _LOGGER.debug("Installations cache invalid: hash changed from %s to %s", 
-                         self._installations_hash, current_hash)
+            # Cache invalid: hash changed
             return False
             
         # If no timestamp, cache is invalid
@@ -147,8 +146,7 @@ class InstallationRepositoryImpl(InstallationRepository):
             
         # Check TTL
         if time.time() - self._installations_timestamp > self._installations_ttl:
-            _LOGGER.debug("Installations cache expired: age %d seconds", 
-                         time.time() - self._installations_timestamp)
+            # Cache expired
             return False
             
         return True
@@ -176,8 +174,7 @@ class InstallationRepositoryImpl(InstallationRepository):
         # Check TTL
         timestamp = self._services_timestamps[current_hash][installation_id]
         if time.time() - timestamp > self._services_ttl:
-            _LOGGER.debug("Services cache expired for installation %s: age %d seconds", 
-                         installation_id, time.time() - timestamp)
+            # Services cache expired
             return False
             
         return True
@@ -297,7 +294,7 @@ class InstallationRepositoryImpl(InstallationRepository):
                 except Exception as e:
                     _LOGGER.error("Error loading cache file %s: %s", cache_file, e)
         except Exception as e:
-            _LOGGER.error("Error loading cache from disk: %s", e)
+            _LOGGER.error("💥 Error loading cache from disk: %s", e)
 
     def _clear_cache_file(self, hash_token: str, cache_type: str, installation_id: str = None) -> None:
         """Clear cache file from disk."""
@@ -314,12 +311,12 @@ class InstallationRepositoryImpl(InstallationRepository):
         try:
             cached_installations = self._get_cached_installations()
             if cached_installations:
-                _LOGGER.info("Using cached installations (%d found)", len(cached_installations))
+                _LOGGER.info("💾 Using cached installations (%d found)", len(cached_installations))
                 return cached_installations
 
             current_hash = self._get_current_hash()
             _LOGGER.info(
-                "Hash token present: %s",
+                "🔑 Hash token present: %s",
                 "Yes" if current_hash else "No",
             )
 
@@ -334,11 +331,11 @@ class InstallationRepositoryImpl(InstallationRepository):
             # Cache the result
             self._cache_installations(installations)
 
-            _LOGGER.info("Found %d installations", len(installations))
+            _LOGGER.info("✅ Found %d installations", len(installations))
             return installations
 
         except Exception as e:
-            _LOGGER.error("Error getting installations: %s", e)
+            _LOGGER.error("💥 Error getting installations: %s", e)
             raise
 
     async def get_installation_services(

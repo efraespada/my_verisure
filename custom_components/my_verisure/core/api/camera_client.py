@@ -164,18 +164,14 @@ class CameraClient(BaseClient):
                 )
 
                 if not result or "data" not in result or "xSRequestImages" not in result["data"]:
-                    _LOGGER.error("Invalid response from request images mutation")
-                    _LOGGER.error("Expected 'data.xSRequestImages' key in response")
-                    _LOGGER.error("Available keys: %s", list(result.keys()) if isinstance(result, dict) else "Response is not a dict")
-                    if result and "data" in result:
-                        _LOGGER.error("Data keys: %s", list(result["data"].keys()) if isinstance(result["data"], dict) else "Data is not a dict")
+                    _LOGGER.error("❌ Invalid response from request images mutation")
                     raise MyVerisureError("Invalid response from camera service")
 
                 # Check for GraphQL errors first
                 if "errors" in result and result["errors"]:
                     error = result["errors"][0]
                     error_message = error.get("message", "Unknown GraphQL error")
-                    _LOGGER.error("GraphQL error: %s", error_message)
+                    _LOGGER.error("❌ GraphQL error: %s", error_message)
                     
                     # Handle specific error cases
                     if "request_already_exists" in error_message:
@@ -195,17 +191,17 @@ class CameraClient(BaseClient):
                 
                 # Additional check for data structure
                 if not result.get("data") or not isinstance(result["data"], dict):
-                    _LOGGER.error("Invalid data structure in response: %s", result.get("data"))
+                    _LOGGER.error("❌ Invalid data structure in response")
                     raise MyVerisureError("Invalid data structure in response")
                 
                 if "xSRequestImages" not in result["data"]:
-                    _LOGGER.error("Missing xSRequestImages in data: %s", list(result["data"].keys()))
+                    _LOGGER.error("❌ Missing xSRequestImages in response data")
                     raise MyVerisureError("Missing xSRequestImages in response data")
                 
                 response = result["data"]["xSRequestImages"]
 
                 if not response:
-                    _LOGGER.error("Response is None or empty")
+                    _LOGGER.error("❌ Response is None or empty")
                     raise MyVerisureError("Empty response from camera service")
 
                 if not response.get("res"):
@@ -222,7 +218,7 @@ class CameraClient(BaseClient):
 
                 reference_id = response.get("referenceId")
                 if not reference_id:
-                    _LOGGER.error("No reference ID received from request images")
+                    _LOGGER.error("❌ No reference ID received from request images")
                     raise MyVerisureError("No reference ID received from camera service")
 
                 _LOGGER.info(
@@ -232,7 +228,7 @@ class CameraClient(BaseClient):
                 break  # Exit the retry loop on success
 
             if not reference_id:
-                _LOGGER.error("Failed to get reference ID after %d attempts", max_attempts)
+                _LOGGER.error("❌ Failed to get reference ID after %d attempts", max_attempts)
                 raise MyVerisureError("Failed to get reference ID after maximum attempts")
 
             # Step 2: Execute the second query (REQUEST_IMAGES_STATUS_QUERY) with polling
@@ -263,7 +259,7 @@ class CameraClient(BaseClient):
                 if "errors" in status_result and status_result["errors"]:
                     error = status_result["errors"][0]
                     error_message = error.get("message", "Unknown error")
-                    _LOGGER.error("GraphQL error in status check: %s", error_message)
+                    _LOGGER.error("❌ GraphQL error in status check: %s", error_message)
                     
                     if "alarm-manager.error_no_response_to_request" in error_message:
                         _LOGGER.warning("⚠️ No response to request error detected, exiting status check loop")
@@ -273,11 +269,7 @@ class CameraClient(BaseClient):
                         )
                 
                 if not status_result or "data" not in status_result or "xSRequestImagesStatus" not in status_result["data"]:
-                    _LOGGER.error("Invalid response from images status query")
-                    _LOGGER.error("Expected 'data.xSRequestImagesStatus' key in response")
-                    _LOGGER.error("Available keys: %s", list(status_result.keys()) if isinstance(status_result, dict) else "Response is not a dict")
-                    if status_result and "data" in status_result:
-                        _LOGGER.error("Data keys: %s", list(status_result["data"].keys()) if isinstance(status_result["data"], dict) else "Data is not a dict")
+                    _LOGGER.error("❌ Invalid response from images status query")
                     raise MyVerisureError("Invalid response from camera status service")
 
                 # TODO 
@@ -298,7 +290,7 @@ class CameraClient(BaseClient):
                 
                 if not status_response.get("res"):
                     error_msg = status_response.get("msg", "Unknown error")
-                    _LOGGER.error("Failed to check images status: %s", error_msg)
+                    _LOGGER.error("❌ Failed to check images status: %s", error_msg)
                     raise MyVerisureError(f"Failed to check images status: {error_msg}")
 
                 status = status_response.get("res", "UNKNOWN")
