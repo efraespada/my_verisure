@@ -37,7 +37,7 @@ class RefreshCameraImagesButton(CoordinatorEntity, ButtonEntity):
     async def async_press(self) -> None:
         """Handle the button press."""
         try:
-            _LOGGER.info("🔄 Refreshing camera images for installation %s", self._installation_id)
+            _LOGGER.warning("🔄 Refreshing camera images for installation %s", self._installation_id)
             
             # Setup dependencies before using the use case
             setup_dependencies()
@@ -53,7 +53,7 @@ class RefreshCameraImagesButton(CoordinatorEntity, ButtonEntity):
                     check_interval=4,
                 )
                 
-                _LOGGER.info(
+                _LOGGER.warning(
                     "✅ Camera images refresh completed: %d cameras processed, %d successful, %d failed",
                     result.total_cameras,
                     result.successful_refreshes,

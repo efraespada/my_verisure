@@ -13,6 +13,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .core.file_manager import get_file_manager
 from .core.const import DOMAIN
 from .coordinator import MyVerisureDataUpdateCoordinator
+from .core.dependency_injection.providers import setup_dependencies, clear_dependencies
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -32,7 +33,6 @@ class VerisureCamera(CoordinatorEntity, Camera):
             "manufacturer": "Verisure",
             "model": f"{device['type']} Camera",
         }
-        self._file_manager = get_file_manager()
         self._latest_image_path = None
         self._latest_image_timestamp = None
         
@@ -40,6 +40,10 @@ class VerisureCamera(CoordinatorEntity, Camera):
         self._webrtc_provider = None
         self._stream_source = None
         self._supported_features = 0
+        self._access_tokens = []
+        self._frontend_stream_type = None
+        self._is_streaming = False
+        self._stream = None
 
     @property
     def camera_image(self) -> Optional[bytes]:
@@ -49,10 +53,12 @@ class VerisureCamera(CoordinatorEntity, Camera):
     def _get_latest_image(self) -> Optional[bytes]:
         """Get the most recent image for this camera."""
         try:
-            # Get the camera directory path
-            camera_dir = self._file_manager.get_data_path()
-            device_path = os.path.join(camera_dir, "cameras", f"{self._device['type']}{int(self._device['code']):02d}")
+            setup_dependencies()
             
+            # Get the camera directory path
+            camera_dir = get_file_manager().get_data_path()
+            device_path = os.path.join(camera_dir, "cameras", f"{self._device['type']}{int(self._device['code']):02d}")
+        
             if not os.path.exists(device_path):
                 _LOGGER.debug("Camera directory not found: %s", device_path)
                 return None
@@ -92,10 +98,13 @@ class VerisureCamera(CoordinatorEntity, Camera):
             else:
                 _LOGGER.debug("Thumbnail not found in latest directory: %s", latest_timestamp_dir)
                 return None
-
+                
         except Exception as e:
-            _LOGGER.error("Error getting latest image for camera %s: %s", self._device['code'], e)
-            return None
+                _LOGGER.error("Error getting latest image for camera %s: %s", self._device['code'], e)
+                return None
+        finally:
+            # Clean up dependencies
+            clear_dependencies()
 
     @property
     def extra_state_attributes(self):
@@ -128,6 +137,26 @@ class VerisureCamera(CoordinatorEntity, Camera):
     def stream_source(self) -> Optional[str]:
         """Return the stream source for this camera."""
         return self._stream_source
+
+    @property
+    def access_tokens(self) -> list:
+        """Return access tokens for this camera."""
+        return self._access_tokens
+
+    @property
+    def frontend_stream_type(self) -> Optional[str]:
+        """Return the frontend stream type for this camera."""
+        return self._frontend_stream_type
+
+    @property
+    def is_streaming(self) -> bool:
+        """Return whether the camera is currently streaming."""
+        return self._is_streaming
+
+    @property
+    def stream(self) -> Optional[object]:
+        """Return the stream object for this camera."""
+        return self._stream
 
     async def async_refresh_providers(self, write_state: bool = True) -> None:
         """Refresh camera providers."""
