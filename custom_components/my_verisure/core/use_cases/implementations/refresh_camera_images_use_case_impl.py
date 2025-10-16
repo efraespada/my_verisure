@@ -81,11 +81,11 @@ class RefreshCameraImagesUseCaseImpl(RefreshCameraImagesUseCase):
                         capabilities=capabilities,
                     )
 
+                    formatted_code = f"{camera_device.type}{int(camera_device.code):02d}"
                     if (result.successful_requests > 0):
                         _LOGGER.info("⏳ Waiting 3 seconds before retrieving images from camera %s...", formatted_code)
                         await asyncio.sleep(3)
 
-                        formatted_code = f"{camera_device.type}{int(camera_device.code):02d}"
                         image_result = await self.camera_repository.get_images(
                             installation_id=installation_id,
                             panel=panel,
