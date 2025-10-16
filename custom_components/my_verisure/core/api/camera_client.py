@@ -1,9 +1,9 @@
 """Camera client for My Verisure API."""
 
 import asyncio
-import json
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
+import datetime
 
 from .base_client import BaseClient
 from .exceptions import (
@@ -128,13 +128,6 @@ class CameraClient(BaseClient):
                     installation_id,
                 )
                 raise MyVerisureError("Panel information required for camera operations")
-
-            _LOGGER.info(
-                "Requesting images for installation %s, panel %s, devices %s",
-                installation_id,
-                panel,
-                devices,
-            )
 
             # Step 1: Execute the first query (REQUEST_IMAGES_MUTATION)
             variables = {
@@ -266,8 +259,6 @@ class CameraClient(BaseClient):
                     status_variables,
                     headers,
                 )
-
-                _LOGGER.info("Full response 2: %s", status_result)
                 
                 # Check for specific error that should exit the loop
                 if "errors" in status_result and status_result["errors"]:
@@ -313,12 +304,6 @@ class CameraClient(BaseClient):
 
                 status = status_response.get("res", "UNKNOWN")
                 message = status_response.get("msg", "UNKNOWN")
-                _LOGGER.info(
-                    "Images status check completed. Status: %s, Message: %s, Counter: %d",
-                    status,
-                    message,
-                    attempt,
-                )
                 
                 if status == "OK" and message != "alarm-manager.photo-request.processing":
                     _LOGGER.info(
@@ -384,12 +369,6 @@ class CameraClient(BaseClient):
         try:
             hash_token, session_data = self._get_current_credentials()
             file_manager = get_file_manager()
-            
-            _LOGGER.info(
-                "Getting images for device %s in installation %s",
-                device,
-                installation_id,
-            )
 
             # Prepare headers
             headers = (
@@ -437,15 +416,7 @@ class CameraClient(BaseClient):
             timestamp_dir = timestamp.replace(" ", "_").replace(":", "-").replace("/", "-")
             if not timestamp_dir:
                 # Fallback to current timestamp if no timestamp provided
-                import datetime
                 timestamp_dir = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-
-            _LOGGER.info(
-                "Thumbnail received. ID Signal: %s, Signal Type: %s, Device: %s",
-                id_signal,
-                signal_type,
-                device_alias,
-            )
 
             # Save thumbnail image
             if thumbnail_image:
@@ -492,12 +463,9 @@ class CameraClient(BaseClient):
             device_data = photo_data["devices"][0]  # Get first device
             images = device_data.get("images", [])
             
-            _LOGGER.info("Found %d images to save for device %s", len(images), device)
-
             for image in images:
                 image_id = image.get("id", "unknown")
                 image_data = image.get("image", "")
-                image_type = image.get("type", "BINARY")
                 
                 if image_data:
                     # Save each image with appropriate filename
@@ -518,12 +486,6 @@ class CameraClient(BaseClient):
                         images_saved += 1
                     else:
                         _LOGGER.error("Failed to save image %s", image_id)
-
-            _LOGGER.info(
-                "Images processing completed. Device: %s, Images saved: %d",
-                device,
-                images_saved,
-            )
 
             return {
                 "success": True,

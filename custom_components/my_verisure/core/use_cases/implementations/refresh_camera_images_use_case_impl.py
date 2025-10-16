@@ -57,24 +57,6 @@ class RefreshCameraImagesUseCaseImpl(RefreshCameraImagesUseCase):
                 device for device in devices_data.devices 
                 if device.type in ["YR", "YP"] and device.remote_use
             ]
-
-            _LOGGER.info("Camera devices: %s", camera_devices)
-            
-            # Log detailed information for each camera device
-            for i, device in enumerate(camera_devices, 1):
-                _LOGGER.info("Camera %d details:", i)
-                _LOGGER.info("  - ID: %s", device.id)
-                _LOGGER.info("  - Name: %s", device.name)
-                _LOGGER.info("  - Type: %s", device.type)
-                _LOGGER.info("  - Code: %s", device.code)
-                _LOGGER.info("  - Device ID: %s", device.type + device.code)
-                _LOGGER.info("  - Remote Use: %s", device.remote_use)
-                _LOGGER.info("  - Active: %s", device.is_active)
-                if device.serial_number:
-                    _LOGGER.info("  - Serial Number: %s", device.serial_number)
-                if hasattr(device, 'config') and device.config:
-                    _LOGGER.info("  - Config: %s", device.config)
-                _LOGGER.info("  - Service ID: %s", device.id_service)
             
             if not camera_devices:
                 _LOGGER.warning("No active camera devices (YR/YP) found in installation %s", installation_id)
@@ -87,12 +69,6 @@ class RefreshCameraImagesUseCaseImpl(RefreshCameraImagesUseCase):
                 )
             
             device_ids = [int(device.code) for device in camera_devices]
-            
-            _LOGGER.info(
-                "Found %d active camera devices: %s",
-                len(camera_devices),
-                [f"{device.name} (ID: {device.id})" for device in camera_devices],
-            )
 
             result = await self.camera_repository.request_image(
                 installation_id=installation_id,
@@ -109,18 +85,14 @@ class RefreshCameraImagesUseCaseImpl(RefreshCameraImagesUseCase):
 
             refresh_data = []
 
-            # If we had any successful requests, wait 10 seconds and then get images from each camera
             _LOGGER.info("Waiting 10 seconds before retrieving images from cameras...")
             await asyncio.sleep(10)
-
-            _LOGGER.info("Starting to retrieve images from each camera...")
             
             for camera_device in camera_devices:
                 code_int = int(camera_device.code)
                 formatted_code = f"{camera_device.type}{code_int:02d}"
                 
                 try:
-                    # Call get_images for each camera
                     image_result = await self.camera_repository.get_images(
                         installation_id=installation_id,
                         panel=panel,
@@ -129,25 +101,12 @@ class RefreshCameraImagesUseCaseImpl(RefreshCameraImagesUseCase):
                         capabilities=capabilities,
                     )
                     
-                    _LOGGER.info(
-                        "Retrieving images from camera %s (ID: %s, Device: %s)",
-                        camera_device.name,
-                        camera_device.id,
-                        formatted_code,
-                    )
-                    
                     refresh_data.append(
                         CameraRefreshData(
                             timestamp=datetime.now().isoformat(),
                             num_images=image_result.get("images_saved", 0),
                             camera_identifier=formatted_code,
                         )
-                    )
-                    _LOGGER.info(
-                        "Images retrieved for camera %s. Success: %s, Images saved: %s",
-                        camera_device.name,
-                        image_result.get("success", False),
-                        image_result.get("images_saved", 0),
                     )
                     
                 except Exception as e:
