@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import time
 from typing import List
 
 from ...api.models.domain.camera_refresh import CameraRefresh
@@ -34,6 +35,7 @@ class RefreshCameraImagesUseCaseImpl(RefreshCameraImagesUseCase):
         check_interval: int = 4,
     ) -> CameraRefresh:
         """Refresh images from cameras."""
+        start_time = time.time()
         try:
             _LOGGER.info(
                 "📸 Refreshing camera images for installation %s",
@@ -70,18 +72,22 @@ class RefreshCameraImagesUseCaseImpl(RefreshCameraImagesUseCase):
             
             device_ids = [int(device.code) for device in camera_devices]
 
-            result = await self.camera_repository.request_image(
-                installation_id=installation_id,
-                panel=panel,
-                devices=device_ids,  # Single device per request
-                capabilities=capabilities,
-            )
+            index = 0
+            for device_id in device_ids:
+                result = await self.camera_repository.request_image(
+                    installation_id=installation_id,
+                    panel=panel,
+                    devices=[device_id],
+                    capabilities=capabilities,
+                )
 
-            _LOGGER.info(
-                "✅ Camera images requests completed. Successful requests: %d/%d",
-                result.successful_requests,
-                len(device_ids)
-            )
+                index = index + result.successful_requests
+
+                _LOGGER.info(
+                    "✅ Camera images requests completed. Successful requests: %d/%d",
+                    index,
+                    len(device_ids)
+                )
 
             refresh_data = []
 
@@ -129,17 +135,30 @@ class RefreshCameraImagesUseCaseImpl(RefreshCameraImagesUseCase):
                 len(camera_devices),
             )
             
+            # Calculate total execution time
+            total_time = time.time() - start_time
+            _LOGGER.info(
+                "⏱️ Total execution time: %.2f seconds",
+                total_time
+            )
+            
             # Return the original request result with additional images information
             return CameraRefresh(
                 refresh_data=refresh_data,
                 total_cameras=len(camera_devices),
-                successful_refreshes=len(refresh_data),
-                failed_refreshes=len(camera_devices) - len(refresh_data),
+                successful_refreshes=index,
+                failed_refreshes=len(camera_devices) - index,
                 timestamp=datetime.now().isoformat(),
             )
 
         except Exception as e:
+            # Calculate total execution time even in case of error
+            total_time = time.time() - start_time
             _LOGGER.error("💥 Failed to refresh camera images: %s", e)
+            _LOGGER.info(
+                "⏱️ Total execution time (with error): %.2f seconds",
+                total_time
+            )
             # Return error result
             return CameraRefresh(
                 refresh_data=[],

@@ -124,7 +124,6 @@ class CameraCommand(BaseCommand):
 
             # Display results using the new CameraRefresh structure
             print_success("Camera images refresh completed!")
-            print_info(f"Timestamp: {result.timestamp}")
             print_info(f"Total cameras: {result.total_cameras}")
             print_info(f"Successful refreshes: {result.successful_refreshes}")
             print_info(f"Failed refreshes: {result.failed_refreshes}")
