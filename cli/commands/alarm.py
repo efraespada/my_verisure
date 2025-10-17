@@ -1,5 +1,7 @@
 """Alarm control command for the CLI."""
 
+import sys
+import os
 import logging
 from typing import Optional
 
@@ -14,6 +16,11 @@ from ..utils.display import (
 )
 from ..utils.input_helpers import confirm_action
 
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "custom_components", "my_verisure"))
+
+from core.api.models.domain.alarm import ArmResult, DisarmResult
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -22,7 +29,7 @@ class AlarmCommand(BaseCommand):
 
     async def execute(self, action: str, **kwargs) -> bool:
         """Execute alarm command."""
-        print_command_header("ALARM", "Control de alarmas")
+        print_command_header("ALARM", "Alarm control")
 
         if action == "status":
             return await self._show_status(**kwargs)
@@ -31,14 +38,14 @@ class AlarmCommand(BaseCommand):
         elif action == "disarm":
             return await self._disarm(**kwargs)
         else:
-            print_error(f"Acción de alarma desconocida: {action}")
+            print_error(f"Unknown alarm action: {action}")
             return False
 
     async def _show_status(
         self, installation_id: Optional[str] = None, interactive: bool = True
     ) -> bool:
         """Show alarm status."""
-        print_header("ESTADO DE ALARMA")
+        print_header("ALARM STATUS")
 
         try:
             if not await self.setup():
@@ -52,7 +59,7 @@ class AlarmCommand(BaseCommand):
                 return False
 
             print_info(
-                f"Obteniendo estado de alarma para instalación: {selected_installation_id}"
+                f"Getting alarm status for installation: {selected_installation_id}"
             )
 
             alarm_status = await self.alarm_use_case.get_alarm_status(
@@ -63,7 +70,7 @@ class AlarmCommand(BaseCommand):
             return True
 
         except Exception as e:
-            print_error(f"Error obteniendo estado de alarma: {e}")
+            print_error(f"Error getting alarm status: {e}")
             return False
 
     async def _arm(
@@ -72,9 +79,9 @@ class AlarmCommand(BaseCommand):
         installation_id: Optional[str] = None,
         confirm: bool = True,
         interactive: bool = True,
-    ) -> bool:
+    ) -> ArmResult:
         """Arm the alarm."""
-        print_header(f"ARMAR ALARMA - MODO {mode.upper()}")
+        print_header(f"ARM ALARM - MODE {mode.upper()}")
 
         try:
             if not await self.setup():
@@ -91,79 +98,78 @@ class AlarmCommand(BaseCommand):
             valid_modes = ["away", "home", "night"]
             if mode.lower() not in valid_modes:
                 print_error(
-                    f"Modo inválido: {mode}. Modos válidos: {', '.join(valid_modes)}"
+                    f"Invalid mode: {mode}. Valid modes: {', '.join(valid_modes)}"
                 )
                 return False
 
             # Confirm action if requested
             if confirm:
-                if not confirm_action(f"armar la alarma en modo {mode}"):
-                    print_info("Acción cancelada")
+                if not confirm_action(f"arm the alarm in mode {mode}"):
+                    print_info("Action cancelled")
                     return False
 
             print_info(
-                f"Armando alarma en modo {mode} para instalación: {installation_id}"
+                f"Arming alarm in mode {mode} for installation: {installation_id}"
             )
 
             # Arm the alarm
             if mode.lower() == "away":
-                success = await self.alarm_use_case.arm_away(installation_id)
+                result = await self.alarm_use_case.arm_away(installation_id)
             elif mode.lower() == "home":
-                success = await self.alarm_use_case.arm_home(installation_id)
+                result = await self.alarm_use_case.arm_home(installation_id)
             elif mode.lower() == "night":
-                success = await self.alarm_use_case.arm_night(installation_id)
+                result = await self.alarm_use_case.arm_night(installation_id)
             else:
-                print_error(f"Modo no soportado: {mode}")
-                return False
+                print_error(f"Mode not supported: {mode}")
+                return ArmResult(success=False, message=f"Mode not supported: {mode}")
 
-            if success:
-                print_success(f"Alarma armada correctamente en modo {mode}")
-                return True
+            if result.success:
+                print_success(f"Alarm armed successfully in mode {mode}")
+                return result
             else:
-                print_error(f"Error armando la alarma en modo {mode}")
-                return False
+                print_error(f"Error arming the alarm in mode {mode}")
+                return ArmResult(success=False, message=f"Error arming the alarm in mode {mode}")
 
         except Exception as e:
-            print_error(f"Error armando la alarma: {e}")
-            return False
+            print_error(f"Error arming the alarm: {e}")
+            return ArmResult(success=False, message=f"Error arming the alarm: {e}")
 
     async def _disarm(
         self, installation_id: Optional[str] = None, confirm: bool = True, interactive: bool = True
-    ) -> bool:
+    ) -> DisarmResult:
         """Disarm the alarm."""
-        print_header("DESARMAR ALARMA")
+        print_header("DISARM ALARM")
 
         try:
             if not await self.setup():
-                return False
+                return DisarmResult(success=False, message="Error setting up the alarm")
 
             # Get installation ID
             installation_id = await self.select_installation_if_needed(
                 installation_id
             )
             if not installation_id:
-                return False
+                return DisarmResult(success=False, message="Error selecting the installation for disarming the alarm")
 
             # Confirm action if requested and interactive
             if confirm and interactive:
-                if not confirm_action("desarmar la alarma"):
-                    print_info("Acción cancelada")
-                    return False
+                if not confirm_action("disarm the alarm"):
+                    return DisarmResult(success=False, message="Action cancelled")
 
             print_info(
-                f"Desarmando alarma para instalación: {installation_id}"
+                f"Disarming alarm for installation: {installation_id}"
             )
 
             # Disarm the alarm
-            success = await self.alarm_use_case.disarm(installation_id)
+            result = await self.alarm_use_case.disarm(installation_id)
 
-            if success:
-                print_success("Alarma desarmada correctamente")
-                return True
+            if result.success:
+                print_success("Alarm disarmed successfully")
+                return result
             else:
-                print_error("Error desarmando la alarma")
-                return False
+                print_error("Error disarming the alarm")
+                return result
 
         except Exception as e:
-            print_error(f"Error desarmando la alarma: {e}")
-            return False
+            print_error(f"Error disarming the alarm: {e}")
+            return DisarmResult(success=False, message=f"Error disarming the alarm: {e}")

@@ -209,11 +209,11 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
         try:
             installation_id = self.config_entry.data.get("installation_id")
             if installation_id:
-                success = await self.coordinator.async_disarm()
-                if success:
+                result = await self.coordinator.async_disarm()
+                if result.success:
                     LOGGER.warning("Alarm disarmed successfully")
                 else:
-                    LOGGER.error("Failed to disarm alarm")
+                    LOGGER.error("Failed to disarm alarm, message: %s", result.message)
             else:
                 LOGGER.error("No installation ID available")
             
@@ -237,11 +237,11 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
         try:
             installation_id = self.config_entry.data.get("installation_id")
             if installation_id:
-                success = await self.coordinator.async_arm_away()
-                if success:
+                result = await self.coordinator.async_arm_away()
+                if result.success:
                     LOGGER.warning("Alarm armed away successfully")
                 else:
-                    LOGGER.error("Failed to arm alarm away")
+                    LOGGER.error("Failed to arm alarm away, message: %s", result.message)
             else:
                 LOGGER.error("No installation ID available")
 
@@ -265,11 +265,11 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
         try:
             installation_id = self.config_entry.data.get("installation_id")
             if installation_id:
-                success = await self.coordinator.async_arm_home()
-                if success:
+                result = await self.coordinator.async_arm_home()
+                if result.success:
                     LOGGER.warning("Alarm armed home successfully")
                 else:
-                    LOGGER.error("Failed to arm alarm home")
+                    LOGGER.error("Failed to arm alarm home, message: %s", result.message)
             else:
                 LOGGER.error("No installation ID available")
 
@@ -293,11 +293,11 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
         try:
             installation_id = self.config_entry.data.get("installation_id")
             if installation_id:
-                success = await self.coordinator.async_arm_night()
-                if success:
+                result = await self.coordinator.async_arm_night()
+                if result.success:
                     LOGGER.warning("Alarm armed night successfully")
                 else:
-                    LOGGER.error("Failed to arm alarm night")
+                    LOGGER.error("Failed to arm alarm night, message: %s", result.message)
             else:
                 LOGGER.error("No installation ID available")
 

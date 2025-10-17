@@ -2,7 +2,7 @@
 
 import logging
 
-from ...api.models.domain.alarm import AlarmStatus
+from ...api.models.domain.alarm import AlarmStatus, ArmResult, DisarmResult
 from ...repositories.interfaces.alarm_repository import AlarmRepository
 from ...repositories.interfaces.installation_repository import (
     InstallationRepository,
@@ -57,7 +57,7 @@ class AlarmUseCaseImpl(AlarmUseCase):
             _LOGGER.error("Error getting alarm status: %s", e)
             raise
 
-    async def arm_away(self, installation_id: str, auto_arm_perimeter_with_internal: bool = False) -> bool:
+    async def arm_away(self, installation_id: str, auto_arm_perimeter_with_internal: bool = False) -> ArmResult:
         """Arm the alarm in away mode."""
         try:
             panel, capabilities = await self._get_installation_info(installation_id)
@@ -75,13 +75,13 @@ class AlarmUseCaseImpl(AlarmUseCase):
                     "Failed to arm alarm in away mode: %s", result.message
                 )
 
-            return result.success
+            return result
 
         except Exception as e:
             _LOGGER.error("Error arming alarm in away mode: %s", e)
             raise
 
-    async def arm_home(self, installation_id: str) -> bool:
+    async def arm_home(self, installation_id: str) -> ArmResult:
         """Arm the alarm in home mode."""
         try:
             panel, capabilities = await self._get_installation_info(installation_id)
@@ -98,13 +98,13 @@ class AlarmUseCaseImpl(AlarmUseCase):
                     "Failed to arm alarm in home mode: %s", result.message
                 )
 
-            return result.success
+            return result
 
         except Exception as e:
             _LOGGER.error("Error arming alarm in home mode: %s", e)
             raise
 
-    async def arm_night(self, installation_id: str, auto_arm_perimeter_with_internal: bool = False) -> bool:
+    async def arm_night(self, installation_id: str, auto_arm_perimeter_with_internal: bool = False) -> ArmResult:
         """Arm the alarm in night mode."""
         try:
             panel, capabilities = await self._get_installation_info(installation_id)
@@ -122,13 +122,13 @@ class AlarmUseCaseImpl(AlarmUseCase):
                     "Failed to arm alarm in night mode: %s", result.message
                 )
 
-            return result.success
+            return result
 
         except Exception as e:
             _LOGGER.error("Error arming alarm in night mode: %s", e)
             raise
 
-    async def disarm(self, installation_id: str) -> bool:
+    async def disarm(self, installation_id: str) -> DisarmResult:
         """Disarm the alarm."""
         try:
             panel, capabilities = await self._get_installation_info(installation_id)
@@ -141,7 +141,7 @@ class AlarmUseCaseImpl(AlarmUseCase):
             else:
                 _LOGGER.error("Failed to disarm alarm: %s", result.message)
 
-            return result.success
+            return result
 
         except Exception as e:
             _LOGGER.error("Error disarming alarm: %s", e)

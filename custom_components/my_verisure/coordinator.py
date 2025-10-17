@@ -13,6 +13,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.storage import STORAGE_DIR
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.components.persistent_notification import async_create
 
 from .core.api.exceptions import (
     MyVerisureAuthenticationError,
@@ -31,6 +32,7 @@ from .core.dependency_injection.providers import (
 from .core.file_manager import get_file_manager
 from .core.session_manager import get_session_manager
 from .core.const import CONF_INSTALLATION_ID, CONF_USER, DEFAULT_SCAN_INTERVAL, DOMAIN, LOGGER, CONF_SCAN_INTERVAL, COORDINATOR_DATA_FILE, CONF_AUTO_ARM_PERIMETER_WITH_INTERNAL
+from .core.api.models.domain.alarm import ArmResult, DisarmResult
 
 
 class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
@@ -251,45 +253,145 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             LOGGER.error("Failed to get last data info: %s", e)
             return {"error": str(e)}
 
-    async def async_arm_away(self) -> bool:
+    async def async_arm_away(self) -> ArmResult:
         """Arm the alarm in away mode."""
         try:
             auto_arm_perimeter_with_internal = self.config_entry.options.get(
                 CONF_AUTO_ARM_PERIMETER_WITH_INTERNAL,
                 self.config_entry.data.get(CONF_AUTO_ARM_PERIMETER_WITH_INTERNAL, False)
             )
-            return await self.alarm_use_case.arm_away(self.installation_id, auto_arm_perimeter_with_internal)
+            result = await self.alarm_use_case.arm_away(self.installation_id, auto_arm_perimeter_with_internal)
+            
+            # Check if operation was successful and send notification
+            if result.success:
+                await async_create(
+                    self.hass,
+                    "La alarma se ha activado correctamente en modo Total.",
+                    title="My Verisure",
+                    notification_id="verisure_alarm_arm_away_success"
+                )
+            else:
+                await async_create(
+                    self.hass,
+                    f"Error al activar la alarma en modo Total: {result.message}",
+                    title="My Verisure - Error",
+                    notification_id="verisure_alarm_arm_away_error"
+                )
+            
+            return result
         except Exception as e:
             LOGGER.error("Failed to arm away: %s", e)
-            return False
+            # Send error notification
+            await async_create(
+                self.hass,
+                f"Error al activar la alarma en modo Total: {e}",
+                title="My Verisure - Error",
+                notification_id="verisure_alarm_arm_away_exception"
+            )
+            return ArmResult(success=False, message=f"Failed to arm away: {e}")
 
-    async def async_arm_home(self) -> bool:
+    async def async_arm_home(self) -> ArmResult:
         """Arm the alarm in home mode."""
         try:
-            return await self.alarm_use_case.arm_home(self.installation_id)
+            result = await self.alarm_use_case.arm_home(self.installation_id)
+            
+            # Check if operation was successful and send notification
+            if result.success:
+                await async_create(
+                    self.hass,
+                    "La alarma se ha activado correctamente en modo Perimetral.",
+                    title="My Verisure",
+                    notification_id="verisure_alarm_arm_home_success"
+                )
+            else:
+                await async_create(
+                    self.hass,
+                    f"Error al activar la alarma en modo Perimetral: {result.message}",
+                    title="My Verisure - Error",
+                    notification_id="verisure_alarm_arm_home_error"
+                )
+            
+            return result
         except Exception as e:
             LOGGER.error("Failed to arm home: %s", e)
-            return False
+            # Send error notification
+            await async_create(
+                self.hass,
+                f"Error al activar la alarma en modo Perimetral: {e}",
+                title="My Verisure - Error",
+                notification_id="verisure_alarm_arm_home_exception"
+            )
+            return ArmResult(success=False, message=f"Failed to arm home: {e}")
 
-    async def async_arm_night(self) -> bool:
+    async def async_arm_night(self) -> ArmResult:
         """Arm the alarm in night mode."""
         try:
             auto_arm_perimeter_with_internal = self.config_entry.options.get(
                 CONF_AUTO_ARM_PERIMETER_WITH_INTERNAL,
                 self.config_entry.data.get(CONF_AUTO_ARM_PERIMETER_WITH_INTERNAL, False)
             )
-            return await self.alarm_use_case.arm_night(self.installation_id, auto_arm_perimeter_with_internal)
+            result = await self.alarm_use_case.arm_night(self.installation_id, auto_arm_perimeter_with_internal)
+            
+            # Check if operation was successful and send notification
+            if result.success:
+                await async_create(
+                    self.hass,
+                    "La alarma se ha activado correctamente en modo Noche.",
+                    title="My Verisure",
+                    notification_id="verisure_alarm_arm_night_success"
+                )
+            else:
+                await async_create(
+                    self.hass,
+                    f"Error al activar la alarma en modo Noche: {result.message}",
+                    title="My Verisure - Error",
+                    notification_id="verisure_alarm_arm_night_error"
+                )
+            
+            return result
         except Exception as e:
             LOGGER.error("Failed to arm night: %s", e)
-            return False
+            # Send error notification
+            await async_create(
+                self.hass,
+                f"Error al activar la alarma en modo Noche: {e}",
+                title="My Verisure - Error",
+                notification_id="verisure_alarm_arm_night_exception"
+            )
+            return ArmResult(success=False, message=f"Failed to arm night: {e}")
 
-    async def async_disarm(self) -> bool:
+    async def async_disarm(self) -> DisarmResult:
         """Disarm the alarm."""
         try:
-            return await self.alarm_use_case.disarm(self.installation_id)
+            result = await self.alarm_use_case.disarm(self.installation_id)
+            
+            # Check if operation was successful and send notification
+            if result.success:
+                await async_create(
+                    self.hass,
+                    "La alarma se ha desactivado correctamente.",
+                    title="My Verisure",
+                    notification_id="verisure_alarm_disarm_success"
+                )
+            else:
+                await async_create(
+                    self.hass,
+                    f"Error al desactivar la alarma: {result.message}",
+                    title="My Verisure - Error",
+                    notification_id="verisure_alarm_disarm_error"
+                )
+            
+            return result
         except Exception as e:
             LOGGER.error("Failed to disarm: %s", e)
-            return False
+            # Send error notification
+            await async_create(
+                self.hass,
+                f"Error al desactivar la alarma: {e}",
+                title="My Verisure - Error",
+                notification_id="verisure_alarm_disarm_exception"
+            )
+            return DisarmResult(success=False, message=f"Failed to disarm: {e}")
 
     def has_valid_session(self) -> bool:
         """Check if we have a valid session."""
