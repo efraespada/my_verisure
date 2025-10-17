@@ -71,8 +71,6 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
         Returns:
             tuple: (primary_state, detailed_states_dict)
         """
-        LOGGER.warning("_analyze_alarm_states: raw alarm_data=%s", alarm_data)
-        LOGGER.warning("_analyze_alarm_states: type=%s keys=%s", type(alarm_data), list(alarm_data.keys()) if isinstance(alarm_data, dict) else 'N/A')
         if not alarm_data:
             return AlarmControlPanelState.DISARMED, {}
 
@@ -85,8 +83,6 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
         internal = raw_data.get("internal", {})
         external = raw_data.get("external", {})
 
-        LOGGER.warning("_analyze_alarm_states: internal=%s external=%s", internal, external)
-
         # Check internal states
         internal_day = internal.get("day", {}).get("status", False)
         internal_night = internal.get("night", {}).get("status", False)
@@ -94,14 +90,6 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
 
         # Check external state
         external_status = external.get("status", False)
-
-        LOGGER.warning(
-            "_analyze_alarm_states: flags -> day=%s night=%s total=%s external=%s",
-            internal_day,
-            internal_night,
-            internal_total,
-            external_status,
-        )
 
         # Create detailed state information
         detailed_states = {
@@ -136,11 +124,6 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
         else:
             primary_state = AlarmControlPanelState.DISARMED
 
-        LOGGER.warning(
-            "_analyze_alarm_states: primary_state=%s active_alarms=%s",
-            primary_state,
-            detailed_states.get("active_alarms", []),
-        )
         return primary_state, detailed_states
 
     @property
@@ -151,18 +134,11 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
             LOGGER.warning("Returning transition state: %s", self._transition_state)
             return self._transition_state
 
-        LOGGER.warning("Checking coordinator data... entity id=%s coord id=%s", id(self), id(self.coordinator))
-        LOGGER.warning("Coordinator exists: %s", hasattr(self, 'coordinator'))
-        LOGGER.warning("Coordinator type: %s", type(self.coordinator))
-        LOGGER.warning("Coordinator has data attribute: %s", hasattr(self.coordinator, 'data'))
-        # LOGGER.warning("Coordinator data: %s", getattr(self.coordinator, 'data', 'NO DATA ATTRIBUTE'))
-        
         if not self.coordinator.data:
             LOGGER.warning("No coordinator data available")
             return None
 
         alarm_data = self.coordinator.data.get("alarm_status", {})
-        LOGGER.warning("Raw alarm data: %s", alarm_data)
 
         primary_state, detailed_states = self._analyze_alarm_states(alarm_data)
 
@@ -235,7 +211,7 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
             if installation_id:
                 success = await self.coordinator.async_disarm()
                 if success:
-                    LOGGER.info("Alarm disarmed successfully")
+                    LOGGER.warning("Alarm disarmed successfully")
                 else:
                     LOGGER.error("Failed to disarm alarm")
             else:
@@ -263,7 +239,7 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
             if installation_id:
                 success = await self.coordinator.async_arm_away()
                 if success:
-                    LOGGER.info("Alarm armed away successfully")
+                    LOGGER.warning("Alarm armed away successfully")
                 else:
                     LOGGER.error("Failed to arm alarm away")
             else:
@@ -291,7 +267,7 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
             if installation_id:
                 success = await self.coordinator.async_arm_home()
                 if success:
-                    LOGGER.info("Alarm armed home successfully")
+                    LOGGER.warning("Alarm armed home successfully")
                 else:
                     LOGGER.error("Failed to arm alarm home")
             else:
@@ -319,7 +295,7 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
             if installation_id:
                 success = await self.coordinator.async_arm_night()
                 if success:
-                    LOGGER.info("Alarm armed night successfully")
+                    LOGGER.warning("Alarm armed night successfully")
                 else:
                     LOGGER.error("Failed to arm alarm night")
             else:

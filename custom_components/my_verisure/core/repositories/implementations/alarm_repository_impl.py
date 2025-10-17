@@ -79,7 +79,7 @@ class AlarmRepositoryImpl(AlarmRepository):
     ) -> ArmResult:
         """Arm the alarm panel."""
         try:
-            _LOGGER.info(
+            _LOGGER.warning(
                 "Arming panel for installation %s with request %s",
                 installation_id,
                 request,
@@ -112,6 +112,8 @@ class AlarmRepositoryImpl(AlarmRepository):
                     capabilities=capabilities,
                     current_status=current_status
                 )
+
+            _LOGGER.warning("Arm result: %s", result)
 
             if result:
                 return ArmResult(
