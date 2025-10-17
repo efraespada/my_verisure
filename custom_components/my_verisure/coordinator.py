@@ -13,6 +13,7 @@ from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.storage import STORAGE_DIR
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.components.persistent_notification import async_create
+from homeassistant.helpers import translation
 
 from .core.api.exceptions import (
     MyVerisureAuthenticationError,
@@ -263,8 +264,8 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             
             # Check if operation was successful and send notification
             if result.success:
-                title = await self._get_translation("notifications.title.success")
-                message = await self._get_translation("notifications.alarm.arm_away.success")
+                title = self._get_translation("notifications.title.success")
+                message = self._get_translation("notifications.alarm.arm_away.success")
                 await async_create(
                     self.hass,
                     message,
@@ -272,8 +273,8 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
                     notification_id="verisure_alarm_arm_away_success"
                 )
             else:
-                title = await self._get_translation("notifications.title.error")
-                message = await self._get_translation("notifications.alarm.arm_away.error", message=result.message)
+                title = self._get_translation("notifications.title.error")
+                message = self._get_translation("notifications.alarm.arm_away.error", message=result.message)
                 await async_create(
                     self.hass,
                     message,
@@ -285,8 +286,8 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         except Exception as e:
             LOGGER.error("Failed to arm away: %s", e)
             # Send error notification
-            title = await self._get_translation("notifications.title.error")
-            message = await self._get_translation("notifications.alarm.arm_away.exception", error=str(e))
+            title = self._get_translation("notifications.title.error")
+            message = self._get_translation("notifications.alarm.arm_away.exception", error=str(e))
             await async_create(
                 self.hass,
                 message,
@@ -302,8 +303,8 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             
             # Check if operation was successful and send notification
             if result.success:
-                title = await self._get_translation("notifications.title.success")
-                message = await self._get_translation("notifications.alarm.arm_home.success")
+                title = self._get_translation("notifications.title.success")
+                message = self._get_translation("notifications.alarm.arm_home.success")
                 await async_create(
                     self.hass,
                     message,
@@ -311,8 +312,8 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
                     notification_id="verisure_alarm_arm_home_success"
                 )
             else:
-                title = await self._get_translation("notifications.title.error")
-                message = await self._get_translation("notifications.alarm.arm_home.error", message=result.message)
+                title = self._get_translation("notifications.title.error")
+                message = self._get_translation("notifications.alarm.arm_home.error", message=result.message)
                 await async_create(
                     self.hass,
                     message,
@@ -324,8 +325,8 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         except Exception as e:
             LOGGER.error("Failed to arm home: %s", e)
             # Send error notification
-            title = await self._get_translation("notifications.title.error")
-            message = await self._get_translation("notifications.alarm.arm_home.exception", error=str(e))
+            title = self._get_translation("notifications.title.error")
+            message = self._get_translation("notifications.alarm.arm_home.exception", error=str(e))
             await async_create(
                 self.hass,
                 message,
@@ -345,8 +346,8 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             
             # Check if operation was successful and send notification
             if result.success:
-                title = await self._get_translation("notifications.title.success")
-                message = await self._get_translation("notifications.alarm.arm_night.success")
+                title = self._get_translation("notifications.title.success")
+                message = self._get_translation("notifications.alarm.arm_night.success")
                 await async_create(
                     self.hass,
                     message,
@@ -354,8 +355,8 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
                     notification_id="verisure_alarm_arm_night_success"
                 )
             else:
-                title = await self._get_translation("notifications.title.error")
-                message = await self._get_translation("notifications.alarm.arm_night.error", message=result.message)
+                title = self._get_translation("notifications.title.error")
+                message = self._get_translation("notifications.alarm.arm_night.error", message=result.message)
                 await async_create(
                     self.hass,
                     message,
@@ -367,8 +368,8 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         except Exception as e:
             LOGGER.error("Failed to arm night: %s", e)
             # Send error notification
-            title = await self._get_translation("notifications.title.error")
-            message = await self._get_translation("notifications.alarm.arm_night.exception", error=str(e))
+            title = self._get_translation("notifications.title.error")
+            message = self._get_translation("notifications.alarm.arm_night.exception", error=str(e))
             await async_create(
                 self.hass,
                 message,
@@ -384,8 +385,8 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             
             # Check if operation was successful and send notification
             if result.success:
-                title = await self._get_translation("notifications.title.success")
-                message = await self._get_translation("notifications.alarm.disarm.success")
+                title = self._get_translation("notifications.title.success")
+                message = self._get_translation("notifications.alarm.disarm.success")
                 await async_create(
                     self.hass,
                     message,
@@ -393,8 +394,8 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
                     notification_id="verisure_alarm_disarm_success"
                 )
             else:
-                title = await self._get_translation("notifications.title.error")
-                message = await self._get_translation("notifications.alarm.disarm.error", message=result.message)
+                title = self._get_translation("notifications.title.error")
+                message = self._get_translation("notifications.alarm.disarm.error", message=result.message)
                 await async_create(
                     self.hass,
                     message,
@@ -406,8 +407,8 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         except Exception as e:
             LOGGER.error("Failed to disarm: %s", e)
             # Send error notification
-            title = await self._get_translation("notifications.title.error")
-            message = await self._get_translation("notifications.alarm.disarm.exception", error=str(e))
+            title = self._get_translation("notifications.title.error")
+            message = self._get_translation("notifications.alarm.disarm.exception", error=str(e))
             await async_create(
                 self.hass,
                 message,
@@ -416,12 +417,25 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             )
             return DisarmResult(success=False, message=f"Failed to disarm: {e}")
 
-    async def _get_translation(self, key: str, **kwargs) -> str:
-        """Get translation for a given key."""
-        translations = await self.hass.config_entries.async_get_translations(
-            self.config_entry, "notifications"
+    def _get_translation(self, key: str, **kwargs) -> str:
+        """Get translation for a given key."""        
+        # Get the current language
+        language = self.hass.config.language
+        
+        # Load translations for this integration
+        translations = translation.async_get_cached_translations(
+            self.hass, language, "notifications", "custom_components.my_verisure"
         )
-        return translations.get(key, key).format(**kwargs)
+        
+        # Get the translation or fallback to the key
+        translation_text = translations.get(key, key)
+        
+        # Format with any provided kwargs
+        try:
+            return translation_text.format(**kwargs)
+        except (KeyError, ValueError):
+            # If formatting fails, return the translation as-is
+            return translation_text
 
     def has_valid_session(self) -> bool:
         """Check if we have a valid session."""
