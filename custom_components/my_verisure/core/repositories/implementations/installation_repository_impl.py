@@ -8,8 +8,9 @@ from typing import List, Dict, Any, Optional
 
 from ...api.models.domain.installation import Installation, InstallationServices
 from ...api.models.domain.device import DeviceList
-
+from ...api.models.dto.installation_dto import InstallationServicesDTO
 from ..interfaces.installation_repository import InstallationRepository
+
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -72,15 +73,10 @@ class InstallationRepositoryImpl(InstallationRepository):
                 _LOGGER.info("Cache expired for installation %s", installation_id)
                 return None
             
-            # Convert back to InstallationServices object
-            if "services" in data:
-                services = InstallationServices(**data["services"])
-                _LOGGER.info("💾 Loaded services cache from disk for installation %s", installation_id)
-                return services
-            else:
-                _LOGGER.warning("Invalid cache format for installation %s", installation_id)
-                return None
-                
+            services = InstallationServices.from_dto(InstallationServicesDTO.from_dict(data["services"]))
+            _LOGGER.info("💾 Loaded services cache from disk for installation %s", installation_id)
+            return services
+
         except Exception as e:
             _LOGGER.error("💥 Error loading services cache from disk: %s", e)
             return None

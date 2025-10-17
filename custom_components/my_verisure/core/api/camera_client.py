@@ -144,14 +144,10 @@ class CameraClient(BaseClient):
                 else None
             )
 
-            _LOGGER.warning("🔑 Headers for camera request: %s", json.dumps(headers, indent=2))
-
             if headers:
                 headers["numinst"] = installation_id
                 headers["panel"] = panel
                 headers["x-capabilities"] = capabilities
-
-            _LOGGER.warning("🔑 Headers for camera request after adding numinst, panel, and x-capabilities: %s", json.dumps(headers, indent=2))
 
                 # Step 1: Execute the first mutation with retry logic for "request_already_exists"
             reference_id = None

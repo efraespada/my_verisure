@@ -163,11 +163,6 @@ class InstallationServices:
     installation: InstallationData
     language: str
 
-    def __post_init__(self):
-        """Initialize services list if None."""
-        if self.installation.services is None:
-            self.installation.services = []
-
     @classmethod
     def from_dto(cls, dto: InstallationServicesDTO) -> "InstallationServices":
         """Create InstallationServices from DTO."""
