@@ -42,6 +42,10 @@ class InstallationRepositoryImpl(InstallationRepository):
         try:
             filename = self._get_cache_filename(installation_id)
             data = self._file_manager.load_json(filename)
+
+            if data is None:
+                _LOGGER.warning("No detailed installation cache found for installation %s", installation_id)
+                return None
             
             detailed_installation = DetailedInstallation.from_dto(DetailedInstallationDTO.from_dict(data))
             _LOGGER.info("💾 Loaded detailed installation cache for installation %s", installation_id)

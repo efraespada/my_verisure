@@ -139,6 +139,35 @@ class FileManager:
             _LOGGER.error("Failed to delete file %s: %s", filename, e)
             return False
     
+    def delete_files_by_prefix(self, prefix: str) -> int:
+        """Delete all files that start with the given prefix."""
+        deleted_count = 0
+        try:
+            if not self._data_dir.exists():
+                _LOGGER.warning("Data directory does not exist: %s", self._data_dir)
+                return 0
+            
+            # Find all files that start with the prefix
+            for file_path in self._data_dir.iterdir():
+                if file_path.is_file() and file_path.name.startswith(prefix):
+                    try:
+                        file_path.unlink()
+                        _LOGGER.info("File deleted: %s", file_path)
+                        deleted_count += 1
+                    except Exception as e:
+                        _LOGGER.error("Failed to delete file %s: %s", file_path, e)
+            
+            if deleted_count > 0:
+                _LOGGER.info("Deleted %d files with prefix '%s'", deleted_count, prefix)
+            else:
+                _LOGGER.info("No files found with prefix '%s'", prefix)
+                
+            return deleted_count
+            
+        except Exception as e:
+            _LOGGER.error("Failed to delete files with prefix '%s': %s", prefix, e)
+            return deleted_count
+    
     def save_binary(self, filepath: str, content: bytes) -> bool:
         """Save binary content to a file."""
         try:

@@ -6,8 +6,6 @@ import os
 import time
 from typing import Optional, Dict, Any
 
-# SessionManager is a simple credential storage, no complex dependencies
-
 logger = logging.getLogger(__name__)
 
 # Global singleton instance
@@ -237,7 +235,10 @@ class SessionManager:
             return True
         
         # If we don't have valid credentials, we need to authenticate
-        logger.warning("No valid session found, authentication required")
+        logger.warning("No valid session found, authentication required. Clearing detailed installation cache.")
+
+        from .file_manager import get_file_manager
+        get_file_manager().delete_files_by_prefix("detailed_installation_")
         
         # If we don't have credentials, we need to get them
         if not self.username or not self.password:

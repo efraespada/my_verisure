@@ -323,8 +323,6 @@ class AlarmClient(BaseClient):
                     )
                     return self._get_default_alarm_status()
 
-                _LOGGER.warning("Obtained referenceId: %s", reference_id)
-
                 alarm_message = await self._get_real_time_alarm_status(
                     numinst=installation_id,
                     panel=panel,
