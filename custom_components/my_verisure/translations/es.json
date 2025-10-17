@@ -83,5 +83,33 @@
         }
       }
     }
+  },
+  "notifications": {
+    "title": {
+      "success": "My Verisure",
+      "error": "My Verisure - Error"
+    },
+    "alarm": {
+      "arm_away": {
+        "success": "La alarma se ha activado correctamente en modo Total.",
+        "error": "Error al activar la alarma en modo Total: {message}",
+        "exception": "Error al activar la alarma en modo Total: {error}"
+      },
+      "arm_home": {
+        "success": "La alarma se ha activado correctamente en modo Perimetral.",
+        "error": "Error al activar la alarma en modo Perimetral: {message}",
+        "exception": "Error al activar la alarma en modo Perimetral: {error}"
+      },
+      "arm_night": {
+        "success": "La alarma se ha activado correctamente en modo Noche.",
+        "error": "Error al activar la alarma en modo Noche: {message}",
+        "exception": "Error al activar la alarma en modo Noche: {error}"
+      },
+      "disarm": {
+        "success": "La alarma se ha desactivado correctamente.",
+        "error": "Error al desactivar la alarma: {message}",
+        "exception": "Error al desactivar la alarma: {error}"
+      }
+    }
   }
 } 

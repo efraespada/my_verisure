@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import time
 from typing import Any, Dict
 from datetime import timedelta
@@ -264,17 +263,21 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             
             # Check if operation was successful and send notification
             if result.success:
+                title = await self._get_translation("notifications.title.success")
+                message = await self._get_translation("notifications.alarm.arm_away.success")
                 await async_create(
                     self.hass,
-                    "La alarma se ha activado correctamente en modo Total.",
-                    title="My Verisure",
+                    message,
+                    title=title,
                     notification_id="verisure_alarm_arm_away_success"
                 )
             else:
+                title = await self._get_translation("notifications.title.error")
+                message = await self._get_translation("notifications.alarm.arm_away.error", message=result.message)
                 await async_create(
                     self.hass,
-                    f"Error al activar la alarma en modo Total: {result.message}",
-                    title="My Verisure - Error",
+                    message,
+                    title=title,
                     notification_id="verisure_alarm_arm_away_error"
                 )
             
@@ -282,10 +285,12 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         except Exception as e:
             LOGGER.error("Failed to arm away: %s", e)
             # Send error notification
+            title = await self._get_translation("notifications.title.error")
+            message = await self._get_translation("notifications.alarm.arm_away.exception", error=str(e))
             await async_create(
                 self.hass,
-                f"Error al activar la alarma en modo Total: {e}",
-                title="My Verisure - Error",
+                message,
+                title=title,
                 notification_id="verisure_alarm_arm_away_exception"
             )
             return ArmResult(success=False, message=f"Failed to arm away: {e}")
@@ -297,17 +302,21 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             
             # Check if operation was successful and send notification
             if result.success:
+                title = await self._get_translation("notifications.title.success")
+                message = await self._get_translation("notifications.alarm.arm_home.success")
                 await async_create(
                     self.hass,
-                    "La alarma se ha activado correctamente en modo Perimetral.",
-                    title="My Verisure",
+                    message,
+                    title=title,
                     notification_id="verisure_alarm_arm_home_success"
                 )
             else:
+                title = await self._get_translation("notifications.title.error")
+                message = await self._get_translation("notifications.alarm.arm_home.error", message=result.message)
                 await async_create(
                     self.hass,
-                    f"Error al activar la alarma en modo Perimetral: {result.message}",
-                    title="My Verisure - Error",
+                    message,
+                    title=title,
                     notification_id="verisure_alarm_arm_home_error"
                 )
             
@@ -315,10 +324,12 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         except Exception as e:
             LOGGER.error("Failed to arm home: %s", e)
             # Send error notification
+            title = await self._get_translation("notifications.title.error")
+            message = await self._get_translation("notifications.alarm.arm_home.exception", error=str(e))
             await async_create(
                 self.hass,
-                f"Error al activar la alarma en modo Perimetral: {e}",
-                title="My Verisure - Error",
+                message,
+                title=title,
                 notification_id="verisure_alarm_arm_home_exception"
             )
             return ArmResult(success=False, message=f"Failed to arm home: {e}")
@@ -334,17 +345,21 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             
             # Check if operation was successful and send notification
             if result.success:
+                title = await self._get_translation("notifications.title.success")
+                message = await self._get_translation("notifications.alarm.arm_night.success")
                 await async_create(
                     self.hass,
-                    "La alarma se ha activado correctamente en modo Noche.",
-                    title="My Verisure",
+                    message,
+                    title=title,
                     notification_id="verisure_alarm_arm_night_success"
                 )
             else:
+                title = await self._get_translation("notifications.title.error")
+                message = await self._get_translation("notifications.alarm.arm_night.error", message=result.message)
                 await async_create(
                     self.hass,
-                    f"Error al activar la alarma en modo Noche: {result.message}",
-                    title="My Verisure - Error",
+                    message,
+                    title=title,
                     notification_id="verisure_alarm_arm_night_error"
                 )
             
@@ -352,10 +367,12 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         except Exception as e:
             LOGGER.error("Failed to arm night: %s", e)
             # Send error notification
+            title = await self._get_translation("notifications.title.error")
+            message = await self._get_translation("notifications.alarm.arm_night.exception", error=str(e))
             await async_create(
                 self.hass,
-                f"Error al activar la alarma en modo Noche: {e}",
-                title="My Verisure - Error",
+                message,
+                title=title,
                 notification_id="verisure_alarm_arm_night_exception"
             )
             return ArmResult(success=False, message=f"Failed to arm night: {e}")
@@ -367,17 +384,21 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             
             # Check if operation was successful and send notification
             if result.success:
+                title = await self._get_translation("notifications.title.success")
+                message = await self._get_translation("notifications.alarm.disarm.success")
                 await async_create(
                     self.hass,
-                    "La alarma se ha desactivado correctamente.",
-                    title="My Verisure",
+                    message,
+                    title=title,
                     notification_id="verisure_alarm_disarm_success"
                 )
             else:
+                title = await self._get_translation("notifications.title.error")
+                message = await self._get_translation("notifications.alarm.disarm.error", message=result.message)
                 await async_create(
                     self.hass,
-                    f"Error al desactivar la alarma: {result.message}",
-                    title="My Verisure - Error",
+                    message,
+                    title=title,
                     notification_id="verisure_alarm_disarm_error"
                 )
             
@@ -385,13 +406,22 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         except Exception as e:
             LOGGER.error("Failed to disarm: %s", e)
             # Send error notification
+            title = await self._get_translation("notifications.title.error")
+            message = await self._get_translation("notifications.alarm.disarm.exception", error=str(e))
             await async_create(
                 self.hass,
-                f"Error al desactivar la alarma: {e}",
-                title="My Verisure - Error",
+                message,
+                title=title,
                 notification_id="verisure_alarm_disarm_exception"
             )
             return DisarmResult(success=False, message=f"Failed to disarm: {e}")
+
+    async def _get_translation(self, key: str, **kwargs) -> str:
+        """Get translation for a given key."""
+        translations = await self.hass.config_entries.async_get_translations(
+            self.config_entry, "notifications"
+        )
+        return translations.get(key, key).format(**kwargs)
 
     def has_valid_session(self) -> bool:
         """Check if we have a valid session."""
