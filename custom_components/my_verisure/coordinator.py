@@ -30,7 +30,7 @@ from .core.dependency_injection.providers import (
 )
 from .core.file_manager import get_file_manager
 from .core.session_manager import get_session_manager
-from .core.const import CONF_INSTALLATION_ID, CONF_USER, DEFAULT_SCAN_INTERVAL, DOMAIN, LOGGER, CONF_SCAN_INTERVAL
+from .core.const import CONF_INSTALLATION_ID, CONF_USER, DEFAULT_SCAN_INTERVAL, DOMAIN, LOGGER, CONF_SCAN_INTERVAL, COORDINATOR_DATA_FILE
 
 
 class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
@@ -186,30 +186,23 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
                 raise UpdateFailed("Failed to login to My Verisure")
 
             alarm_status = await self.alarm_use_case.get_alarm_status(self.installation_id)
-            services_data = await self.installation_use_case.get_installation_services(self.installation_id, True)
-            
-            # Get devices for this installation
-            devices_data = await self.get_installation_devices_use_case.get_installation_devices(
-                self.installation_id, 
-                services_data.installation.panel or "SDVFAST"
-            )
+            detailed_installation = await self.installation_use_case.get_installation_services(self.installation_id)
             
             result = {
                 "last_updated": time.time(),
                 "installation_id": self.installation_id,
                 "alarm_status": alarm_status.dict(),
-                "services": services_data.dict(),
-                "devices": [device.dict() for device in devices_data.devices]
+                "detailed_installation": detailed_installation.dict(),
             }
 
             try:
                 self.async_set_updated_data(result)
                 try:
-                    save_success = self.file_manager.save_json("alarm_data.json", result)
+                    save_success = self.file_manager.save_json(COORDINATOR_DATA_FILE, result)
                     if not save_success:
-                        LOGGER.error("Failed to save coordinator data to alarm_data.json")
+                        LOGGER.error("Failed to save coordinator data to %s", COORDINATOR_DATA_FILE)
                 except Exception as save_err:
-                    LOGGER.error("Error saving coordinator data to alarm_data.json: %s", save_err)
+                    LOGGER.error("Error saving coordinator data to %s: %s", COORDINATOR_DATA_FILE, save_err)
                     
             except Exception as set_err:
                 LOGGER.error("Failed to set coordinator data explicitly: %s", set_err)
@@ -229,24 +222,24 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             raise UpdateFailed(f"Unexpected error: {ex}") from ex
 
     def load_alarm_info(self) -> Dict[str, Any]:
-        """Load the last saved data from alarm_info.json."""
+        """Load the last saved data from coordinator data file."""
         try:
-            alarm_info = self.file_manager.load_json("alarm_data.json")
+            alarm_info = self.file_manager.load_json(COORDINATOR_DATA_FILE)
             if alarm_info:
                 return alarm_info
             else:
-                LOGGER.warning("No last data found in alarm_data.json")
+                LOGGER.warning("No last data found in %s", COORDINATOR_DATA_FILE)
                 return {}
         except Exception as e:
-            LOGGER.error("Failed to load last data from alarm_data.json: %s", e)
+            LOGGER.error("Failed to load last data from %s: %s", COORDINATOR_DATA_FILE, e)
             return {}
 
     def get_alarm_info_info(self) -> Dict[str, Any]:
         """Get information about the last saved data file."""
         try:
-            file_path = self.file_manager.get_file_path("alarm_data.json")
-            file_size = self.file_manager.get_file_size("alarm_data.json")
-            exists = self.file_manager.file_exists("alarm_data.json")
+            file_path = self.file_manager.get_file_path(COORDINATOR_DATA_FILE)
+            file_size = self.file_manager.get_file_size(COORDINATOR_DATA_FILE)
+            exists = self.file_manager.file_exists(COORDINATOR_DATA_FILE)
             
             return {
                 "file_path": str(file_path),
@@ -289,26 +282,6 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         except Exception as e:
             LOGGER.error("Failed to disarm: %s", e)
             return False
-
-    async def async_get_installations(self):
-        """Get user installations."""
-        try:
-            return await self.installation_use_case.get_installations()
-        except Exception as e:
-            LOGGER.error("Failed to get installations: %s", e)
-            return []
-
-    async def async_get_installation_services(self, force_refresh: bool = False):
-        """Get installation services."""
-        try:
-            return await self.installation_use_case.get_installation_services(
-                self.installation_id, force_refresh
-            )
-        except Exception as e:
-            LOGGER.error("Failed to get installation services: %s", e)
-            return None
-
-
 
     def has_valid_session(self) -> bool:
         """Check if we have a valid session."""

@@ -179,13 +179,11 @@ class InfoCommand(BaseCommand):
                         return False
 
             # Get installation services to get panel info
-            installation_services = await self.installation_use_case.get_installation_services(installation_id)
-            panel = installation_services.installation.panel or "SDVFAST"
+            devices = await self.get_installation_devices_use_case.get_installation_devices(installation_id)
             
-            print_info(f"Obteniendo dispositivos para instalación {installation_id} con panel {panel}...")
+            print_info(f"Obteniendo dispositivos para instalación {installation_id}...")
             
             # Get devices
-            devices = installation_services.installation.devices
             if len(devices) > 0:
                 print_success(f"Se encontraron {len(devices)} dispositivo(s)")
                 print()

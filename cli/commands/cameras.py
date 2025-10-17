@@ -55,23 +55,17 @@ class CameraCommand(BaseCommand):
                 return False
 
             print_info(f"Getting camera devices for installation: {installation_id}")
-
-            # Get installation services to get panel
-            services_data = await self.installation_use_case.get_installation_services(
-                installation_id
-            )
-            panel = services_data.installation.panel or "SDVFAST"
-
+        
             # Get installation devices
-            devices_data = await self.get_installation_devices_use_case.get_installation_devices(
-                installation_id, panel
+            devices = await self.get_installation_devices_use_case.get_installation_devices(
+                installation_id
             )
 
             # Filter devices to get only cameras (type "YR" or "YP")
             camera_devices = [
                 device
-                for device in devices_data.devices
-                if device.type in ["YR", "YP"] and device.remote_use
+                for device in devices
+                if device.type in ["YR", "YP"]
             ]
 
             if not camera_devices:

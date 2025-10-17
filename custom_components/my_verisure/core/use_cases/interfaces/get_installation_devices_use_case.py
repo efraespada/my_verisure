@@ -13,7 +13,6 @@ class GetInstallationDevicesUseCase(ABC):
     async def get_installation_devices(
         self, 
         installation_id: str, 
-        panel: str, 
         force_refresh: bool = False
     ) -> DeviceList:
         """Get devices for an installation."""

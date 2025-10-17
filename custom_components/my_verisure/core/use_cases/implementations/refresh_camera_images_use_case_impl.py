@@ -3,7 +3,6 @@
 import asyncio
 import logging
 import time
-from typing import List
 
 from ...api.models.domain.camera_refresh import CameraRefresh
 from ...api.models.domain.camera_refresh_data import CameraRefreshData
@@ -43,17 +42,17 @@ class RefreshCameraImagesUseCaseImpl(RefreshCameraImagesUseCase):
             )
 
             # Get installation services to get panel and capabilities
-            installation_services = await self.installation_repository.get_installation_services(
+            detailed_installation = await self.installation_repository.get_installation_services(
                 installation_id
             )
-            panel = installation_services.installation.panel or "SDVFAST"
-            capabilities = installation_services.installation.capabilities or "default_capabilities"
-            devices = installation_services.installation.devices
+            panel = detailed_installation.installation.panel or "SDVFAST"
+            capabilities = detailed_installation.installation.capabilities or "default_capabilities"
+            devices = detailed_installation.installation.devices
             
             # Filter devices to get only cameras (type "YR" or "YP")
             camera_devices = [
                 device for device in devices 
-                if device.type in ["YR", "YP"] and device.remote_use
+                if device.type in ["YR", "YP"]
             ]
             
             if not camera_devices:

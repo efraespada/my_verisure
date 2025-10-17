@@ -41,3 +41,6 @@ DEVICE_INFO = {
 
 # API endpoints
 VERISURE_GRAPHQL_URL = "https://customers.securitasdirect.es/owa-api/graphql"
+
+# File names
+COORDINATOR_DATA_FILE = "coordinator_data.json"
