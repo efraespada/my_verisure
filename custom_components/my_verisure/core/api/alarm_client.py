@@ -6,180 +6,164 @@ import logging
 import os
 from typing import Any, Dict, Optional
 
-from gql import gql
 
 from .base_client import BaseClient
 from .exceptions import (
     MyVerisureAuthenticationError,
-    MyVerisureConnectionError,
     MyVerisureError,
 )
-from ..session_manager import get_session_manager
-
 
 _LOGGER = logging.getLogger(__name__)
 
 # GraphQL queries and mutations
-CHECK_ALARM_QUERY = gql(
-    """
-    query CheckAlarm($numinst: String!, $panel: String!) {
-        xSCheckAlarm(numinst: $numinst, panel: $panel) {
-            res
-            msg
+CHECK_ALARM_QUERY = """
+query CheckAlarm($numinst: String!, $panel: String!) {
+    xSCheckAlarm(numinst: $numinst, panel: $panel) {
+        res
+        msg
+        referenceId
+    }
+}
+"""
+
+ARM_PANEL_MUTATION = """
+mutation xSArmPanel(
+    $numinst: String!,
+    $request: ArmCodeRequest!,
+    $panel: String!,
+    $currentStatus: String,
+    $forceArmingRemoteId: String,
+    $armAndLock: Boolean
+) {
+    xSArmPanel(
+        numinst: $numinst
+        request: $request
+        panel: $panel
+        currentStatus: $currentStatus
+        forceArmingRemoteId: $forceArmingRemoteId
+        armAndLock: $armAndLock
+    ) {
+        res
+        msg
+        referenceId
+    }
+}
+"""
+
+ARM_STATUS_QUERY = """
+query ArmStatus(
+    $numinst: String!,
+    $request: ArmCodeRequest,
+    $panel: String!,
+    $referenceId: String!,
+    $counter: Int!,
+    $forceArmingRemoteId: String,
+    $armAndLock: Boolean
+) {
+    xSArmStatus(
+        numinst: $numinst
+        panel: $panel
+        referenceId: $referenceId
+        counter: $counter
+        request: $request
+        forceArmingRemoteId: $forceArmingRemoteId
+        armAndLock: $armAndLock
+    ) {
+        res
+        msg
+        status
+        protomResponse
+        protomResponseDate
+        numinst
+        requestId
+        error {
+            code
+            type
+            allowForcing
+            exceptionsNumber
             referenceId
+            suid
+        }
+        smartlockStatus {
+            state
+            deviceId
+            updatedOnArm
         }
     }
+}
 """
-)
 
-ARM_PANEL_MUTATION = gql(
-    """
-    mutation xSArmPanel(
-        $numinst: String!,
-        $request: ArmCodeRequest!,
-        $panel: String!,
-        $currentStatus: String,
-        $forceArmingRemoteId: String,
-        $armAndLock: Boolean
+DISARM_PANEL_MUTATION = """
+mutation xSDisarmPanel(
+    $numinst: String!,
+    $request: DisarmCodeRequest!,
+    $panel: String!
+) {
+    xSDisarmPanel(numinst: $numinst, request: $request, panel: $panel) {
+        res
+        msg
+        referenceId
+    }
+}
+"""
+
+DISARM_STATUS_QUERY = """
+query DisarmStatus(
+    $numinst: String!,
+    $panel: String!,
+    $referenceId: String!,
+    $counter: Int!,
+    $request: DisarmCodeRequest
+) {
+    xSDisarmStatus(
+        numinst: $numinst
+        panel: $panel
+        referenceId: $referenceId
+        counter: $counter
+        request: $request
     ) {
-        xSArmPanel(
-            numinst: $numinst
-            request: $request
-            panel: $panel
-            currentStatus: $currentStatus
-            forceArmingRemoteId: $forceArmingRemoteId
-            armAndLock: $armAndLock
-        ) {
-            res
-            msg
+        res
+        msg
+        status
+        protomResponse
+        protomResponseDate
+        numinst
+        requestId
+        error {
+            code
+            type
+            allowForcing
+            exceptionsNumber
             referenceId
+            suid
         }
     }
+}
 """
-)
 
-ARM_STATUS_QUERY = gql(
-    """
-    query ArmStatus(
-        $numinst: String!,
-        $request: ArmCodeRequest,
-        $panel: String!,
-        $referenceId: String!,
-        $counter: Int!,
-        $forceArmingRemoteId: String,
-        $armAndLock: Boolean
+CHECK_ALARM_STATUS_QUERY = """
+query CheckAlarmStatus(
+    $numinst: String!,
+    $idService: String!,
+    $panel: String!,
+    $referenceId: String!
+) {
+    xSCheckAlarmStatus(
+        numinst: $numinst
+        idService: $idService
+        panel: $panel
+        referenceId: $referenceId
     ) {
-        xSArmStatus(
-            numinst: $numinst
-            panel: $panel
-            referenceId: $referenceId
-            counter: $counter
-            request: $request
-            forceArmingRemoteId: $forceArmingRemoteId
-            armAndLock: $armAndLock
-        ) {
-            res
-            msg
-            status
-            protomResponse
-            protomResponseDate
-            numinst
-            requestId
-            error {
-                code
-                type
-                allowForcing
-                exceptionsNumber
-                referenceId
-                suid
-            }
-            smartlockStatus {
-                state
-                deviceId
-                updatedOnArm
-            }
-        }
+        res
+        msg
+        status
+        numinst
+        protomResponse
+        protomResponseDate
+        forcedArmed
     }
+}
 """
-)
-
-DISARM_PANEL_MUTATION = gql(
-    """
-    mutation xSDisarmPanel(
-        $numinst: String!,
-        $request: DisarmCodeRequest!,
-        $panel: String!
-    ) {
-        xSDisarmPanel(numinst: $numinst, request: $request, panel: $panel) {
-            res
-            msg
-            referenceId
-        }
-    }
-"""
-)
-
-DISARM_STATUS_QUERY = gql(
-    """
-    query DisarmStatus(
-        $numinst: String!,
-        $panel: String!,
-        $referenceId: String!,
-        $counter: Int!,
-        $request: DisarmCodeRequest
-    ) {
-        xSDisarmStatus(
-            numinst: $numinst
-            panel: $panel
-            referenceId: $referenceId
-            counter: $counter
-            request: $request
-        ) {
-            res
-            msg
-            status
-            protomResponse
-            protomResponseDate
-            numinst
-            requestId
-            error {
-                code
-                type
-                allowForcing
-                exceptionsNumber
-                referenceId
-                suid
-            }
-        }
-    }
-"""
-)
-
-CHECK_ALARM_STATUS_QUERY = gql(
-    """
-    query CheckAlarmStatus(
-        $numinst: String!,
-        $idService: String!,
-        $panel: String!,
-        $referenceId: String!
-    ) {
-        xSCheckAlarmStatus(
-            numinst: $numinst
-            idService: $idService
-            panel: $panel
-            referenceId: $referenceId
-        ) {
-            res
-            msg
-            status
-            numinst
-            protomResponse
-            protomResponseDate
-            forcedArmed
-        }
-    }
-"""
-)
 
 
 class AlarmClient(BaseClient):
@@ -778,7 +762,7 @@ class AlarmClient(BaseClient):
                 headers["x-capabilities"] = capabilities
 
             result = await self._execute_query_direct(
-                CHECK_ALARM_QUERY.loc.source.body, variables, headers
+                CHECK_ALARM_QUERY, variables, headers
             )
 
             return result
@@ -819,7 +803,7 @@ class AlarmClient(BaseClient):
                 headers["x-capabilities"] = capabilities
 
             result = await self._execute_query_direct(
-                CHECK_ALARM_STATUS_QUERY.loc.source.body, variables, headers
+                CHECK_ALARM_STATUS_QUERY, variables, headers
             )
 
             return result
@@ -862,7 +846,7 @@ class AlarmClient(BaseClient):
                 headers["x-capabilities"] = capabilities
 
             result = await self._execute_query_direct(
-                ARM_PANEL_MUTATION.loc.source.body, variables, headers
+                ARM_PANEL_MUTATION, variables, headers
             )
 
             return result
@@ -907,7 +891,7 @@ class AlarmClient(BaseClient):
                 headers["x-capabilities"] = capabilities
 
             result = await self._execute_query_direct(
-                ARM_STATUS_QUERY.loc.source.body, variables, headers
+                ARM_STATUS_QUERY, variables, headers
             )
 
             return result
@@ -946,7 +930,7 @@ class AlarmClient(BaseClient):
                 headers["x-capabilities"] = capabilities
 
             result = await self._execute_query_direct(
-                DISARM_PANEL_MUTATION.loc.source.body, variables, headers
+                DISARM_PANEL_MUTATION, variables, headers
             )
 
             return result
@@ -989,7 +973,7 @@ class AlarmClient(BaseClient):
                 headers["x-capabilities"] = capabilities
 
             result = await self._execute_query_direct(
-                DISARM_STATUS_QUERY.loc.source.body, variables, headers
+                DISARM_STATUS_QUERY, variables, headers
             )
 
             return result

@@ -10,9 +10,9 @@
   "loggers": ["my_verisure"],
   "requirements": [
     "aiohttp>=3.8.0",
-    "gql[requests]>=3.4.0",
     "voluptuous>=0.13.0",
-    "injector>=0.21.0"
+    "injector>=0.21.0",
+    "PyJWT>=2.8.0"
   ],
   "version": "1.0.0",
   "icon": "icon.png"

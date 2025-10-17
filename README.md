@@ -176,7 +176,6 @@ All development dependencies are automatically installed from `requirements.txt`
 ```txt
 # Core dependencies
 aiohttp>=3.8.0
-gql[requests]>=3.4.0
 voluptuous>=0.13.0
 
 # Development tools

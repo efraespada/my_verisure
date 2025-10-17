@@ -5,8 +5,6 @@ import logging
 import time
 from typing import Any, Dict, Optional
 
-from gql import gql
-
 from .base_client import BaseClient
 from .device_manager import DeviceManager
 from .exceptions import (
@@ -21,71 +19,67 @@ from ..session_manager import get_session_manager
 _LOGGER = logging.getLogger(__name__)
 
 # GraphQL mutations
-LOGIN_MUTATION = gql(
-    """
-    mutation mkLoginToken($user: String!, $password: String!, $id: String!, $country: String!, $idDevice: String, $idDeviceIndigitall: String, $deviceType: String, $deviceVersion: String, $deviceResolution: String, $lang: String!, $callby: String!, $uuid: String, $deviceName: String, $deviceBrand: String, $deviceOsVersion: String) {
-        xSLoginToken(
-            user: $user
-            password: $password
-            id: $id
-            country: $country
-            idDevice: $idDevice
-            idDeviceIndigitall: $idDeviceIndigitall
-            deviceType: $deviceType
-            deviceVersion: $deviceVersion
-            deviceResolution: $deviceResolution
-            lang: $lang
-            callby: $callby
-            uuid: $uuid
-            deviceName: $deviceName
-            deviceBrand: $deviceBrand
-            deviceOsVersion: $deviceOsVersion
-        ) {
-            res
-            msg
-            hash
-            lang
-            legals
-            changePassword
-            needDeviceAuthorization
-            refreshToken
-        }
+LOGIN_MUTATION = """
+mutation mkLoginToken($user: String!, $password: String!, $id: String!, $country: String!, $idDevice: String, $idDeviceIndigitall: String, $deviceType: String, $deviceVersion: String, $deviceResolution: String, $lang: String!, $callby: String!, $uuid: String, $deviceName: String, $deviceBrand: String, $deviceOsVersion: String) {
+    xSLoginToken(
+        user: $user
+        password: $password
+        id: $id
+        country: $country
+        idDevice: $idDevice
+        idDeviceIndigitall: $idDeviceIndigitall
+        deviceType: $deviceType
+        deviceVersion: $deviceVersion
+        deviceResolution: $deviceResolution
+        lang: $lang
+        callby: $callby
+        uuid: $uuid
+        deviceName: $deviceName
+        deviceBrand: $deviceBrand
+        deviceOsVersion: $deviceOsVersion
+    ) {
+        res
+        msg
+        hash
+        lang
+        legals
+        changePassword
+        needDeviceAuthorization
+        refreshToken
     }
+}
 """
-)
 
-VALIDATE_DEVICE_MUTATION = gql(
-    """
-    mutation mkValidateDevice($idDevice: String, $idDeviceIndigitall: String, $uuid: String, $deviceName: String, $deviceBrand: String, $deviceOsVersion: String, $deviceVersion: String) {
-        xSValidateDevice(
-            idDevice: $idDevice
-            idDeviceIndigitall: $idDeviceIndigitall
-            uuid: $uuid
-            deviceName: $deviceName
-            deviceBrand: $deviceBrand
-            deviceOsVersion: $deviceOsVersion
-            deviceVersion: $deviceVersion
-        ) {
-            res
-            msg
-            hash
-            refreshToken
-            legals
-        }
+VALIDATE_DEVICE_MUTATION = """
+mutation mkValidateDevice($idDevice: String, $idDeviceIndigitall: String, $uuid: String, $deviceName: String, $deviceBrand: String, $deviceOsVersion: String, $deviceVersion: String) {
+    xSValidateDevice(
+        idDevice: $idDevice
+        idDeviceIndigitall: $idDeviceIndigitall
+        uuid: $uuid
+        deviceName: $deviceName
+        deviceBrand: $deviceBrand
+        deviceOsVersion: $deviceOsVersion
+        deviceVersion: $deviceVersion
+    ) {
+        res
+        msg
+        hash
+        refreshToken
+        legals
     }
+}
 """
-)
 
-SEND_OTP_MUTATION = gql(
-    """
-    mutation mkSendOTP($recordId: Int!, $otpHash: String!) {
-        xSSendOtp(recordId: $recordId, otpHash: $otpHash) {
-            res
-            msg
-        }
+
+SEND_OTP_MUTATION = """
+mutation mkSendOTP($recordId: Int!, $otpHash: String!) {
+    xSSendOtp(recordId: $recordId, otpHash: $otpHash) {
+        res
+        msg
     }
+}
 """
-)
+
 
 
 class AuthClient(BaseClient):
@@ -122,7 +116,7 @@ class AuthClient(BaseClient):
 
             # Use direct aiohttp request to control headers/session lifecycle
             result = await self._execute_query_direct(
-                LOGIN_MUTATION.loc.source.body,
+                LOGIN_MUTATION,
                 variables,
                 self._get_headers(),
             )
@@ -243,7 +237,7 @@ class AuthClient(BaseClient):
 
             # Use direct aiohttp request to get better control over the response
             result = await self._execute_query_direct(
-                VALIDATE_DEVICE_MUTATION.loc.source.body,
+                VALIDATE_DEVICE_MUTATION,
                 variables,
                 session_headers,
             )
@@ -294,7 +288,7 @@ class AuthClient(BaseClient):
 
             # Use direct aiohttp request to get better control over the response
             result = await self._execute_query_direct(
-                VALIDATE_DEVICE_MUTATION.loc.source.body,
+                VALIDATE_DEVICE_MUTATION,
                 variables,
                 session_headers,
             )
@@ -441,7 +435,7 @@ class AuthClient(BaseClient):
 
             # Use direct aiohttp request for OTP
             result = await self._execute_query_direct(
-                SEND_OTP_MUTATION.loc.source.body,
+                SEND_OTP_MUTATION,
                 variables,
                 self._get_session_headers(self._session_data, self._hash),
             )
@@ -511,7 +505,7 @@ class AuthClient(BaseClient):
             headers["Security"] = json.dumps(security_header)
 
             result = await self._execute_query_direct(
-                VALIDATE_DEVICE_MUTATION.loc.source.body, variables, headers
+                VALIDATE_DEVICE_MUTATION, variables, headers
             )
 
             # Check for errors first
@@ -619,7 +613,7 @@ class AuthClient(BaseClient):
             _LOGGER.warning("Device Name: %s", variables.get("deviceName"))
 
             result = await self._execute_query_direct(
-                LOGIN_MUTATION.loc.source.body,
+                LOGIN_MUTATION,
                 variables,
                 self._get_headers(),
             )

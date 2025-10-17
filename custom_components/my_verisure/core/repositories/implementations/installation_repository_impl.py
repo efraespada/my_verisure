@@ -7,7 +7,7 @@ from ...api.models.domain.installation import Installation, DetailedInstallation
 from ...api.models.dto.installation_dto import DetailedInstallationDTO
 from ...file_manager import get_file_manager
 from ..interfaces.installation_repository import InstallationRepository
-
+from ...utils.jwt_utils import is_jwt_expired
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -88,8 +88,16 @@ class InstallationRepositoryImpl(InstallationRepository):
             if not force_refresh:
                 cached_detailed_installation = self._load_detailed_installation_cache(installation_id)
                 if cached_detailed_installation:
-                    _LOGGER.info("💾 Using cached detailed installation for installation %s", installation_id)
-                    return cached_detailed_installation
+                    capabilities = cached_detailed_installation.installation.capabilities
+                    
+                    # Check if capabilities JWT has expired
+                    if capabilities and is_jwt_expired(capabilities):
+                        _LOGGER.info("🔄 Capabilities JWT expired for installation %s, refreshing data", installation_id)
+                        # Clear the cache and continue with fresh data fetch
+                        self._clear_detailed_installation_cache(installation_id)
+                    else:
+                        _LOGGER.info("💾 Using cached detailed installation for installation %s", installation_id)
+                        return cached_detailed_installation
 
             # Fetch fresh data from API
             _LOGGER.info("🔄 Fetching fresh detailed installation data for installation %s", installation_id)
