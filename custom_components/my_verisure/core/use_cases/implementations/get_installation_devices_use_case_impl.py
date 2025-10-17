@@ -1,7 +1,6 @@
 """Get installation devices use case implementation."""
 
 import logging
-from typing import Optional
 
 from ...api.models.domain.device import DeviceList
 from ...repositories.interfaces.installation_repository import InstallationRepository
@@ -40,39 +39,38 @@ class GetInstallationDevicesUseCaseImpl(GetInstallationDevicesUseCase):
                 raise ValueError("Panel is required")
 
             # Get devices from repository
-            devices = await self.installation_repository.get_installation_devices(
+            installation_services = await self.installation_repository.get_installation_services(
                 installation_id=installation_id,
-                panel=panel,
                 force_refresh=force_refresh
             )
 
             _LOGGER.info(
                 "Successfully retrieved %d devices for installation %s",
-                len(devices.devices),
+                len(installation_services.installation.devices),
                 installation_id
             )
 
             # Log device summary
-            active_devices = devices.active_devices
-            remote_devices = devices.remote_devices
+            active_devices = installation_services.installation.active_devices
+            remote_devices = installation_services.installation.remote_devices
             
             _LOGGER.info(
                 "Device summary: %d total, %d active, %d remote accessible",
-                len(devices.devices),
+                len(installation_services.installation.devices),
                 len(active_devices),
                 len(remote_devices)
             )
 
             # Log device types
             device_types = {}
-            for device in devices.devices:
+            for device in installation_services.installation.devices:
                 device_type = device.type
                 device_types[device_type] = device_types.get(device_type, 0) + 1
             
             if device_types:
                 _LOGGER.info("Device types: %s", device_types)
 
-            return devices
+            return installation_services.installation.devices
 
         except ValueError as e:
             _LOGGER.error("Validation error getting installation devices: %s", e)

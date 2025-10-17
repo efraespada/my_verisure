@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 from typing import List, Optional, Dict, Any
 
+from .device_dto import DeviceDTO
 
 @dataclass
 class ServiceDTO:
@@ -94,6 +95,7 @@ class InstallationDataDTO:
     sim: str
     instIbs: str
     services: List[ServiceDTO]
+    devices: List[DeviceDTO]
     configRepoUser: Optional[str] = None
     capabilities: Optional[str] = None
 
@@ -109,6 +111,7 @@ class InstallationDataDTO:
             sim=data.get("sim", ""),
             instIbs=data.get("instIbs", ""),
             services=[ServiceDTO.from_dict(s) for s in data.get("services", [])],
+            devices=[DeviceDTO.from_dict(d) for d in data.get("devices", [])],
             configRepoUser=data.get("configRepoUser"),
             capabilities=data.get("capabilities"),
         )

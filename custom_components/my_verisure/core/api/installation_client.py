@@ -234,28 +234,42 @@ class InstallationClient(BaseClient):
 
             if services_data and services_data.get("res") == "OK":
                 installation = services_data.get("installation", {})
-                services = installation.get("services", [])
 
-                _LOGGER.info(
-                    "✅ Found %d services for installation %s",
-                    len(services),
+                deviceList = await self.get_installation_devices(
                     installation_id,
-                )
-                _LOGGER.info(
-                    "📊 Installation status: %s",
-                    installation.get("status", "Unknown"),
-                )
-                _LOGGER.info(
-                    "🔧 Installation panel: %s",
                     installation.get("panel", "Unknown"),
+                    installation.get("capabilities", "Unknown")
                 )
+
+                installations_dto = await self.get_installations()
+
+                _LOGGER.info("✅ Found %d devices for installation %s", len(deviceList.devices), installation_id)
+
+                for i in installations_dto:
+                    if i.numinst == installation_id:
+                        installation_dto = i
+                        break
+                if not installation_dto:
+                    raise MyVerisureError(f"Installation {installation_id} not found")
+
+                installation["devices"] = [device.dict() for device in deviceList.devices]
+
+                installation["type"] = installation_dto.type
+                installation["name"] = installation_dto.name
+                installation["surname"] = installation_dto.surname
+                installation["address"] = installation_dto.address
+                installation["city"] = installation_dto.city
+                installation["postcode"] = installation_dto.postcode
+                installation["province"] = installation_dto.province
+                installation["email"] = installation_dto.email
+                installation["phone"] = installation_dto.phone
+                installation["due"] = installation_dto.due
 
                 response_data = {
                     "installation": installation,
                     "language": services_data.get("language"),
                 }
 
-                # Convert to DTO
                 services_dto = InstallationServicesDTO.from_dict(response_data)
                 return services_dto
             else:

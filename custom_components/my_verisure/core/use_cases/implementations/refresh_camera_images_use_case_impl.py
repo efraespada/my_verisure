@@ -43,20 +43,16 @@ class RefreshCameraImagesUseCaseImpl(RefreshCameraImagesUseCase):
             )
 
             # Get installation services to get panel and capabilities
-            services_data = await self.installation_repository.get_installation_services(
+            installation_services = await self.installation_repository.get_installation_services(
                 installation_id
             )
-            panel = services_data.installation.panel or "SDVFAST"
-            capabilities = services_data.installation.capabilities or "default_capabilities"
-
-            # Get installation devices
-            devices_data = await self.installation_repository.get_installation_devices(
-                installation_id, panel
-            )
+            panel = installation_services.installation.panel or "SDVFAST"
+            capabilities = installation_services.installation.capabilities or "default_capabilities"
+            devices = installation_services.installation.devices
             
             # Filter devices to get only cameras (type "YR" or "YP")
             camera_devices = [
-                device for device in devices_data.devices 
+                device for device in devices 
                 if device.type in ["YR", "YP"] and device.remote_use
             ]
             

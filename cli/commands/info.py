@@ -179,25 +179,20 @@ class InfoCommand(BaseCommand):
                         return False
 
             # Get installation services to get panel info
-            services = await self.installation_use_case.get_installation_services(installation_id)
-            panel = services.installation.panel or "SDVFAST"
+            installation_services = await self.installation_use_case.get_installation_services(installation_id)
+            panel = installation_services.installation.panel or "SDVFAST"
             
             print_info(f"Obteniendo dispositivos para instalación {installation_id} con panel {panel}...")
             
             # Get devices
-            devices = await self.get_installation_devices_use_case.get_installation_devices(
-                installation_id=installation_id,
-                panel=panel,
-                force_refresh=True
-            )
-
-            if devices.devices:
-                print_success(f"Se encontraron {len(devices.devices)} dispositivo(s)")
+            devices = installation_services.installation.devices
+            if len(devices) > 0:
+                print_success(f"Se encontraron {len(devices)} dispositivo(s)")
                 print()
                 
                 # Group devices by type
                 devices_by_type = {}
-                for device in devices.devices:
+                for device in devices:
                     device_type = device.type
                     if device_type not in devices_by_type:
                         devices_by_type[device_type] = []
@@ -230,10 +225,10 @@ class InfoCommand(BaseCommand):
                         print_separator()
                 
                 # Summary
-                active_devices = devices.active_devices
-                remote_devices = devices.remote_devices
-                
-                print_info(f"Resumen: {len(devices.devices)} total, {len(active_devices)} activos, {len(remote_devices)} remotos")
+                active_devices = [device for device in devices if device.is_active]
+                remote_devices = [device for device in devices if device.remote_use]
+
+                print_info(f"Resumen: {len(devices)} total, {len(active_devices)} activos, {len(remote_devices)} remotos")
                 
             else:
                 print_info("No se encontraron dispositivos")

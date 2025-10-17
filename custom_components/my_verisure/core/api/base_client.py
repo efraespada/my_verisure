@@ -110,20 +110,11 @@ class BaseClient:
             request_data = {"query": query, "variables": variables or {}}
             request_headers = headers or self._get_headers()
 
-            # Log request details for debugging
-            _LOGGER.warning("Request headers: %s", json.dumps(headers, indent=2))
-            _LOGGER.warning("Request request_headers: %s", json.dumps(request_headers, indent=2))
-            _LOGGER.warning("Request data: %s", json.dumps(request_data, indent=2))
-
             async with self._session.post(
                 VERISURE_GRAPHQL_URL,
                 json=request_data,
                 headers=request_headers,
             ) as response:
-                # Log response details
-                if (response.status != 200):
-                    _LOGGER.warning("Response status: %s", response.status)
-                
                 result = await response.json()
                 return result
 

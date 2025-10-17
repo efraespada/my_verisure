@@ -2,13 +2,14 @@
 
 from dataclasses import dataclass, asdict
 from typing import List, Optional, Dict, Any
+
+from .device import Device
 from ..dto.installation_dto import (
     InstallationDTO,
     InstallationServicesDTO,
     ServiceDTO,
     InstallationsListDTO,
 )
-
 
 @dataclass
 class Service:
@@ -145,6 +146,7 @@ class InstallationData:
     sim: str
     instIbs: str
     services: List[Service]
+    devices: List[Device]
     configRepoUser: Optional[str] = None
     capabilities: Optional[str] = None
 
@@ -170,7 +172,7 @@ class InstallationServices:
     def from_dto(cls, dto: InstallationServicesDTO) -> "InstallationServices":
         """Create InstallationServices from DTO."""
         services = [Service.from_dto(s) for s in dto.installation.services]
-
+        devices = [Device.from_dto(d) for d in dto.installation.devices]
         # Create installation data domain model
         installation_data = InstallationData(
             numinst=dto.installation.numinst,
@@ -181,6 +183,7 @@ class InstallationServices:
             sim=dto.installation.sim,
             instIbs=dto.installation.instIbs,
             services=services,
+            devices=devices,
             configRepoUser=dto.installation.configRepoUser,
             capabilities=dto.installation.capabilities,
         )
