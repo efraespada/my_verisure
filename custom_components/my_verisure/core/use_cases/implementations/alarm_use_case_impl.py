@@ -61,9 +61,10 @@ class AlarmUseCaseImpl(AlarmUseCase):
         """Arm the alarm in away mode."""
         try:
             panel, capabilities = await self._get_installation_info(installation_id)
-            current_status = "E"  # Default current status
-            result = await self.alarm_repository.arm_panel(
-                installation_id, "ARM1", panel, capabilities, current_status
+            result = await self.alarm_repository.arm_away(
+                installation_id=installation_id,
+                panel=panel,
+                capabilities=capabilities,
             )
 
             if result.success:
@@ -83,9 +84,10 @@ class AlarmUseCaseImpl(AlarmUseCase):
         """Arm the alarm in home mode."""
         try:
             panel, capabilities = await self._get_installation_info(installation_id)
-            current_status = "E"  # Default current status
-            result = await self.alarm_repository.arm_panel(
-                installation_id, "PERI1", panel, capabilities, current_status
+            result = await self.alarm_repository.arm_home(
+                installation_id=installation_id,
+                panel=panel,
+                capabilities=capabilities,
             )
 
             if result.success:
@@ -105,9 +107,10 @@ class AlarmUseCaseImpl(AlarmUseCase):
         """Arm the alarm in night mode."""
         try:
             panel, capabilities = await self._get_installation_info(installation_id)
-            current_status = "E"  # Default current status
-            result = await self.alarm_repository.arm_panel(
-                installation_id, "ARMNIGHT1", panel, capabilities, current_status
+            result = await self.alarm_repository.arm_night(
+                installation_id=installation_id,
+                panel=panel,
+                capabilities=capabilities,
             )
 
             if result.success:
@@ -141,20 +144,3 @@ class AlarmUseCaseImpl(AlarmUseCase):
         except Exception as e:
             _LOGGER.error("Error disarming alarm: %s", e)
             raise
-
-    # Alias methods to match test expectations
-    async def arm_alarm_away(self, installation_id: str) -> bool:
-        """Arm the alarm in away mode (alias for arm_away)."""
-        return await self.arm_away(installation_id)
-
-    async def arm_alarm_home(self, installation_id: str) -> bool:
-        """Arm the alarm in home mode (alias for arm_home)."""
-        return await self.arm_home(installation_id)
-
-    async def arm_alarm_night(self, installation_id: str) -> bool:
-        """Arm the alarm in night mode (alias for arm_night)."""
-        return await self.arm_night(installation_id)
-
-    async def disarm_alarm(self, installation_id: str) -> bool:
-        """Disarm the alarm (alias for disarm)."""
-        return await self.disarm(installation_id)

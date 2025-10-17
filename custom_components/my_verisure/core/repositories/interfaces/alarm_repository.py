@@ -33,3 +33,33 @@ class AlarmRepository(ABC):
     ) -> DisarmResult:
         """Disarm the alarm panel."""
         pass
+
+    @abstractmethod
+    async def arm_home(
+        self,
+        installation_id: str,
+        panel: str,
+        capabilities: str,
+    ) -> ArmResult:
+        """Arm the alarm panel in home mode."""
+        pass
+
+    @abstractmethod
+    async def arm_away(
+        self,
+        installation_id: str,
+        panel: str,
+        capabilities: str,
+    ) -> ArmResult:
+        """Arm the alarm panel in away mode."""
+        pass
+
+    @abstractmethod
+    async def arm_night(
+        self,
+        installation_id: str,
+        panel: str,
+        capabilities: str,
+    ) -> ArmResult:
+        """Arm the alarm panel in night mode."""
+        pass
