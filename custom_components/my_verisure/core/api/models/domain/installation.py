@@ -6,7 +6,7 @@ from typing import List, Optional, Dict, Any
 from .device import Device
 from ..dto.installation_dto import (
     InstallationDTO,
-    InstallationServicesDTO,
+    DetailedInstallationDTO,
     ServiceDTO,
     InstallationsListDTO,
 )
@@ -157,15 +157,15 @@ class InstallationData:
 
 
 @dataclass
-class InstallationServices:
+class DetailedInstallation:
     """Installation services domain model with strict typing."""
 
     installation: InstallationData
     language: str
 
     @classmethod
-    def from_dto(cls, dto: InstallationServicesDTO) -> "InstallationServices":
-        """Create InstallationServices from DTO."""
+    def from_dto(cls, dto: DetailedInstallationDTO) -> "DetailedInstallation":
+        """Create DetailedInstallation from DTO."""
         services = [Service.from_dto(s) for s in dto.installation.services]
         devices = [Device.from_dto(d) for d in dto.installation.devices]
         # Create installation data domain model
@@ -188,7 +188,7 @@ class InstallationServices:
             installation=installation_data,
         )
 
-    def to_dto(self) -> InstallationServicesDTO:
+    def to_dto(self) -> DetailedInstallationDTO:
         """Convert to DTO."""
         from ..dto.installation_dto import InstallationDataDTO
         
@@ -208,7 +208,7 @@ class InstallationServices:
             capabilities=self.installation.capabilities,
         )
 
-        return InstallationServicesDTO(
+        return DetailedInstallationDTO(
             language=self.language,
             installation=installation_dto,
         )

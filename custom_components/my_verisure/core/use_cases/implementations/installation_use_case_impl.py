@@ -3,7 +3,7 @@
 import logging
 from typing import List
 
-from ...api.models.domain.installation import Installation, InstallationServices
+from ...api.models.domain.installation import Installation, DetailedInstallation
 from ...repositories.interfaces.installation_repository import InstallationRepository
 from ..interfaces.installation_use_case import InstallationUseCase
 
@@ -28,7 +28,7 @@ class InstallationUseCaseImpl(InstallationUseCase):
 
     async def get_installation_services(
         self, installation_id: str, force_refresh: bool = False
-    ) -> InstallationServices:
+    ) -> DetailedInstallation:
         """Get installation services with caching handled by repository."""
         try:
             return await self.installation_repository.get_installation_services(installation_id, force_refresh)

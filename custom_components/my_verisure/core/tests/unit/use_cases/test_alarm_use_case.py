@@ -19,7 +19,7 @@ from core.repositories.interfaces.installation_repository import (
 )
 from core.repositories.interfaces.alarm_repository import AlarmRepository
 from core.api.models.domain.alarm import AlarmStatus
-from core.api.models.domain.installation import InstallationServices
+from core.api.models.domain.installation import DetailedInstallation
 from core.api.exceptions import MyVerisureError
 
 
@@ -57,7 +57,7 @@ class TestAlarmUseCase:
             configRepoUser=None,
             capabilities="default_capabilities",
         )
-        mock_services = InstallationServices(
+        mock_services = DetailedInstallation(
             installation=mock_installation_data,
             language="es",
         )

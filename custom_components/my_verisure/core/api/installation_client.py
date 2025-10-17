@@ -7,7 +7,7 @@ from .base_client import BaseClient
 from .exceptions import MyVerisureAuthenticationError, MyVerisureError
 from .models.dto.installation_dto import (
     InstallationDTO,
-    InstallationServicesDTO,
+    DetailedInstallationDTO,
 )
 from .models.dto.device_dto import DeviceListDTO
 
@@ -183,7 +183,7 @@ class InstallationClient(BaseClient):
         self,
         installation_id: str,
         force_refresh: bool = False,
-    ) -> InstallationServicesDTO:
+    ) -> DetailedInstallationDTO:
         """Get detailed services and configuration for an installation."""
         # Get credentials from SessionManager
         hash_token, session_data = self._get_current_credentials()
@@ -270,7 +270,7 @@ class InstallationClient(BaseClient):
                     "language": services_data.get("language"),
                 }
 
-                services_dto = InstallationServicesDTO.from_dict(response_data)
+                services_dto = DetailedInstallationDTO.from_dict(response_data)
                 return services_dto
             else:
                 error_msg = (

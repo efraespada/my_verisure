@@ -3,7 +3,7 @@
 from .auth import AuthResult, Phone, OTPData, Auth
 from .installation import (
     Installation,
-    InstallationServices,
+    DetailedInstallation,
     InstallationsList,
     Service as InstallationService,
 )
@@ -26,7 +26,7 @@ __all__ = [
     "Phone",
     "OTPData",
     "Installation",
-    "InstallationServices",
+    "DetailedInstallation",
     "InstallationsList",
     "InstallationService",
     "AlarmStatus",

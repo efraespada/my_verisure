@@ -18,7 +18,7 @@ from core.use_cases.interfaces.installation_use_case import InstallationUseCase
 from core.repositories.interfaces.installation_repository import (
     InstallationRepository,
 )
-from core.api.models.domain.installation import Installation, InstallationServices
+from core.api.models.domain.installation import Installation, DetailedInstallation
 from core.api.models.domain.service import Service
 from core.api.exceptions import MyVerisureError
 
@@ -185,7 +185,7 @@ class TestInstallationUseCase:
             configRepoUser=None,
             capabilities=None,
         )
-        expected_result = InstallationServices(
+        expected_result = DetailedInstallation(
             installation=expected_installation_data,
             language="es",
         )
@@ -216,7 +216,7 @@ class TestInstallationUseCase:
         """Test failed get installation services."""
         # Arrange
         installation_id = "12345"
-        expected_result = InstallationServices(
+        expected_result = DetailedInstallation(
             success=False,
             services=[],
             installation_data={},
@@ -262,7 +262,7 @@ class TestInstallationUseCase:
         """Test that installation services are retrieved correctly (cache handled by repository)."""
         # Arrange
         installation_id = "12345"
-        expected_services = InstallationServices(
+        expected_services = DetailedInstallation(
             success=True,
             message="Services retrieved successfully",
             installation_data={"panel": "PROTOCOL"},
@@ -305,7 +305,7 @@ class TestInstallationUseCase:
         """Test that force_refresh bypasses cache."""
         # Arrange
         installation_id = "12345"
-        expected_services = InstallationServices(
+        expected_services = DetailedInstallation(
             success=True,
             message="Services retrieved successfully",
             installation_data={"panel": "PROTOCOL"},

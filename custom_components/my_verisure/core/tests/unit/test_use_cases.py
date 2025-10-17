@@ -5,7 +5,7 @@ from unittest.mock import Mock, AsyncMock
 
 from core.api.models.domain.auth import Auth, AuthResult
 from core.api.models.domain.session import SessionData, DeviceIdentifiers
-from core.api.models.domain.installation import Installation, InstallationServices
+from core.api.models.domain.installation import Installation, DetailedInstallation
 from core.api.models.domain.alarm import AlarmStatus, ArmResult, DisarmResult
 
 from core.use_cases.implementations.auth_use_case_impl import AuthUseCaseImpl
@@ -323,7 +323,7 @@ class TestInstallationUseCaseImpl:
         # Arrange
         installation_id = "12345"
 
-        services = InstallationServices(
+        services = DetailedInstallation(
             success=True,
             message="Success",
             language="es",
@@ -353,7 +353,7 @@ class TestInstallationUseCaseImpl:
         installation_id = "12345"
         force_refresh = True
 
-        services = InstallationServices(
+        services = DetailedInstallation(
             success=True,
             message="Success",
             language="es",

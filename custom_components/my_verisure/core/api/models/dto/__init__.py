@@ -3,7 +3,7 @@
 from .auth_dto import AuthDTO, PhoneDTO, OTPDataDTO
 from .installation_dto import (
     InstallationDTO,
-    InstallationServicesDTO,
+    DetailedInstallationDTO,
     InstallationsListDTO,
 )
 from .alarm_dto import (
@@ -22,7 +22,7 @@ __all__ = [
     "PhoneDTO",
     "OTPDataDTO",
     "InstallationDTO",
-    "InstallationServicesDTO",
+    "DetailedInstallationDTO",
     "InstallationsListDTO",
     "AlarmStatusDTO",
     "ArmResultDTO",

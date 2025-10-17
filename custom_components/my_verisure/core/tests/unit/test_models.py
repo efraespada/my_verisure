@@ -5,7 +5,7 @@ import pytest
 from ...api.models.dto.auth_dto import AuthDTO, OTPDataDTO, PhoneDTO
 from ...api.models.dto.installation_dto import (
     InstallationDTO,
-    InstallationServicesDTO,
+    DetailedInstallationDTO,
     ServiceDTO,
 )
 from ...api.models.dto.alarm_dto import (
@@ -180,10 +180,10 @@ class TestServiceDTO:
 
 
 class TestInstallationServicesDTO:
-    """Test InstallationServicesDTO."""
+    """Test DetailedInstallationDTO."""
 
     def test_from_dict_with_services(self):
-        """Test creating InstallationServicesDTO from dictionary with services."""
+        """Test creating DetailedInstallationDTO from dictionary with services."""
         data = {
             "language": "es",
             "installation": {
@@ -202,7 +202,7 @@ class TestInstallationServicesDTO:
             },
         }
 
-        dto = InstallationServicesDTO.from_dict(data)
+        dto = DetailedInstallationDTO.from_dict(data)
 
         assert dto.language == "es"
         assert dto.installation.numinst == "6220569"
@@ -218,7 +218,7 @@ class TestInstallationServicesDTO:
         assert dto.installation.capabilities == "test_capabilities"
 
     def test_from_dict_without_services(self):
-        """Test creating InstallationServicesDTO from dictionary without services."""
+        """Test creating DetailedInstallationDTO from dictionary without services."""
         data = {
             "language": "es",
             "installation": {
@@ -235,7 +235,7 @@ class TestInstallationServicesDTO:
             },
         }
 
-        dto = InstallationServicesDTO.from_dict(data)
+        dto = DetailedInstallationDTO.from_dict(data)
 
         assert dto.language == "es"
         assert dto.installation.numinst == "6220569"

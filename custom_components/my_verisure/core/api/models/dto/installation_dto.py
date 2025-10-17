@@ -118,15 +118,15 @@ class InstallationDataDTO:
 
 
 @dataclass
-class InstallationServicesDTO:
+class DetailedInstallationDTO:
     """Installation services response DTO with strict typing."""
 
     installation: InstallationDataDTO
     language: str
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "InstallationServicesDTO":
-        """Create InstallationServicesDTO from dictionary."""
+    def from_dict(cls, data: Dict[str, Any]) -> "DetailedInstallationDTO":
+        """Create DetailedInstallationDTO from dictionary."""
         return cls(
             installation=InstallationDataDTO.from_dict(data.get("installation", {})),
             language=data.get("language", ""),

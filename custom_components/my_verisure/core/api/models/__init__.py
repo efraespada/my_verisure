@@ -3,7 +3,7 @@
 from .dto.auth_dto import AuthDTO, OTPDataDTO, PhoneDTO
 from .dto.installation_dto import (
     InstallationDTO,
-    InstallationServicesDTO,
+    DetailedInstallationDTO,
     ServiceDTO,
     InstallationsListDTO,
 )
@@ -20,7 +20,7 @@ from .dto.session_dto import SessionDTO, DeviceIdentifiersDTO
 from .domain.auth import Auth, AuthResult, OTPData
 from .domain.installation import (
     Installation,
-    InstallationServices,
+    DetailedInstallation,
     Service,
     InstallationsList,
 )
@@ -40,7 +40,7 @@ __all__ = [
     "OTPDataDTO",
     "PhoneDTO",
     "InstallationDTO",
-    "InstallationServicesDTO",
+    "DetailedInstallationDTO",
     "ServiceDTO",
     "InstallationsListDTO",
     "AlarmStatusDTO",
@@ -56,7 +56,7 @@ __all__ = [
     "AuthResult",
     "OTPData",
     "Installation",
-    "InstallationServices",
+    "DetailedInstallation",
     "Service",
     "InstallationsList",
     "AlarmStatus",

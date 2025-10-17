@@ -21,7 +21,7 @@ from core.repositories.interfaces.installation_repository import (
 from core.api.exceptions import MyVerisureError
 from core.api.models.dto.installation_dto import (
     InstallationDTO,
-    InstallationServicesDTO,
+    DetailedInstallationDTO,
     ServiceDTO,
 )
 
@@ -151,7 +151,7 @@ class TestInstallationRepository:
         """Test successful get installation services."""
         # Arrange
         installation_id = "12345"
-        expected_services_data = InstallationServicesDTO(
+        expected_services_data = DetailedInstallationDTO(
             installation={
                 "numinst": "12345",
                 "role": "owner",
