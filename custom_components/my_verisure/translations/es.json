@@ -60,7 +60,8 @@
         "title": "Opciones My Verisure",
         "description": "Configurar opciones adicionales para la integración My Verisure.",
         "data": {
-          "scan_interval": "Intervalo de escaneo (minutos)"
+          "scan_interval": "Intervalo de escaneo (minutos)",
+          "auto_arm_perimeter_with_internal": "Armar alarma perimetral al activar cualquier alarma interna"
         }
       }
     }

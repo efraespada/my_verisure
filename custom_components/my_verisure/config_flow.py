@@ -39,6 +39,7 @@ from .core.const import (
     LOGGER,
     CONF_SCAN_INTERVAL,
     DEFAULT_SCAN_INTERVAL,
+    CONF_AUTO_ARM_PERIMETER_WITH_INTERNAL,
 )
 
 
@@ -393,6 +394,10 @@ class MyVerisureOptionsFlowHandler(OptionsFlow):
                         CONF_SCAN_INTERVAL,
                         default=self.config_entry.options.get(CONF_SCAN_INTERVAL, self.config_entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)),
                     ): int,
+                    vol.Optional(
+                        CONF_AUTO_ARM_PERIMETER_WITH_INTERNAL,
+                        default=self.config_entry.options.get(CONF_AUTO_ARM_PERIMETER_WITH_INTERNAL, False),
+                    ): bool,
                 }
             ),
         )

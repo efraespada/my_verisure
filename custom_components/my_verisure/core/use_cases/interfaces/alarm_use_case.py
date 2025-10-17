@@ -14,7 +14,7 @@ class AlarmUseCase(ABC):
         pass
 
     @abstractmethod
-    async def arm_away(self, installation_id: str) -> bool:
+    async def arm_away(self, installation_id: str, auto_arm_perimeter_with_internal: bool = False) -> bool:
         """Arm the alarm in away mode."""
         pass
 
@@ -24,7 +24,7 @@ class AlarmUseCase(ABC):
         pass
 
     @abstractmethod
-    async def arm_night(self, installation_id: str) -> bool:
+    async def arm_night(self, installation_id: str, auto_arm_perimeter_with_internal: bool = False) -> bool:
         """Arm the alarm in night mode."""
         pass
 

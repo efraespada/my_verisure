@@ -30,7 +30,7 @@ from .core.dependency_injection.providers import (
 )
 from .core.file_manager import get_file_manager
 from .core.session_manager import get_session_manager
-from .core.const import CONF_INSTALLATION_ID, CONF_USER, DEFAULT_SCAN_INTERVAL, DOMAIN, LOGGER, CONF_SCAN_INTERVAL, COORDINATOR_DATA_FILE
+from .core.const import CONF_INSTALLATION_ID, CONF_USER, DEFAULT_SCAN_INTERVAL, DOMAIN, LOGGER, CONF_SCAN_INTERVAL, COORDINATOR_DATA_FILE, CONF_AUTO_ARM_PERIMETER_WITH_INTERNAL
 
 
 class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
@@ -254,7 +254,11 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
     async def async_arm_away(self) -> bool:
         """Arm the alarm in away mode."""
         try:
-            return await self.alarm_use_case.arm_away(self.installation_id)
+            auto_arm_perimeter_with_internal = self.config_entry.options.get(
+                CONF_AUTO_ARM_PERIMETER_WITH_INTERNAL,
+                self.config_entry.data.get(CONF_AUTO_ARM_PERIMETER_WITH_INTERNAL, False)
+            )
+            return await self.alarm_use_case.arm_away(self.installation_id, auto_arm_perimeter_with_internal)
         except Exception as e:
             LOGGER.error("Failed to arm away: %s", e)
             return False
@@ -270,7 +274,11 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
     async def async_arm_night(self) -> bool:
         """Arm the alarm in night mode."""
         try:
-            return await self.alarm_use_case.arm_night(self.installation_id)
+            auto_arm_perimeter_with_internal = self.config_entry.options.get(
+                CONF_AUTO_ARM_PERIMETER_WITH_INTERNAL,
+                self.config_entry.data.get(CONF_AUTO_ARM_PERIMETER_WITH_INTERNAL, False)
+            )
+            return await self.alarm_use_case.arm_night(self.installation_id, auto_arm_perimeter_with_internal)
         except Exception as e:
             LOGGER.error("Failed to arm night: %s", e)
             return False

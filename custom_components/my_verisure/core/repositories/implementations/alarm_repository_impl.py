@@ -164,7 +164,7 @@ class AlarmRepositoryImpl(AlarmRepository):
             _LOGGER.error("Error disarming panel: %s", e)
             raise
 
-    async def arm_alarm_away(self, installation_id: str, panel: str, capabilities: str) -> bool:
+    async def arm_away(self, installation_id: str, panel: str, capabilities: str, auto_arm_perimeter_with_internal: bool = False) -> ArmResult:
         """Arm the alarm in away mode."""
         try:
             _LOGGER.info(
@@ -175,12 +175,23 @@ class AlarmRepositoryImpl(AlarmRepository):
                 panel,
                 capabilities
             )
+
+            if not result.success:
+                return result
+
+            if auto_arm_perimeter_with_internal:
+                result = await self.client.arm_alarm_home(
+                    installation_id,
+                    panel,
+                    capabilities
+                )
+
             return result
         except Exception as e:
             _LOGGER.error("Error arming alarm away: %s", e)
             raise
 
-    async def arm_alarm_home(self, installation_id: str, panel: str, capabilities: str) -> bool:
+    async def arm_home(self, installation_id: str, panel: str, capabilities: str) -> ArmResult:
         """Arm the alarm in home mode."""
         try:
             _LOGGER.info(
@@ -191,12 +202,13 @@ class AlarmRepositoryImpl(AlarmRepository):
                 panel,
                 capabilities
             )
+
             return result
         except Exception as e:
             _LOGGER.error("Error arming alarm home: %s", e)
             raise
 
-    async def arm_alarm_night(self, installation_id: str, panel: str, capabilities: str) -> bool:
+    async def arm_night(self, installation_id: str, panel: str, capabilities: str, auto_arm_perimeter_with_internal: bool = False) -> ArmResult:
         """Arm the alarm in night mode."""
         try:
             _LOGGER.info(
@@ -207,6 +219,17 @@ class AlarmRepositoryImpl(AlarmRepository):
                 panel,
                 capabilities
             )
+
+            if not result.success:
+                return result
+
+            if auto_arm_perimeter_with_internal:
+                result = await self.client.arm_alarm_home(
+                    installation_id,
+                    panel,
+                    capabilities
+                )
+
             return result
         except Exception as e:
             _LOGGER.error("Error arming alarm night: %s", e)

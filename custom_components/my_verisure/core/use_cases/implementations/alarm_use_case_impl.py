@@ -57,7 +57,7 @@ class AlarmUseCaseImpl(AlarmUseCase):
             _LOGGER.error("Error getting alarm status: %s", e)
             raise
 
-    async def arm_away(self, installation_id: str) -> bool:
+    async def arm_away(self, installation_id: str, auto_arm_perimeter_with_internal: bool = False) -> bool:
         """Arm the alarm in away mode."""
         try:
             panel, capabilities = await self._get_installation_info(installation_id)
@@ -65,6 +65,7 @@ class AlarmUseCaseImpl(AlarmUseCase):
                 installation_id=installation_id,
                 panel=panel,
                 capabilities=capabilities,
+                auto_arm_perimeter_with_internal=auto_arm_perimeter_with_internal,
             )
 
             if result.success:
@@ -103,7 +104,7 @@ class AlarmUseCaseImpl(AlarmUseCase):
             _LOGGER.error("Error arming alarm in home mode: %s", e)
             raise
 
-    async def arm_night(self, installation_id: str) -> bool:
+    async def arm_night(self, installation_id: str, auto_arm_perimeter_with_internal: bool = False) -> bool:
         """Arm the alarm in night mode."""
         try:
             panel, capabilities = await self._get_installation_info(installation_id)
@@ -111,6 +112,7 @@ class AlarmUseCaseImpl(AlarmUseCase):
                 installation_id=installation_id,
                 panel=panel,
                 capabilities=capabilities,
+                auto_arm_perimeter_with_internal=auto_arm_perimeter_with_internal,
             )
 
             if result.success:

@@ -6,7 +6,7 @@ import logging
 import os
 from typing import Any, Dict, Optional
 
-
+from ..api.models.domain.alarm import ArmResult, DisarmResult
 from .base_client import BaseClient
 from .exceptions import (
     MyVerisureAuthenticationError,
@@ -452,7 +452,7 @@ class AlarmClient(BaseClient):
         request: str,
         capabilities: str,
         current_status: str = "E",
-    ) -> bool:
+    ) -> ArmResult:
         """Send an alarm command to the specified installation using the correct flow."""
         try:
             hash_token, session_data = self._get_current_credentials()
@@ -472,7 +472,7 @@ class AlarmClient(BaseClient):
                 error = arm_result["errors"][0] if arm_result["errors"] else {}
                 error_msg = error.get("message", "Unknown error")
                 _LOGGER.error("Failed to send arm command: %s", error_msg)
-                return False
+                return ArmResult(success=False, message=error_msg)
 
             # Check arm response
             arm_data = arm_result.get("data", {})
@@ -487,7 +487,7 @@ class AlarmClient(BaseClient):
                     request,
                     arm_msg,
                 )
-                return False
+                return ArmResult(success=False, message=arm_msg)
 
             max_retries = 30  # Maximum number of retries
             retry_count = 0
@@ -521,7 +521,7 @@ class AlarmClient(BaseClient):
                     )
                     error_msg = error.get("message", "Unknown error")
                     _LOGGER.error("Failed to check arm status: %s", error_msg)
-                    return False
+                    return ArmResult(success=False, message=error_msg, reference_id=reference_id)
 
                 # Check status response
                 status_data = status_result.get("data", {})
@@ -538,7 +538,7 @@ class AlarmClient(BaseClient):
                 )
 
                 if status_res == "OK":
-                    return True
+                    return ArmResult(success=True, message=status_msg, reference_id=reference_id)
                 elif status_res == "WAIT":
                     # Need to wait and retry
                     if retry_count < max_retries:
@@ -551,7 +551,7 @@ class AlarmClient(BaseClient):
                         _LOGGER.warning(
                             "Max retries reached for arm status check"
                         )
-                        return False
+                        return ArmResult(success=False, message="Max retries reached for arm status check", reference_id=reference_id)
                 else:
                     # Error or unknown response
                     _LOGGER.error(
@@ -559,7 +559,7 @@ class AlarmClient(BaseClient):
                         request,
                         status_msg,
                     )
-                    return False
+                    return ArmResult(success=False, message=status_msg, reference_id=reference_id)
 
         except Exception as e:
             _LOGGER.error("Unexpected error sending alarm command: %s", e)
@@ -570,7 +570,7 @@ class AlarmClient(BaseClient):
         installation_id: str,
         panel: str,
         capabilities: str,
-    ) -> bool:
+    ) -> DisarmResult:
         """Disarm the alarm for the specified installation using the correct flow."""
         try:
             hash_token, session_data = self._get_current_credentials()
@@ -594,7 +594,7 @@ class AlarmClient(BaseClient):
                 )
                 error_msg = error.get("message", "Unknown error")
                 _LOGGER.error("Failed to send disarm command: %s", error_msg)
-                return False
+                return DisarmResult(success=False, message=error_msg)
 
             # Check disarm response
             disarm_data = disarm_result.get("data", {})
@@ -605,7 +605,7 @@ class AlarmClient(BaseClient):
 
             if disarm_res != "OK" or not reference_id:
                 _LOGGER.error("Failed to send disarm command: %s", disarm_msg)
-                return False
+                return DisarmResult(success=False, message=disarm_msg)
 
             _LOGGER.warning(
                 "Disarm command sent successfully, referenceId: %s",
@@ -647,7 +647,7 @@ class AlarmClient(BaseClient):
                     _LOGGER.error(
                         "Failed to check disarm status: %s", error_msg
                     )
-                    return False
+                    return DisarmResult(success=False, message=error_msg, reference_id=reference_id)
 
                 # Check status response
                 status_data = status_result.get("data", {})
@@ -667,7 +667,7 @@ class AlarmClient(BaseClient):
                 )
 
                 if status_res == "OK":
-                    return True
+                    return DisarmResult(success=True, message=status_msg, reference_id=reference_id)
                 elif status_res == "WAIT":
                     # Need to wait and retry
                     if retry_count < max_retries:
@@ -680,13 +680,13 @@ class AlarmClient(BaseClient):
                         _LOGGER.warning(
                             "Max retries reached for disarm status check"
                         )
-                        return False
+                        return DisarmResult(success=False, message="Max retries reached for disarm status check", reference_id=reference_id)
                 else:
                     # Error or unknown response
                     _LOGGER.error(
                         "Failed to complete disarm command: %s", status_msg
                     )
-                    return False
+                    return DisarmResult(success=False, message=status_msg, reference_id=reference_id)
 
         except Exception as e:
             _LOGGER.error("Unexpected error disarming alarm: %s", e)
@@ -697,7 +697,7 @@ class AlarmClient(BaseClient):
         installation_id: str,
         panel: str,
         capabilities: str,
-    ) -> bool:
+    ) -> ArmResult:
         """Arm the alarm in away mode for the specified installation."""
         return await self.send_alarm_command(
             installation_id,
@@ -711,7 +711,7 @@ class AlarmClient(BaseClient):
         installation_id: str,
         panel: str,
         capabilities: str,
-    ) -> bool:
+    ) -> ArmResult:
         """Arm the alarm in home mode for the specified installation."""
         return await self.send_alarm_command(
             installation_id,
@@ -725,7 +725,7 @@ class AlarmClient(BaseClient):
         installation_id: str,
         panel: str,
         capabilities: str,
-    ) -> bool:
+    ) -> ArmResult:
         """Arm the alarm in night mode for the specified installation."""
         return await self.send_alarm_command(
             installation_id,

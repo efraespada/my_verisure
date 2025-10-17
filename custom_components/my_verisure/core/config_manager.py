@@ -30,7 +30,8 @@ class ConfigManager:
                 "enabled": True,
                 "alarm_events": True,
                 "sensor_events": False
-            }
+            },
+            "auto_arm_perimeter_with_internal": False
         }
     
     def get_config(self) -> Dict[str, Any]:

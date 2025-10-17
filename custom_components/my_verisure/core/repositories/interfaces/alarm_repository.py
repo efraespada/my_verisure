@@ -50,6 +50,7 @@ class AlarmRepository(ABC):
         installation_id: str,
         panel: str,
         capabilities: str,
+        auto_arm_perimeter_with_internal: bool = False,
     ) -> ArmResult:
         """Arm the alarm panel in away mode."""
         pass
@@ -60,6 +61,7 @@ class AlarmRepository(ABC):
         installation_id: str,
         panel: str,
         capabilities: str,
+        auto_arm_perimeter_with_internal: bool = False,
     ) -> ArmResult:
         """Arm the alarm panel in night mode."""
         pass
