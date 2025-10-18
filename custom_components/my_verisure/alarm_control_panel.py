@@ -216,20 +216,13 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
                     "disarm",
                     {"installation_id": installation_id}
                 )
-                LOGGER.warning("Alarm disarmed successfully A")
             else:
                 LOGGER.error("No installation ID available")
-            
                 
-            LOGGER.warning("Alarm disarmed successfully B")
             # Clear transition state and refresh
             self._transition_state = None
 
-            LOGGER.warning("Alarm disarmed successfully C")
-
             await self.coordinator.async_request_refresh()
-
-            LOGGER.warning("Alarm disarmed successfully D")
 
         except Exception as e:
             LOGGER.error("Failed to disarm alarm: %s", e)

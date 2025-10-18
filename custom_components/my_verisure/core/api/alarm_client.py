@@ -800,15 +800,15 @@ class AlarmClient(BaseClient):
                 headers["panel"] = panel
                 headers["x-capabilities"] = capabilities
 
-            _LOGGER.warning("Executing CheckAlarmStatus query")
-            _LOGGER.warning("Variables: %s", json.dumps(variables, indent=2))
-            _LOGGER.warning("Headers: %s", json.dumps(headers, indent=2))
+            # _LOGGER.warning("Executing CheckAlarmStatus query")
+            # _LOGGER.warning("Variables: %s", json.dumps(variables, indent=2))
+            # _LOGGER.warning("Headers: %s", json.dumps(headers, indent=2))
 
             result = await self._execute_query_direct(
                 CHECK_ALARM_STATUS_QUERY, variables, headers
             )
 
-            _LOGGER.warning("CheckAlarmStatus result: %s", json.dumps(result, indent=2))
+            # _LOGGER.warning("CheckAlarmStatus result: %s", json.dumps(result, indent=2))
 
             return result
 
