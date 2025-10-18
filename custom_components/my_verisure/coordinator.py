@@ -268,7 +268,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             if result.success:
                 title = await self.get_translation("notifications.title.success")
                 message = await self.get_translation("notifications.alarm.arm_away.success")
-                await async_create(
+                async_create(
                     self.hass,
                     message,
                     title=title,
@@ -277,7 +277,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             else:
                 title = await self.get_translation("notifications.title.error")
                 message = await self.get_translation("notifications.alarm.arm_away.error", message=result.message)
-                await async_create(
+                async_create(
                     self.hass,
                     message,
                     title=title,
@@ -290,7 +290,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             # Send error notification
             title = await self.get_translation("notifications.title.error")
             message = await self.get_translation("notifications.alarm.arm_away.exception", error=str(e))
-            await async_create(
+            async_create(
                 self.hass,
                 message,
                 title=title,
@@ -307,7 +307,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             if result.success:
                 title = await self.get_translation("notifications.title.success")
                 message = await self.get_translation("notifications.alarm.arm_home.success")
-                await async_create(
+                async_create(
                     self.hass,
                     message,
                     title=title,
@@ -316,7 +316,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             else:
                 title = await self.get_translation("notifications.title.error")
                 message = await self.get_translation("notifications.alarm.arm_home.error", message=result.message)
-                await async_create(
+                async_create(
                     self.hass,
                     message,
                     title=title,
@@ -329,7 +329,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             # Send error notification
             title = await self.get_translation("notifications.title.error")
             message = await self.get_translation("notifications.alarm.arm_home.exception", error=str(e))
-            await async_create(
+            async_create(
                 self.hass,
                 message,
                 title=title,
@@ -350,7 +350,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             if result.success:
                 title = await self.get_translation("notifications.title.success")
                 message = await self.get_translation("notifications.alarm.arm_night.success")
-                await async_create(
+                async_create(
                     self.hass,
                     message,
                     title=title,
@@ -359,7 +359,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             else:
                 title = await self.get_translation("notifications.title.error")
                 message = await self.get_translation("notifications.alarm.arm_night.error", message=result.message)
-                await async_create(
+                async_create(
                     self.hass,
                     message,
                     title=title,
@@ -372,7 +372,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             # Send error notification
             title = await self.get_translation("notifications.title.error")
             message = await self.get_translation("notifications.alarm.arm_night.exception", error=str(e))
-            await async_create(
+            async_create(
                 self.hass,
                 message,
                 title=title,
@@ -389,7 +389,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             if result.success:
                 title = await self.get_translation("notifications.title.success")
                 message = await self.get_translation("notifications.alarm.disarm.success")
-                await async_create(
+                async_create(
                     self.hass,
                     message,
                     title=title,
@@ -398,7 +398,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             else:
                 title = await self.get_translation("notifications.title.error")
                 message = await self.get_translation("notifications.alarm.disarm.error", message=result.message)
-                await async_create(
+                async_create(
                     self.hass,
                     message,
                     title=title,
@@ -411,7 +411,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             # Send error notification
             title = await self.get_translation("notifications.title.error")
             message = await self.get_translation("notifications.alarm.disarm.exception", error=str(e))
-            await async_create(
+            async_create(
                 self.hass,
                 message,
                 title=title,

@@ -24,8 +24,6 @@ class AlarmRepositoryImpl(AlarmRepository):
                 "Getting alarm status for installation %s", installation_id
             )
 
-            # Client will manage its own session internally
-
             alarm_status_data = await self.client.get_alarm_status(
                 installation_id, 
                 panel,

@@ -15,38 +15,6 @@ _LOGGER = logging.getLogger(__name__)
 class BaseClient:
     """Base client with HTTP and GraphQL functionality."""
 
-    def __init__(self) -> None:
-        """Initialize the base client."""
-        self._session: Optional[aiohttp.ClientSession] = None
-        self._cookies: Dict[str, str] = {}
-
-
-    async def __aenter__(self):
-        """Async context manager entry."""
-        await self._connect()
-        return self
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
-        """Async context manager exit."""
-        await self._disconnect()
-
-    async def _connect(self) -> None:
-        """Connect to My Verisure API (private)."""
-        if self._session is None:
-            self._session = aiohttp.ClientSession()
-
-    async def _disconnect(self) -> None:
-        """Disconnect from My Verisure API (private)."""
-        if self._session:
-            if not self._session.closed:
-                await self._session.close()
-            self._session = None
-
-    async def _ensure_session(self) -> None:
-        """Ensure session is ready for use."""
-        if self._session is None:
-            await self._connect()
-
     def _get_native_app_headers(self) -> Dict[str, str]:
         """Get native app headers for better authentication."""
         return {
@@ -103,14 +71,13 @@ class BaseClient:
         headers: Optional[Dict[str, str]] = None,
     ) -> Dict[str, Any]:
         """Execute a GraphQL query using direct aiohttp request."""
-        # Ensure session is ready
-        await self._ensure_session()
+        _session = aiohttp.ClientSession()
         
         try:
             request_data = {"query": query, "variables": variables or {}}
             request_headers = headers or self._get_headers()
 
-            async with self._session.post(
+            async with _session.post(
                 VERISURE_GRAPHQL_URL,
                 json=request_data,
                 headers=request_headers,
@@ -122,5 +89,6 @@ class BaseClient:
             _LOGGER.error("Direct GraphQL query failed: %s", e)
             return {"errors": [{"message": str(e), "data": {}}]}
         finally:
-            # Always disconnect after the request
-            await self._disconnect()
+            if not _session.closed:
+                await _session.close()
+            _session = None
