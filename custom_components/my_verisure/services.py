@@ -52,11 +52,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                         LOGGER.error("Failed to arm alarm away via service: %s", result.message)
                 except Exception as e:
                     LOGGER.error("Error arming alarm away via service: %s", e)
-                    LOGGER.error("Failed to arm alarm away via service: %s", result.message)
                 break
         else:
-            LOGGER.error("Installation %s not found", installation_id)   
-            LOGGER.error("Failed to arm alarm away via service: %s", result.message)
+            LOGGER.error("Installation %s not found", installation_id)
 
     async def async_arm_home_service(call: ServiceCall) -> None:
         """Service to arm the alarm home."""
@@ -73,14 +71,11 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                         LOGGER.warning("Alarm armed home successfully via service")
                     else:
                         LOGGER.error("Failed to arm alarm home via service: %s", result.message)
-                        LOGGER.error("Failed to arm alarm home via service: %s", result.message)
                 except Exception as e:
                     LOGGER.error("Error arming alarm home via service: %s", e)
-                    LOGGER.error("Failed to arm alarm home via service: %s", result.message)
                 break
         else:
             LOGGER.error("Installation %s not found", installation_id)
-            LOGGER.error("Failed to arm alarm home via service: %s", result.message)
 
     async def async_arm_night_service(call: ServiceCall) -> None:
         """Service to arm the alarm night."""
@@ -97,14 +92,11 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                         LOGGER.warning("Alarm armed night successfully via service")
                     else:
                         LOGGER.error("Failed to arm alarm night via service: %s", result.message)
-                        LOGGER.error("Failed to arm alarm night via service: %s", result.message)
                 except Exception as e:
                     LOGGER.error("Error arming alarm night via service: %s", e)
-                    LOGGER.error("Failed to arm alarm night via service: %s", result.message)
                 break
         else:
             LOGGER.error("Installation %s not found", installation_id)
-            LOGGER.error("Failed to arm alarm night via service: %s", result.message)
             
     async def async_disarm_service(call: ServiceCall) -> None:
         """Service to disarm the alarm."""
@@ -122,14 +114,11 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                         LOGGER.warning("Alarm disarmed successfully via service")
                     else:
                         LOGGER.error("Failed to disarm alarm via service: %s", result.message)
-                        LOGGER.error("Failed to disarm alarm via service: %s", result.message)
                 except Exception as e:
                     LOGGER.error("Error disarming alarm via service: %s", e)
-                    LOGGER.error("Failed to disarm alarm via service: %s", result.message)
                 break
         else:
             LOGGER.error("Installation %s not found", installation_id)
-            LOGGER.error("Failed to disarm alarm via service: %s", result.message)
             
     async def async_get_status_service(call: ServiceCall) -> None:
         """Service to get alarm status."""
