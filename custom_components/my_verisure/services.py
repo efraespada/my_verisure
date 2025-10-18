@@ -31,6 +31,15 @@ SERVICE_GET_STATUS_SCHEMA = vol.Schema({
 })
 
 
+def _update_alarm_panel_state(coordinator: MyVerisureDataUpdateCoordinator) -> None:
+    """Update the alarm control panel state via coordinator."""
+    try:
+        coordinator.clear_alarm_transition_state()
+        LOGGER.warning("Updated alarm control panel state via coordinator")
+    except Exception as e:
+        LOGGER.error("Error updating alarm control panel state: %s", e)
+
+
 
 
 async def async_setup_services(hass: HomeAssistant) -> None:
@@ -53,10 +62,16 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     result = await coordinator.async_arm_away()
                     if result.success:
                         LOGGER.warning("Alarm armed away successfully via service")
+                        # Update alarm control panel state
+                        _update_alarm_panel_state(coordinator)
                     else:
                         LOGGER.error("Failed to arm alarm away via service: %s", result.message)
+                        # Update alarm control panel state even on failure
+                        _update_alarm_panel_state(coordinator)
                 except Exception as e:
                     LOGGER.error("Error arming alarm away via service: %s", e)
+                    # Update alarm control panel state on error
+                    _update_alarm_panel_state(coordinator)
                 break
         else:
             LOGGER.error("Installation %s not found", installation_id)
@@ -78,10 +93,16 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     result = await coordinator.async_arm_home()
                     if result.success:
                         LOGGER.warning("Alarm armed home successfully via service")
+                        # Update alarm control panel state
+                        _update_alarm_panel_state(coordinator)
                     else:
                         LOGGER.error("Failed to arm alarm home via service: %s", result.message)
+                        # Update alarm control panel state even on failure
+                        _update_alarm_panel_state(coordinator)
                 except Exception as e:
                     LOGGER.error("Error arming alarm home via service: %s", e)
+                    # Update alarm control panel state on error
+                    _update_alarm_panel_state(coordinator)
                 break
         else:
             LOGGER.error("Installation %s not found", installation_id)
@@ -103,10 +124,16 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     result = await coordinator.async_arm_night()
                     if result.success:
                         LOGGER.warning("Alarm armed night successfully via service")
+                        # Update alarm control panel state
+                        _update_alarm_panel_state(coordinator)
                     else:
                         LOGGER.error("Failed to arm alarm night via service: %s", result.message)
+                        # Update alarm control panel state even on failure
+                        _update_alarm_panel_state(coordinator)
                 except Exception as e:
                     LOGGER.error("Error arming alarm night via service: %s", e)
+                    # Update alarm control panel state on error
+                    _update_alarm_panel_state(coordinator)
                 break
         else:
             LOGGER.error("Installation %s not found", installation_id)
@@ -129,10 +156,16 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     result = await coordinator.async_disarm()
                     if result.success:
                         LOGGER.warning("Alarm disarmed successfully via service")
+                        # Update alarm control panel state
+                        _update_alarm_panel_state(coordinator)
                     else:
                         LOGGER.error("Failed to disarm alarm via service: %s", result.message)
+                        # Update alarm control panel state even on failure
+                        _update_alarm_panel_state(coordinator)
                 except Exception as e:
                     LOGGER.error("Error disarming alarm via service: %s", e)
+                    # Update alarm control panel state on error
+                    _update_alarm_panel_state(coordinator)
                 break
         else:
             LOGGER.error("Installation %s not found", installation_id)

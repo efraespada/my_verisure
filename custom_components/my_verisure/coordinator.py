@@ -68,6 +68,9 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         # Get file manager for data persistence
         self.file_manager = get_file_manager()
         
+        # Reference to alarm control panel for state updates
+        self._alarm_control_panel = None
+        
         # Set credentials in session manager
         self.session_manager.update_credentials(
             entry.data[CONF_USER],
@@ -551,6 +554,17 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             await self._async_update_data()
         except Exception as e:
             LOGGER.error("Error during refresh: %s", e)
+
+    def register_alarm_control_panel(self, alarm_panel) -> None:
+        """Register the alarm control panel for state updates."""
+        self._alarm_control_panel = alarm_panel
+        LOGGER.warning("Alarm control panel registered with coordinator")
+
+    def clear_alarm_transition_state(self) -> None:
+        """Clear the transition state of the registered alarm control panel."""
+        if self._alarm_control_panel and hasattr(self._alarm_control_panel, 'clear_transition_state'):
+            self._alarm_control_panel.clear_transition_state()
+            LOGGER.warning("Cleared alarm control panel transition state")
 
     async def async_cleanup(self):
         """Clean up resources."""
