@@ -303,6 +303,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             
             # Check if operation was successful and send notification
             if result.success:
+                await self._async_update_data()
                 title = await self.get_translation("notifications.title.success")
                 message = await self.get_translation("notifications.alarm.arm_away.success")
                 async_create(
@@ -342,6 +343,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             
             # Check if operation was successful and send notification
             if result.success:
+                await self._async_update_data()
                 title = await self.get_translation("notifications.title.success")
                 message = await self.get_translation("notifications.alarm.arm_home.success")
                 async_create(
@@ -385,6 +387,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             
             # Check if operation was successful and send notification
             if result.success:
+                await self._async_update_data()
                 title = await self.get_translation("notifications.title.success")
                 message = await self.get_translation("notifications.alarm.arm_night.success")
                 async_create(
@@ -424,6 +427,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             
             # Check if operation was successful and send notification
             if result.success:
+                await self._async_update_data()
                 title = await self.get_translation("notifications.title.success")
                 message = await self.get_translation("notifications.alarm.disarm.success")
                 async_create(
