@@ -292,6 +292,8 @@ class AlarmClient(BaseClient):
                     session_data,
                 )
 
+                _LOGGER.warning("CheckAlarm result: %s", json.dumps(check_alarm_result, indent=2))
+
                 # Check for errors in the CheckAlarm response
                 if "errors" in check_alarm_result:
                     error = (
@@ -332,6 +334,8 @@ class AlarmClient(BaseClient):
                     hash_token=hash_token,
                     session_data=session_data,
                 )
+
+                _LOGGER.warning("Alarm message: %s", json.dumps(alarm_message, indent=2))
 
                 # Process the alarm message and return the structured response
                 if alarm_message:
@@ -759,6 +763,10 @@ class AlarmClient(BaseClient):
                 headers["panel"] = panel
                 headers["x-capabilities"] = capabilities
 
+            _LOGGER.warning("Executing CheckAlarm query")
+            _LOGGER.warning("Variables: %s", json.dumps(variables, indent=2))
+            _LOGGER.warning("Headers: %s", json.dumps(headers, indent=2))
+
             result = await self._execute_query_direct(
                 CHECK_ALARM_QUERY, variables, headers
             )
@@ -800,15 +808,15 @@ class AlarmClient(BaseClient):
                 headers["panel"] = panel
                 headers["x-capabilities"] = capabilities
 
-            # _LOGGER.warning("Executing CheckAlarmStatus query")
-            # _LOGGER.warning("Variables: %s", json.dumps(variables, indent=2))
-            # _LOGGER.warning("Headers: %s", json.dumps(headers, indent=2))
+            _LOGGER.warning("Executing CheckAlarmStatus query")
+            _LOGGER.warning("Variables: %s", json.dumps(variables, indent=2))
+            _LOGGER.warning("Headers: %s", json.dumps(headers, indent=2))
 
             result = await self._execute_query_direct(
                 CHECK_ALARM_STATUS_QUERY, variables, headers
             )
 
-            # _LOGGER.warning("CheckAlarmStatus result: %s", json.dumps(result, indent=2))
+            _LOGGER.warning("CheckAlarmStatus result: %s", json.dumps(result, indent=2))
 
             return result
 
@@ -849,9 +857,15 @@ class AlarmClient(BaseClient):
                 headers["panel"] = panel
                 headers["x-capabilities"] = capabilities
 
+            _LOGGER.warning("Executing ArmPanel mutation")
+            _LOGGER.warning("Variables: %s", json.dumps(variables, indent=2))
+            _LOGGER.warning("Headers: %s", json.dumps(headers, indent=2))
+
             result = await self._execute_query_direct(
                 ARM_PANEL_MUTATION, variables, headers
             )
+
+            _LOGGER.warning("ArmPanel result: %s", json.dumps(result, indent=2))
 
             return result
 
@@ -894,9 +908,15 @@ class AlarmClient(BaseClient):
                 headers["panel"] = panel
                 headers["x-capabilities"] = capabilities
 
+            _LOGGER.warning("Executing ArmStatus query")
+            _LOGGER.warning("Variables: %s", json.dumps(variables, indent=2))
+            _LOGGER.warning("Headers: %s", json.dumps(headers, indent=2))
+
             result = await self._execute_query_direct(
                 ARM_STATUS_QUERY, variables, headers
             )
+
+            _LOGGER.warning("ArmStatus result: %s", json.dumps(result, indent=2))
 
             return result
 
@@ -933,9 +953,15 @@ class AlarmClient(BaseClient):
                 headers["panel"] = panel
                 headers["x-capabilities"] = capabilities
 
+            _LOGGER.warning("Executing DisarmPanel mutation")
+            _LOGGER.warning("Variables: %s", json.dumps(variables, indent=2))
+            _LOGGER.warning("Headers: %s", json.dumps(headers, indent=2))
+
             result = await self._execute_query_direct(
                 DISARM_PANEL_MUTATION, variables, headers
             )
+
+            _LOGGER.warning("DisarmPanel result: %s", json.dumps(result, indent=2))
 
             return result
 
@@ -976,9 +1002,15 @@ class AlarmClient(BaseClient):
                 headers["panel"] = panel
                 headers["x-capabilities"] = capabilities
 
+            _LOGGER.warning("Executing DisarmStatus query")
+            _LOGGER.warning("Variables: %s", json.dumps(variables, indent=2))
+            _LOGGER.warning("Headers: %s", json.dumps(headers, indent=2))
+
             result = await self._execute_query_direct(
                 DISARM_STATUS_QUERY, variables, headers
             )
+
+            _LOGGER.warning("DisarmStatus result: %s", json.dumps(result, indent=2))
 
             return result
 
