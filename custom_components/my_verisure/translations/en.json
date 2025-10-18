@@ -82,5 +82,18 @@
         }
       }
     }
+  },
+  "notifications": {
+    "title": {
+      "success": "My Verisure",
+      "error": "My Verisure - Error",
+      "warning": "My Verisure - Warning"
+    },
+    "service": {
+      "blocked": {
+        "title": "Service temporarily blocked",
+        "message": "Too many requests were made, and the service has temporarily blocked further calls. Please wait about 10 minutes before trying again."
+      }
+    }
   }
 } 

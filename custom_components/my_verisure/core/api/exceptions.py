@@ -27,3 +27,7 @@ class MyVerisureOTPError(MyVerisureError):
 
 class MyVerisureDeviceAuthorizationError(MyVerisureError):
     """Device authorization error - device needs to be authorized."""
+
+
+class MyVerisureServiceBlockedError(MyVerisureError):
+    """Service temporarily blocked due to too many requests."""

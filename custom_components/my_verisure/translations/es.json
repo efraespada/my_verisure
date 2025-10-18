@@ -87,7 +87,8 @@
   "notifications": {
     "title": {
       "success": "My Verisure",
-      "error": "My Verisure - Error"
+      "error": "My Verisure - Error",
+      "warning": "My Verisure - Advertencia"
     },
     "alarm": {
       "arm_away": {
@@ -109,6 +110,12 @@
         "success": "La alarma se ha desactivado correctamente.",
         "error": "Error al desactivar la alarma: {message}",
         "exception": "Error al desactivar la alarma: {error}"
+      }
+    },
+    "service": {
+      "blocked": {
+        "title": "Servicio temporalmente bloqueado",
+        "message": "Se han realizado demasiadas peticiones y el servicio ha bloqueado temporalmente las solicitudes. Espera unos 10 minutos antes de volver a intentarlo."
       }
     }
   }

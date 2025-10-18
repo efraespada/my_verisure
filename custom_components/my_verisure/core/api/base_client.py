@@ -8,6 +8,7 @@ from typing import Any, Dict, Optional
 import aiohttp
 
 from .fields import VERISURE_GRAPHQL_URL
+from .exceptions import MyVerisureServiceBlockedError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -71,6 +72,7 @@ class BaseClient:
         headers: Optional[Dict[str, str]] = None,
     ) -> Dict[str, Any]:
         """Execute a GraphQL query using direct aiohttp request."""
+        
         _session = aiohttp.ClientSession()
         
         try:
@@ -82,9 +84,19 @@ class BaseClient:
                 json=request_data,
                 headers=request_headers,
             ) as response:
+                # Check for HTTP 403 status code (service blocked)
+                if response.status == 403:
+                    _LOGGER.error("Service temporarily blocked (HTTP 403) - too many requests")
+                    raise MyVerisureServiceBlockedError(
+                        "Service temporarily blocked due to too many requests. Please wait about 10 minutes before trying again."
+                    )
+                
                 result = await response.json()
                 return result
 
+        except MyVerisureServiceBlockedError:
+            # Re-raise the service blocked error
+            raise
         except Exception as e:
             _LOGGER.error("Direct GraphQL query failed: %s", e)
             return {"errors": [{"message": str(e), "data": {}}]}

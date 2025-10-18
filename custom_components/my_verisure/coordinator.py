@@ -22,6 +22,7 @@ from .core.api.exceptions import (
     MyVerisureConnectionError,
     MyVerisureError,
     MyVerisureOTPError,
+    MyVerisureServiceBlockedError,
 )
 from .core.dependency_injection.providers import (
     setup_dependencies,
@@ -127,6 +128,18 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             LOGGER.warning("Automatic session refresh failed, performing new login...")
             return await self._perform_new_login()
             
+        except MyVerisureServiceBlockedError as ex:
+            LOGGER.error("Service temporarily blocked during login: %s", ex)
+            # Send service blocked notification
+            title = await self.get_translation("notifications.service.blocked.title")
+            message = await self.get_translation("notifications.service.blocked.message")
+            async_create(
+                self.hass,
+                message,
+                title=title,
+                notification_id="verisure_service_blocked"
+            )
+            return False
         except Exception as e:
             LOGGER.error("Login failed: %s", e)
             return False
@@ -174,6 +187,18 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
                 LOGGER.error("Login failed: %s", auth_result.error_message)
                 return False
                 
+        except MyVerisureServiceBlockedError as ex:
+            LOGGER.error("Service temporarily blocked during new login: %s", ex)
+            # Send service blocked notification
+            title = await self.get_translation("notifications.service.blocked.title")
+            message = await self.get_translation("notifications.service.blocked.message")
+            async_create(
+                self.hass,
+                message,
+                title=title,
+                notification_id="verisure_service_blocked"
+            )
+            return False
         except MyVerisureOTPError:
             LOGGER.warning("OTP authentication required")
             # This should be handled by the config flow
@@ -212,6 +237,18 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
                 LOGGER.error("Failed to set coordinator data explicitly: %s", set_err)
             return result
             
+        except MyVerisureServiceBlockedError as ex:
+            LOGGER.error("Service temporarily blocked: %s", ex)
+            # Send service blocked notification
+            title = await self.get_translation("notifications.service.blocked.title")
+            message = await self.get_translation("notifications.service.blocked.message")
+            async_create(
+                self.hass,
+                message,
+                title=title,
+                notification_id="verisure_service_blocked"
+            )
+            raise UpdateFailed(f"Service temporarily blocked: {ex}") from ex
         except MyVerisureAuthenticationError as ex:
             LOGGER.error("Authentication error: %s", ex)
             raise ConfigEntryAuthFailed from ex
