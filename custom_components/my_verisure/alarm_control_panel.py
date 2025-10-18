@@ -209,11 +209,14 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
         try:
             installation_id = self.config_entry.data.get("installation_id")
             if installation_id:
-                result = await self.coordinator.async_disarm()
-                if result.success:
-                    LOGGER.warning("Alarm disarmed successfully")
-                else:
-                    LOGGER.error("Failed to disarm alarm, message: %s", result.message)
+                # Use the service instead of calling coordinator directly
+                # This prevents double execution
+                await self.hass.services.async_call(
+                    DOMAIN,
+                    "disarm",
+                    {"installation_id": installation_id}
+                )
+                LOGGER.warning("Alarm disarmed successfully")
             else:
                 LOGGER.error("No installation ID available")
             
@@ -237,11 +240,13 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
         try:
             installation_id = self.config_entry.data.get("installation_id")
             if installation_id:
-                result = await self.coordinator.async_arm_away()
-                if result.success:
-                    LOGGER.warning("Alarm armed away successfully")
-                else:
-                    LOGGER.error("Failed to arm alarm away, message: %s", result.message)
+                # Use the service instead of calling coordinator directly
+                await self.hass.services.async_call(
+                    DOMAIN,
+                    "arm_away",
+                    {"installation_id": installation_id}
+                )
+                LOGGER.warning("Alarm armed away successfully")
             else:
                 LOGGER.error("No installation ID available")
 
@@ -265,11 +270,13 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
         try:
             installation_id = self.config_entry.data.get("installation_id")
             if installation_id:
-                result = await self.coordinator.async_arm_home()
-                if result.success:
-                    LOGGER.warning("Alarm armed home successfully")
-                else:
-                    LOGGER.error("Failed to arm alarm home, message: %s", result.message)
+                # Use the service instead of calling coordinator directly
+                await self.hass.services.async_call(
+                    DOMAIN,
+                    "arm_home",
+                    {"installation_id": installation_id}
+                )
+                LOGGER.warning("Alarm armed home successfully")
             else:
                 LOGGER.error("No installation ID available")
 
@@ -293,11 +300,13 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
         try:
             installation_id = self.config_entry.data.get("installation_id")
             if installation_id:
-                result = await self.coordinator.async_arm_night()
-                if result.success:
-                    LOGGER.warning("Alarm armed night successfully")
-                else:
-                    LOGGER.error("Failed to arm alarm night, message: %s", result.message)
+                # Use the service instead of calling coordinator directly
+                await self.hass.services.async_call(
+                    DOMAIN,
+                    "arm_night",
+                    {"installation_id": installation_id}
+                )
+                LOGGER.warning("Alarm armed night successfully")
             else:
                 LOGGER.error("No installation ID available")
 
