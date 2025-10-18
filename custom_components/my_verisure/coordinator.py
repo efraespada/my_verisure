@@ -15,7 +15,6 @@ from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.storage import STORAGE_DIR
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.components.persistent_notification import async_create
-from homeassistant.helpers import translation
 
 from .core.api.exceptions import (
     MyVerisureAuthenticationError,
@@ -31,6 +30,7 @@ from .core.dependency_injection.providers import (
     get_alarm_use_case,
     get_get_installation_devices_use_case,
     clear_dependencies,
+    get_refresh_camera_images_use_case,
 )
 from .core.file_manager import get_file_manager
 from .core.session_manager import get_session_manager
@@ -61,6 +61,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         self.installation_use_case = get_installation_use_case()
         self.get_installation_devices_use_case = get_get_installation_devices_use_case()
         self.alarm_use_case = get_alarm_use_case()
+        self.refresh_camera_images_use_case = get_refresh_camera_images_use_case()
         
         # Get session manager
         self.session_manager = get_session_manager()
@@ -465,6 +466,25 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
                 notification_id="verisure_alarm_disarm_exception"
             )
             return DisarmResult(success=False, message=f"Failed to disarm: {e}")
+
+    async def async_refresh_camera_images(self) -> None:
+        """Refresh camera images."""
+        try:
+            LOGGER.warning("Refreshing camera images for installation %s", self.installation_id)
+            result = await self.refresh_camera_images_use_case.refresh_camera_images(
+                installation_id=self.installation_id,
+                max_attempts=30,
+                check_interval=4,
+            )
+            
+            LOGGER.warning(
+                "✅ Camera images refresh completed: %d cameras processed, %d successful, %d failed",
+                result.total_cameras,
+                result.successful_refreshes,
+                result.failed_refreshes
+            )
+        except Exception as e:
+            LOGGER.error("Failed to refresh camera images: %s", e)
 
     async def get_translation(self, key: str, **kwargs) -> str:
         """Get translation for a given key (async and non-blocking)."""
