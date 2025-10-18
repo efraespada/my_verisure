@@ -214,8 +214,11 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             if not await self.async_login():
                 raise UpdateFailed("Failed to login to My Verisure")
 
+            LOGGER.warning("Updating data for installation %s", self.installation_id)
             alarm_status = await self.alarm_use_case.get_alarm_status(self.installation_id)
+            LOGGER.warning("Alarm status: %s", alarm_status.dict())
             detailed_installation = await self.installation_use_case.get_installation_services(self.installation_id)
+            LOGGER.warning("Detailed installation: %s", detailed_installation.dict())
             
             result = {
                 "last_updated": time.time(),

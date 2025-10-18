@@ -220,15 +220,15 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
                 LOGGER.error("No installation ID available")
                 
             # Clear transition state and refresh
-            self._transition_state = None
+            # self._transition_state = None
 
-            await self.coordinator.async_request_refresh()
+            # await self.coordinator.async_request_refresh()
 
         except Exception as e:
             LOGGER.error("Failed to disarm alarm: %s", e)
             # Clear transition state on error
-            self._transition_state = None
-            self.async_write_ha_state()
+            # self._transition_state = None
+            # self.async_write_ha_state()
 
     async def async_alarm_arm_away(self, code: str | None = None) -> None:
         """Send arm away command."""
@@ -252,13 +252,13 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
                 LOGGER.error("No installation ID available")
 
             # Clear transition state and refresh
-            self._transition_state = None
-            await self.coordinator.async_request_refresh()
+            # self._transition_state = None
+            # await self.coordinator.async_request_refresh()
         except Exception as e:
             LOGGER.error("Failed to arm alarm away: %s", e)
             # Clear transition state on error
-            self._transition_state = None
-            self.async_write_ha_state()
+            # self._transition_state = None
+            # self.async_write_ha_state()
 
     async def async_alarm_arm_home(self, code: str | None = None) -> None:
         """Send arm home command."""
@@ -282,13 +282,13 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
                 LOGGER.error("No installation ID available")
 
             # Clear transition state and refresh
-            self._transition_state = None
-            await self.coordinator.async_request_refresh()
+            #self._transition_state = None
+            #await self.coordinator.async_request_refresh()
         except Exception as e:
             LOGGER.error("Failed to arm alarm home: %s", e)
             # Clear transition state on error
-            self._transition_state = None
-            self.async_write_ha_state()
+            # self._transition_state = None
+            # self.async_write_ha_state()
 
     async def async_alarm_arm_night(self, code: str | None = None) -> None:
         """Send arm night command."""
@@ -312,13 +312,13 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
                 LOGGER.error("No installation ID available")
 
             # Clear transition state and refresh
-            self._transition_state = None
-            await self.coordinator.async_request_refresh()
+            # self._transition_state = None
+            # await self.coordinator.async_request_refresh()
         except Exception as e:
             LOGGER.error("Failed to arm alarm night: %s", e)
             # Clear transition state on error
-            self._transition_state = None
-            self.async_write_ha_state()
+            # self._transition_state = None
+            # self.async_write_ha_state()
 
     @property
     def available(self) -> bool:
