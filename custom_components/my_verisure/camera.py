@@ -60,33 +60,47 @@ class VerisureCamera(CoordinatorEntity, Camera):
             # Get the camera directory path
             camera_dir = get_file_manager().get_data_directory()
             device_path = os.path.join(camera_dir, "cameras", f"{self._device['type']}{int(self._device['code']):02d}")
+            
+            _LOGGER.debug("Looking for camera images in: %s", device_path)
         
             if not os.path.exists(device_path):
-                _LOGGER.debug("Camera directory not found: %s", device_path)
+                _LOGGER.warning("Camera directory not found: %s", device_path)
+                return None
+
+            # List all items in the camera directory
+            try:
+                items = os.listdir(device_path)
+                _LOGGER.debug("Found %d items in camera directory: %s", len(items), items)
+            except Exception as e:
+                _LOGGER.error("Error listing camera directory %s: %s", device_path, e)
                 return None
 
             # Find the most recent timestamp directory
             latest_timestamp = None
             latest_timestamp_dir = None
             
-            for item in os.listdir(device_path):
+            for item in items:
                 item_path = os.path.join(device_path, item)
                 if os.path.isdir(item_path):
                     try:
-                        # Parse timestamp from directory name (format: 2025-10-16_06-10-44)
-                        timestamp_str = item.replace("_", " ").replace("-", ":")
-                        timestamp = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S")
+                        # Parse timestamp from directory name (format: 2025-01-16_06-10-44)
+                        # Convert "2025-01-16_06-10-44" to "2025-01-16 06:10:44"
+                        timestamp_str = item.replace("_", " ")
+                        timestamp = datetime.strptime(timestamp_str, "%Y-%m-%d %H-%M-%S")
                         
                         if latest_timestamp is None or timestamp > latest_timestamp:
                             latest_timestamp = timestamp
                             latest_timestamp_dir = item_path
-                    except ValueError:
-                        _LOGGER.debug("Could not parse timestamp from directory: %s", item)
+                            _LOGGER.debug("Found newer timestamp directory: %s (parsed as %s)", item, timestamp)
+                    except ValueError as e:
+                        _LOGGER.debug("Could not parse timestamp from directory '%s': %s", item, e)
                         continue
 
             if latest_timestamp_dir is None:
-                _LOGGER.debug("No valid timestamp directories found for camera %s", self._device['code'])
+                _LOGGER.warning("No valid timestamp directories found for camera %s in %s", self._device['code'], device_path)
                 return None
+
+            _LOGGER.debug("Using latest timestamp directory: %s", latest_timestamp_dir)
 
             # Look for thumbnail.jpg in the latest directory
             thumbnail_path = os.path.join(latest_timestamp_dir, "thumbnail.jpg")
@@ -95,15 +109,35 @@ class VerisureCamera(CoordinatorEntity, Camera):
                     image_data = f.read()
                     self._latest_image_path = thumbnail_path
                     self._latest_image_timestamp = latest_timestamp.isoformat()
-                    _LOGGER.debug("Loaded latest image for camera %s from %s", self._device['code'], thumbnail_path)
+                    _LOGGER.info("✅ Loaded latest image for camera %s from %s (size: %d bytes)", 
+                               self._device['code'], thumbnail_path, len(image_data))
                     return image_data
             else:
-                _LOGGER.debug("Thumbnail not found in latest directory: %s", latest_timestamp_dir)
+                # Try to find any image file in the directory
+                try:
+                    files = os.listdir(latest_timestamp_dir)
+                    _LOGGER.debug("Files in latest directory: %s", files)
+                    
+                    # Look for any image file
+                    for file in files:
+                        if file.lower().endswith(('.jpg', '.jpeg', '.png')):
+                            image_path = os.path.join(latest_timestamp_dir, file)
+                            with open(image_path, "rb") as f:
+                                image_data = f.read()
+                                self._latest_image_path = image_path
+                                self._latest_image_timestamp = latest_timestamp.isoformat()
+                                _LOGGER.info("✅ Loaded image for camera %s from %s (size: %d bytes)", 
+                                           self._device['code'], image_path, len(image_data))
+                                return image_data
+                except Exception as e:
+                    _LOGGER.error("Error reading files from directory %s: %s", latest_timestamp_dir, e)
+                
+                _LOGGER.warning("No thumbnail.jpg or other images found in latest directory: %s", latest_timestamp_dir)
                 return None
                 
         except Exception as e:
-                _LOGGER.error("Error getting latest image for camera %s: %s", self._device['code'], e)
-                return None
+            _LOGGER.error("Error getting latest image for camera %s: %s", self._device['code'], e)
+            return None
         finally:
             # Clean up dependencies
             clear_dependencies()
