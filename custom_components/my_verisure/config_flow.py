@@ -28,6 +28,7 @@ from .core.dependency_injection.providers import (
     get_auth_use_case,
     get_installation_use_case,
     clear_dependencies,
+    get_create_dummy_camera_images_use_case,
 )
 from .core.session_manager import get_session_manager
 from .core.const import (
@@ -273,6 +274,10 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                 )
                 
                 if installation:
+                    create_dummy_camera_images_use_case = get_create_dummy_camera_images_use_case()
+                    await create_dummy_camera_images_use_case.create_dummy_camera_images(
+                        installation_id=installation_id,
+                    )
                     # Create the config entry
                     return self.async_create_entry(
                         title=f"My Verisure - {installation.alias or installation_id}",

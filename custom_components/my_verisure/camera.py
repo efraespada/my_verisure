@@ -58,7 +58,7 @@ class VerisureCamera(CoordinatorEntity, Camera):
             setup_dependencies()
             
             # Get the camera directory path
-            camera_dir = get_file_manager().get_data_path()
+            camera_dir = get_file_manager().get_data_directory()
             device_path = os.path.join(camera_dir, "cameras", f"{self._device['type']}{int(self._device['code']):02d}")
         
             if not os.path.exists(device_path):

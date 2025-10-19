@@ -12,7 +12,8 @@
     "aiohttp>=3.8.0",
     "voluptuous>=0.13.0",
     "injector>=0.21.0",
-    "PyJWT>=2.8.0"
+    "PyJWT>=2.8.0",
+    "Pillow>=10.0.0"
   ],
   "version": "1.0.0",
   "icon": "icon.png"

@@ -32,6 +32,8 @@ class CameraCommand(BaseCommand):
                 return await self._show_cameras_info(installation_id, interactive)
             elif action == "refresh-images":
                 return await self._refresh_camera_images(installation_id, interactive)
+            elif action == "create-dummies":
+                return await self._create_dummy_camera_images(installation_id, interactive)
             else:
                 print_error(f"Unknown camera action: {action}")
                 return False
@@ -148,4 +150,58 @@ class CameraCommand(BaseCommand):
         except Exception as e:
             _LOGGER.error("Failed to refresh camera images: %s", e)
             print_error(f"Failed to refresh camera images: {e}")
+            return False
+
+    async def _create_dummy_camera_images(
+        self, installation_id: Optional[str], interactive: bool
+    ) -> bool:
+        """Create dummy camera images."""
+        try:
+            print_header("CREATE DUMMY CAMERA IMAGES")
+
+            # Get installation ID using BaseCommand method
+            installation_id = await self.select_installation_if_needed(installation_id)
+            if not installation_id:
+                print_error("No installation selected")
+                return False
+
+            print_info(f"Creating dummy camera images for installation: {installation_id}")
+
+            # Execute the create dummy camera images use case
+            result = await self.create_dummy_camera_images_use_case.create_dummy_camera_images(
+                installation_id=installation_id,
+            )
+
+            # Display results using the CameraRefresh structure
+            print_success("Dummy camera images creation completed!")
+            print_info(f"Total cameras: {result.total_cameras}")
+            print_info(f"Successful creations: {result.successful_refreshes}")
+            print_info(f"Failed creations: {result.failed_refreshes}")
+            print()
+
+            if result.refresh_data:
+                print_info("Camera dummy creation details:")
+                for i, camera_data in enumerate(result.refresh_data, 1):
+                    camera_id = camera_data.camera_identifier
+                    num_images = camera_data.num_images
+                    timestamp = camera_data.timestamp
+                    
+                    if num_images > 0:
+                        print_success(f"  {i}. {camera_id}: {num_images} dummy images created at {timestamp}")
+                    else:
+                        print_error(f"  {i}. {camera_id}: No dummy images created at {timestamp}")
+            else:
+                print_info("No camera dummy creation data available")
+
+            # Show summary
+            if result.successful_refreshes > 0:
+                print_success(f"✓ Successfully created dummy images for {result.successful_refreshes} cameras")
+            if result.failed_refreshes > 0:
+                print_error(f"✗ Failed to create dummy images for {result.failed_refreshes} cameras")
+
+            return True
+
+        except Exception as e:
+            _LOGGER.error("Failed to create dummy camera images: %s", e)
+            print_error(f"Failed to create dummy camera images: {e}")
             return False

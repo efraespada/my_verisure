@@ -56,6 +56,7 @@ Examples:
   # Camera management
   my_verisure cameras info --installation-id 12345
   my_verisure cameras refresh-images --installation-id 12345
+  my_verisure cameras create-dummies --installation-id 12345
 
   # Non-interactive mode (for scripts)
   my_verisure auth login --non-interactive
@@ -162,6 +163,11 @@ Examples:
     )
     camera_refresh_parser.add_argument("--installation-id", help="Installation ID")
 
+    camera_create_dummies_parser = camera_subparsers.add_parser(
+        "create-dummies", help="Create dummy camera images"
+    )
+    camera_create_dummies_parser.add_argument("--installation-id", help="Installation ID")
+
     return parser
 
 
@@ -245,6 +251,12 @@ async def main():
                     interactive=not args.non_interactive,
                 )
             elif args.action == "refresh-images":
+                success = await command.execute(
+                    args.action,
+                    installation_id=args.installation_id,
+                    interactive=not args.non_interactive,
+                )
+            elif args.action == "create-dummies":
                 success = await command.execute(
                     args.action,
                     installation_id=args.installation_id,

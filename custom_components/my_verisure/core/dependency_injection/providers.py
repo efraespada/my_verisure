@@ -17,6 +17,7 @@ from ..use_cases.interfaces.installation_use_case import InstallationUseCase
 from ..use_cases.interfaces.alarm_use_case import AlarmUseCase
 from ..use_cases.interfaces.get_installation_devices_use_case import GetInstallationDevicesUseCase
 from ..use_cases.interfaces.refresh_camera_images_use_case import RefreshCameraImagesUseCase
+from ..use_cases.interfaces.create_dummy_camera_images_use_case import CreateDummyCameraImagesUseCase
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +50,10 @@ def get_get_installation_devices_use_case() -> GetInstallationDevicesUseCase:
 def get_refresh_camera_images_use_case() -> RefreshCameraImagesUseCase:
     """Get the refresh camera images use case."""
     return get_dependency(RefreshCameraImagesUseCase)
+
+def get_create_dummy_camera_images_use_case() -> CreateDummyCameraImagesUseCase:
+    """Get the create dummy camera images use case."""
+    return get_dependency(CreateDummyCameraImagesUseCase)
 
 def get_auth_client() -> AuthClient:
     """Get the authentication client."""
