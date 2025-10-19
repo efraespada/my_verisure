@@ -110,18 +110,11 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             # Check if we have a valid session
             if self.session_manager.is_authenticated:
                 LOGGER.warning("Using existing valid session")
-                # Try to use the session by making a test request
-                try:
-                    # Test the session by trying to get installations
-                    await self.installation_use_case.get_installations()
-                    LOGGER.warning("Session is valid and working")
+                
+                # First check if token has expired locally (more efficient)
+                if not self.session_manager.is_session_valid():
+                    LOGGER.warning("Session token has expired locally, will re-authenticate")
                     return True
-                except MyVerisureOTPError:
-                    LOGGER.warning("Session requires OTP re-authentication")
-                    # Fall through to re-authentication
-                except Exception as e:
-                    LOGGER.warning("Session test failed, will re-authenticate: %s", e)
-                    # Fall through to re-authentication
             
             # If we don't have a valid session, try to refresh it automatically
             LOGGER.warning("No valid session available, attempting automatic refresh...")

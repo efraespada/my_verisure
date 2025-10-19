@@ -5,6 +5,7 @@ import logging
 import os
 import time
 from typing import Optional, Dict, Any
+from .utils.jwt_utils import is_jwt_expired
 
 logger = logging.getLogger(__name__)
 
@@ -225,7 +226,22 @@ class SessionManager:
         current_time = time.time()
         session_age = current_time - self.session_timestamp
         
-        return session_age <= 360  # 6 minutes
+        if session_age > 360:  # 6 minutes
+            logger.warning(f"Session expired by time (age: {session_age:.1f} seconds)")
+            return False
+        
+        # Also check if JWT token has expired
+        try:
+            if is_jwt_expired(self.hash_token):
+                logger.warning("hash_token (JWT) has expired")
+                return False
+        except Exception as e:
+            logger.warning(f"Error checking JWT expiration: {e}")
+            # If we can't check JWT expiration, fall back to time-based check
+            pass
+        
+        logger.debug(f"Session appears valid (age: {session_age:.1f} seconds)")
+        return True
 
     async def ensure_authenticated(self, interactive: bool = True) -> bool:
         """Check if we have valid credentials."""
