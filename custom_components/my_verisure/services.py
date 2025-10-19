@@ -30,6 +30,10 @@ SERVICE_GET_STATUS_SCHEMA = vol.Schema({
     vol.Required("installation_id"): cv.string,
 })
 
+SERVICE_REFRESH_CAMERA_IMAGES_SCHEMA = vol.Schema({
+    vol.Required("installation_id"): cv.string,
+})
+
 
 def _update_alarm_panel_state(coordinator: MyVerisureDataUpdateCoordinator) -> None:
     """Update the alarm control panel state via coordinator."""
@@ -176,7 +180,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         LOGGER.warning("Service get_status called for installation %s", installation_id)
         
         # Find the coordinator for this installation
-        for entry_id, coordinator in hass.data[DOMAIN].items():
+        for entry_id, obj in hass.data[DOMAIN].items():
+            if not isinstance(obj, MyVerisureDataUpdateCoordinator):
+                continue
+            coordinator: MyVerisureDataUpdateCoordinator = obj
             if coordinator.config_entry.data.get("installation_id") == installation_id:
                 LOGGER.warning("Found coordinator for installation %s, calling async_request_refresh", installation_id)
                 try:
@@ -188,7 +195,27 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         else:
             LOGGER.error("Installation %s not found", installation_id)
 
-
+    async def async_refresh_camera_images_service(call: ServiceCall) -> None:
+        """Service to refresh camera images."""
+        installation_id = call.data["installation_id"]
+        LOGGER.warning("Service refresh_camera_images called for installation %s", installation_id)
+        
+        # Find the coordinator for this installation
+        for entry_id, obj in hass.data[DOMAIN].items():
+            if not isinstance(obj, MyVerisureDataUpdateCoordinator):
+                continue
+            coordinator: MyVerisureDataUpdateCoordinator = obj
+            
+            if coordinator.config_entry.data.get("installation_id") == installation_id:
+                LOGGER.warning("Found coordinator for installation %s, calling async_refresh_camera_images", installation_id)
+                try:
+                    await coordinator.async_refresh_camera_images()
+                    LOGGER.warning("Camera images refreshed via service")
+                except Exception as e:
+                    LOGGER.error("Error refreshing camera images via service: %s", e)
+                break
+        else:
+            LOGGER.error("Installation %s not found", installation_id)
 
     # Register services
     hass.services.async_register(
@@ -226,7 +253,12 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         schema=SERVICE_GET_STATUS_SCHEMA,
     )
     
-
+    hass.services.async_register(
+        DOMAIN,
+        "refresh_camera_images",
+        async_refresh_camera_images_service,
+        schema=SERVICE_REFRESH_CAMERA_IMAGES_SCHEMA,
+    )
 
 
 async def async_unload_services(hass: HomeAssistant) -> None:

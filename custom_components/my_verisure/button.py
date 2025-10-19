@@ -28,16 +28,42 @@ class RefreshCameraImagesButton(CoordinatorEntity, ButtonEntity):
             "name": "Verisure Camera Refresh",
             "manufacturer": "Verisure",
         }
+        # Track if button is currently executing
+        self._is_executing = False
 
     async def async_press(self) -> None:
         """Handle the button press."""
-        try:
-            _LOGGER.warning("🔄 Refreshing camera images for installation %s", self._installation_id)
-            await self._coordinator.async_refresh_camera_images()
+        if self._is_executing:
+            _LOGGER.warning("Button is already executing, ignoring press")
+            return
             
+        _LOGGER.warning("Refreshing camera images...")
+        
+        # Set executing state
+        self._is_executing = True
+        self.async_write_ha_state()
+        
+        try:
+            # Use the service to refresh camera images
+            await self.hass.services.async_call(
+                DOMAIN,
+                "refresh_camera_images",
+                {"installation_id": self._installation_id}
+            )
+            _LOGGER.warning("Camera images refresh service called successfully")
+                
         except Exception as e:
-            _LOGGER.error("❌ Failed to refresh camera images: %s", e)
-            raise
+            _LOGGER.error("Failed to refresh camera images: %s", e)
+        finally:
+            # Clear executing state
+            self._is_executing = False
+            self.async_write_ha_state()
+
+    @property
+    def available(self) -> bool:
+        """Return True if entity is available."""
+        # Button is available only if coordinator is working and not currently executing
+        return self.coordinator.last_update_success and not self._is_executing
 
     @property
     def extra_state_attributes(self):
@@ -46,6 +72,7 @@ class RefreshCameraImagesButton(CoordinatorEntity, ButtonEntity):
             "installation_id": self._installation_id,
             "action": "refresh_camera_images",
             "description": "Refresh images from all Verisure cameras",
+            "is_executing": self._is_executing,
         }
 
 
