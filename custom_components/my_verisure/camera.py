@@ -165,6 +165,11 @@ class VerisureCamera(CoordinatorEntity, Camera):
         """Return the stream object for this camera."""
         return self._stream
 
+    @property
+    def content_type(self) -> str:
+        """Return the content type for camera images."""
+        return "image/jpeg"
+
     async def async_refresh_providers(self, write_state: bool = True) -> None:
         """Refresh camera providers."""
         # This method is required by Home Assistant Camera component
