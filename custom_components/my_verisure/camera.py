@@ -186,12 +186,12 @@ async def async_setup_entry(
     cameras = []
     
     # Get devices from coordinator data
-    devices = coordinator.data.get("devices", [])
+    devices = coordinator.data.get("detailed_installation", {}).get("installation", {}).get("devices", [])
     
     # Filter for camera devices (YP and YR)
     camera_devices = [
         device for device in devices 
-        if device.get('type') in ["YP", "YR"] and device.get('remote_use')
+        if device.get('type') in ["YP", "YR"]
     ]
     
     for device in camera_devices:
