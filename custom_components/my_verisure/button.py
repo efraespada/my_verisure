@@ -54,8 +54,6 @@ class RefreshCameraImagesButton(CoordinatorEntity, ButtonEntity):
                 
         except Exception as e:
             _LOGGER.error("Failed to refresh camera images: %s", e)
-        finally:
-            # Clear executing state
             self._is_executing = False
             self.async_write_ha_state()
 
