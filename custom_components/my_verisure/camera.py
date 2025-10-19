@@ -2,6 +2,7 @@
 
 import logging
 import os
+import secrets
 from datetime import datetime
 from typing import Optional
 
@@ -43,7 +44,8 @@ class VerisureCamera(CoordinatorEntity, Camera):
         self._frontend_stream_type = None
         self._is_streaming = False
         self._stream = None
-        self._access_tokens = []
+        # Ensure at least one access token exists to satisfy HA's Camera base
+        self._access_tokens = [secrets.token_urlsafe(32)]
 
     @property
     def camera_image(self) -> Optional[bytes]:
@@ -144,6 +146,8 @@ class VerisureCamera(CoordinatorEntity, Camera):
     @property
     def access_tokens(self) -> list:
         """Return access tokens for this camera."""
+        if not self._access_tokens:
+            self._access_tokens = [secrets.token_urlsafe(32)]
         return self._access_tokens
 
     @property
