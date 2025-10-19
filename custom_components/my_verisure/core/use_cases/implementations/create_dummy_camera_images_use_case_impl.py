@@ -73,6 +73,23 @@ class CreateDummyCameraImagesUseCaseImpl(CreateDummyCameraImagesUseCase):
                     formatted_code = f"{camera_device.type}{int(camera_device.code):02d}"
                     camera_dir = os.path.join(cameras_dir, formatted_code)
                     
+                    # Check if camera already has images
+                    if self._camera_has_existing_images(camera_dir):
+                        _LOGGER.info(
+                            "⏭️ Camera %s (%s) already has images, skipping dummy creation",
+                            camera_device.name,
+                            formatted_code
+                        )
+                        
+                        refresh_data.append(
+                            CameraRefreshData(
+                                timestamp=datetime.now().isoformat(),
+                                num_images=0,
+                                camera_identifier=formatted_code,
+                            )
+                        )
+                        continue
+                    
                     # Create camera directory if it doesn't exist
                     os.makedirs(camera_dir, exist_ok=True)
                     
@@ -138,6 +155,28 @@ class CreateDummyCameraImagesUseCaseImpl(CreateDummyCameraImagesUseCase):
                 failed_refreshes=0,
                 timestamp=datetime.now().isoformat(),
             )
+
+    def _camera_has_existing_images(self, camera_dir: str) -> bool:
+        """Check if camera already has existing images."""
+        try:
+            if not os.path.exists(camera_dir):
+                return False
+            
+            # Look for any timestamp directories (YYYY-MM-DD_HH-MM-SS format)
+            for item in os.listdir(camera_dir):
+                item_path = os.path.join(camera_dir, item)
+                if os.path.isdir(item_path):
+                    # Check if this directory contains image files
+                    for file in os.listdir(item_path):
+                        if file.lower().endswith(('.jpg', '.jpeg', '.png', '.gif')):
+                            _LOGGER.debug("Found existing images in %s", item_path)
+                            return True
+            
+            return False
+            
+        except Exception as e:
+            _LOGGER.error("Error checking existing images for camera %s: %s", camera_dir, e)
+            return False
 
     def _create_dummy_images(self, directory_path: str) -> int:
         """Create dummy black images in the specified directory."""

@@ -31,6 +31,7 @@ from .core.dependency_injection.providers import (
     get_get_installation_devices_use_case,
     clear_dependencies,
     get_refresh_camera_images_use_case,
+    get_create_dummy_camera_images_use_case,
 )
 from .core.file_manager import get_file_manager
 from .core.session_manager import get_session_manager
@@ -62,7 +63,8 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         self.get_installation_devices_use_case = get_get_installation_devices_use_case()
         self.alarm_use_case = get_alarm_use_case()
         self.refresh_camera_images_use_case = get_refresh_camera_images_use_case()
-        
+        self.create_dummy_camera_images_use_case = get_create_dummy_camera_images_use_case()
+
         # Get session manager
         self.session_manager = get_session_manager()
         
@@ -232,6 +234,10 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
                         LOGGER.error("Failed to save coordinator data to %s", COORDINATOR_DATA_FILE)
                 except Exception as save_err:
                     LOGGER.error("Error saving coordinator data to %s: %s", COORDINATOR_DATA_FILE, save_err)
+
+                await self.create_dummy_camera_images_use_case.create_dummy_camera_images(
+                    installation_id=self.installation_id,
+                )
                     
             except Exception as set_err:
                 LOGGER.error("Failed to set coordinator data explicitly: %s", set_err)
