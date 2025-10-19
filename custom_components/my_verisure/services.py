@@ -43,8 +43,13 @@ def _update_alarm_panel_state(coordinator: MyVerisureDataUpdateCoordinator) -> N
     except Exception as e:
         LOGGER.error("Error updating alarm control panel state: %s", e)
 
-
-
+def _update_button_state(coordinator: MyVerisureDataUpdateCoordinator) -> None:
+    """Update the button state via coordinator."""
+    try:
+        coordinator.clear_button_executing_state()
+        LOGGER.warning("Updated button state via coordinator")
+    except Exception as e:
+        LOGGER.error("Error updating button state: %s", e)
 
 async def async_setup_services(hass: HomeAssistant) -> None:
     """Set up services for My Verisure."""
@@ -211,11 +216,15 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 try:
                     await coordinator.async_refresh_camera_images()
                     LOGGER.warning("Camera images refreshed via service")
+                    _update_button_state(coordinator)
                 except Exception as e:
                     LOGGER.error("Error refreshing camera images via service: %s", e)
+                    _update_button_state(coordinator)
                 break
         else:
             LOGGER.error("Installation %s not found", installation_id)
+            _update_button_state(coordinator)
+
 
     # Register services
     hass.services.async_register(

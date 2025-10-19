@@ -586,6 +586,17 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             self._alarm_control_panel.clear_transition_state()
             LOGGER.warning("Cleared alarm control panel transition state")
 
+    def register_button(self, button) -> None:
+        """Register the button for state updates."""
+        self._button = button
+        LOGGER.warning("Button registered with coordinator")
+
+    def clear_button_executing_state(self) -> None:
+        """Clear the executing state of the registered button."""
+        if self._button and hasattr(self._button, 'clear_executing_state'):
+            self._button.clear_executing_state()
+            LOGGER.warning("Cleared button executing state")
+
     async def async_cleanup(self):
         """Clean up resources."""
         try:
