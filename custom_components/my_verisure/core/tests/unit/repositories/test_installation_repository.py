@@ -6,20 +6,10 @@ Unit tests for InstallationRepository implementation.
 import pytest
 from unittest.mock import Mock, AsyncMock
 
-# Add the package root to the path
-import sys
-import os
-
-sys.path.append(os.path.join(os.path.dirname(__file__), "../../../../"))
-
-from core.repositories.implementations.installation_repository_impl import (
-    InstallationRepositoryImpl,
-)
-from core.repositories.interfaces.installation_repository import (
-    InstallationRepository,
-)
-from core.api.exceptions import MyVerisureError
-from core.api.models.dto.installation_dto import (
+from ....repositories.implementations.installation_repository_impl import InstallationRepositoryImpl
+from ....repositories.interfaces.installation_repository import InstallationRepository
+from ....api.exceptions import MyVerisureError
+from ....api.models.dto.installation_dto import (
     InstallationDTO,
     DetailedInstallationDTO,
     ServiceDTO,

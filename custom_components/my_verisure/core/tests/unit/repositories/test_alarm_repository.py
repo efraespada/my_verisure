@@ -6,17 +6,11 @@ Unit tests for AlarmRepository implementation.
 import pytest
 from unittest.mock import Mock, AsyncMock
 
-# Add the package root to the path
-import sys
-import os
-
-sys.path.append(os.path.join(os.path.dirname(__file__), "../../../../"))
-
-from core.repositories.implementations.alarm_repository_impl import (
+from ....repositories.implementations.alarm_repository_impl import (
     AlarmRepositoryImpl,
 )
-from core.repositories.interfaces.alarm_repository import AlarmRepository
-from core.api.exceptions import MyVerisureError
+from ....repositories.interfaces.alarm_repository import AlarmRepository
+from ....api.exceptions import MyVerisureError
 
 
 class TestAlarmRepository:

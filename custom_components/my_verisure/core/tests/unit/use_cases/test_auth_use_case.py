@@ -6,18 +6,12 @@ Unit tests for AuthUseCase implementation.
 import pytest
 from unittest.mock import Mock, AsyncMock
 
-# Add the package root to the path
-import sys
-import os
-
-sys.path.append(os.path.join(os.path.dirname(__file__), "../../../../"))
-
-from core.use_cases.implementations.auth_use_case_impl import AuthUseCaseImpl
-from core.use_cases.interfaces.auth_use_case import AuthUseCase
-from core.repositories.interfaces.auth_repository import AuthRepository
-from core.api.models.domain.auth import Auth, AuthResult
-from core.api.models.domain.session import DeviceIdentifiers
-from core.api.exceptions import MyVerisureAuthenticationError, MyVerisureOTPError
+from ....use_cases.implementations.auth_use_case_impl import AuthUseCaseImpl
+from ....use_cases.interfaces.auth_use_case import AuthUseCase
+from ....repositories.interfaces.auth_repository import AuthRepository
+from ....api.models.domain.auth import Auth, AuthResult
+from ....api.models.domain.session import DeviceIdentifiers
+from ....api.exceptions import MyVerisureAuthenticationError, MyVerisureOTPError
 
 
 class TestAuthUseCase:

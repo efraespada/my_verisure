@@ -3,24 +3,19 @@
 Unit tests for InstallationUseCase implementation.
 """
 
-import os
-import sys
 import pytest
 from unittest.mock import Mock, AsyncMock
 
-# Add the package root to the path
-sys.path.append(os.path.join(os.path.dirname(__file__), "../../../../"))
-
-from core.use_cases.implementations.installation_use_case_impl import (
+from ....use_cases.implementations.installation_use_case_impl import (
     InstallationUseCaseImpl,
 )
-from core.use_cases.interfaces.installation_use_case import InstallationUseCase
-from core.repositories.interfaces.installation_repository import (
+from ....use_cases.interfaces.installation_use_case import InstallationUseCase
+from ....repositories.interfaces.installation_repository import (
     InstallationRepository,
 )
-from core.api.models.domain.installation import Installation, DetailedInstallation
-from core.api.models.domain.service import Service
-from core.api.exceptions import MyVerisureError
+from ....api.models.domain.installation import Installation, DetailedInstallation
+from ....api.models.domain.service import Service
+from ....api.exceptions import MyVerisureError
 
 
 class TestInstallationUseCase:

@@ -6,28 +6,22 @@ Unit tests for Camera Use Cases implementations.
 import pytest
 from unittest.mock import Mock, AsyncMock
 
-# Add the package root to the path
-import sys
-import os
-
-sys.path.append(os.path.join(os.path.dirname(__file__), "../../../../"))
-
-from core.use_cases.implementations.refresh_camera_images_use_case_impl import (
+from ....use_cases.implementations.refresh_camera_images_use_case_impl import (
     RefreshCameraImagesUseCaseImpl,
 )
-from core.use_cases.implementations.create_dummy_camera_images_use_case_impl import (
+from ....use_cases.implementations.create_dummy_camera_images_use_case_impl import (
     CreateDummyCameraImagesUseCaseImpl,
 )
-from core.use_cases.interfaces.refresh_camera_images_use_case import (
+from ....use_cases.interfaces.refresh_camera_images_use_case import (
     RefreshCameraImagesUseCase,
 )
-from core.use_cases.interfaces.create_dummy_camera_images_use_case import (
+from ....use_cases.interfaces.create_dummy_camera_images_use_case import (
     CreateDummyCameraImagesUseCase,
 )
-from core.repositories.interfaces.camera_repository import CameraRepository
-from core.repositories.interfaces.installation_repository import InstallationRepository
-from core.api.models.domain.camera_request_image import CameraRequestImageResult
-from core.api.exceptions import MyVerisureError
+from ....repositories.interfaces.camera_repository import CameraRepository
+from ....repositories.interfaces.installation_repository import InstallationRepository
+from ....api.models.domain.camera_request_image import CameraRequestImageResult
+from ....api.exceptions import MyVerisureError
 
 
 class TestRefreshCameraImagesUseCase:

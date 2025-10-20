@@ -6,21 +6,14 @@ Unit tests for AlarmUseCase implementation.
 import pytest
 from unittest.mock import Mock, AsyncMock
 
-# Add the package root to the path
-import sys
-import os
-
-sys.path.append(os.path.join(os.path.dirname(__file__), "../../../../"))
-
-from core.use_cases.implementations.alarm_use_case_impl import AlarmUseCaseImpl
-from core.use_cases.interfaces.alarm_use_case import AlarmUseCase
-from core.repositories.interfaces.installation_repository import (
-    InstallationRepository,
-)
-from core.repositories.interfaces.alarm_repository import AlarmRepository
-from core.api.models.domain.alarm import AlarmStatus
-from core.api.models.domain.installation import DetailedInstallation
-from core.api.exceptions import MyVerisureError
+from ....api.models.domain.installation import DetailedInstallation
+from ....use_cases.implementations.alarm_use_case_impl import AlarmUseCaseImpl
+from ....use_cases.interfaces.alarm_use_case import AlarmUseCase
+from ....repositories.interfaces.installation_repository import InstallationRepository
+from ....repositories.interfaces.alarm_repository import AlarmRepository
+from ....api.models.domain.alarm import AlarmStatus
+from ....api.models.domain.installation import DetailedInstallation
+from ....api.exceptions import MyVerisureError
 
 
 class TestAlarmUseCase:

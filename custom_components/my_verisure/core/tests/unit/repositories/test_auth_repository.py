@@ -6,19 +6,13 @@ Unit tests for AuthRepository implementation.
 import pytest
 from unittest.mock import Mock, AsyncMock
 
-# Add the package root to the path
-import sys
-import os
-
-sys.path.append(os.path.join(os.path.dirname(__file__), "../../../../"))
-
-from core.repositories.implementations.auth_repository_impl import (
+from ....repositories.implementations.auth_repository_impl import (
     AuthRepositoryImpl,
 )
-from core.repositories.interfaces.auth_repository import AuthRepository
-from core.api.models.domain.auth import Auth
-from core.api.models.domain.session import DeviceIdentifiers
-from core.api.exceptions import MyVerisureAuthenticationError, MyVerisureOTPError
+from ....repositories.interfaces.auth_repository import AuthRepository
+from ....api.models.domain.auth import Auth
+from ....api.models.domain.session import DeviceIdentifiers
+from ....api.exceptions import MyVerisureAuthenticationError, MyVerisureOTPError
 
 
 class TestAuthRepository:
