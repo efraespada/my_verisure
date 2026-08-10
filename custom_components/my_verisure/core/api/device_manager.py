@@ -9,9 +9,9 @@ import os
 import platform
 import random
 import time
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
-from ..file_manager import get_file_manager
+from ..file_manager import FileManager, get_file_manager
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -22,10 +22,14 @@ _cached_platform_string: str | None = None
 class DeviceManager:
     """Manages device identifiers and device authorization."""
 
-    def __init__(self) -> None:
+    def __init__(self, file_manager: FileManager | None = None) -> None:
         """Initialize the device manager."""
-        self._device_identifiers: Optional[Dict[str, str]] = None
-        self._file_manager = get_file_manager()
+        self._device_identifiers: Optional[Dict[str, Any]] = None
+        self._file_manager = file_manager
+
+    def _resolve_file_manager(self) -> FileManager:
+        """Return the injected file manager, falling back to legacy global state."""
+        return self._file_manager or get_file_manager()
 
 
     @staticmethod
@@ -36,7 +40,7 @@ class DeviceManager:
             _cached_platform_string = platform.platform()
         return _cached_platform_string
 
-    def _generate_device_identifiers(self) -> Dict[str, str]:
+    def _generate_device_identifiers(self) -> Dict[str, Any]:
         """Generate device identifiers with improved randomness."""
         # Get system information for seeding
         system_info = {
@@ -131,7 +135,7 @@ class DeviceManager:
     def _load_device_identifiers(self) -> bool:
         """Load device identifiers from file (blocking I/O)."""
         try:
-            device_data = self._file_manager.load_device_identifiers()
+            device_data = self._resolve_file_manager().load_device_identifiers()
             if device_data:
                 self._device_identifiers = device_data
                 _LOGGER.warning("Device identifiers loaded from device_identifiers.json")
@@ -152,7 +156,7 @@ class DeviceManager:
     async def _async_load_device_identifiers(self) -> bool:
         """Load device identifiers without blocking the event loop."""
         try:
-            device_data = await self._file_manager.async_load_device_identifiers()
+            device_data = await self._resolve_file_manager().async_load_device_identifiers()
             if device_data:
                 self._device_identifiers = device_data
                 _LOGGER.warning("Device identifiers loaded from device_identifiers.json")
@@ -176,7 +180,7 @@ class DeviceManager:
             return
 
         try:
-            success = self._file_manager.save_device_identifiers(
+            success = self._resolve_file_manager().save_device_identifiers(
                 self._device_identifiers
             )
             if success:
@@ -193,7 +197,7 @@ class DeviceManager:
             _LOGGER.warning("No device identifiers to save")
             return
         try:
-            success = await self._file_manager.async_save_device_identifiers(
+            success = await self._resolve_file_manager().async_save_device_identifiers(
                 self._device_identifiers
             )
             if success:
@@ -225,26 +229,27 @@ class DeviceManager:
                 )
                 await self._async_save_device_identifiers()
 
-    def get_device_info(self) -> Dict[str, str]:
+    def get_device_info(self) -> Dict[str, Any]:
         """Get current device identifiers information."""
         if not self._device_identifiers:
             self.ensure_device_identifiers()
 
+        identifiers = self._device_identifiers or {}
         return {
-            "uuid": self._device_identifiers.get("uuid", "Unknown"),
-            "device_name": self._device_identifiers.get(
+            "uuid": identifiers.get("uuid", "Unknown"),
+            "device_name": identifiers.get(
                 "deviceName", "Unknown"
             ),
-            "device_brand": self._device_identifiers.get(
+            "device_brand": identifiers.get(
                 "deviceBrand", "Unknown"
             ),
-            "device_os": self._device_identifiers.get(
+            "device_os": identifiers.get(
                 "deviceOsVersion", "Unknown"
             ),
-            "device_version": self._device_identifiers.get(
+            "device_version": identifiers.get(
                 "deviceVersion", "Unknown"
             ),
-            "generated_time": self._device_identifiers.get(
+            "generated_time": identifiers.get(
                 "generated_time", 0
             ),
         }
@@ -254,7 +259,8 @@ class DeviceManager:
         if not self._device_identifiers:
             self.ensure_device_identifiers()
 
-        return self._device_identifiers.copy()
+        identifiers = self._device_identifiers or {}
+        return identifiers.copy()
 
     def get_login_variables(
         self, session_id: str, lang: str = "es"
@@ -263,22 +269,23 @@ class DeviceManager:
         if not self._device_identifiers:
             self.ensure_device_identifiers()
 
+        identifiers = self._device_identifiers or {}
         return {
             "id": session_id,
             "country": "ES",
             "callby": "OWI_10",  # Native app identifier
             "lang": lang,
-            "idDevice": self._device_identifiers["idDevice"],
-            "idDeviceIndigitall": self._device_identifiers[
+            "idDevice": identifiers["idDevice"],
+            "idDeviceIndigitall": identifiers[
                 "idDeviceIndigitall"
             ],
-            "deviceType": self._device_identifiers["deviceType"],
-            "deviceVersion": self._device_identifiers["deviceVersion"],
-            "deviceResolution": self._device_identifiers["deviceResolution"],
-            "uuid": self._device_identifiers["uuid"],
-            "deviceName": self._device_identifiers["deviceName"],
-            "deviceBrand": self._device_identifiers["deviceBrand"],
-            "deviceOsVersion": self._device_identifiers["deviceOsVersion"],
+            "deviceType": identifiers["deviceType"],
+            "deviceVersion": identifiers["deviceVersion"],
+            "deviceResolution": identifiers["deviceResolution"],
+            "uuid": identifiers["uuid"],
+            "deviceName": identifiers["deviceName"],
+            "deviceBrand": identifiers["deviceBrand"],
+            "deviceOsVersion": identifiers["deviceOsVersion"],
         }
 
     def get_validation_variables(self) -> Dict[str, str]:
@@ -286,14 +293,15 @@ class DeviceManager:
         if not self._device_identifiers:
             self.ensure_device_identifiers()
 
+        identifiers = self._device_identifiers or {}
         return {
-            "idDevice": self._device_identifiers["idDevice"],
-            "idDeviceIndigitall": self._device_identifiers[
+            "idDevice": identifiers["idDevice"],
+            "idDeviceIndigitall": identifiers[
                 "idDeviceIndigitall"
             ],
-            "uuid": self._device_identifiers["uuid"],
-            "deviceName": self._device_identifiers["deviceName"],
-            "deviceBrand": self._device_identifiers["deviceBrand"],
-            "deviceOsVersion": self._device_identifiers["deviceOsVersion"],
-            "deviceVersion": self._device_identifiers["deviceVersion"],
+            "uuid": identifiers["uuid"],
+            "deviceName": identifiers["deviceName"],
+            "deviceBrand": identifiers["deviceBrand"],
+            "deviceOsVersion": identifiers["deviceOsVersion"],
+            "deviceVersion": identifiers["deviceVersion"],
         }

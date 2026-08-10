@@ -29,6 +29,7 @@ from ..use_cases.implementations.alarm_use_case_impl import AlarmUseCaseImpl
 from ..use_cases.implementations.get_installation_devices_use_case_impl import GetInstallationDevicesUseCaseImpl
 from ..use_cases.implementations.refresh_camera_images_use_case_impl import RefreshCameraImagesUseCaseImpl
 from ..use_cases.implementations.create_dummy_camera_images_use_case_impl import CreateDummyCameraImagesUseCaseImpl
+from ..api.device_manager import DeviceManager
 from ..file_manager import FileManager
 from ..session_manager import SessionManager
 
@@ -61,9 +62,19 @@ class MyVerisureModule(Module):
 
     @singleton
     @provider
-    def provide_auth_client(self, session_manager: SessionManager) -> AuthClient:
-        """Provide AuthClient with the graph-owned session manager."""
-        return AuthClient(session_manager=session_manager)
+    def provide_device_manager(self, file_manager: FileManager) -> DeviceManager:
+        """Provide DeviceManager with the graph-owned file manager."""
+        return DeviceManager(file_manager=file_manager)
+
+    @singleton
+    @provider
+    def provide_auth_client(
+        self, session_manager: SessionManager, device_manager: DeviceManager
+    ) -> AuthClient:
+        """Provide AuthClient with graph-owned managers."""
+        return AuthClient(
+            session_manager=session_manager, device_manager=device_manager
+        )
 
 
     @singleton

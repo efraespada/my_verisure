@@ -11,6 +11,7 @@ from custom_components.my_verisure.core.api.auth_client import AuthClient
 from custom_components.my_verisure.core.api.installation_client import InstallationClient
 from custom_components.my_verisure.core.api.alarm_client import AlarmClient
 from custom_components.my_verisure.core.api.camera_client import CameraClient
+from custom_components.my_verisure.core.api.device_manager import DeviceManager
 
 
 def test_composition_root_owns_isolated_session_and_file_managers(tmp_path: Path):
@@ -45,3 +46,7 @@ def test_composition_root_owns_isolated_session_and_file_managers(tmp_path: Path
     second_camera = second_root.get(CameraClient)
     assert second_camera._resolve_session_manager() is second_session
     assert second_camera._resolve_file_manager() is second_files
+    assert first_root.get(DeviceManager)._resolve_file_manager() is first_files
+    assert second_root.get(DeviceManager)._resolve_file_manager() is second_files
+    assert first_root.get(AuthClient)._device_manager is first_root.get(DeviceManager)
+    assert second_root.get(AuthClient)._device_manager is second_root.get(DeviceManager)

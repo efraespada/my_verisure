@@ -91,12 +91,16 @@ mutation mkSendOTP($recordId: Int!, $otpHash: String!) {
 class AuthClient(BaseClient):
     """Authentication client for My Verisure API."""
 
-    def __init__(self, session_manager: SessionManager | None = None) -> None:
+    def __init__(
+        self,
+        session_manager: SessionManager | None = None,
+        device_manager: DeviceManager | None = None,
+    ) -> None:
         """Initialize the authentication client."""
         _LOGGER.debug("AuthClient initialized (id=%s)", id(self))
         super().__init__(session_manager=session_manager)
         self._otp_data: Optional[Dict[str, Any]] = None
-        self._device_manager = DeviceManager()
+        self._device_manager = device_manager or DeviceManager()
 
     async def login(self, user: str, password: str) -> AuthDTO:
         """Login to My Verisure API (Native App Simulation)."""
