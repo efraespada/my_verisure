@@ -15,8 +15,8 @@
 - [x] Explicit isolated `CompositionRoot` implemented and unit-tested.
 - [x] Composition root owns explicit per-entry `SessionManager` and `FileManager` instances.
 - [x] Route `InstallationClient`, `AlarmClient`, and `CameraClient` through the entry-scoped session manager.
-- [ ] Correct legacy `AlarmClient` response typing before widening the mypy gate.
-- [ ] Migrate remaining API clients from global manager lookups.
+- [x] Correct legacy `AlarmClient` response typing and empty-message contract.
+- [ ] Migrate `CameraClient` from global `FileManager` lookup to entry-scoped ownership.
 - [ ] Remove global manager ownership after all clients are migrated.
 - [x] Disarm service contract audited: the HA `code` field was removed because the
   Verisure GraphQL disarm contract does not accept or forward it.

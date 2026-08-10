@@ -4,7 +4,7 @@ import asyncio
 import json
 import logging
 import os
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, cast
 
 from ..session_manager import SessionManager
 from ..api.models.domain.alarm import ArmResult, DisarmResult
@@ -104,10 +104,12 @@ class AlarmClient(BaseClient):
         if not message:
             return self._get_default_alarm_status()
 
-        config = await self._load_alarm_status_config()
+        config = cast(
+            dict[str, dict[str, Any]], await self._load_alarm_status_config()
+        )
 
         # Initialize response structure
-        response = {
+        response: Dict[str, Any] = {
             "internal": {
                 "day": {"status": False},
                 "night": {"status": False},
@@ -277,7 +279,7 @@ class AlarmClient(BaseClient):
                     _LOGGER.error(
                         "Real-time alarm status check failed: %s", error_msg
                     )
-                    return {}
+                    return ""
 
                 # Check for successful response
                 data = result.get("data", {})
@@ -317,7 +319,7 @@ class AlarmClient(BaseClient):
                         _LOGGER.warning(
                             "Max retries reached for alarm status check"
                         )
-                        return None
+                        return ""
                 else:
                     # Unknown response
                     _LOGGER.warning(
@@ -325,13 +327,15 @@ class AlarmClient(BaseClient):
                         res,
                         msg,
                     )
-                    return None
+                    return ""
+
+            return ""
 
         except Exception as e:
             _LOGGER.error(
                 "Unexpected error getting real-time alarm status: %s", e
             )
-            return None
+            return ""
 
     async def send_alarm_command(
         self,
