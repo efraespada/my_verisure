@@ -23,14 +23,18 @@ from .core.api.exceptions import (
     MyVerisureOTPError,
     MyVerisureDeviceAuthorizationError,
 )
-from .core.dependency_injection.providers import (
-    setup_dependencies,
-    get_auth_use_case,
-    get_installation_use_case,
-    clear_dependencies,
-    get_create_dummy_camera_images_use_case,
+from pathlib import Path
+
+from homeassistant.helpers.storage import STORAGE_DIR
+
+from .core.dependency_injection.composition_root import (
+    CompositionRoot,
+    build_my_verisure_composition_root,
 )
-from .core.session_manager import get_session_manager
+from .core.use_cases.interfaces.auth_use_case import AuthUseCase
+from .core.use_cases.interfaces.installation_use_case import InstallationUseCase
+from .core.use_cases.interfaces.create_dummy_camera_images_use_case import CreateDummyCameraImagesUseCase
+from .core.session_manager import SessionManager
 from .core.const import (
     CONF_INSTALLATION_ID,
     CONF_USER,
@@ -55,7 +59,21 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
     auth_use_case: Any
     session_manager: Any
     installation_use_case: Any
+    composition_root: CompositionRoot | None = None
     _otp_error: bool = False
+
+    def _ensure_composition(self) -> CompositionRoot:
+        """Create the isolated composition used by this configuration flow."""
+        if self.composition_root is None:
+            session_file = self.hass.config.path(
+                STORAGE_DIR, f"my_verisure_{self.user}.json"
+            )
+            self.composition_root = build_my_verisure_composition_root(
+                session_file=session_file,
+                project_root=Path(self.hass.config.path(STORAGE_DIR))
+                / f"my_verisure_flow_{self.flow_id}",
+            )
+        return self.composition_root
 
     @staticmethod
     @callback
@@ -75,13 +93,10 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
             self.user = user_input[CONF_USER]
             self.password = user_input[CONF_PASSWORD]
             
-            # Setup dependencies (no credentials needed, clients will get them from SessionManager)
-            setup_dependencies()
-            
-            # Get use cases
-            self.auth_use_case = get_auth_use_case()
-            self.session_manager = get_session_manager()
-            self.installation_use_case = get_installation_use_case()
+            root = self._ensure_composition()
+            self.auth_use_case = root.get(AuthUseCase)
+            self.session_manager = root.get(SessionManager)
+            self.installation_use_case = root.get(InstallationUseCase)
             
             # Set credentials in session manager
             self.session_manager.update_credentials(
@@ -258,8 +273,7 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             installation_id = user_input[CONF_INSTALLATION_ID]
             
-            # Check SessionManager state before getting installations
-            session_manager = get_session_manager()
+            session_manager = self._ensure_composition().get(SessionManager)
             LOGGER.debug(
                 "SessionManager before installations: authenticated=%s has_token=%s user=%s",
                 session_manager.is_authenticated,
@@ -267,7 +281,9 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                 session_manager.username,
             )
             
-            self.installation_use_case = get_installation_use_case()
+            self.installation_use_case = self._ensure_composition().get(
+                InstallationUseCase
+            )
 
             
             try:
@@ -279,7 +295,9 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                 )
                 
                 if installation:
-                    create_dummy_camera_images_use_case = get_create_dummy_camera_images_use_case()
+                    create_dummy_camera_images_use_case = self._ensure_composition().get(
+                        CreateDummyCameraImagesUseCase
+                    )
                     await create_dummy_camera_images_use_case.create_dummy_camera_images(
                         installation_id=installation_id,
                     )
@@ -328,10 +346,8 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
             self.user = user_input[CONF_USER]
             self.password = user_input[CONF_PASSWORD]
             
-            # Dependencies should already be set up from previous step
             if not hasattr(self, 'auth_use_case') or self.auth_use_case is None:
-                setup_dependencies()
-                self.auth_use_case = get_auth_use_case()
+                self.auth_use_case = self._ensure_composition().get(AuthUseCase)
             
             try:
                 # Perform login using auth use case

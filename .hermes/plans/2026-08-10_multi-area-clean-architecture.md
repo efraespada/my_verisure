@@ -22,7 +22,8 @@
 - [x] Migrate `InstallationRepositoryImpl` cache storage to entry-scoped `FileManager`.
 - [x] Migrate coordinator and integration runtime callers from global managers.
 - [x] Migrate camera entity and dummy-image use case from global file manager.
-- [ ] Migrate `config_flow.py` and remaining session-manager callers from global injector.
+- [x] Migrate `config_flow.py` and remaining session-manager callers from global injector.
+- [ ] Replace `SessionManager` auto-reauth global provider usage with an injected auth boundary.
 - [x] Disarm service contract audited: the HA `code` field was removed because the
   Verisure GraphQL disarm contract does not accept or forward it.
 - [ ] Complete remaining alarm service handlers through the application dispatcher.
