@@ -61,9 +61,9 @@ class MyVerisureModule(Module):
 
     @singleton
     @provider
-    def provide_auth_client(self) -> AuthClient:
-        """Provide AuthClient instance."""
-        return AuthClient()
+    def provide_auth_client(self, session_manager: SessionManager) -> AuthClient:
+        """Provide AuthClient with the graph-owned session manager."""
+        return AuthClient(session_manager=session_manager)
 
 
     @singleton

@@ -7,6 +7,7 @@ from custom_components.my_verisure.core.dependency_injection.composition_root im
 )
 from custom_components.my_verisure.core.file_manager import FileManager
 from custom_components.my_verisure.core.session_manager import SessionManager
+from custom_components.my_verisure.core.api.auth_client import AuthClient
 
 
 def test_composition_root_owns_isolated_session_and_file_managers(tmp_path: Path):
@@ -28,3 +29,6 @@ def test_composition_root_owns_isolated_session_and_file_managers(tmp_path: Path
     assert first_session.session_file != second_session.session_file
     assert first_files is not second_files
     assert first_files.get_project_root() != second_files.get_project_root()
+
+    assert first_root.get(AuthClient)._resolve_session_manager() is first_session
+    assert second_root.get(AuthClient)._resolve_session_manager() is second_session

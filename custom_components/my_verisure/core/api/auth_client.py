@@ -14,7 +14,7 @@ from .exceptions import (
     MyVerisureDeviceAuthorizationError,
 )
 from .models.dto.auth_dto import AuthDTO, PhoneDTO
-from ..session_manager import get_session_manager
+from ..session_manager import SessionManager, get_session_manager
 from ..log_utils import (
     redact_otp_message,
     redact_sensitive_data,
@@ -91,12 +91,17 @@ mutation mkSendOTP($recordId: Int!, $otpHash: String!) {
 class AuthClient(BaseClient):
     """Authentication client for My Verisure API."""
 
-    def __init__(self) -> None:
+    def __init__(self, session_manager: SessionManager | None = None) -> None:
         """Initialize the authentication client."""
         _LOGGER.debug("AuthClient initialized (id=%s)", id(self))
         super().__init__()
+        self._session_manager = session_manager
         self._otp_data: Optional[Dict[str, Any]] = None
         self._device_manager = DeviceManager()
+
+    def _resolve_session_manager(self) -> SessionManager:
+        """Return the entry-scoped manager, falling back to legacy global state."""
+        return self._session_manager or get_session_manager()
 
     async def login(self, user: str, password: str) -> AuthDTO:
         """Login to My Verisure API (Native App Simulation)."""
@@ -177,7 +182,7 @@ class AuthClient(BaseClient):
                     )
 
                 # Update SessionManager with new credentials
-                session_manager = get_session_manager()
+                session_manager = self._resolve_session_manager()
                 if should_log_detailed():
                     _LOGGER.debug(
                         "Updating session for user=%s hash=%s",
@@ -620,7 +625,7 @@ class AuthClient(BaseClient):
             raise MyVerisureAuthenticationError("No user data available for post-OTP login")
         
         # We need to get the password from the session manager
-        session_manager = get_session_manager()
+        session_manager = self._resolve_session_manager()
         password = session_manager.password
         
         if not password:
@@ -687,7 +692,7 @@ class AuthClient(BaseClient):
 
 
                 # Update SessionManager with new credentials
-                session_manager = get_session_manager()
+                session_manager = self._resolve_session_manager()
                 await session_manager.async_update_credentials(
                     user,
                     password,
