@@ -82,9 +82,13 @@ class MyVerisureModule(Module):
 
     @singleton
     @provider
-    def provide_camera_client(self, session_manager: SessionManager) -> CameraClient:
-        """Provide CameraClient with the graph-owned session manager."""
-        return CameraClient(session_manager=session_manager)
+    def provide_camera_client(
+        self, session_manager: SessionManager, file_manager: FileManager
+    ) -> CameraClient:
+        """Provide CameraClient with graph-owned managers."""
+        return CameraClient(
+            session_manager=session_manager, file_manager=file_manager
+        )
 
     @singleton
     @provider

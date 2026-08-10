@@ -13,7 +13,7 @@ from .exceptions import (
     MyVerisureError,
 )
 from ..session_manager import SessionManager
-from ..file_manager import get_file_manager
+from ..file_manager import FileManager, get_file_manager
 from ..api.models.dto.camera_request_image_dto import CameraRequestImageResultDTO
 from ..log_utils import redact_headers_for_log, should_log_detailed, truncate_secret
 
@@ -105,9 +105,18 @@ query mkGetPhotoImages($numinst: String!, $idSignal: String!, $signalType: Strin
 class CameraClient(BaseClient):
     """Client for camera operations."""
 
-    def __init__(self, session_manager: SessionManager | None = None) -> None:
+    def __init__(
+        self,
+        session_manager: SessionManager | None = None,
+        file_manager: FileManager | None = None,
+    ) -> None:
         """Initialize the camera client."""
         super().__init__(session_manager=session_manager)
+        self._file_manager = file_manager
+
+    def _resolve_file_manager(self) -> FileManager:
+        """Return the injected file manager, falling back to legacy global state."""
+        return self._file_manager or get_file_manager()
 
     
     async def request_image(
@@ -367,7 +376,7 @@ class CameraClient(BaseClient):
         """Get images from a specific camera device."""
         try:
             hash_token, session_data = self._get_current_credentials()
-            file_manager = get_file_manager()
+            file_manager = self._resolve_file_manager()
 
             # Prepare headers
             headers = (

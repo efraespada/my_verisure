@@ -37,7 +37,11 @@ def test_composition_root_owns_isolated_session_and_file_managers(tmp_path: Path
     assert second_root.get(AuthClient)._resolve_session_manager() is second_session
     assert first_root.get(InstallationClient)._resolve_session_manager() is first_session
     assert first_root.get(AlarmClient)._resolve_session_manager() is first_session
-    assert first_root.get(CameraClient)._resolve_session_manager() is first_session
+    first_camera = first_root.get(CameraClient)
+    assert first_camera._resolve_session_manager() is first_session
+    assert first_camera._resolve_file_manager() is first_files
     assert second_root.get(InstallationClient)._resolve_session_manager() is second_session
     assert second_root.get(AlarmClient)._resolve_session_manager() is second_session
-    assert second_root.get(CameraClient)._resolve_session_manager() is second_session
+    second_camera = second_root.get(CameraClient)
+    assert second_camera._resolve_session_manager() is second_session
+    assert second_camera._resolve_file_manager() is second_files
