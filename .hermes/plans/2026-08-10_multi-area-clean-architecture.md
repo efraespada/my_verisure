@@ -8,6 +8,16 @@
 - Working tree: clean
 - Verified baseline: `275 passed, 2 skipped`; architecture guard green; critical Flake8 green; incremental mypy green; global coverage `58%`.
 
+## Progress
+
+- [x] Baseline and multi-area plan recorded.
+- [x] Alarm dispatcher application boundary implemented and connected to `arm_away`.
+- [x] Explicit isolated `CompositionRoot` implemented and unit-tested.
+- [ ] Migrate provider callers from global injector to the explicit root.
+- [ ] Complete remaining alarm service handlers through the dispatcher.
+- [ ] Classify and address incomplete/TODO production paths.
+- [ ] Complete bounded typing/lint batches and final release gates.
+
 ## Principles
 
 - Preserve Home Assistant public service names, schemas, entity IDs, and runtime behavior.
