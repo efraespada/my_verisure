@@ -175,6 +175,12 @@ class MyVerisureModule(Module):
 
     @singleton
     @provider
-    def provide_create_dummy_camera_images_use_case(self, installation_repository: InstallationRepository) -> CreateDummyCameraImagesUseCase:
-        """Provide CreateDummyCameraImagesUseCase instance."""
-        return CreateDummyCameraImagesUseCaseImpl(installation_repository)
+    def provide_create_dummy_camera_images_use_case(
+        self,
+        installation_repository: InstallationRepository,
+        file_manager: FileManager,
+    ) -> CreateDummyCameraImagesUseCase:
+        """Provide dummy image use case with graph-owned file storage."""
+        return CreateDummyCameraImagesUseCaseImpl(
+            installation_repository, file_manager=file_manager
+        )

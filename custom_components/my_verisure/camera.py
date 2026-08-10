@@ -12,9 +12,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .core.file_manager import get_file_manager
 from .coordinator import MyVerisureDataUpdateCoordinator
-from .core.dependency_injection.providers import setup_dependencies, clear_dependencies
 from .device import get_device_info
 
 _LOGGER = logging.getLogger(__name__)
@@ -35,8 +33,8 @@ class VerisureCamera(CoordinatorEntity, Camera):
         self._attr_name = f"Verisure {device['name']}"
         self._attr_unique_id = f"{config_entry.entry_id}_camera_{device['code']}"
         self._attr_device_info = get_device_info(config_entry)
-        self._latest_image_path = None
-        self._latest_image_timestamp = None
+        self._latest_image_path: str | None = None
+        self._latest_image_timestamp: str | None = None
         self._sync_image_cache: bytes | None = None
         
         # Required attributes for Camera entity
@@ -57,10 +55,8 @@ class VerisureCamera(CoordinatorEntity, Camera):
     def _get_latest_image(self) -> Optional[bytes]:
         """Get the most recent image for this camera."""
         try:
-            setup_dependencies()
-            
             # Get the camera directory path
-            camera_dir = get_file_manager().get_data_directory()
+            camera_dir = self.coordinator.file_manager.get_data_directory()
             device_path = os.path.join(camera_dir, "cameras", f"{self._device['type']}{int(self._device['code']):02d}")
             
             _LOGGER.debug("Looking for camera images in: %s", device_path)
@@ -78,8 +74,8 @@ class VerisureCamera(CoordinatorEntity, Camera):
                 return None
 
             # Find the most recent timestamp directory
-            latest_timestamp = None
-            latest_timestamp_dir = None
+            latest_timestamp: datetime | None = None
+            latest_timestamp_dir: str | None = None
             
             for item in items:
                 item_path = os.path.join(device_path, item)
@@ -98,7 +94,7 @@ class VerisureCamera(CoordinatorEntity, Camera):
                         _LOGGER.debug("Could not parse timestamp from directory '%s': %s", item, e)
                         continue
 
-            if latest_timestamp_dir is None:
+            if latest_timestamp_dir is None or latest_timestamp is None:
                 _LOGGER.warning("No valid timestamp directories found for camera %s in %s", self._device['code'], device_path)
                 return None
 
@@ -140,9 +136,6 @@ class VerisureCamera(CoordinatorEntity, Camera):
         except Exception as e:
             _LOGGER.error("Error getting latest image for camera %s: %s", self._device['code'], e)
             return None
-        finally:
-            # Clean up dependencies
-            clear_dependencies()
 
     @property
     def extra_state_attributes(self):

@@ -17,6 +17,8 @@ from custom_components.my_verisure.core.log_manager import LogManager
 from custom_components.my_verisure.core.config_manager import ConfigManager
 from custom_components.my_verisure.core.repositories.interfaces.installation_repository import InstallationRepository
 from custom_components.my_verisure.core.repositories.implementations.installation_repository_impl import InstallationRepositoryImpl
+from custom_components.my_verisure.core.use_cases.interfaces.create_dummy_camera_images_use_case import CreateDummyCameraImagesUseCase
+from custom_components.my_verisure.core.use_cases.implementations.create_dummy_camera_images_use_case_impl import CreateDummyCameraImagesUseCaseImpl
 
 
 def test_composition_root_owns_isolated_session_and_file_managers(tmp_path: Path):
@@ -61,3 +63,5 @@ def test_composition_root_owns_isolated_session_and_file_managers(tmp_path: Path
     assert second_root.get(ConfigManager)._resolve_file_manager() is second_files
     assert cast(InstallationRepositoryImpl, first_root.get(InstallationRepository))._file_manager is first_files
     assert cast(InstallationRepositoryImpl, second_root.get(InstallationRepository))._file_manager is second_files
+    assert cast(CreateDummyCameraImagesUseCaseImpl, first_root.get(CreateDummyCameraImagesUseCase)).file_manager is first_files
+    assert cast(CreateDummyCameraImagesUseCaseImpl, second_root.get(CreateDummyCameraImagesUseCase)).file_manager is second_files

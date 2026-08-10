@@ -21,7 +21,8 @@
 - [x] Migrate `LogManager` and `ConfigManager` from global manager ownership.
 - [x] Migrate `InstallationRepositoryImpl` cache storage to entry-scoped `FileManager`.
 - [x] Migrate coordinator and integration runtime callers from global managers.
-- [ ] Migrate camera entity and dummy-image use case from global file manager.
+- [x] Migrate camera entity and dummy-image use case from global file manager.
+- [ ] Migrate `config_flow.py` and remaining session-manager callers from global injector.
 - [x] Disarm service contract audited: the HA `code` field was removed because the
   Verisure GraphQL disarm contract does not accept or forward it.
 - [ ] Complete remaining alarm service handlers through the application dispatcher.
