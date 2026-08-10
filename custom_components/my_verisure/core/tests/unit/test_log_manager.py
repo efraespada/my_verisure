@@ -34,7 +34,7 @@ class TestLogManager:
     def test_log_manager_initialization(self):
         """Test LogManager initialization."""
         with patch('my_verisure.core.log_manager.get_file_manager', return_value=self.mock_file_manager):
-            log_manager = LogManager()
+            log_manager = LogManager(file_manager=self.mock_file_manager)
             
             assert log_manager._file_manager == self.mock_file_manager
             assert log_manager._log_file == "my_verisure_logs.json"
@@ -43,7 +43,7 @@ class TestLogManager:
     def test_log_event_success(self):
         """Test successful event logging."""
         with patch('my_verisure.core.log_manager.get_file_manager', return_value=self.mock_file_manager):
-            log_manager = LogManager()
+            log_manager = LogManager(file_manager=self.mock_file_manager)
             
             result = log_manager.log_event("test", "Test message", {"key": "value"})
             
@@ -65,7 +65,7 @@ class TestLogManager:
             # Mock save failure
             self.mock_file_manager.save_json.return_value = False
             
-            log_manager = LogManager()
+            log_manager = LogManager(file_manager=self.mock_file_manager)
             
             result = log_manager.log_event("test", "Test message")
             
@@ -85,7 +85,7 @@ class TestLogManager:
             ]
             self.mock_file_manager.load_json.return_value = existing_logs
             
-            log_manager = LogManager()
+            log_manager = LogManager(file_manager=self.mock_file_manager)
             
             result = log_manager.log_event("new", "New message")
             
@@ -113,7 +113,7 @@ class TestLogManager:
             ]
             self.mock_file_manager.load_json.return_value = existing_logs
             
-            log_manager = LogManager()
+            log_manager = LogManager(file_manager=self.mock_file_manager)
             
             result = log_manager.log_event("new", "New message")
             
@@ -128,7 +128,7 @@ class TestLogManager:
     def test_log_auth_event(self):
         """Test authentication event logging."""
         with patch('my_verisure.core.log_manager.get_file_manager', return_value=self.mock_file_manager):
-            log_manager = LogManager()
+            log_manager = LogManager(file_manager=self.mock_file_manager)
             
             result = log_manager.log_auth_event("login", "user123", True, "Success")
             
@@ -147,7 +147,7 @@ class TestLogManager:
     def test_log_alarm_event(self):
         """Test alarm event logging."""
         with patch('my_verisure.core.log_manager.get_file_manager', return_value=self.mock_file_manager):
-            log_manager = LogManager()
+            log_manager = LogManager(file_manager=self.mock_file_manager)
             
             result = log_manager.log_alarm_event("arm", "inst123", "ARMED", "Away mode")
             
@@ -166,7 +166,7 @@ class TestLogManager:
     def test_log_error(self):
         """Test error event logging."""
         with patch('my_verisure.core.log_manager.get_file_manager', return_value=self.mock_file_manager):
-            log_manager = LogManager()
+            log_manager = LogManager(file_manager=self.mock_file_manager)
             
             exception = ValueError("Test error")
             result = log_manager.log_error("validation", "Test error message", exception)
@@ -185,7 +185,7 @@ class TestLogManager:
     def test_log_api_call(self):
         """Test API call logging."""
         with patch('my_verisure.core.log_manager.get_file_manager', return_value=self.mock_file_manager):
-            log_manager = LogManager()
+            log_manager = LogManager(file_manager=self.mock_file_manager)
             
             result = log_manager.log_api_call("/api/test", "GET", True, 1.5)
             
@@ -213,7 +213,7 @@ class TestLogManager:
             ]
             self.mock_file_manager.load_json.return_value = existing_logs
             
-            log_manager = LogManager()
+            log_manager = LogManager(file_manager=self.mock_file_manager)
             result = log_manager.get_logs()
             
             assert len(result) == 3
@@ -232,7 +232,7 @@ class TestLogManager:
             ]
             self.mock_file_manager.load_json.return_value = existing_logs
             
-            log_manager = LogManager()
+            log_manager = LogManager(file_manager=self.mock_file_manager)
             result = log_manager.get_logs("auth")
             
             assert len(result) == 1
@@ -248,7 +248,7 @@ class TestLogManager:
             ]
             self.mock_file_manager.load_json.return_value = existing_logs
             
-            log_manager = LogManager()
+            log_manager = LogManager(file_manager=self.mock_file_manager)
             result = log_manager.get_logs(limit=3)
             
             assert len(result) == 3
@@ -273,7 +273,7 @@ class TestLogManager:
             ]
             self.mock_file_manager.load_json.return_value = existing_logs
             
-            log_manager = LogManager()
+            log_manager = LogManager(file_manager=self.mock_file_manager)
             result = log_manager.get_recent_logs(24)
             
             assert len(result) == 1
@@ -282,7 +282,7 @@ class TestLogManager:
     def test_clear_logs(self):
         """Test clearing logs."""
         with patch('my_verisure.core.log_manager.get_file_manager', return_value=self.mock_file_manager):
-            log_manager = LogManager()
+            log_manager = LogManager(file_manager=self.mock_file_manager)
             
             result = log_manager.clear_logs()
             
@@ -299,7 +299,7 @@ class TestLogManager:
             ]
             self.mock_file_manager.load_json.return_value = existing_logs
             
-            log_manager = LogManager()
+            log_manager = LogManager(file_manager=self.mock_file_manager)
             result = log_manager.export_logs("exported_logs.json")
             
             assert result is True
@@ -315,7 +315,7 @@ class TestLogManager:
             ]
             self.mock_file_manager.load_json.return_value = existing_logs
             
-            log_manager = LogManager()
+            log_manager = LogManager(file_manager=self.mock_file_manager)
             result = log_manager.export_logs("exported_logs.json", "auth")
             
             assert result is True
@@ -336,7 +336,7 @@ class TestLogManager:
             ]
             self.mock_file_manager.load_json.return_value = existing_logs
             
-            log_manager = LogManager()
+            log_manager = LogManager(file_manager=self.mock_file_manager)
             result = log_manager.get_log_stats()
             
             assert result["total_logs"] == 3
@@ -351,7 +351,7 @@ class TestLogManager:
             # Mock error
             self.mock_file_manager.load_json.side_effect = Exception("File error")
             
-            log_manager = LogManager()
+            log_manager = LogManager(file_manager=self.mock_file_manager)
             result = log_manager.get_log_stats()
             
             assert result == {
@@ -367,7 +367,7 @@ class TestLogManager:
             # Mock error
             self.mock_file_manager.load_json.side_effect = Exception("File error")
             
-            log_manager = LogManager()
+            log_manager = LogManager(file_manager=self.mock_file_manager)
             result = log_manager._load_logs()
             
             assert result == []

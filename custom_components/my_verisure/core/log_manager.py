@@ -13,15 +13,15 @@ _LOGGER = logging.getLogger(__name__)
 class LogManager:
     """Manager for application logs using FileManager."""
     
-    def __init__(self, file_manager: FileManager | None = None):
-        """Initialize the log manager."""
-        self._file_manager = file_manager or get_file_manager()
+    def __init__(self, file_manager: FileManager):
+        """Initialize the log manager with entry-scoped storage."""
+        self._file_manager = file_manager
         self._log_file = "my_verisure_logs.json"
         self._max_logs = 1000  # Maximum number of logs to keep
 
     def _resolve_file_manager(self) -> FileManager:
         """Return the injected file manager, falling back to legacy global state."""
-        return self._file_manager or get_file_manager()
+        return self._file_manager
     
     def log_event(self, event_type: str, message: str, data: Optional[Dict[str, Any]] = None) -> bool:
         """Log an event to the log file."""
@@ -191,7 +191,7 @@ def get_log_manager() -> LogManager:
     """Get the global log manager instance."""
     global _log_manager_instance
     if _log_manager_instance is None:
-        _log_manager_instance = LogManager()
+        _log_manager_instance = LogManager(file_manager=get_file_manager())
     return _log_manager_instance
 
 

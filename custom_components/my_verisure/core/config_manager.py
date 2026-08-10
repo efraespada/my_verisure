@@ -11,9 +11,9 @@ _LOGGER = logging.getLogger(__name__)
 class ConfigManager:
     """Manager for configuration data using FileManager."""
     
-    def __init__(self, file_manager: FileManager | None = None):
-        """Initialize the configuration manager."""
-        self._file_manager = file_manager or get_file_manager()
+    def __init__(self, file_manager: FileManager):
+        """Initialize the configuration manager with entry-scoped storage."""
+        self._file_manager = file_manager
         self._config_file = "my_verisure_config.json"
         self._default_config = {
             "version": "1.0.0",
@@ -36,7 +36,7 @@ class ConfigManager:
 
     def _resolve_file_manager(self) -> FileManager:
         """Return the injected file manager, falling back to legacy global state."""
-        return self._file_manager or get_file_manager()
+        return self._file_manager
     
     def get_config(self) -> Dict[str, Any]:
         """Get the current configuration."""
@@ -161,7 +161,7 @@ def get_config_manager() -> ConfigManager:
     """Get the global configuration manager instance."""
     global _config_manager_instance
     if _config_manager_instance is None:
-        _config_manager_instance = ConfigManager()
+        _config_manager_instance = ConfigManager(file_manager=get_file_manager())
     return _config_manager_instance
 
 
