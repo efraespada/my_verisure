@@ -1,301 +1,94 @@
-#!/usr/bin/env python3
-"""
-Unit tests for Camera Use Cases implementations.
-"""
+"""Unit tests for current camera image use-case contracts."""
+
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
-from unittest.mock import Mock, AsyncMock
 
-from ....use_cases.implementations.refresh_camera_images_use_case_impl import (
-    RefreshCameraImagesUseCaseImpl,
-)
-from ....use_cases.implementations.create_dummy_camera_images_use_case_impl import (
-    CreateDummyCameraImagesUseCaseImpl,
-)
-from ....use_cases.interfaces.refresh_camera_images_use_case import (
-    RefreshCameraImagesUseCase,
-)
-from ....use_cases.interfaces.create_dummy_camera_images_use_case import (
-    CreateDummyCameraImagesUseCase,
-)
+from ....api.models.domain.camera_request_image import CameraRequestImageResult
+from ....api.models.domain.camera_refresh import CameraRefresh
+from ....api.models.domain.device import Device
+from ....api.models.domain.installation import DetailedInstallation, InstallationData
 from ....repositories.interfaces.camera_repository import CameraRepository
 from ....repositories.interfaces.installation_repository import InstallationRepository
-from ....api.models.domain.camera_request_image import CameraRequestImageResult
-from ....api.exceptions import MyVerisureError
+from ....use_cases.implementations.create_dummy_camera_images_use_case_impl import CreateDummyCameraImagesUseCaseImpl
+from ....use_cases.implementations.refresh_camera_images_use_case_impl import RefreshCameraImagesUseCaseImpl
+from ....use_cases.interfaces.create_dummy_camera_images_use_case import CreateDummyCameraImagesUseCase
 
 
-class TestRefreshCameraImagesUseCase:
-    """Test cases for RefreshCameraImagesUseCase implementation."""
-
-    @pytest.fixture
-    def mock_camera_repository(self):
-        """Create a mock camera repository."""
-        mock_repo = Mock(spec=CameraRepository)
-        mock_repo.request_image = AsyncMock()
-        return mock_repo
-
-    @pytest.fixture
-    def mock_installation_repository(self):
-        """Create a mock installation repository."""
-        mock_repo = Mock(spec=InstallationRepository)
-        mock_repo.get_installation_services = AsyncMock()
-        return mock_repo
-
-    @pytest.fixture
-    def refresh_use_case(self, mock_camera_repository, mock_installation_repository):
-        """Create RefreshCameraImagesUseCase instance with mocked dependencies."""
-        return RefreshCameraImagesUseCaseImpl(
-            camera_repository=mock_camera_repository,
-            installation_repository=mock_installation_repository
-        )
-
-    def test_refresh_use_case_implements_interface(self, refresh_use_case):
-        """Test that RefreshCameraImagesUseCaseImpl implements RefreshCameraImagesUseCase interface."""
-        assert isinstance(refresh_use_case, RefreshCameraImagesUseCase)
-
-    @pytest.mark.asyncio
-    async def test_refresh_camera_images_success(self, refresh_use_case, mock_camera_repository, mock_installation_repository):
-        """Test successful camera images refresh."""
-        # Arrange
-        installation_id = "12345"
-        
-        # Mock installation services
-        mock_services = Mock()
-        mock_installation = Mock()
-        mock_installation.panel = "PROTOCOL"
-        mock_installation.capabilities = "default_capabilities"
-        mock_services.installation = mock_installation
-        mock_installation_repository.get_installation_services.return_value = mock_services
-        
-        # Mock camera repository response
-        expected_result = CameraRequestImageResult(
-            success=True,
-            successful_requests=3,
-            reference_id="ref_123"
-        )
-        mock_camera_repository.request_image.return_value = expected_result
-        
-        # Act
-        result = await refresh_use_case.refresh_camera_images(installation_id)
-        
-        # Assert
-        assert result == expected_result
-        mock_installation_repository.get_installation_services.assert_called_once_with(installation_id)
-        mock_camera_repository.request_image.assert_called_once_with(
-            installation_id=installation_id,
-            panel="PROTOCOL",
-            devices=[],  # Empty devices list for refresh
-            capabilities="default_capabilities"
-        )
-
-    @pytest.mark.asyncio
-    async def test_refresh_camera_images_installation_error(self, refresh_use_case, mock_installation_repository):
-        """Test camera images refresh when installation services fail."""
-        # Arrange
-        installation_id = "12345"
-        mock_installation_repository.get_installation_services.side_effect = MyVerisureError("Installation not found")
-        
-        # Act
-        result = await refresh_use_case.refresh_camera_images(installation_id)
-        
-        # Assert
-        assert result.success is False
-        assert result.successful_requests == 0
-        assert result.reference_id is None
-
-    @pytest.mark.asyncio
-    async def test_refresh_camera_images_camera_error(self, refresh_use_case, mock_camera_repository, mock_installation_repository):
-        """Test camera images refresh when camera request fails."""
-        # Arrange
-        installation_id = "12345"
-        
-        # Mock installation services
-        mock_services = Mock()
-        mock_installation = Mock()
-        mock_installation.panel = "PROTOCOL"
-        mock_installation.capabilities = "default_capabilities"
-        mock_services.installation = mock_installation
-        mock_installation_repository.get_installation_services.return_value = mock_services
-        
-        # Mock camera repository failure
-        mock_camera_repository.request_image.return_value = CameraRequestImageResult(
-            success=False,
-            successful_requests=0,
-            reference_id=None
-        )
-        
-        # Act
-        result = await refresh_use_case.refresh_camera_images(installation_id)
-        
-        # Assert
-        assert result.success is False
-        assert result.successful_requests == 0
-        assert result.reference_id is None
+def _installation(devices):
+    return DetailedInstallation(
+        installation=InstallationData(
+            numinst="12345", role="OWNER", alias="Home", status="OP",
+            panel="PROTOCOL", sim="sim", instIbs="ibs", services=[],
+            configRepoUser=None, capabilities="caps", devices=devices,
+        ),
+        language="es",
+    )
 
 
-class TestCreateDummyCameraImagesUseCase:
-    """Test cases for CreateDummyCameraImagesUseCase implementation."""
-
-    @pytest.fixture
-    def mock_camera_repository(self):
-        """Create a mock camera repository."""
-        mock_repo = Mock(spec=CameraRepository)
-        mock_repo.get_images = AsyncMock()
-        return mock_repo
-
-    @pytest.fixture
-    def mock_installation_repository(self):
-        """Create a mock installation repository."""
-        mock_repo = Mock(spec=InstallationRepository)
-        mock_repo.get_installation_services = AsyncMock()
-        return mock_repo
-
-    @pytest.fixture
-    def create_dummy_use_case(self, mock_camera_repository, mock_installation_repository):
-        """Create CreateDummyCameraImagesUseCase instance with mocked dependencies."""
-        return CreateDummyCameraImagesUseCaseImpl(
-            camera_repository=mock_camera_repository,
-            installation_repository=mock_installation_repository
-        )
-
-    def test_create_dummy_use_case_implements_interface(self, create_dummy_use_case):
-        """Test that CreateDummyCameraImagesUseCaseImpl implements CreateDummyCameraImagesUseCase interface."""
-        assert isinstance(create_dummy_use_case, CreateDummyCameraImagesUseCase)
-
-    @pytest.mark.asyncio
-    async def test_create_dummy_camera_images_success(self, create_dummy_use_case, mock_camera_repository, mock_installation_repository):
-        """Test successful dummy camera images creation."""
-        # Arrange
-        installation_id = "12345"
-        device = "device1"
-        zone_id = "zone1"
-        
-        # Mock installation services
-        mock_services = Mock()
-        mock_installation = Mock()
-        mock_installation.panel = "PROTOCOL"
-        mock_installation.capabilities = "default_capabilities"
-        mock_services.installation = mock_installation
-        mock_installation_repository.get_installation_services.return_value = mock_services
-        
-        # Mock camera repository response
-        expected_images = {
-            "success": True,
-            "images": [
-                {"id": "img1", "url": "http://example.com/img1.jpg"},
-                {"id": "img2", "url": "http://example.com/img2.jpg"}
-            ],
-            "count": 2
-        }
-        mock_camera_repository.get_images.return_value = expected_images
-        
-        # Act
-        result = await create_dummy_use_case.create_dummy_camera_images(
-            installation_id, device, zone_id
-        )
-        
-        # Assert
-        assert result == expected_images
-        mock_installation_repository.get_installation_services.assert_called_once_with(installation_id)
-        mock_camera_repository.get_images.assert_called_once_with(
-            installation_id=installation_id,
-            panel="PROTOCOL",
-            device=device,
-            zone_id=zone_id,
-            capabilities="default_capabilities"
-        )
-
-    @pytest.mark.asyncio
-    async def test_create_dummy_camera_images_installation_error(self, create_dummy_use_case, mock_installation_repository):
-        """Test dummy camera images creation when installation services fail."""
-        # Arrange
-        installation_id = "12345"
-        device = "device1"
-        zone_id = "zone1"
-        mock_installation_repository.get_installation_services.side_effect = MyVerisureError("Installation not found")
-        
-        # Act
-        result = await create_dummy_use_case.create_dummy_camera_images(
-            installation_id, device, zone_id
-        )
-        
-        # Assert
-        assert result["success"] is False
-        assert "error" in result
-        assert "Installation not found" in result["error"]
-
-    @pytest.mark.asyncio
-    async def test_create_dummy_camera_images_camera_error(self, create_dummy_use_case, mock_camera_repository, mock_installation_repository):
-        """Test dummy camera images creation when camera request fails."""
-        # Arrange
-        installation_id = "12345"
-        device = "device1"
-        zone_id = "zone1"
-        
-        # Mock installation services
-        mock_services = Mock()
-        mock_installation = Mock()
-        mock_installation.panel = "PROTOCOL"
-        mock_installation.capabilities = "default_capabilities"
-        mock_services.installation = mock_installation
-        mock_installation_repository.get_installation_services.return_value = mock_services
-        
-        # Mock camera repository failure
-        mock_camera_repository.get_images.return_value = {
-            "success": False,
-            "error": "Camera error",
-            "message": "Failed to get images"
-        }
-        
-        # Act
-        result = await create_dummy_use_case.create_dummy_camera_images(
-            installation_id, device, zone_id
-        )
-        
-        # Assert
-        assert result["success"] is False
-        assert result["error"] == "Camera error"
-        assert result["message"] == "Failed to get images"
-
-    @pytest.mark.asyncio
-    async def test_create_dummy_camera_images_with_special_parameters(self, create_dummy_use_case, mock_camera_repository, mock_installation_repository):
-        """Test dummy camera images creation with special parameters."""
-        # Arrange
-        installation_id = "12345"
-        device = "device-1"
-        zone_id = "zone_1"
-        
-        # Mock installation services
-        mock_services = Mock()
-        mock_installation = Mock()
-        mock_installation.panel = "SDVFAST"
-        mock_installation.capabilities = "advanced_capabilities"
-        mock_services.installation = mock_installation
-        mock_installation_repository.get_installation_services.return_value = mock_services
-        
-        # Mock camera repository response
-        expected_images = {
-            "success": True,
-            "images": [],
-            "count": 0
-        }
-        mock_camera_repository.get_images.return_value = expected_images
-        
-        # Act
-        result = await create_dummy_use_case.create_dummy_camera_images(
-            installation_id, device, zone_id
-        )
-        
-        # Assert
-        assert result == expected_images
-        mock_camera_repository.get_images.assert_called_once_with(
-            installation_id=installation_id,
-            panel="SDVFAST",
-            device=device,
-            zone_id=zone_id,
-            capabilities="advanced_capabilities"
-        )
+def _camera():
+    return Device("id", "1", "Front", "YR", "", True, "CAM", True)
 
 
-if __name__ == "__main__":
-    pytest.main([__file__])
+@pytest.fixture
+def installation_repository():
+    repository = Mock(spec=InstallationRepository)
+    repository.get_installation_services = AsyncMock(return_value=_installation([_camera()]))
+    return repository
+
+
+@pytest.mark.asyncio
+async def test_refresh_camera_images_success(installation_repository):
+    camera = Mock(spec=CameraRepository)
+    camera.request_image = AsyncMock(return_value=CameraRequestImageResult(True, 1, "ref"))
+    camera.get_images = AsyncMock(return_value={"images_saved": 2})
+    use_case = RefreshCameraImagesUseCaseImpl(camera, installation_repository)
+
+    with patch("my_verisure.core.use_cases.implementations.refresh_camera_images_use_case_impl.asyncio.sleep", new_callable=AsyncMock):
+        result = await use_case.refresh_camera_images("12345")
+
+    assert isinstance(result, CameraRefresh)
+    assert result.total_cameras == 1
+    assert result.successful_refreshes == 1
+    assert result.refresh_data[0].num_images == 2
+
+
+@pytest.mark.asyncio
+async def test_refresh_camera_images_installation_error():
+    installation = Mock(spec=InstallationRepository)
+    installation.get_installation_services = AsyncMock(side_effect=RuntimeError("missing"))
+    camera = Mock(spec=CameraRepository)
+    use_case = RefreshCameraImagesUseCaseImpl(camera, installation)
+
+    result = await use_case.refresh_camera_images("12345")
+
+    assert result.total_cameras == 0
+    assert result.failed_refreshes == 0
+
+
+@pytest.mark.asyncio
+async def test_refresh_camera_images_camera_error(installation_repository):
+    camera = Mock(spec=CameraRepository)
+    camera.request_image = AsyncMock(side_effect=RuntimeError("camera"))
+    use_case = RefreshCameraImagesUseCaseImpl(camera, installation_repository)
+
+    result = await use_case.refresh_camera_images("12345")
+
+    assert result.total_cameras == 1
+    assert result.successful_refreshes == 0
+    assert result.failed_refreshes == 1
+
+
+def test_create_dummy_implements_interface(installation_repository):
+    assert isinstance(CreateDummyCameraImagesUseCaseImpl(installation_repository), CreateDummyCameraImagesUseCase)
+
+
+@pytest.mark.asyncio
+async def test_create_dummy_without_cameras_returns_empty(installation_repository):
+    installation_repository.get_installation_services.return_value = _installation([])
+    use_case = CreateDummyCameraImagesUseCaseImpl(installation_repository)
+
+    result = await use_case.create_dummy_camera_images("12345")
+
+    assert result.total_cameras == 0
+    assert result.refresh_data == []

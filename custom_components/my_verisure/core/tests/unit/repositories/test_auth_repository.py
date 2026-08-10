@@ -1,305 +1,90 @@
-#!/usr/bin/env python3
-"""
-Unit tests for AuthRepository implementation.
-"""
+"""Unit tests for current authentication repository contracts."""
+
+from unittest.mock import AsyncMock, Mock
 
 import pytest
-from unittest.mock import Mock, AsyncMock
 
-from ....repositories.implementations.auth_repository_impl import (
-    AuthRepositoryImpl,
-)
-from ....repositories.interfaces.auth_repository import AuthRepository
-from ....api.models.domain.auth import Auth
-from ....api.models.domain.session import DeviceIdentifiers
 from ....api.exceptions import MyVerisureAuthenticationError, MyVerisureOTPError
+from ....api.models.domain.auth import Auth
+from ....repositories.implementations.auth_repository_impl import AuthRepositoryImpl
+from ....repositories.interfaces.auth_repository import AuthRepository
 
 
-class TestAuthRepository:
-    """Test cases for AuthRepository implementation."""
-
-    @pytest.fixture
-    def mock_client(self):
-        """Create a mock MyVerisureClient."""
-        mock_client = Mock()
-        mock_client.login = AsyncMock()
-        mock_client.send_otp = AsyncMock()
-        mock_client.verify_otp = AsyncMock()
-        mock_client.get_available_phones = Mock()
-        return mock_client
-
-    @pytest.fixture
-    def auth_repository(self, mock_client):
-        """Create AuthRepository instance with mocked client."""
-        return AuthRepositoryImpl(client=mock_client)
-
-    def test_auth_repository_implements_interface(self, auth_repository):
-        """Test that AuthRepositoryImpl implements AuthRepository interface."""
-        assert isinstance(auth_repository, AuthRepository)
-
-    @pytest.mark.asyncio
-    async def test_login_success(self, auth_repository, mock_client):
-        """Test successful login."""
-        # Arrange
-        auth = Auth(username="test_user", password="test_password")
-        device_identifiers = DeviceIdentifiers(
-            id_device="device_123",
-            uuid="uuid_456",
-            id_device_indigitall="indigitall_789",
-            device_name="HomeAssistant",
-            device_brand="HomeAssistant",
-            device_os_version="Linux 5.0",
-            device_version="10.154.0",
-            device_type="",
-            device_resolution="",
-            generated_time=0,
-        )
-
-        mock_client.login.return_value = True
-        # Mock the client's internal state after successful login
-        mock_client._hash = "test_hash"
-        mock_client._session_data = {"user": "test_user", "lang": "es"}
-
-        # Act
-        result = await auth_repository.login(auth, device_identifiers)
-
-        # Assert
-        assert result.success is True
-        assert result.hash == "test_hash"
-        assert result.message == "Login successful"
-        mock_client.login.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_login_failure(self, auth_repository, mock_client):
-        """Test failed login."""
-        # Arrange
-        auth = Auth(username="test_user", password="wrong_password")
-        device_identifiers = DeviceIdentifiers(
-            id_device="device_123",
-            uuid="uuid_456",
-            id_device_indigitall="indigitall_789",
-            device_name="HomeAssistant",
-            device_brand="HomeAssistant",
-            device_os_version="Linux 5.0",
-            device_version="10.154.0",
-            device_type="",
-            device_resolution="",
-            generated_time=0,
-        )
-        mock_client.login.side_effect = MyVerisureAuthenticationError(
-            "Invalid credentials"
-        )
-
-        # Act
-        result = await auth_repository.login(auth, device_identifiers)
-
-        # Assert
-        assert result.success is False
-        assert result.hash is None
-        assert "Invalid credentials" in result.message
-        mock_client.login.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_login_otp_required(self, auth_repository, mock_client):
-        """Test login requires OTP."""
-        # Arrange
-        auth = Auth(username="test_user", password="test_password")
-        device_identifiers = DeviceIdentifiers(
-            id_device="device_123",
-            uuid="uuid_456",
-            id_device_indigitall="indigitall_789",
-            device_name="HomeAssistant",
-            device_brand="HomeAssistant",
-            device_os_version="Linux 5.0",
-            device_version="10.154.0",
-            device_type="",
-            device_resolution="",
-            generated_time=0,
-        )
-        mock_client.login.side_effect = MyVerisureOTPError("OTP required")
-
-        # Act
-        result = await auth_repository.login(auth, device_identifiers)
-
-        # Assert
-        assert result.success is False
-        assert result.hash is None
-        assert "OTP required" in result.message
-        mock_client.login.assert_called_once()
-
-    def test_get_available_phones_success(self, auth_repository, mock_client):
-        """Test getting available phones."""
-        # Arrange
-        expected_phones = [
-            {"id": 1, "phone": "+34600000001"},
-            {"id": 2, "phone": "+34600000002"},
-        ]
-        mock_client.get_available_phones.return_value = expected_phones
-
-        # Act
-        phones = auth_repository.get_available_phones()
-
-        # Assert
-        assert phones == expected_phones
-        mock_client.get_available_phones.assert_called_once()
-
-    def test_get_available_phones_empty(self, auth_repository, mock_client):
-        """Test getting available phones returns empty list."""
-        # Arrange
-        mock_client.get_available_phones.return_value = []
-
-        # Act
-        phones = auth_repository.get_available_phones()
-
-        # Assert
-        assert phones == []
-        mock_client.get_available_phones.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_send_otp_success(self, auth_repository, mock_client):
-        """Test successful OTP send."""
-        # Arrange
-        record_id = 1
-        otp_hash = "test_hash"
-        mock_client.send_otp.return_value = True
-
-        # Act
-        result = await auth_repository.send_otp(record_id, otp_hash)
-
-        # Assert
-        assert result is True
-        mock_client.send_otp.assert_called_once_with(record_id, otp_hash)
-
-    @pytest.mark.asyncio
-    async def test_send_otp_failure(self, auth_repository, mock_client):
-        """Test failed OTP send."""
-        # Arrange
-        record_id = 1
-        otp_hash = "test_hash"
-        mock_client.send_otp.return_value = False
-
-        # Act
-        result = await auth_repository.send_otp(record_id, otp_hash)
-
-        # Assert
-        assert result is False
-        mock_client.send_otp.assert_called_once_with(record_id, otp_hash)
-
-    @pytest.mark.asyncio
-    async def test_send_otp_raises_exception(
-        self, auth_repository, mock_client
-    ):
-        """Test OTP send raises exception."""
-        # Arrange
-        record_id = 1
-        otp_hash = "test_hash"
-        mock_client.send_otp.side_effect = MyVerisureOTPError(
-            "Failed to send OTP"
-        )
-
-        # Act & Assert
-        with pytest.raises(MyVerisureOTPError, match="Failed to send OTP"):
-            await auth_repository.send_otp(record_id, otp_hash)
-
-    @pytest.mark.asyncio
-    async def test_verify_otp_success(self, auth_repository, mock_client):
-        """Test successful OTP verification."""
-        # Arrange
-        otp_code = "123456"
-        otp_hash = "test_hash"
-        device_identifiers = DeviceIdentifiers(
-            id_device="device_123",
-            uuid="uuid_456",
-            id_device_indigitall="indigitall_789",
-            device_name="HomeAssistant",
-            device_brand="HomeAssistant",
-            device_os_version="Linux 5.0",
-            device_version="10.154.0",
-            device_type="",
-            device_resolution="",
-            generated_time=0,
-        )
-        mock_client.verify_otp.return_value = True
-        mock_client._hash = "test_hash"
-        mock_client._refresh_token = "refresh_token"
-        mock_client._session_data = {
-            "lang": "es",
-            "legals": False,
-            "changePassword": False,
-            "needDeviceAuthorization": False,
-        }
-
-        # Act
-        result = await auth_repository.verify_otp(
-            otp_code, otp_hash, device_identifiers
-        )
-
-        # Assert
-        assert result.success is True
-        assert result.message == "OTP verification successful"
-        assert result.hash == "test_hash"
-        # The client's verify_otp method only takes otp_code, not the other parameters
-        mock_client.verify_otp.assert_called_once_with(otp_code)
-
-    @pytest.mark.asyncio
-    async def test_verify_otp_failure(self, auth_repository, mock_client):
-        """Test failed OTP verification."""
-        # Arrange
-        otp_code = "123456"
-        otp_hash = "test_hash"
-        device_identifiers = DeviceIdentifiers(
-            id_device="device_123",
-            uuid="uuid_456",
-            id_device_indigitall="indigitall_789",
-            device_name="HomeAssistant",
-            device_brand="HomeAssistant",
-            device_os_version="Linux 5.0",
-            device_version="10.154.0",
-            device_type="",
-            device_resolution="",
-            generated_time=0,
-        )
-        mock_client.verify_otp.return_value = False
-
-        # Act
-        result = await auth_repository.verify_otp(
-            otp_code, otp_hash, device_identifiers
-        )
-
-        # Assert
-        assert result.success is False
-        assert result.message == "OTP verification failed"
-        # The client's verify_otp method only takes otp_code, not the other parameters
-        mock_client.verify_otp.assert_called_once_with(otp_code)
-
-    @pytest.mark.asyncio
-    async def test_verify_otp_raises_exception(
-        self, auth_repository, mock_client
-    ):
-        """Test OTP verification raises exception."""
-        # Arrange
-        otp_code = "123456"
-        otp_hash = "test_hash"
-        device_identifiers = DeviceIdentifiers(
-            id_device="device_123",
-            uuid="uuid_456",
-            id_device_indigitall="indigitall_789",
-            device_name="HomeAssistant",
-            device_brand="HomeAssistant",
-            device_os_version="Linux 5.0",
-            device_version="10.154.0",
-            device_type="",
-            device_resolution="",
-            generated_time=0,
-        )
-        mock_client.verify_otp.side_effect = MyVerisureOTPError("Invalid OTP")
-
-        # Act & Assert
-        with pytest.raises(MyVerisureOTPError, match="Invalid OTP"):
-            await auth_repository.verify_otp(
-                otp_code, otp_hash, device_identifiers
-            )
+@pytest.fixture
+def client():
+    value = Mock()
+    value.login = AsyncMock()
+    value.send_otp = AsyncMock()
+    value.verify_otp = AsyncMock()
+    value.get_available_phones = Mock()
+    value._hash = "hash"
+    value._refresh_token = "refresh"
+    value._session_data = {"lang": "es", "legals": True}
+    return value
 
 
-if __name__ == "__main__":
-    pytest.main([__file__])
+@pytest.fixture
+def repository(client):
+    return AuthRepositoryImpl(client)
+
+
+def test_implements_interface(repository):
+    assert isinstance(repository, AuthRepository)
+
+
+@pytest.mark.asyncio
+async def test_login_success(repository, client):
+    client.login.return_value = True
+    result = await repository.login(Auth("user", "password"))
+    assert result.success is True
+    assert result.hash == "hash"
+    client.login.assert_awaited_once_with("user", "password")
+
+
+@pytest.mark.asyncio
+async def test_login_authentication_error_returns_failure(repository, client):
+    client.login.side_effect = MyVerisureAuthenticationError("invalid")
+    result = await repository.login(Auth("user", "password"))
+    assert result.success is False
+    assert "invalid" in result.message
+
+
+@pytest.mark.asyncio
+async def test_login_otp_error_is_propagated(repository, client):
+    client.login.side_effect = MyVerisureOTPError("otp")
+    with pytest.raises(MyVerisureOTPError, match="otp"):
+        await repository.login(Auth("user", "password"))
+
+
+def test_get_available_phones(repository, client):
+    client.get_available_phones.return_value = [{"id": 1, "phone": "masked"}]
+    assert repository.get_available_phones() == [{"id": 1, "phone": "masked"}]
+
+
+@pytest.mark.asyncio
+async def test_send_otp(repository, client):
+    client.send_otp.return_value = True
+    assert await repository.send_otp(1, "hash") is True
+    client.send_otp.assert_awaited_once_with(1, "hash")
+
+
+@pytest.mark.asyncio
+async def test_send_otp_error_is_wrapped(repository, client):
+    client.send_otp.side_effect = RuntimeError("network")
+    with pytest.raises(MyVerisureOTPError, match="network"):
+        await repository.send_otp(1, "hash")
+
+
+@pytest.mark.asyncio
+async def test_verify_otp_success(repository, client):
+    client.verify_otp.return_value = True
+    result = await repository.verify_otp("123456")
+    assert result.success is True
+    client.verify_otp.assert_awaited_once_with("123456")
+
+
+@pytest.mark.asyncio
+async def test_verify_otp_error_is_wrapped(repository, client):
+    client.verify_otp.side_effect = RuntimeError("invalid")
+    with pytest.raises(MyVerisureOTPError, match="invalid"):
+        await repository.verify_otp("123456")

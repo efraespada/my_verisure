@@ -5,6 +5,10 @@ from __future__ import annotations
 import logging
 from typing import List, Optional
 
+from ...api.mappers.installation_mapper import (
+    detailed_installation_from_dto,
+    installation_from_dto,
+)
 from ...api.models.domain.installation import Installation, DetailedInstallation
 from ...api.models.dto.installation_dto import DetailedInstallationDTO
 from ...file_manager import get_file_manager
@@ -62,7 +66,7 @@ class InstallationRepositoryImpl(InstallationRepository):
                 )
                 return None
 
-            detailed_installation = DetailedInstallation.from_dto(
+            detailed_installation = detailed_installation_from_dto(
                 DetailedInstallationDTO.from_dict(data)
             )
             _LOGGER.info(
@@ -100,7 +104,7 @@ class InstallationRepositoryImpl(InstallationRepository):
 
             installations = []
             for installation_dto in installations_data:
-                installation = Installation.from_dto(installation_dto)
+                installation = installation_from_dto(installation_dto)
                 installations.append(installation)
 
             _LOGGER.info("✅ Found %d installations", len(installations))
@@ -148,7 +152,7 @@ class InstallationRepositoryImpl(InstallationRepository):
                 force_refresh,
             )
 
-            detailed_installation = DetailedInstallation.from_dto(
+            detailed_installation = detailed_installation_from_dto(
                 detailed_installation_dto
             )
 

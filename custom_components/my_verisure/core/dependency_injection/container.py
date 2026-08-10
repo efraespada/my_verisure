@@ -14,7 +14,6 @@ _injector: Optional[Injector] = None
 
 def get_injector() -> Injector:
     """Get the global injector instance."""
-    global _injector
     if _injector is None:
         raise RuntimeError("Injector not setup. Call setup_injector() first.")
     return _injector

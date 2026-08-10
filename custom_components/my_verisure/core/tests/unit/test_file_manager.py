@@ -51,7 +51,7 @@ class TestFileManager:
         with patch('pathlib.Path.cwd') as mock_cwd:
             mock_cwd.return_value = Path("/config/custom_components/my_verisure")
             
-            file_manager = FileManager()
+            file_manager = FileManager.__new__(FileManager)
             result = file_manager._detect_project_root()
             
             assert result == Path("/config/custom_components/my_verisure")
@@ -63,7 +63,7 @@ class TestFileManager:
             
             # Create custom_components/my_verisure structure
             custom_components_dir = Path(self.temp_dir) / "custom_components" / "my_verisure"
-            custom_components_dir.mkdir(parents=True)
+            custom_components_dir.mkdir(parents=True, exist_ok=True)
             
             file_manager = FileManager()
             result = file_manager._detect_project_root()
@@ -139,7 +139,7 @@ class TestFileManager:
             
             # Create test file
             test_file = Path(self.temp_dir) / "data" / "test.txt"
-            test_file.parent.mkdir(parents=True)
+            test_file.parent.mkdir(parents=True, exist_ok=True)
             test_file.write_text("Hello World")
             
             result = file_manager.load_text("test.txt")
@@ -165,7 +165,7 @@ class TestFileManager:
             
             # Create test file
             test_file = Path(self.temp_dir) / "data" / "test.txt"
-            test_file.parent.mkdir(parents=True)
+            test_file.parent.mkdir(parents=True, exist_ok=True)
             test_file.write_text("Hello World")
             
             # Mock open to raise an exception
@@ -213,7 +213,7 @@ class TestFileManager:
             
             # Create test file
             test_file = Path(self.temp_dir) / "data" / "test.json"
-            test_file.parent.mkdir(parents=True)
+            test_file.parent.mkdir(parents=True, exist_ok=True)
             test_data = {"key": "value", "number": 123}
             test_file.write_text(json.dumps(test_data))
             
@@ -240,7 +240,7 @@ class TestFileManager:
             
             # Create test file with invalid JSON
             test_file = Path(self.temp_dir) / "data" / "test.json"
-            test_file.parent.mkdir(parents=True)
+            test_file.parent.mkdir(parents=True, exist_ok=True)
             test_file.write_text("invalid json content")
             
             result = file_manager.load_json("test.json")
@@ -256,7 +256,7 @@ class TestFileManager:
             
             # Test with existing file
             test_file = Path(self.temp_dir) / "data" / "test.txt"
-            test_file.parent.mkdir(parents=True)
+            test_file.parent.mkdir(parents=True, exist_ok=True)
             test_file.write_text("Hello World")
             
             assert file_manager.file_exists("test.txt") is True
@@ -271,7 +271,7 @@ class TestFileManager:
             
             # Create test file
             test_file = Path(self.temp_dir) / "data" / "test.txt"
-            test_file.parent.mkdir(parents=True)
+            test_file.parent.mkdir(parents=True, exist_ok=True)
             test_file.write_text("Hello World")
             
             result = file_manager.delete_file("test.txt")
@@ -298,7 +298,7 @@ class TestFileManager:
             
             # Create test files
             data_dir = Path(self.temp_dir) / "data"
-            data_dir.mkdir(parents=True)
+            data_dir.mkdir(parents=True, exist_ok=True)
             
             (data_dir / "test1.txt").write_text("content1")
             (data_dir / "test2.txt").write_text("content2")
@@ -359,7 +359,7 @@ class TestFileManager:
             
             # Create test files
             data_dir = Path(self.temp_dir) / "data"
-            data_dir.mkdir(parents=True)
+            data_dir.mkdir(parents=True, exist_ok=True)
             
             (data_dir / "test1.txt").write_text("content1")
             (data_dir / "test2.txt").write_text("content2")
@@ -397,7 +397,7 @@ class TestFileManager:
             
             # Create test file
             test_file = Path(self.temp_dir) / "data" / "test.txt"
-            test_file.parent.mkdir(parents=True)
+            test_file.parent.mkdir(parents=True, exist_ok=True)
             test_file.write_text("Hello World")
             
             result = file_manager.get_file_size("test.txt")

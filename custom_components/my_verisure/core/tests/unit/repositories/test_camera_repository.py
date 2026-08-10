@@ -6,9 +6,7 @@ Unit tests for CameraRepository implementation.
 import pytest
 from unittest.mock import Mock, AsyncMock, patch
 
-from ....repositories.implementations.camera_repository_impl import (
-    CameraRepositoryImpl,
-)
+from ....repositories.implementations import camera_repository_impl
 from ....repositories.interfaces.camera_repository import CameraRepository
 from ....api.models.domain.camera_request_image import CameraRequestImageResult
 from ....api.exceptions import MyVerisureError
@@ -28,7 +26,7 @@ class TestCameraRepository:
     @pytest.fixture
     def camera_repository(self, mock_client):
         """Create CameraRepository instance with mocked client."""
-        return CameraRepositoryImpl(client=mock_client)
+        return camera_repository_impl.CameraRepositoryImpl(client=mock_client)
 
     def test_camera_repository_implements_interface(self, camera_repository):
         """Test that CameraRepositoryImpl implements CameraRepository interface."""
@@ -58,7 +56,9 @@ class TestCameraRepository:
             reference_id="ref_123"
         )
         
-        with patch('core.api.models.domain.camera_request_image.CameraRequestImageResult.from_dto') as mock_from_dto:
+        with patch.object(
+            camera_repository_impl, "request_image_result_from_dto"
+        ) as mock_from_dto:
             mock_from_dto.return_value = expected_result
             
             # Act
@@ -235,7 +235,9 @@ class TestCameraRepository:
             reference_id="ref_empty"
         )
         
-        with patch('core.api.models.domain.camera_request_image.CameraRequestImageResult.from_dto') as mock_from_dto:
+        with patch.object(
+            camera_repository_impl, "request_image_result_from_dto"
+        ) as mock_from_dto:
             mock_from_dto.return_value = expected_result
             
             # Act

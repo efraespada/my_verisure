@@ -57,11 +57,8 @@ def is_jwt_expired(token: str, leeway: int = 30) -> bool:
             
         return is_expired
         
-    except jwt.InvalidTokenError as e:
-        _LOGGER.warning("Invalid JWT token: %s", e)
-        return True
     except Exception as e:
-        _LOGGER.error("Error checking JWT expiration: %s", e)
+        _LOGGER.warning("Invalid JWT token: %s", e)
         return True
 
 

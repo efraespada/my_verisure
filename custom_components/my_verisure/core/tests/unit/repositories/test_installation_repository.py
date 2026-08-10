@@ -12,6 +12,7 @@ from ....api.exceptions import MyVerisureError
 from ....api.models.dto.installation_dto import (
     InstallationDTO,
     DetailedInstallationDTO,
+    InstallationDataDTO,
     ServiceDTO,
 )
 
@@ -142,16 +143,15 @@ class TestInstallationRepository:
         # Arrange
         installation_id = "12345"
         expected_services_data = DetailedInstallationDTO(
-            installation={
-                "numinst": "12345",
-                "role": "owner",
-                "alias": "Home",
-                "status": "active",
-                "panel": "panel1",
-                "sim": "sim1",
-                "instIbs": "ibs1",
-            },
-            services=[
+            installation=InstallationDataDTO(
+                numinst="12345",
+                role="owner",
+                alias="Home",
+                status="active",
+                panel="panel1",
+                sim="sim1",
+                instIbs="ibs1",
+                services=[
                 ServiceDTO(
                     id_service="EST",
                     active=True,
@@ -182,7 +182,9 @@ class TestInstallationRepository:
                     generic_config={},
                     attributes=[],
                 ),
-            ],
+                ],
+                devices=[],
+            ),
             language="es",
         )
 

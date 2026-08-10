@@ -1,20 +1,13 @@
-"""Installation domain models for My Verisure API."""
+"""Pure installation domain models for My Verisure API."""
 
-from dataclasses import dataclass, asdict
-from typing import List, Optional, Dict, Any
+from dataclasses import asdict, dataclass
+from typing import Any, Dict, List, Optional
 
 from .device import Device
-from ..dto.installation_dto import (
-    InstallationDTO,
-    DetailedInstallationDTO,
-    ServiceDTO,
-    InstallationsListDTO,
-)
 
-@dataclass
+
+@dataclass(frozen=True)
 class Service:
-    """Service domain model."""
-
     id_service: str
     active: bool
     visible: bool
@@ -29,52 +22,12 @@ class Service:
     generic_config: Optional[Dict[str, Any]] = None
     attributes: Optional[Dict[str, Any]] = None
 
-    @classmethod
-    def from_dto(cls, dto: ServiceDTO) -> "Service":
-        """Create Service from DTO."""
-        return cls(
-            id_service=dto.id_service,
-            active=dto.active,
-            visible=dto.visible,
-            bde=dto.bde,
-            is_premium=dto.is_premium,
-            cod_oper=dto.cod_oper,
-            request=dto.request,
-            min_wrapper_version=dto.min_wrapper_version,
-            unprotect_active=dto.unprotect_active,
-            unprotect_device_status=dto.unprotect_device_status,
-            inst_date=dto.inst_date,
-            generic_config=dto.generic_config,
-            attributes=dto.attributes,
-        )
-
-    def to_dto(self) -> ServiceDTO:
-        """Convert to DTO."""
-        return ServiceDTO(
-            id_service=self.id_service,
-            active=self.active,
-            visible=self.visible,
-            bde=self.bde,
-            is_premium=self.is_premium,
-            cod_oper=self.cod_oper,
-            request=self.request,
-            min_wrapper_version=self.min_wrapper_version,
-            unprotect_active=self.unprotect_active,
-            unprotect_device_status=self.unprotect_device_status,
-            inst_date=self.inst_date,
-            generic_config=self.generic_config,
-            attributes=self.attributes,
-        )
-
     def dict(self) -> Dict[str, Any]:
-        """Convert to dictionary."""
         return asdict(self)
 
 
-@dataclass
+@dataclass(frozen=True)
 class Installation:
-    """Installation domain model."""
-
     numinst: str
     alias: str
     panel: str
@@ -90,54 +43,12 @@ class Installation:
     due: Optional[str] = None
     role: Optional[str] = None
 
-    @classmethod
-    def from_dto(cls, dto: InstallationDTO) -> "Installation":
-        """Create Installation from DTO."""
-        return cls(
-            numinst=dto.numinst,
-            alias=dto.alias,
-            panel=dto.panel,
-            type=dto.type,
-            name=dto.name,
-            surname=dto.surname,
-            address=dto.address,
-            city=dto.city,
-            postcode=dto.postcode,
-            province=dto.province,
-            email=dto.email,
-            phone=dto.phone,
-            due=dto.due,
-            role=dto.role,
-        )
-
-    def to_dto(self) -> InstallationDTO:
-        """Convert to DTO."""
-        return InstallationDTO(
-            numinst=self.numinst,
-            alias=self.alias,
-            panel=self.panel,
-            type=self.type,
-            name=self.name,
-            surname=self.surname,
-            address=self.address,
-            city=self.city,
-            postcode=self.postcode,
-            province=self.province,
-            email=self.email,
-            phone=self.phone,
-            due=self.due,
-            role=self.role,
-        )
-
     def dict(self) -> Dict[str, Any]:
-        """Convert to dictionary."""
         return asdict(self)
 
 
-@dataclass
+@dataclass(frozen=True)
 class InstallationData:
-    """Installation data domain model with strict typing."""
-    
     numinst: str
     role: str
     alias: str
@@ -150,96 +61,19 @@ class InstallationData:
     configRepoUser: Optional[str] = None
     capabilities: Optional[str] = None
 
-    def __post_init__(self):
-        """Initialize services list if None."""
-        if self.services is None:
-            self.services = []
 
-
-@dataclass
+@dataclass(frozen=True)
 class DetailedInstallation:
-    """Installation services domain model with strict typing."""
-
     installation: InstallationData
     language: str
 
-    @classmethod
-    def from_dto(cls, dto: DetailedInstallationDTO) -> "DetailedInstallation":
-        """Create DetailedInstallation from DTO."""
-        services = [Service.from_dto(s) for s in dto.installation.services]
-        devices = [Device.from_dto(d) for d in dto.installation.devices]
-        # Create installation data domain model
-        installation_data = InstallationData(
-            numinst=dto.installation.numinst,
-            role=dto.installation.role,
-            alias=dto.installation.alias,
-            status=dto.installation.status,
-            panel=dto.installation.panel,
-            sim=dto.installation.sim,
-            instIbs=dto.installation.instIbs,
-            services=services,
-            devices=devices,
-            configRepoUser=dto.installation.configRepoUser,
-            capabilities=dto.installation.capabilities,
-        )
-
-        return cls(
-            language=dto.language,
-            installation=installation_data,
-        )
-
-    def to_dto(self) -> DetailedInstallationDTO:
-        """Convert to DTO."""
-        from ..dto.installation_dto import InstallationDataDTO
-        
-        services = [s.to_dto() for s in self.installation.services]
-
-        # Create installation data DTO
-        installation_dto = InstallationDataDTO(
-            numinst=self.installation.numinst,
-            role=self.installation.role,
-            alias=self.installation.alias,
-            status=self.installation.status,
-            panel=self.installation.panel,
-            sim=self.installation.sim,
-            instIbs=self.installation.instIbs,
-            services=services,
-            configRepoUser=self.installation.configRepoUser,
-            capabilities=self.installation.capabilities,
-        )
-
-        return DetailedInstallationDTO(
-            language=self.language,
-            installation=installation_dto,
-        )
-
     def dict(self) -> Dict[str, Any]:
-        """Convert to dictionary."""
         return asdict(self)
 
 
-@dataclass
+@dataclass(frozen=True)
 class InstallationsList:
-    """Installations list domain model."""
-
-    installations: List[Installation] = None
-
-    def __post_init__(self):
-        """Initialize installations list if None."""
-        if self.installations is None:
-            self.installations = []
-
-    @classmethod
-    def from_dto(cls, dto: InstallationsListDTO) -> "InstallationsList":
-        """Create InstallationsList from DTO."""
-        installations = [Installation.from_dto(i) for i in dto.installations]
-        return cls(installations=installations)
-
-    def to_dto(self) -> InstallationsListDTO:
-        """Convert to DTO."""
-        installations = [i.to_dto() for i in self.installations]
-        return InstallationsListDTO(installations=installations)
+    installations: List[Installation]
 
     def dict(self) -> Dict[str, Any]:
-        """Convert to dictionary."""
         return asdict(self)

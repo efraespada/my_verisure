@@ -1,14 +1,13 @@
 """Installation DTOs for My Verisure API."""
 
-from dataclasses import dataclass
-from typing import List, Optional, Dict, Any
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional, cast
 
 from .device_dto import DeviceDTO
 
+
 @dataclass
 class ServiceDTO:
-    """Service DTO."""
-
     id_service: str
     active: bool
     visible: bool
@@ -25,28 +24,14 @@ class ServiceDTO:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "ServiceDTO":
-        """Create ServiceDTO from dictionary."""
-        return cls(
-            id_service=data.get("idService", ""),
-            active=data.get("active", False),
-            visible=data.get("visible", False),
-            bde=data.get("bde"),
-            is_premium=data.get("isPremium"),
-            cod_oper=data.get("codOper"),
-            request=data.get("request"),
-            min_wrapper_version=data.get("minWrapperVersion"),
-            unprotect_active=data.get("unprotectActive"),
-            unprotect_device_status=data.get("unprotectDeviceStatus"),
-            inst_date=data.get("instDate"),
-            generic_config=data.get("genericConfig"),
-            attributes=data.get("attributes"),
-        )
+        return cls(data.get("idService", ""), data.get("active", False), data.get("visible", False), data.get("bde"), data.get("isPremium"), data.get("codOper"), data.get("request"), data.get("minWrapperVersion"), data.get("unprotectActive"), data.get("unprotectDeviceStatus"), data.get("instDate"), data.get("genericConfig"), data.get("attributes"))
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"idService": self.id_service, "active": self.active, "visible": self.visible, "bde": self.bde, "isPremium": self.is_premium, "codOper": self.cod_oper, "request": self.request, "minWrapperVersion": self.min_wrapper_version, "unprotectActive": self.unprotect_active, "unprotectDeviceStatus": self.unprotect_device_status, "instDate": self.inst_date, "genericConfig": self.generic_config, "attributes": self.attributes}
 
 
 @dataclass
 class InstallationDTO:
-    """Installation DTO."""
-
     numinst: str
     alias: str
     panel: str
@@ -64,29 +49,29 @@ class InstallationDTO:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "InstallationDTO":
-        """Create InstallationDTO from dictionary."""
         return cls(
-            numinst=data.get("numinst", ""),
-            alias=data.get("alias", ""),
-            panel=data.get("panel", ""),
-            type=data.get("type", ""),
-            name=data.get("name", ""),
-            surname=data.get("surname", ""),
-            address=data.get("address", ""),
-            city=data.get("city", ""),
-            postcode=data.get("postcode", ""),
-            province=data.get("province", ""),
-            email=data.get("email", ""),
-            phone=data.get("phone", ""),
-            due=data.get("due"),
-            role=data.get("role"),
+            cast(str, data.get("numinst")),
+            cast(str, data.get("alias")),
+            cast(str, data.get("panel")),
+            cast(str, data.get("type")),
+            cast(str, data.get("name")),
+            cast(str, data.get("surname")),
+            cast(str, data.get("address")),
+            cast(str, data.get("city")),
+            cast(str, data.get("postcode")),
+            cast(str, data.get("province")),
+            cast(str, data.get("email")),
+            cast(str, data.get("phone")),
+            data.get("due"),
+            data.get("role"),
         )
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"numinst": self.numinst, "alias": self.alias, "panel": self.panel, "type": self.type, "name": self.name, "surname": self.surname, "address": self.address, "city": self.city, "postcode": self.postcode, "province": self.province, "email": self.email, "phone": self.phone, "due": self.due, "role": self.role}
 
 
 @dataclass
 class InstallationDataDTO:
-    """Installation data DTO with strict typing."""
-    
     numinst: str
     role: str
     alias: str
@@ -95,62 +80,38 @@ class InstallationDataDTO:
     sim: str
     instIbs: str
     services: List[ServiceDTO]
-    devices: List[DeviceDTO]
+    devices: List[DeviceDTO] = field(default_factory=list)
     configRepoUser: Optional[str] = None
     capabilities: Optional[str] = None
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "InstallationDataDTO":
-        """Create InstallationDataDTO from dictionary."""
-        return cls(
-            numinst=data.get("numinst", ""),
-            role=data.get("role", ""),
-            alias=data.get("alias", ""),
-            status=data.get("status", ""),
-            panel=data.get("panel", ""),
-            sim=data.get("sim", ""),
-            instIbs=data.get("instIbs", ""),
-            services=[ServiceDTO.from_dict(s) for s in data.get("services", [])],
-            devices=[DeviceDTO.from_dict(d) for d in data.get("devices", [])],
-            configRepoUser=data.get("configRepoUser"),
-            capabilities=data.get("capabilities"),
-        )
+        return cls(data.get("numinst", ""), data.get("role", ""), data.get("alias", ""), data.get("status", ""), data.get("panel", ""), data.get("sim", ""), data.get("instIbs", ""), [ServiceDTO.from_dict(s) for s in data.get("services", [])], [DeviceDTO.from_dict(d) for d in data.get("devices", [])], data.get("configRepoUser"), data.get("capabilities"))
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"numinst": self.numinst, "role": self.role, "alias": self.alias, "status": self.status, "panel": self.panel, "sim": self.sim, "instIbs": self.instIbs, "services": [service.to_dict() for service in self.services], "devices": [device.dict() for device in self.devices], "configRepoUser": self.configRepoUser, "capabilities": self.capabilities}
 
 
 @dataclass
 class DetailedInstallationDTO:
-    """Installation services response DTO with strict typing."""
-
     installation: InstallationDataDTO
     language: str
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "DetailedInstallationDTO":
-        """Create DetailedInstallationDTO from dictionary."""
-        return cls(
-            installation=InstallationDataDTO.from_dict(data.get("installation", {})),
-            language=data.get("language", ""),
-        )
+        return cls(InstallationDataDTO.from_dict(data.get("installation", {})), data.get("language", ""))
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"installation": self.installation.to_dict(), "language": self.language}
 
 
 @dataclass
 class InstallationsListDTO:
-    """Installations list response DTO."""
-
-    installations: List[InstallationDTO] = None
-
-    def __post_init__(self):
-        """Initialize installations list if None."""
-        if self.installations is None:
-            self.installations = []
+    installations: List[InstallationDTO] = field(default_factory=list)
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "InstallationsListDTO":
-        """Create InstallationsListDTO from dictionary."""
-        installations = []
-        if "installations" in data:
-            installations = [
-                InstallationDTO.from_dict(i) for i in data["installations"]
-            ]
+        return cls([InstallationDTO.from_dict(i) for i in data.get("installations", [])])
 
-        return cls(installations=installations)
+    def to_dict(self) -> Dict[str, Any]:
+        return {"installations": [installation.to_dict() for installation in self.installations]}

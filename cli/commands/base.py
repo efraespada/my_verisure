@@ -1,25 +1,20 @@
 """Base command class for the CLI."""
 
-import sys
-import os
 import logging
 from abc import ABC, abstractmethod
 from typing import Optional
 
-
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "custom_components", "my_verisure"))
-
-from core.dependency_injection.providers import (
+from custom_components.my_verisure.core.dependency_injection.providers import (
     setup_dependencies,
     get_auth_use_case,
     get_alarm_use_case,
     get_installation_use_case,
     get_get_installation_devices_use_case,
     get_refresh_camera_images_use_case,
-    get_create_dummy_camera_images_use_case
+    get_create_dummy_camera_images_use_case,
 )
 
-from core.session_manager import get_session_manager
+from custom_components.my_verisure.core.session_manager import get_session_manager
 
 from ..utils.input_helpers import select_installation
 from ..utils.display import print_error, print_info
@@ -30,7 +25,9 @@ logger = logging.getLogger(__name__)
 class BaseCommand(ABC):
     """Base class for all CLI commands."""
 
-    def __init__(self):
+    def __init__(self, session_manager=None):
+        """Create a command with an explicit session boundary."""
+        self.session_manager = session_manager or get_session_manager()
         self.auth_use_case = None
         self.alarm_use_case = None
         self.installation_use_case = None
@@ -43,7 +40,7 @@ class BaseCommand(ABC):
         """Setup the command by ensuring authentication and getting use cases."""
         try:
             # Get session manager
-            session_manager = get_session_manager()
+            session_manager = self.session_manager
             
             # Ensure authentication
             if not await session_manager.ensure_authenticated(interactive):
@@ -72,8 +69,7 @@ class BaseCommand(ABC):
 
     async def cleanup(self):
         """Clean up resources."""
-        session_manager = get_session_manager()
-        await session_manager.cleanup()
+        await self.session_manager.cleanup()
 
     def get_installation_id(
         self, installation_id: Optional[str] = None
@@ -82,9 +78,8 @@ class BaseCommand(ABC):
         if installation_id:
             return installation_id
 
-        session_manager = get_session_manager()
-        if session_manager.current_installation:
-            return session_manager.current_installation
+        if self.session_manager.current_installation:
+            return self.session_manager.current_installation
 
         return None
 
@@ -96,9 +91,8 @@ class BaseCommand(ABC):
         if installation_id:
             return installation_id
 
-        session_manager = get_session_manager()
-        if session_manager.current_installation:
-            return session_manager.current_installation
+        if self.session_manager.current_installation:
+            return self.session_manager.current_installation
 
         # Get all installations and let user select
         try:
@@ -112,13 +106,13 @@ class BaseCommand(ABC):
                 print_info(
                     f"Usando única instalación disponible: {installation.alias}"
                 )
-                session_manager.current_installation = installation.numinst
+                self.session_manager.current_installation = installation.numinst
                 return installation.numinst
 
             # Multiple installations, let user select
             selected_id = select_installation(installations)
             if selected_id:
-                session_manager.current_installation = selected_id
+                self.session_manager.current_installation = selected_id
                 return selected_id
 
             return None

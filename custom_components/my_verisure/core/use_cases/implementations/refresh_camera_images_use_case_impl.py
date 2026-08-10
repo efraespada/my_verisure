@@ -68,6 +68,7 @@ class RefreshCameraImagesUseCaseImpl(RefreshCameraImagesUseCase):
             refresh_data = []
             index = 0
             for camera_device in camera_devices:
+                formatted_code = f"{camera_device.type}{int(camera_device.code):02d}"
                 try:
                     result = await self.camera_repository.request_image(
                         installation_id=installation_id,

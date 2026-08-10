@@ -60,9 +60,8 @@ class TestAuthUseCase:
         # Verify the call was made with both auth and device identifiers
         mock_auth_repository.login.assert_called_once()
         call_args = mock_auth_repository.login.call_args[0]
-        assert len(call_args) == 2
+        assert len(call_args) == 1
         assert call_args[0] == expected_auth
-        assert isinstance(call_args[1], DeviceIdentifiers)
 
     @pytest.mark.asyncio
     async def test_login_failure(self, auth_use_case, mock_auth_repository):
@@ -87,9 +86,8 @@ class TestAuthUseCase:
         # Verify the call was made with both auth and device identifiers
         mock_auth_repository.login.assert_called_once()
         call_args = mock_auth_repository.login.call_args[0]
-        assert len(call_args) == 2
+        assert len(call_args) == 1
         assert call_args[0] == expected_auth
-        assert isinstance(call_args[1], DeviceIdentifiers)
 
     @pytest.mark.asyncio
     async def test_login_raises_exception(
@@ -196,12 +194,9 @@ class TestAuthUseCase:
         result = await auth_use_case.verify_otp(otp_code)
 
         # Assert
-        assert result is True
-        mock_auth_repository.verify_otp.assert_called_once()
-        call_args = mock_auth_repository.verify_otp.call_args[0]
-        assert call_args[0] == otp_code
-        assert call_args[1] == "test_hash"
-        assert isinstance(call_args[2], DeviceIdentifiers)
+        assert result.success is True
+        assert result.message == "OTP verification successful"
+        mock_auth_repository.verify_otp.assert_called_once_with(otp_code)
 
     @pytest.mark.asyncio
     async def test_verify_otp_failure(
@@ -225,12 +220,9 @@ class TestAuthUseCase:
         result = await auth_use_case.verify_otp(otp_code)
 
         # Assert
-        assert result is False
-        mock_auth_repository.verify_otp.assert_called_once()
-        call_args = mock_auth_repository.verify_otp.call_args[0]
-        assert call_args[0] == otp_code
-        assert call_args[1] == "test_hash"
-        assert isinstance(call_args[2], DeviceIdentifiers)
+        assert result.success is False
+        assert result.message == "OTP verification failed"
+        mock_auth_repository.verify_otp.assert_called_once_with(otp_code)
 
     @pytest.mark.asyncio
     async def test_verify_otp_raises_exception(

@@ -1,368 +1,91 @@
-"""Unit tests for SessionManager."""
+"""Unit tests for the current SessionManager contract."""
 
 import json
-import os
-import tempfile
 import time
 from pathlib import Path
-from unittest.mock import patch, Mock, mock_open
+from unittest.mock import AsyncMock, patch
+
 import pytest
 
-from ...session_manager import SessionManager, _session_manager_instance
+from ... import session_manager as session_module
+from ...session_manager import SessionManager, get_session_manager
 
 
-class TestSessionManager:
-    """Test SessionManager."""
+@pytest.fixture
+def manager(tmp_path):
+    with patch.object(SessionManager, "_get_session_file_path", return_value=str(tmp_path / "session.json")):
+        value = SessionManager()
+    return value
 
-    def setup_method(self):
-        """Set up test fixtures."""
-        # Reset global instance
-        global _session_manager_instance
-        _session_manager_instance = None
-        
-        # Create a temporary directory for testing
-        self.temp_dir = tempfile.mkdtemp()
-        self.original_home = os.path.expanduser("~")
-        
-        # Mock home directory
-        self.mock_home = os.path.join(self.temp_dir, "home")
-        os.makedirs(self.mock_home, exist_ok=True)
 
-    def teardown_method(self):
-        """Clean up after each test."""
-        # Reset global instance
-        global _session_manager_instance
-        _session_manager_instance = None
-        
-        # Clean up temporary directory
-        import shutil
-        shutil.rmtree(self.temp_dir, ignore_errors=True)
+def test_update_credentials_persists_and_reports_authenticated(manager):
+    manager.update_credentials("user", "password", "hash", "refresh")
+    assert manager.is_authenticated is True
+    assert manager.get_current_hash_token() == "hash"
+    payload = json.loads(Path(manager.session_file).read_text())
+    assert payload["username"] == "user"
+    assert payload["password"] == "password"
+    assert payload["hash_token"] == "hash"
 
-    def test_session_manager_initialization(self):
-        """Test SessionManager initialization."""
-        with patch('os.path.expanduser', return_value=self.mock_home):
-            with patch.object(SessionManager, '_load_session'):
-                session_manager = SessionManager()
-                
-                assert session_manager._is_authenticated is False
-                assert session_manager.current_installation is None
-                assert session_manager.username is None
-                assert session_manager.password is None
-                assert session_manager.hash_token is None
-                assert session_manager.refresh_token is None
-                assert session_manager.session_timestamp is None
 
-    def test_get_session_file_path(self):
-        """Test getting session file path."""
-        with patch('os.path.expanduser', return_value=self.mock_home):
-            with patch.object(SessionManager, '_load_session'):
-                session_manager = SessionManager()
-                file_path = session_manager._get_session_file_path()
-                
-                expected_path = os.path.join(self.mock_home, ".my_verisure", "session.json")
-                assert file_path == expected_path
-                
-                # Verify directory was created
-                assert os.path.exists(os.path.dirname(file_path))
+def test_load_session_sync_hydrates_valid_recent_session(manager):
+    payload = {"username": "user", "password": "password", "hash_token": "hash", "refresh_token": "refresh", "session_timestamp": time.time(), "current_installation": "1"}
+    Path(manager.session_file).write_text(json.dumps(payload))
+    with patch.object(session_module, "is_jwt_expired", return_value=False):
+        manager.load_session_sync()
+        assert manager.username == "user"
+        assert manager.current_installation == "1"
+        assert manager.is_session_valid() is True
 
-    def test_is_authenticated_no_credentials(self):
-        """Test authentication check with no credentials."""
-        with patch('os.path.expanduser', return_value=self.mock_home):
-            with patch.object(SessionManager, '_load_session'):
-                session_manager = SessionManager()
-                
-                assert session_manager.is_authenticated is False
 
-    def test_is_authenticated_no_username(self):
-        """Test authentication check with no username."""
-        with patch('os.path.expanduser', return_value=self.mock_home):
-            with patch.object(SessionManager, '_load_session'):
-                session_manager = SessionManager()
-                session_manager.password = "password"
-                session_manager.hash_token = "token"
-                
-                assert session_manager.is_authenticated is False
+def test_clear_credentials_removes_file(manager):
+    manager.update_credentials("user", "password", "hash")
+    manager.clear_credentials()
+    assert manager.is_authenticated is False
+    assert not Path(manager.session_file).exists()
 
-    def test_is_authenticated_no_password(self):
-        """Test authentication check with no password."""
-        with patch('os.path.expanduser', return_value=self.mock_home):
-            with patch.object(SessionManager, '_load_session'):
-                session_manager = SessionManager()
-                session_manager.username = "user"
-                session_manager.hash_token = "token"
-                
-                assert session_manager.is_authenticated is False
 
-    def test_is_authenticated_no_token(self):
-        """Test authentication check with no token."""
-        with patch('os.path.expanduser', return_value=self.mock_home):
-            with patch.object(SessionManager, '_load_session'):
-                session_manager = SessionManager()
-                session_manager.username = "user"
-                session_manager.password = "password"
-                
-                assert session_manager.is_authenticated is False
+def test_current_session_data_requires_credentials(manager):
+    assert manager.get_current_session_data() is None
+    manager.update_credentials("user", "password", "hash", persist=False)
+    assert manager.get_current_session_data()["user"] == "user"
 
-    def test_is_authenticated_valid_credentials(self):
-        """Test authentication check when user, password and hash are present."""
-        with patch('os.path.expanduser', return_value=self.mock_home):
-            with patch.object(SessionManager, '_load_session'):
-                session_manager = SessionManager()
-                session_manager.username = "user"
-                session_manager.password = "password"
-                session_manager.hash_token = "token"
 
-                assert session_manager.is_authenticated is True
+def test_expired_session_is_invalid(manager):
+    manager.update_credentials("user", "password", "hash", persist=False)
+    manager.session_timestamp = time.time() - session_module.TOKEN_MAX_AGE_SECONDS - 1
+    assert manager.is_session_valid() is False
 
-    def test_is_authenticated_with_expired_token_still_has_credentials(self):
-        """Credentials present does not imply valid session (token may be expired)."""
-        with patch('os.path.expanduser', return_value=self.mock_home):
-            with patch.object(SessionManager, '_load_session'):
-                session_manager = SessionManager()
-                session_manager.username = "user"
-                session_manager.password = "password"
-                session_manager.hash_token = "token"
-                session_manager.session_timestamp = time.time() - 4000
 
-                assert session_manager.is_authenticated is True
-                assert session_manager.is_session_valid() is False
+def test_missing_token_is_invalid(manager):
+    manager.username = "user"
+    manager.password = "password"
+    assert manager.is_session_valid() is False
 
-    def test_can_attempt_refresh_with_username_password_only(self):
-        """Refresh can run when hash is missing but username/password are set."""
-        with patch('os.path.expanduser', return_value=self.mock_home):
-            with patch.object(SessionManager, '_load_session'):
-                session_manager = SessionManager()
-                session_manager.username = "user"
-                session_manager.password = "password"
-                session_manager.hash_token = ""
-                assert session_manager.can_attempt_refresh() is True
 
-    def test_can_attempt_refresh_false_when_service_blocked(self):
-        """Do not refresh while service backoff is active."""
-        with patch('os.path.expanduser', return_value=self.mock_home):
-            with patch.object(SessionManager, '_load_session'):
-                session_manager = SessionManager()
-                session_manager.username = "user"
-                session_manager.password = "password"
-                session_manager.hash_token = "t"
-                session_manager.session_timestamp = time.time() - 4000
-                session_manager.record_service_blocked(cooldown_seconds=3600)
-                assert session_manager.can_attempt_refresh() is False
+def test_service_blocked_cooldown(manager):
+    manager.record_service_blocked(60)
+    assert manager.is_service_blocked() is True
+    manager.clear_service_blocked()
+    assert manager.is_service_blocked() is False
 
-    def test_load_session_success(self):
-        """Test successful session loading."""
-        session_data = {
-            "username": "test_user",
-            "password": "test_password",
-            "hash_token": "test_hash",
-            "refresh_token": "test_refresh",
-            "session_timestamp": 1640995200,
-            "current_installation": "inst123"
-        }
-        
-        with patch('os.path.expanduser', return_value=self.mock_home):
-            with patch('builtins.open', mock_open(read_data=json.dumps(session_data))):
-                with patch('os.path.exists', return_value=True):
-                    session_manager = SessionManager()
-                    
-                    assert session_manager.username == "test_user"
-                    assert session_manager.password == "test_password"
-                    assert session_manager.hash_token == "test_hash"
-                    assert session_manager.refresh_token == "test_refresh"
-                    assert session_manager.session_timestamp == 1640995200
-                    assert session_manager.current_installation == "inst123"
 
-    def test_load_session_file_not_found(self):
-        """Test session loading when file doesn't exist."""
-        with patch('os.path.expanduser', return_value=self.mock_home):
-            with patch('os.path.exists', return_value=False):
-                session_manager = SessionManager()
-                
-                assert session_manager.username is None
-                assert session_manager.password is None
-                assert session_manager.hash_token is None
-                assert session_manager.refresh_token is None
-                assert session_manager.session_timestamp is None
-                assert session_manager.current_installation is None
+def test_get_session_manager_is_singleton():
+    session_module._session_manager_instance = None
+    first = get_session_manager()
+    second = get_session_manager()
+    assert first is second
+    session_module._session_manager_instance = None
 
-    def test_load_session_invalid_json(self):
-        """Test session loading with invalid JSON."""
-        with patch('os.path.expanduser', return_value=self.mock_home):
-            with patch('builtins.open', mock_open(read_data="invalid json")):
-                with patch('os.path.exists', return_value=True):
-                    session_manager = SessionManager()
-                    
-                    # Should not crash and should have default values
-                    assert session_manager.username is None
-                    assert session_manager.password is None
 
-    def test_load_session_file_error(self):
-        """Test session loading with file error."""
-        with patch('os.path.expanduser', return_value=self.mock_home):
-            with patch('os.path.exists', return_value=True):
-                with patch('builtins.open', side_effect=IOError("Permission denied")):
-                    session_manager = SessionManager()
-                    
-                    # Should not crash and should have default values
-                    assert session_manager.username is None
-                    assert session_manager.password is None
+@pytest.mark.asyncio
+async def test_async_update_and_clear(manager):
+    await manager.async_update_credentials("user", "password", "hash")
+    assert manager.is_authenticated is True
+    await manager.async_clear_credentials()
+    assert manager.is_authenticated is False
 
-    def test_save_session_success(self):
-        """Test successful session saving."""
-        with patch('os.path.expanduser', return_value=self.mock_home):
-            with patch.object(SessionManager, '_load_session'):
-                session_manager = SessionManager()
-                session_manager.username = "test_user"
-                session_manager.password = "test_password"
-                session_manager.hash_token = "test_hash"
-                session_manager.refresh_token = "test_refresh"
-                session_manager.session_timestamp = 1640995200
-                session_manager.current_installation = "inst123"
-                
-                with patch('builtins.open', mock_open()) as mock_file:
-                    result = session_manager.save_session()
-                    
-                    assert result is True
-                    mock_file.assert_called_once()
-                    
-                    # Verify the saved data
-                    call_args = mock_file.call_args
-                    assert 'w' in call_args[0][1]  # File opened in write mode
 
-    def test_save_session_failure(self):
-        """Test session saving failure."""
-        with patch('os.path.expanduser', return_value=self.mock_home):
-            with patch.object(SessionManager, '_load_session'):
-                session_manager = SessionManager()
-                session_manager.username = "test_user"
-                
-                with patch('builtins.open', side_effect=IOError("Permission denied")):
-                    result = session_manager.save_session()
-                    
-                    assert result is False
-
-    def test_clear_session(self):
-        """Test clearing session."""
-        with patch('os.path.expanduser', return_value=self.mock_home):
-            with patch.object(SessionManager, '_load_session'):
-                session_manager = SessionManager()
-                session_manager.username = "test_user"
-                session_manager.password = "test_password"
-                session_manager.hash_token = "test_hash"
-                session_manager.refresh_token = "test_refresh"
-                session_manager.session_timestamp = 1640995200
-                session_manager.current_installation = "inst123"
-                
-                session_manager.clear_session()
-                
-                assert session_manager.username is None
-                assert session_manager.password is None
-                assert session_manager.hash_token is None
-                assert session_manager.refresh_token is None
-                assert session_manager.session_timestamp is None
-                assert session_manager.current_installation is None
-
-    def test_set_credentials(self):
-        """Test setting credentials."""
-        with patch('os.path.expanduser', return_value=self.mock_home):
-            with patch.object(SessionManager, '_load_session'):
-                session_manager = SessionManager()
-                
-                session_manager.set_credentials("test_user", "test_password")
-                
-                assert session_manager.username == "test_user"
-                assert session_manager.password == "test_password"
-
-    def test_set_tokens(self):
-        """Test setting tokens."""
-        with patch('os.path.expanduser', return_value=self.mock_home):
-            with patch.object(SessionManager, '_load_session'):
-                session_manager = SessionManager()
-                
-                session_manager.set_tokens("test_hash", "test_refresh")
-                
-                assert session_manager.hash_token == "test_hash"
-                assert session_manager.refresh_token == "test_refresh"
-
-    def test_set_current_installation(self):
-        """Test setting current installation."""
-        with patch('os.path.expanduser', return_value=self.mock_home):
-            with patch.object(SessionManager, '_load_session'):
-                session_manager = SessionManager()
-                
-                session_manager.set_current_installation("inst123")
-                
-                assert session_manager.current_installation == "inst123"
-
-    def test_get_session_info(self):
-        """Test getting session information."""
-        with patch('os.path.expanduser', return_value=self.mock_home):
-            with patch.object(SessionManager, '_load_session'):
-                session_manager = SessionManager()
-                session_manager.username = "test_user"
-                session_manager.hash_token = "test_hash"
-                session_manager.current_installation = "inst123"
-                session_manager.session_timestamp = 1640995200
-                
-                info = session_manager.get_session_info()
-                
-                assert info["username"] == "test_user"
-                assert info["has_token"] is True
-                assert info["current_installation"] == "inst123"
-                assert info["session_timestamp"] == 1640995200
-                assert "session_age_seconds" in info
-
-    def test_is_token_valid_with_valid_token(self):
-        """Test token validation with valid token."""
-        with patch('os.path.expanduser', return_value=self.mock_home):
-            with patch.object(SessionManager, '_load_session'):
-                with patch('...session_manager.is_jwt_expired', return_value=False):
-                    session_manager = SessionManager()
-                    session_manager.hash_token = "valid_token"
-                    
-                    result = session_manager._is_token_valid()
-                    assert result is True
-
-    def test_is_token_valid_with_expired_token(self):
-        """Test token validation with expired token."""
-        with patch('os.path.expanduser', return_value=self.mock_home):
-            with patch.object(SessionManager, '_load_session'):
-                with patch('...session_manager.is_jwt_expired', return_value=True):
-                    session_manager = SessionManager()
-                    session_manager.hash_token = "expired_token"
-                    
-                    result = session_manager._is_token_valid()
-                    assert result is False
-
-    def test_is_token_valid_no_token(self):
-        """Test token validation with no token."""
-        with patch('os.path.expanduser', return_value=self.mock_home):
-            with patch.object(SessionManager, '_load_session'):
-                session_manager = SessionManager()
-                session_manager.hash_token = None
-                
-                result = session_manager._is_token_valid()
-                assert result is False
-
-    def test_session_manager_singleton(self):
-        """Test SessionManager singleton behavior."""
-        with patch('os.path.expanduser', return_value=self.mock_home):
-            with patch.object(SessionManager, '_load_session'):
-                # First call should create instance
-                session_manager1 = SessionManager()
-                assert isinstance(session_manager1, SessionManager)
-                
-                # Second call should return same instance
-                session_manager2 = SessionManager()
-                assert session_manager1 is session_manager2
-
-    def test_session_manager_with_mocked_time(self):
-        """Test SessionManager with mocked time."""
-        with patch('os.path.expanduser', return_value=self.mock_home):
-            with patch.object(SessionManager, '_load_session'):
-                with patch('time.time', return_value=1640995200):
-                    session_manager = SessionManager()
-                    session_manager.session_timestamp = 1640995200
-                    
-                    info = session_manager.get_session_info()
-                    assert info["session_age_seconds"] == 0
+@pytest.mark.asyncio
+async def test_ensure_authenticated_without_credentials_noninteractive(manager):
+    assert await manager.ensure_authenticated(interactive=False) is False

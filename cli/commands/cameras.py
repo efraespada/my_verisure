@@ -13,9 +13,9 @@ _LOGGER = logging.getLogger(__name__)
 class CameraCommand(BaseCommand):
     """Camera command handler."""
 
-    def __init__(self):
+    def __init__(self, session_manager=None):
         """Initialize the camera command."""
-        super().__init__()
+        super().__init__(session_manager)
 
     async def execute(
         self,

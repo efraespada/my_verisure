@@ -1,0 +1,6 @@
+# Development-only dependencies for Home Assistant integration tests.
+-r requirements.txt
+pytest-homeassistant-custom-component==0.13.109
+flake8>=7.0,<8.0
+mypy>=1.11,<3.0
+Pillow>=10.0,<13.0

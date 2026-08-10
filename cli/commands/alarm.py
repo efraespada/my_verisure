@@ -1,7 +1,5 @@
 """Alarm control command for the CLI."""
 
-import sys
-import os
 import logging
 from typing import Optional
 
@@ -16,9 +14,7 @@ from ..utils.display import (
 )
 from ..utils.input_helpers import confirm_action
 
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "custom_components", "my_verisure"))
-
-from core.api.models.domain.alarm import ArmResult, DisarmResult
+from custom_components.my_verisure.core.api.models.domain.alarm import ArmResult, DisarmResult
 
 
 logger = logging.getLogger(__name__)
@@ -34,9 +30,11 @@ class AlarmCommand(BaseCommand):
         if action == "status":
             return await self._show_status(**kwargs)
         elif action == "arm":
-            return await self._arm(**kwargs)
+            result = await self._arm(**kwargs)
+            return result.success
         elif action == "disarm":
-            return await self._disarm(**kwargs)
+            result = await self._disarm(**kwargs)
+            return result.success
         else:
             print_error(f"Unknown alarm action: {action}")
             return False
@@ -85,14 +83,17 @@ class AlarmCommand(BaseCommand):
 
         try:
             if not await self.setup():
-                return False
+                return ArmResult(success=False, message="Error setting up the alarm")
 
             # Get installation ID
             installation_id = await self.select_installation_if_needed(
                 installation_id
             )
             if not installation_id:
-                return False
+                return ArmResult(
+                    success=False,
+                    message="Error selecting the installation for arming the alarm",
+                )
 
             # Validate mode
             valid_modes = ["away", "home", "night"]
@@ -100,13 +101,16 @@ class AlarmCommand(BaseCommand):
                 print_error(
                     f"Invalid mode: {mode}. Valid modes: {', '.join(valid_modes)}"
                 )
-                return False
+                return ArmResult(
+                    success=False,
+                    message=f"Invalid mode: {mode}. Valid modes: {', '.join(valid_modes)}",
+                )
 
             # Confirm action if requested
             if confirm:
                 if not confirm_action(f"arm the alarm in mode {mode}"):
                     print_info("Action cancelled")
-                    return False
+                    return ArmResult(success=False, message="Action cancelled")
 
             print_info(
                 f"Arming alarm in mode {mode} for installation: {installation_id}"

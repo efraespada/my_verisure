@@ -3,6 +3,7 @@
 import pytest
 
 from ...api.models.domain.auth import Auth, AuthResult
+from ...api.mappers.auth_mapper import auth_result_from_dto, auth_result_to_dto
 
 
 class TestAuth:
@@ -76,7 +77,7 @@ class TestAuthResult:
             need_device_authorization=True,
         )
 
-        result = AuthResult.from_dto(dto)
+        result = auth_result_from_dto(dto)
 
         assert result.success is True
         assert result.message == "Login successful"
@@ -100,7 +101,7 @@ class TestAuthResult:
             need_device_authorization=True,
         )
 
-        dto = result.to_dto()
+        dto = auth_result_to_dto(result)
 
         assert dto.res == "OK"
         assert dto.msg == "Login successful"
@@ -136,7 +137,7 @@ class TestAuthResult:
             msg="Login failed",
         )
 
-        result = AuthResult.from_dto(dto)
+        result = auth_result_from_dto(dto)
 
         assert result.success is False
         assert result.message == "Login failed"

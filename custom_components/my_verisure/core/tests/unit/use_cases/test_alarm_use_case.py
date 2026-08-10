@@ -1,330 +1,100 @@
-#!/usr/bin/env python3
-"""
-Unit tests for AlarmUseCase implementation.
-"""
+"""Unit tests for the current alarm use-case contract."""
+
+from unittest.mock import AsyncMock, Mock
 
 import pytest
-from unittest.mock import Mock, AsyncMock
 
-from ....api.models.domain.installation import DetailedInstallation
+from ....api.exceptions import MyVerisureError
+from ....api.models.domain.alarm import AlarmStatus, ArmResult, DisarmResult
+from ....api.models.domain.installation import DetailedInstallation, InstallationData
+from ....repositories.interfaces.alarm_repository import AlarmRepository
+from ....repositories.interfaces.installation_repository import InstallationRepository
 from ....use_cases.implementations.alarm_use_case_impl import AlarmUseCaseImpl
 from ....use_cases.interfaces.alarm_use_case import AlarmUseCase
-from ....repositories.interfaces.installation_repository import InstallationRepository
-from ....repositories.interfaces.alarm_repository import AlarmRepository
-from ....api.models.domain.alarm import AlarmStatus
-from ....api.models.domain.installation import DetailedInstallation
-from ....api.exceptions import MyVerisureError
 
 
-class TestAlarmUseCase:
-    """Test cases for AlarmUseCase implementation."""
+@pytest.fixture
+def alarm_dependencies():
+    alarm = Mock(spec=AlarmRepository)
+    alarm.get_alarm_status = AsyncMock()
+    alarm.arm_away = AsyncMock()
+    alarm.arm_home = AsyncMock()
+    alarm.arm_night = AsyncMock()
+    alarm.disarm_panel = AsyncMock()
 
-    @pytest.fixture
-    def mock_alarm_repository(self):
-        """Create a mock alarm repository."""
-        mock_repo = Mock(spec=AlarmRepository)
-        mock_repo.get_alarm_status = AsyncMock()
-        mock_repo.arm_alarm_away = AsyncMock()
-        mock_repo.arm_alarm_home = AsyncMock()
-        mock_repo.arm_alarm_night = AsyncMock()
-        mock_repo.disarm_alarm = AsyncMock()
-        return mock_repo
-
-    @pytest.fixture
-    def mock_installation_repository(self):
-        """Create a mock installation repository."""
-        mock_repo = Mock(spec=InstallationRepository)
-        mock_repo.get_installation_services = AsyncMock()
-
-        # Default mock response for installation services
-        from core.api.models.domain.installation import InstallationData
-        mock_installation_data = InstallationData(
-            numinst="6220569",
-            role="OWNER",
-            alias="Test Installation",
-            status="OP",
-            panel="PROTOCOL",
-            sim="123456789",
-            instIbs="16824809",
-            services=[],
-            configRepoUser=None,
-            capabilities="default_capabilities",
-        )
-        mock_services = DetailedInstallation(
-            installation=mock_installation_data,
-            language="es",
-        )
-        mock_repo.get_installation_services.return_value = mock_services
-
-        return mock_repo
-
-    @pytest.fixture
-    def alarm_use_case(
-        self, mock_alarm_repository, mock_installation_repository
-    ):
-        """Create AlarmUseCase instance with mocked dependencies."""
-        return AlarmUseCaseImpl(
-            alarm_repository=mock_alarm_repository,
-            installation_repository=mock_installation_repository,
-        )
-
-    def test_alarm_use_case_implements_interface(self, alarm_use_case):
-        """Test that AlarmUseCaseImpl implements AlarmUseCase interface."""
-        assert isinstance(alarm_use_case, AlarmUseCase)
-
-    @pytest.mark.asyncio
-    async def test_get_alarm_status_success(
-        self, alarm_use_case, mock_alarm_repository
-    ):
-        """Test successful get alarm status."""
-        # Arrange
-        installation_id = "12345"
-        expected_status = AlarmStatus(
-            success=True,
-            message="Alarm status retrieved successfully",
-            status="ARMED",
-            numinst=installation_id,
-        )
-
-        mock_alarm_repository.get_alarm_status.return_value = expected_status
-
-        # Act
-        result = await alarm_use_case.get_alarm_status(installation_id)
-
-        # Assert
-        assert result.success is True
-        assert result.message == "Alarm status retrieved successfully"
-        assert result.status == "ARMED"
-        assert result.numinst == installation_id
-        mock_alarm_repository.get_alarm_status.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_get_alarm_status_raises_exception(
-        self, alarm_use_case, mock_alarm_repository
-    ):
-        """Test get alarm status raises exception."""
-        # Arrange
-        installation_id = "12345"
-        mock_alarm_repository.get_alarm_status.side_effect = MyVerisureError(
-            "Connection failed"
-        )
-
-        # Act & Assert
-        with pytest.raises(MyVerisureError, match="Connection failed"):
-            await alarm_use_case.get_alarm_status(installation_id)
-
-    @pytest.mark.asyncio
-    async def test_arm_alarm_away_success(
-        self, alarm_use_case, mock_alarm_repository
-    ):
-        """Test successful arm alarm away."""
-        # Arrange
-        installation_id = "12345"
-        # Configure the mock to return a mock object with success=True
-        mock_result = Mock()
-        mock_result.success = True
-        mock_alarm_repository.arm_panel.return_value = mock_result
-
-        # Act
-        result = await alarm_use_case.arm_alarm_away(installation_id)
-
-        # Assert
-        assert result is True
-        mock_alarm_repository.arm_panel.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_arm_alarm_away_failure(
-        self, alarm_use_case, mock_alarm_repository
-    ):
-        """Test failed arm alarm away."""
-        # Arrange
-        installation_id = "12345"
-        # Configure the mock to return a mock object with success=False
-        mock_result = Mock()
-        mock_result.success = False
-        mock_alarm_repository.arm_panel.return_value = mock_result
-
-        # Act
-        result = await alarm_use_case.arm_alarm_away(installation_id)
-
-        # Assert
-        assert result is False
-        mock_alarm_repository.arm_panel.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_arm_alarm_home_success(
-        self, alarm_use_case, mock_alarm_repository
-    ):
-        """Test successful arm alarm home."""
-        # Arrange
-        installation_id = "12345"
-        # Configure the mock to return a mock object with success=True
-        mock_result = Mock()
-        mock_result.success = True
-        mock_alarm_repository.arm_panel.return_value = mock_result
-
-        # Act
-        result = await alarm_use_case.arm_alarm_home(installation_id)
-
-        # Assert
-        assert result is True
-        mock_alarm_repository.arm_panel.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_arm_alarm_home_failure(
-        self, alarm_use_case, mock_alarm_repository
-    ):
-        """Test failed arm alarm home."""
-        # Arrange
-        installation_id = "12345"
-        # Configure the mock to return a mock object with success=False
-        mock_result = Mock()
-        mock_result.success = False
-        mock_alarm_repository.arm_panel.return_value = mock_result
-
-        # Act
-        result = await alarm_use_case.arm_alarm_home(installation_id)
-
-        # Assert
-        assert result is False
-        mock_alarm_repository.arm_panel.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_arm_alarm_night_success(
-        self, alarm_use_case, mock_alarm_repository
-    ):
-        """Test successful arm alarm night."""
-        # Arrange
-        installation_id = "12345"
-        # Configure the mock to return a mock object with success=True
-        mock_result = Mock()
-        mock_result.success = True
-        mock_alarm_repository.arm_panel.return_value = mock_result
-
-        # Act
-        result = await alarm_use_case.arm_alarm_night(installation_id)
-
-        # Assert
-        assert result is True
-        mock_alarm_repository.arm_panel.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_arm_alarm_night_failure(
-        self, alarm_use_case, mock_alarm_repository
-    ):
-        """Test failed arm alarm night."""
-        # Arrange
-        installation_id = "12345"
-        # Configure the mock to return a mock object with success=False
-        mock_result = Mock()
-        mock_result.success = False
-        mock_alarm_repository.arm_panel.return_value = mock_result
-
-        # Act
-        result = await alarm_use_case.arm_alarm_night(installation_id)
-
-        # Assert
-        assert result is False
-        mock_alarm_repository.arm_panel.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_disarm_alarm_success(
-        self, alarm_use_case, mock_alarm_repository
-    ):
-        """Test successful disarm alarm."""
-        # Arrange
-        installation_id = "12345"
-        # Configure the mock to return a mock object with success=True
-        mock_result = Mock()
-        mock_result.success = True
-        mock_alarm_repository.disarm_panel.return_value = mock_result
-
-        # Act
-        result = await alarm_use_case.disarm_alarm(installation_id)
-
-        # Assert
-        assert result is True
-        mock_alarm_repository.disarm_panel.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_disarm_alarm_failure(
-        self, alarm_use_case, mock_alarm_repository
-    ):
-        """Test failed disarm alarm."""
-        # Arrange
-        installation_id = "12345"
-        # Configure the mock to return a mock object with success=False
-        mock_result = Mock()
-        mock_result.success = False
-        mock_alarm_repository.disarm_panel.return_value = mock_result
-
-        # Act
-        result = await alarm_use_case.disarm_alarm(installation_id)
-
-        # Assert
-        assert result is False
-        mock_alarm_repository.disarm_panel.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_arm_alarm_away_raises_exception(
-        self, alarm_use_case, mock_alarm_repository
-    ):
-        """Test arm alarm away raises exception."""
-        # Arrange
-        installation_id = "12345"
-        mock_alarm_repository.arm_panel.side_effect = MyVerisureError(
-            "Connection failed"
-        )
-
-        # Act & Assert
-        with pytest.raises(MyVerisureError, match="Connection failed"):
-            await alarm_use_case.arm_alarm_away(installation_id)
-
-    @pytest.mark.asyncio
-    async def test_arm_alarm_home_raises_exception(
-        self, alarm_use_case, mock_alarm_repository
-    ):
-        """Test arm alarm home raises exception."""
-        # Arrange
-        installation_id = "12345"
-        mock_alarm_repository.arm_panel.side_effect = MyVerisureError(
-            "Connection failed"
-        )
-
-        # Act & Assert
-        with pytest.raises(MyVerisureError, match="Connection failed"):
-            await alarm_use_case.arm_alarm_home(installation_id)
-
-    @pytest.mark.asyncio
-    async def test_arm_alarm_night_raises_exception(
-        self, alarm_use_case, mock_alarm_repository
-    ):
-        """Test arm alarm night raises exception."""
-        # Arrange
-        installation_id = "12345"
-        mock_alarm_repository.arm_panel.side_effect = MyVerisureError(
-            "Connection failed"
-        )
-
-        # Act & Assert
-        with pytest.raises(MyVerisureError, match="Connection failed"):
-            await alarm_use_case.arm_alarm_night(installation_id)
-
-    @pytest.mark.asyncio
-    async def test_disarm_alarm_raises_exception(
-        self, alarm_use_case, mock_alarm_repository
-    ):
-        """Test disarm alarm raises exception."""
-        # Arrange
-        installation_id = "12345"
-        mock_alarm_repository.disarm_panel.side_effect = MyVerisureError(
-            "Connection failed"
-        )
-
-        # Act & Assert
-        with pytest.raises(MyVerisureError, match="Connection failed"):
-            await alarm_use_case.disarm_alarm(installation_id)
+    installation = Mock(spec=InstallationRepository)
+    installation.get_installation_services = AsyncMock(return_value=DetailedInstallation(
+        installation=InstallationData(
+            numinst="12345", role="OWNER", alias="Home", status="OP",
+            panel="PROTOCOL", sim="sim", instIbs="ibs", services=[],
+            configRepoUser=None, capabilities="caps", devices=[],
+        ),
+        language="es",
+    ))
+    return alarm, installation
 
 
-if __name__ == "__main__":
-    pytest.main([__file__])
+@pytest.fixture
+def alarm_use_case(alarm_dependencies):
+    alarm, installation = alarm_dependencies
+    return AlarmUseCaseImpl(alarm, installation)
+
+
+def test_implements_interface(alarm_use_case):
+    assert isinstance(alarm_use_case, AlarmUseCase)
+
+
+@pytest.mark.asyncio
+async def test_get_alarm_status_resolves_installation_context(alarm_use_case, alarm_dependencies):
+    alarm, _ = alarm_dependencies
+    expected = AlarmStatus(success=True, message="ok", status="ARMED", numinst="12345")
+    alarm.get_alarm_status.return_value = expected
+
+    result = await alarm_use_case.get_alarm_status("12345")
+
+    assert result == expected
+    alarm.get_alarm_status.assert_awaited_once_with("12345", "PROTOCOL", "caps")
+
+
+@pytest.mark.parametrize(
+    ("method", "repository_method"),
+    [("arm_away", "arm_away"), ("arm_home", "arm_home"), ("arm_night", "arm_night")],
+)
+@pytest.mark.asyncio
+async def test_arm_modes_use_current_repository_contract(
+    alarm_use_case, alarm_dependencies, method, repository_method
+):
+    alarm, _ = alarm_dependencies
+    expected = ArmResult(success=True, message="armed")
+    getattr(alarm, repository_method).return_value = expected
+
+    result = await getattr(alarm_use_case, method)("12345")
+
+    assert result == expected
+    getattr(alarm, repository_method).assert_awaited_once_with(
+        installation_id="12345", panel="PROTOCOL", capabilities="caps",
+        auto_arm_perimeter_with_internal=False,
+    ) if method != "arm_home" else getattr(alarm, repository_method).assert_awaited_once_with(
+        installation_id="12345", panel="PROTOCOL", capabilities="caps"
+    )
+
+
+@pytest.mark.asyncio
+async def test_disarm_uses_current_repository_contract(alarm_use_case, alarm_dependencies):
+    alarm, _ = alarm_dependencies
+    expected = DisarmResult(success=True, message="disarmed")
+    alarm.disarm_panel.return_value = expected
+
+    result = await alarm_use_case.disarm("12345")
+
+    assert result == expected
+    alarm.disarm_panel.assert_awaited_once_with("12345", "PROTOCOL", "caps")
+
+
+@pytest.mark.asyncio
+async def test_repository_errors_are_propagated(alarm_use_case, alarm_dependencies):
+    alarm, _ = alarm_dependencies
+    alarm.arm_away.side_effect = MyVerisureError("API failure")
+
+    with pytest.raises(MyVerisureError, match="API failure"):
+        await alarm_use_case.arm_away("12345")

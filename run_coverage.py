@@ -9,6 +9,9 @@ import time
 import subprocess
 from pathlib import Path
 
+PYTHON = sys.executable
+CORE_TESTS = "custom_components/my_verisure/core/tests"
+
 # Colores para output
 class Colors:
     HEADER = '\033[95m'
@@ -70,17 +73,17 @@ def run_tests_with_coverage_cli():
     print_section("Running CLI Tests with Coverage")
     
     # Intentar usar coverage si está disponible
-    coverage_available = run_command(["python", "-c", "import coverage; print('available')"])
+    coverage_available = run_command([PYTHON, "-c", "import coverage; print('available')"])
     
     if coverage_available['success']:
         print_info("Coverage module available, running with coverage...")
         
         # Limpiar datos de coverage anteriores
-        run_command(["python", "-m", "coverage", "erase"])
+        run_command([PYTHON, "-m", "coverage", "erase"])
         
         # Ejecutar tests CLI con coverage
         cmd = [
-            "python", "-m", "coverage", "run", "-m", "pytest",
+            PYTHON, "-m", "coverage", "run", "-m", "pytest",
             "cli/tests"
         ]
         
@@ -93,7 +96,7 @@ def run_tests_with_coverage_cli():
             print_info("Generating CLI coverage reports...")
             
             # Reporte de terminal
-            term_result = run_command(["python", "-m", "coverage", "report", "--show-missing"])
+            term_result = run_command([PYTHON, "-m", "coverage", "report", "--show-missing"])
             if term_result['success']:
                 print_success("CLI terminal report generated")
                 if term_result['stdout']:
@@ -101,7 +104,7 @@ def run_tests_with_coverage_cli():
                     print(term_result['stdout'])
             
             # Reporte HTML
-            html_result = run_command(["python", "-m", "coverage", "html", "--directory=htmlcov/cli"])
+            html_result = run_command([PYTHON, "-m", "coverage", "html", "--directory=htmlcov/cli"])
             if html_result['success']:
                 print_success("CLI HTML report generated")
                 print_info("HTML report available at: htmlcov/cli/index.html")
@@ -121,7 +124,7 @@ def run_tests_with_coverage_cli():
         
         # Ejecutar tests CLI sin coverage
         cmd = [
-            "python", "-m", "pytest",
+            PYTHON, "-m", "pytest",
             "cli/tests"
         ]
         
@@ -146,18 +149,18 @@ def run_tests_with_coverage_core():
     print_section("Running Core Tests with Coverage")
     
     # Intentar usar coverage si está disponible
-    coverage_available = run_command(["python", "-c", "import coverage; print('available')"])
+    coverage_available = run_command([PYTHON, "-c", "import coverage; print('available')"])
     
     if coverage_available['success']:
         print_info("Coverage module available, running with coverage...")
         
         # Limpiar datos de coverage anteriores
-        run_command(["python", "-m", "coverage", "erase"])
+        run_command([PYTHON, "-m", "coverage", "erase"])
         
         # Ejecutar tests Core con coverage
         cmd = [
-            "python", "-m", "coverage", "run", "-m", "pytest",
-            "core/tests"
+            PYTHON, "-m", "coverage", "run", "-m", "pytest",
+            CORE_TESTS
         ]
         
         result = run_command(cmd)
@@ -169,7 +172,7 @@ def run_tests_with_coverage_core():
             print_info("Generating Core coverage reports...")
             
             # Reporte de terminal
-            term_result = run_command(["python", "-m", "coverage", "report", "--show-missing"])
+            term_result = run_command([PYTHON, "-m", "coverage", "report", "--show-missing"])
             if term_result['success']:
                 print_success("Core terminal report generated")
                 if term_result['stdout']:
@@ -177,7 +180,7 @@ def run_tests_with_coverage_core():
                     print(term_result['stdout'])
             
             # Reporte HTML
-            html_result = run_command(["python", "-m", "coverage", "html", "--directory=htmlcov/core"])
+            html_result = run_command([PYTHON, "-m", "coverage", "html", "--directory=htmlcov/core"])
             if html_result['success']:
                 print_success("Core HTML report generated")
                 print_info("HTML report available at: htmlcov/core/index.html")
@@ -197,8 +200,8 @@ def run_tests_with_coverage_core():
         
         # Ejecutar tests Core sin coverage
         cmd = [
-            "python", "-m", "pytest",
-            "core/tests"
+            PYTHON, "-m", "pytest",
+            CORE_TESTS
         ]
         
         result = run_command(cmd)
@@ -222,19 +225,19 @@ def run_tests_with_coverage_all():
     print_section("Running All Tests with Coverage")
     
     # Intentar usar coverage si está disponible
-    coverage_available = run_command(["python", "-c", "import coverage; print('available')"])
+    coverage_available = run_command([PYTHON, "-c", "import coverage; print('available')"])
     
     if coverage_available['success']:
         print_info("Coverage module available, running with coverage...")
         
         # Limpiar datos de coverage anteriores
-        run_command(["python", "-m", "coverage", "erase"])
+        run_command([PYTHON, "-m", "coverage", "erase"])
         
         # Ejecutar tests con coverage
         cmd = [
-            "python", "-m", "coverage", "run", "-m", "pytest",
+            PYTHON, "-m", "coverage", "run", "-m", "pytest",
             "cli/tests",
-            "core/tests"
+            CORE_TESTS
         ]
         
         result = run_command(cmd)
@@ -246,7 +249,7 @@ def run_tests_with_coverage_all():
             print_info("Generating coverage reports...")
             
             # Reporte de terminal
-            term_result = run_command(["python", "-m", "coverage", "report", "--show-missing"])
+            term_result = run_command([PYTHON, "-m", "coverage", "report", "--show-missing"])
             if term_result['success']:
                 print_success("Terminal report generated")
                 if term_result['stdout']:
@@ -254,13 +257,13 @@ def run_tests_with_coverage_all():
                     print(term_result['stdout'])
             
             # Reporte HTML
-            html_result = run_command(["python", "-m", "coverage", "html", "--directory=htmlcov"])
+            html_result = run_command([PYTHON, "-m", "coverage", "html", "--directory=htmlcov"])
             if html_result['success']:
                 print_success("HTML report generated")
                 print_info("HTML report available at: htmlcov/index.html")
             
             # Reporte XML
-            xml_result = run_command(["python", "-m", "coverage", "xml", "-o", "coverage.xml"])
+            xml_result = run_command([PYTHON, "-m", "coverage", "xml", "-o", "coverage.xml"])
             if xml_result['success']:
                 print_success("XML report generated")
                 print_info("XML report available at: coverage.xml")
@@ -280,9 +283,9 @@ def run_tests_with_coverage_all():
         
         # Ejecutar tests sin coverage
         cmd = [
-            "python", "-m", "pytest",
+            PYTHON, "-m", "pytest",
             "cli/tests",
-            "core/tests"
+            CORE_TESTS
         ]
         
         result = run_command(cmd)
@@ -306,7 +309,7 @@ def main():
     print_header("My Verisure - Working Coverage Analysis")
     
     # Verificar que estamos en el directorio correcto
-    if not Path("cli").exists() or not Path("core").exists():
+    if not Path("cli").exists() or not Path(CORE_TESTS).exists():
         print_error("This script must be run from the project root directory")
         sys.exit(1)
     

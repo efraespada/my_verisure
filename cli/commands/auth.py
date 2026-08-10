@@ -11,9 +11,8 @@ from ..utils.display import (
     print_warning,
     print_header,
 )
-from core.session_manager import get_session_manager
-from core.api.exceptions import MyVerisureOTPError
-from core.dependency_injection.providers import (
+from custom_components.my_verisure.core.api.exceptions import MyVerisureOTPError
+from custom_components.my_verisure.core.dependency_injection.providers import (
     setup_dependencies,
     get_auth_use_case,
     clear_dependencies,
@@ -46,7 +45,7 @@ class AuthCommand(BaseCommand):
 
         try:
             # Get session manager
-            session_manager = get_session_manager()
+            session_manager = self.session_manager
             
             # Ensure we have credentials
             if not await session_manager.ensure_authenticated(interactive):
@@ -96,7 +95,7 @@ class AuthCommand(BaseCommand):
         print_header("CIERRE DE SESIÓN")
 
         try:
-            session_manager = get_session_manager()
+            session_manager = self.session_manager
             await session_manager.logout()
             print_success("Sesión cerrada correctamente")
             return True
@@ -109,7 +108,7 @@ class AuthCommand(BaseCommand):
         """Show authentication status."""
         print_header("ESTADO DE AUTENTICACIÓN")
 
-        session_manager = get_session_manager()
+        session_manager = self.session_manager
         
         # Show user information
         if session_manager.username:
@@ -191,7 +190,7 @@ class AuthCommand(BaseCommand):
                         
                         if auth_result.success:
                             # Update session manager with new credentials
-                            session_manager = get_session_manager()
+                            session_manager = self.session_manager
                             session_manager.update_credentials(
                                 session_manager.username,
                                 session_manager.password,

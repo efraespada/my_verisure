@@ -5,7 +5,7 @@
 
 # Variables
 PYTHON = python3
-VENV = venv
+VENV = .venv
 PIP = $(VENV)/bin/pip
 PYTEST = $(VENV)/bin/pytest
 
@@ -47,7 +47,7 @@ test-cli: ## Ejecutar solo tests del CLI
 
 test-core: ## Ejecutar solo tests del Core
 	@echo "$(BLUE)Ejecutando tests del Core...$(NC)"
-	cd core/tests && $(PYTEST) -v
+	cd custom_components/my_verisure/core/tests && $(PYTEST) -v
 
 test-fast: ## Ejecutar tests rápidos (sin integración)
 	@echo "$(BLUE)Ejecutando tests rápidos...$(NC)"
@@ -59,24 +59,24 @@ test-coverage: ## Ejecutar tests con cobertura
 
 lint: ## Ejecutar linting del código
 	@echo "$(BLUE)Ejecutando linting...$(NC)"
-	@if command -v flake8 >/dev/null 2>&1; then \
-		flake8 cli/ core/ custom_components/; \
+	@if test -x "$(VENV)/bin/flake8"; then \
+		$(VENV)/bin/flake8 cli/ custom_components/ scripts/; \
 		echo "$(GREEN)Linting completado$(NC)"; \
 	else \
 		echo "$(YELLOW)flake8 no está instalado. Instalando...$(NC)"; \
 		$(PIP) install flake8; \
-		flake8 cli/ core/ custom_components/; \
+		$(VENV)/bin/flake8 cli/ custom_components/ scripts/; \
 	fi
 
 type-check: ## Ejecutar verificación de tipos
 	@echo "$(BLUE)Ejecutando verificación de tipos...$(NC)"
-	@if command -v mypy >/dev/null 2>&1; then \
-		mypy cli/ core/; \
+	@if test -x "$(VENV)/bin/mypy"; then \
+		$(VENV)/bin/mypy cli/ custom_components/ scripts/; \
 		echo "$(GREEN)Verificación de tipos completada$(NC)"; \
 	else \
 		echo "$(YELLOW)mypy no está instalado. Instalando...$(NC)"; \
 		$(PIP) install mypy; \
-		mypy cli/ core/; \
+		$(VENV)/bin/mypy cli/ custom_components/ scripts/; \
 	fi
 
 clean: ## Limpiar archivos temporales y cache

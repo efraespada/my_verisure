@@ -2,12 +2,8 @@
 """Test script for My Verisure CLI."""
 
 import sys
-import os
 from unittest.mock import patch
 from io import StringIO
-
-# Add the project root to the path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from cli.main import create_parser, setup_logging
 

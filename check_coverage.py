@@ -151,7 +151,7 @@ def main():
     print_header("My Verisure - Coverage Checker")
     
     # Verificar que estamos en el directorio correcto
-    if not Path("cli").exists() or not Path("core").exists():
+    if not Path("cli").exists() or not Path("custom_components/my_verisure/core").exists():
         print_error("This script must be run from the project root directory")
         sys.exit(1)
     

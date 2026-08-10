@@ -5,18 +5,13 @@ import argparse
 import asyncio
 import logging
 import sys
-import os
-
-# Add custom_components to path
-components_path = os.path.join(os.path.dirname(__file__), "..", "custom_components")
-sys.path.insert(0, os.path.abspath(components_path))
 
 from .commands.auth import AuthCommand
 from .commands.info import InfoCommand
 from .commands.alarm import AlarmCommand
 from .commands.cameras import CameraCommand
 from .utils.display import print_header, print_error, print_info
-from core.session_manager import get_session_manager
+from custom_components.my_verisure.core.session_manager import get_session_manager
 
 logger = logging.getLogger(__name__)
 
@@ -184,15 +179,16 @@ async def main():
     print_info("Command Line Interface for My Verisure integration")
     print()
 
+    session_manager = get_session_manager()
     try:
         if args.command == "auth":
-            command = AuthCommand()
+            command = AuthCommand(session_manager)
             success = await command.execute(
                 args.action, interactive=not args.non_interactive
             )
 
         elif args.command == "info":
-            command = InfoCommand()
+            command = InfoCommand(session_manager)
             if args.action == "services":
                 success = await command.execute(
                     args.action,
@@ -217,7 +213,7 @@ async def main():
                 )
 
         elif args.command == "alarm":
-            command = AlarmCommand()
+            command = AlarmCommand(session_manager)
             if args.action == "status":
                 success = await command.execute(
                     args.action,
@@ -243,7 +239,7 @@ async def main():
                 success = False
 
         elif args.command == "cameras":
-            command = CameraCommand()
+            command = CameraCommand(session_manager)
             if args.action == "info":
                 success = await command.execute(
                     args.action,
@@ -271,20 +267,17 @@ async def main():
 
         # Cleanup only for auth logout
         if args.command == "auth" and args.action == "logout":
-            session_manager = get_session_manager()
             await session_manager.cleanup()
 
         return 0 if success else 1
 
     except KeyboardInterrupt:
         print("\n⏹️  Proceso interrumpido por el usuario")
-        session_manager = get_session_manager()
         await session_manager.cleanup()
         return 1
 
     except Exception as e:
         print_error(f"Error inesperado: {e}")
-        session_manager = get_session_manager()
         await session_manager.cleanup()
         return 1
 

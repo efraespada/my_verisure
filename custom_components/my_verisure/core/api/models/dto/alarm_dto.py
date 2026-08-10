@@ -1,51 +1,45 @@
 """Alarm DTOs for My Verisure API."""
 
 from dataclasses import dataclass
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
+
+
+def _result_dict(res: str, msg: Optional[str], reference_id: Optional[str]) -> Dict[str, Any]:
+    return {"res": res, "msg": msg, "referenceId": reference_id}
 
 
 @dataclass
 class ArmResultDTO:
-    """Arm result DTO."""
-
     res: str
-    msg: str
+    msg: Optional[str]
     reference_id: Optional[str] = None
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "ArmResultDTO":
-        """Create ArmResultDTO from dictionary."""
-        return cls(
-            res=data.get("res", ""),
-            msg=data.get("msg", ""),
-            reference_id=data.get("referenceId"),
-        )
+        return cls(data.get("res", ""), data.get("msg"), data.get("referenceId"))
+
+    def to_dict(self) -> Dict[str, Any]:
+        return _result_dict(self.res, self.msg, self.reference_id)
 
 
 @dataclass
 class DisarmResultDTO:
-    """Disarm result DTO."""
-
     res: str
-    msg: str
+    msg: Optional[str]
     reference_id: Optional[str] = None
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "DisarmResultDTO":
-        """Create DisarmResultDTO from dictionary."""
-        return cls(
-            res=data.get("res", ""),
-            msg=data.get("msg", ""),
-            reference_id=data.get("referenceId"),
-        )
+        return cls(data.get("res", ""), data.get("msg"), data.get("referenceId"))
+
+    def to_dict(self) -> Dict[str, Any]:
+        return _result_dict(self.res, self.msg, self.reference_id)
 
 
 @dataclass
 class AlarmStatusDTO:
-    """Alarm status DTO."""
-
     res: str
-    msg: str
+    msg: Optional[str]
     status: Optional[str] = None
     numinst: Optional[str] = None
     protom_response: Optional[str] = None
@@ -54,24 +48,16 @@ class AlarmStatusDTO:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "AlarmStatusDTO":
-        """Create AlarmStatusDTO from dictionary."""
-        return cls(
-            res=data.get("res", ""),
-            msg=data.get("msg", ""),
-            status=data.get("status"),
-            numinst=data.get("numinst"),
-            protom_response=data.get("protomResponse"),
-            protom_response_date=data.get("protomResponseDate"),
-            forced_armed=data.get("forcedArmed"),
-        )
+        return cls(data.get("res", ""), data.get("msg"), data.get("status"), data.get("numinst"), data.get("protomResponse"), data.get("protomResponseDate"), data.get("forcedArmed"))
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"res": self.res, "msg": self.msg, "status": self.status, "numinst": self.numinst, "protomResponse": self.protom_response, "protomResponseDate": self.protom_response_date, "forcedArmed": self.forced_armed}
 
 
 @dataclass
 class ArmStatusDTO:
-    """Arm status response DTO."""
-
     res: str
-    msg: str
+    msg: Optional[str]
     status: Optional[str] = None
     protom_response: Optional[str] = None
     protom_response_date: Optional[str] = None
@@ -82,26 +68,16 @@ class ArmStatusDTO:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "ArmStatusDTO":
-        """Create ArmStatusDTO from dictionary."""
-        return cls(
-            res=data.get("res", ""),
-            msg=data.get("msg", ""),
-            status=data.get("status"),
-            protom_response=data.get("protomResponse"),
-            protom_response_date=data.get("protomResponseDate"),
-            numinst=data.get("numinst"),
-            request_id=data.get("requestId"),
-            error=data.get("error"),
-            smartlock_status=data.get("smartlockStatus"),
-        )
+        return cls(data.get("res", ""), data.get("msg"), data.get("status"), data.get("protomResponse"), data.get("protomResponseDate"), data.get("numinst"), data.get("requestId"), data.get("error"), data.get("smartlockStatus"))
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"res": self.res, "msg": self.msg, "status": self.status, "protomResponse": self.protom_response, "protomResponseDate": self.protom_response_date, "numinst": self.numinst, "requestId": self.request_id, "error": self.error, "smartlockStatus": self.smartlock_status}
 
 
 @dataclass
 class DisarmStatusDTO:
-    """Disarm status response DTO."""
-
     res: str
-    msg: str
+    msg: Optional[str]
     status: Optional[str] = None
     protom_response: Optional[str] = None
     protom_response_date: Optional[str] = None
@@ -111,32 +87,21 @@ class DisarmStatusDTO:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "DisarmStatusDTO":
-        """Create DisarmStatusDTO from dictionary."""
-        return cls(
-            res=data.get("res", ""),
-            msg=data.get("msg", ""),
-            status=data.get("status"),
-            protom_response=data.get("protomResponse"),
-            protom_response_date=data.get("protomResponseDate"),
-            numinst=data.get("numinst"),
-            request_id=data.get("requestId"),
-            error=data.get("error"),
-        )
+        return cls(data.get("res", ""), data.get("msg"), data.get("status"), data.get("protomResponse"), data.get("protomResponseDate"), data.get("numinst"), data.get("requestId"), data.get("error"))
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"res": self.res, "msg": self.msg, "status": self.status, "protomResponse": self.protom_response, "protomResponseDate": self.protom_response_date, "numinst": self.numinst, "requestId": self.request_id, "error": self.error}
 
 
 @dataclass
 class CheckAlarmDTO:
-    """Check alarm response DTO."""
-
     res: str
-    msg: str
+    msg: Optional[str]
     reference_id: Optional[str] = None
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "CheckAlarmDTO":
-        """Create CheckAlarmDTO from dictionary."""
-        return cls(
-            res=data.get("res", ""),
-            msg=data.get("msg", ""),
-            reference_id=data.get("referenceId"),
-        )
+        return cls(data.get("res", ""), data.get("msg"), data.get("referenceId"))
+
+    def to_dict(self) -> Dict[str, Any]:
+        return _result_dict(self.res, self.msg, self.reference_id)

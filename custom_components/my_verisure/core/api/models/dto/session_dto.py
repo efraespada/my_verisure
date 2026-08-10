@@ -1,42 +1,38 @@
 """Session DTOs for My Verisure API."""
 
 from dataclasses import dataclass
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 
 
 @dataclass
 class DeviceIdentifiersDTO:
-    """Device identifiers DTO."""
-
-    id_device: str
-    uuid: str
-    id_device_indigitall: str
-    device_name: str
-    device_brand: str
-    device_os_version: str
-    device_version: str
-    device_type: str = ""
-    device_resolution: str = ""
-    generated_time: int = 0
+    id_device: Optional[str] = None
+    uuid: Optional[str] = None
+    id_device_indigitall: Optional[str] = None
+    device_name: Optional[str] = None
+    device_brand: Optional[str] = None
+    device_os_version: Optional[str] = None
+    device_version: Optional[str] = None
+    device_type: Optional[str] = None
+    device_resolution: Optional[str] = None
+    generated_time: Optional[int] = None
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "DeviceIdentifiersDTO":
-        """Create DeviceIdentifiersDTO from dictionary."""
         return cls(
-            id_device=data.get("idDevice", ""),
-            uuid=data.get("uuid", ""),
-            id_device_indigitall=data.get("idDeviceIndigitall", ""),
-            device_name=data.get("deviceName", ""),
-            device_brand=data.get("deviceBrand", ""),
-            device_os_version=data.get("deviceOsVersion", ""),
-            device_version=data.get("deviceVersion", ""),
-            device_type=data.get("deviceType", ""),
-            device_resolution=data.get("deviceResolution", ""),
-            generated_time=data.get("generated_time", 0),
+            id_device=data.get("idDevice"),
+            uuid=data.get("uuid"),
+            id_device_indigitall=data.get("idDeviceIndigitall"),
+            device_name=data.get("deviceName"),
+            device_brand=data.get("deviceBrand"),
+            device_os_version=data.get("deviceOsVersion"),
+            device_version=data.get("deviceVersion"),
+            device_type=data.get("deviceType"),
+            device_resolution=data.get("deviceResolution"),
+            generated_time=data.get("generated_time"),
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary."""
         return {
             "idDevice": self.id_device,
             "uuid": self.uuid,
@@ -53,35 +49,31 @@ class DeviceIdentifiersDTO:
 
 @dataclass
 class SessionDTO:
-    """Session data DTO."""
-
     cookies: Dict[str, str]
-    session_data: Dict[str, Any]
+    session_data: Optional[Dict[str, Any]]
     hash: Optional[str] = None
-    user: str = ""
+    user: Optional[str] = None
     device_identifiers: Optional[DeviceIdentifiersDTO] = None
-    saved_time: int = 0
+    saved_time: Optional[int] = None
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "SessionDTO":
-        """Create SessionDTO from dictionary."""
-        device_identifiers = None
-        if "device_identifiers" in data:
-            device_identifiers = DeviceIdentifiersDTO.from_dict(
-                data["device_identifiers"]
-            )
-
+        raw_device = data.get("device_identifiers")
+        device_identifiers = (
+            DeviceIdentifiersDTO.from_dict(raw_device)
+            if raw_device is not None
+            else None
+        )
         return cls(
             cookies=data.get("cookies", {}),
-            session_data=data.get("session_data", {}),
+            session_data=data.get("session_data"),
             hash=data.get("hash"),
-            user=data.get("user", ""),
+            user=data.get("user"),
             device_identifiers=device_identifiers,
-            saved_time=data.get("saved_time", 0),
+            saved_time=data.get("saved_time"),
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary."""
         return {
             "cookies": self.cookies,
             "session_data": self.session_data,

@@ -4,7 +4,6 @@ import logging
 from typing import List
 
 from ...api.models.domain.auth import Auth, AuthResult
-from ...api.models.domain.session import DeviceIdentifiers
 from ...repositories.interfaces.auth_repository import AuthRepository
 from ..interfaces.auth_use_case import AuthUseCase
 from ...api.exceptions import MyVerisureOTPError
@@ -38,7 +37,7 @@ class AuthUseCaseImpl(AuthUseCase):
         except MyVerisureOTPError as e:
             _LOGGER.info("OTP authentication required: %s", e)
             # Store OTP data from the auth client for later use
-            self._otp_data = self.auth_repository.client._otp_data
+            self._otp_data = getattr(e, "otp_data", e)
             if should_log_detailed():
                 _LOGGER.debug(
                     "Stored OTP data in AuthUseCase (redacted): %s",
@@ -93,6 +92,22 @@ class AuthUseCaseImpl(AuthUseCase):
                 "AuthUseCase _otp_data (redacted): %s",
                 redact_sensitive_data(self._otp_data),
             )
+
+        phones = getattr(self._otp_data, "phones", None)
+        if phones:
+            return [
+                {
+                    key: value
+                    for key, value in {
+                        "id": phone.id,
+                        "phone": phone.phone,
+                        "record_id": getattr(phone, "record_id", None),
+                        "otp_hash": getattr(phone, "otp_hash", None),
+                    }.items()
+                    if value is not None
+                }
+                for phone in phones
+            ]
 
         if not self._otp_data:
             _LOGGER.debug("No OTP data available in AuthUseCase")

@@ -1,13 +1,11 @@
 """Authentication DTOs for My Verisure API."""
 
 from dataclasses import dataclass
-from typing import List, Optional, Dict, Any
+from typing import Any, Dict, List, Optional
 
 
 @dataclass
 class PhoneDTO:
-    """Phone number DTO for OTP."""
-
     id: int
     phone: str
     record_id: Optional[int] = None
@@ -15,29 +13,39 @@ class PhoneDTO:
 
     @classmethod
     def from_dict(cls, data: dict) -> "PhoneDTO":
-        """Create PhoneDTO from dictionary."""
-        return cls(
-            id=data.get("id", 0),
-            phone=data.get("phone", ""),
-            record_id=data.get("record_id"),
-            otp_hash=data.get("otp_hash")
-        )
+        return cls(data.get("id", 0), data.get("phone", ""), data.get("record_id"), data.get("otp_hash"))
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"id": self.id, "phone": self.phone, "record_id": self.record_id, "otp_hash": self.otp_hash}
 
 
 @dataclass
 class OTPDataDTO:
-    """OTP data DTO."""
-
     phones: List[PhoneDTO]
     otp_hash: str
     auth_code: Optional[str] = None
     auth_type: Optional[str] = None
 
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "OTPDataDTO":
+        return cls(
+            phones=[PhoneDTO.from_dict(phone) for phone in data.get("phones", [])],
+            otp_hash=data.get("otpHash", ""),
+            auth_code=data.get("authCode"),
+            auth_type=data.get("authType"),
+        )
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "phones": [phone.to_dict() for phone in self.phones],
+            "otpHash": self.otp_hash,
+            "authCode": self.auth_code,
+            "authType": self.auth_type,
+        }
+
 
 @dataclass
 class AuthDTO:
-    """Authentication response DTO."""
-
     res: str
     msg: str
     hash: Optional[str] = None
@@ -49,7 +57,6 @@ class AuthDTO:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "AuthDTO":
-        """Create AuthDTO from dictionary."""
         return cls(
             res=data.get("res", ""),
             msg=data.get("msg", ""),
@@ -62,7 +69,6 @@ class AuthDTO:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary."""
         return {
             "res": self.res,
             "msg": self.msg,

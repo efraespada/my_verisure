@@ -8,6 +8,9 @@ import time
 from pathlib import Path
 from typing import List, Dict
 
+PYTHON = sys.executable
+CORE_TESTS = "custom_components/my_verisure/core/tests"
+
 # Colores para la salida
 class Colors:
     HEADER = '\033[95m'
@@ -87,7 +90,7 @@ def run_pytest_tests(test_path: str, test_name: str = None) -> bool:
         return True  # No es un error si no hay tests
     
     # Comando base de pytest
-    cmd = ["python", "-m", "pytest", test_path, "-v"]
+    cmd = [PYTHON, "-m", "pytest", test_path, "-v"]
     
     # Ejecutar tests
     result = run_command(cmd)
@@ -116,19 +119,19 @@ def run_linting() -> bool:
     print_section("Code Linting")
     
     # Verificar si flake8 está disponible
-    result = run_command(["flake8", "--version"])
+    result = run_command([PYTHON, "-m", "flake8", "--version"])
     if not result['success']:
         print_warning("flake8 not installed. Skipping linting.")
         return True
     
     # Ejecutar flake8 en los directorios principales
-    directories = ["cli", "core", "custom_components"]
+    directories = ["cli", "custom_components"]
     all_success = True
     
     for directory in directories:
         if Path(directory).exists():
             print_info(f"Linting {directory}/")
-            result = run_command(["flake8", directory])
+            result = run_command([PYTHON, "-m", "flake8", directory])
             
             if result['success']:
                 print_success(f"{directory}/ - No linting errors")
@@ -145,19 +148,19 @@ def run_type_checking() -> bool:
     print_section("Type Checking")
     
     # Verificar si mypy está disponible
-    result = run_command(["mypy", "--version"])
+    result = run_command([PYTHON, "-m", "mypy", "--version"])
     if not result['success']:
         print_warning("mypy not installed. Skipping type checking.")
         return True
     
     # Ejecutar mypy en los directorios principales
-    directories = ["cli", "core"]
+    directories = ["cli", "custom_components"]
     all_success = True
     
     for directory in directories:
         if Path(directory).exists():
             print_info(f"Type checking {directory}/")
-            result = run_command(["mypy", directory])
+            result = run_command([PYTHON, "-m", "mypy", directory])
             
             if result['success']:
                 print_success(f"{directory}/ - No type errors")
@@ -174,7 +177,7 @@ def run_coverage_report() -> bool:
     print_section("Coverage Report")
     
     # Usar el script dedicado para coverage
-    cmd = ["python", "run_coverage.py"]
+    cmd = [PYTHON, "run_coverage.py"]
     
     result = run_command(cmd)
     
@@ -195,7 +198,7 @@ def main():
     print_header("My Verisure - Test Suite")
     
     # Verificar que estamos en el directorio correcto
-    if not Path("cli").exists() or not Path("core").exists():
+    if not Path("cli").exists() or not Path(CORE_TESTS).exists():
         print_error("This script must be run from the project root directory")
         sys.exit(1)
     
@@ -210,7 +213,7 @@ def main():
     # Ejecutar diferentes tipos de tests
     test_suites = [
         ("CLI Tests", "cli/tests"),
-        ("Core Tests", "core/tests"),
+        ("Core Tests", CORE_TESTS),
         ("Integration Tests", "."),  # Tests en el directorio raíz
     ]
     

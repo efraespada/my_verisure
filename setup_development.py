@@ -8,6 +8,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+CORE_PATH = Path("custom_components/my_verisure/core")
+
 # Colores para output
 class Colors:
     HEADER = '\033[95m'
@@ -82,7 +84,7 @@ def install_requirements():
     print_section("Instalando Dependencias")
     
     print_info("Instalando desde requirements.txt...")
-    result = run_command(["python", "-m", "pip", "install", "-r", "requirements.txt"])
+    result = run_command([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"])
     
     if result['success']:
         print_success("Dependencias instaladas correctamente")
@@ -122,7 +124,7 @@ def run_quick_test():
     print_section("Test Rápido")
     
     print_info("Ejecutando test simple...")
-    result = run_command(["python", "-m", "pytest", "cli/tests/test_cli.py", "-v", "--tb=short"])
+    result = run_command([sys.executable, "-m", "pytest", "cli/tests/test_cli.py", "-v", "--tb=short"])
     
     if result['success']:
         print_success("Test rápido exitoso")
@@ -150,7 +152,7 @@ def show_next_steps():
   mypy cli/ core/                            # Type checking
   black cli/ core/                           # Formatear código
   python -m pytest cli/tests/ -v             # Tests CLI
-  python -m pytest core/tests/ -v            # Tests Core
+  python -m pytest custom_components/my_verisure/core/tests/ -v  # Tests Core
 
 📋 Coverage:
   python -m coverage run -m pytest cli/tests # Coverage CLI
@@ -163,7 +165,7 @@ def main():
     print_header("My Verisure - Setup de Desarrollo")
     
     # Verificar que estamos en el directorio correcto
-    if not Path("cli").exists() or not Path("core").exists():
+    if not Path("cli").exists() or not CORE_PATH.exists():
         print_error("This script must be run from the project root directory")
         sys.exit(1)
     
