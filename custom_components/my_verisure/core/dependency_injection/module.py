@@ -1,6 +1,8 @@
 """Dependency injection module for My Verisure integration."""
 
 import logging
+from typing import Optional
+
 from injector import Module, provider, singleton
 
 from ..api.auth_client import AuthClient
@@ -27,6 +29,8 @@ from ..use_cases.implementations.alarm_use_case_impl import AlarmUseCaseImpl
 from ..use_cases.implementations.get_installation_devices_use_case_impl import GetInstallationDevicesUseCaseImpl
 from ..use_cases.implementations.refresh_camera_images_use_case_impl import RefreshCameraImagesUseCaseImpl
 from ..use_cases.implementations.create_dummy_camera_images_use_case_impl import CreateDummyCameraImagesUseCaseImpl
+from ..file_manager import FileManager
+from ..session_manager import SessionManager
 
 logger = logging.getLogger(__name__)
 
@@ -34,9 +38,26 @@ logger = logging.getLogger(__name__)
 class MyVerisureModule(Module):
     """My Verisure dependency injection module."""
 
-    def __init__(self):
-        """Initialize the module."""
-        pass
+    def __init__(
+        self,
+        session_manager: Optional[SessionManager] = None,
+        file_manager: Optional[FileManager] = None,
+    ) -> None:
+        """Initialize the module with optional entry-scoped managers."""
+        self._session_manager = session_manager
+        self._file_manager = file_manager
+
+    @singleton
+    @provider
+    def provide_session_manager(self) -> SessionManager:
+        """Provide the session manager owned by this composition root."""
+        return self._session_manager or SessionManager()
+
+    @singleton
+    @provider
+    def provide_file_manager(self) -> FileManager:
+        """Provide the file manager owned by this composition root."""
+        return self._file_manager or FileManager()
 
     @singleton
     @provider

@@ -13,7 +13,9 @@
 - [x] Baseline and multi-area plan recorded.
 - [x] Alarm dispatcher application boundary implemented and connected to `arm_away`.
 - [x] Explicit isolated `CompositionRoot` implemented and unit-tested.
-- [ ] Migrate provider callers from global injector to the explicit root.
+- [x] Composition root owns explicit per-entry `SessionManager` and `FileManager` instances.
+- [ ] Migrate API clients from global manager lookups to injected manager ports.
+- [ ] Remove global manager ownership after all clients are migrated.
 - [x] Disarm service contract audited: the HA `code` field was removed because the
   Verisure GraphQL disarm contract does not accept or forward it.
 - [ ] Complete remaining alarm service handlers through the application dispatcher.

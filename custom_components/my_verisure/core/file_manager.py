@@ -22,9 +22,9 @@ async def _to_thread(func: Callable[..., T], /, *args: Any, **kwargs: Any) -> T:
 class FileManager:
     """Manager for file operations within the My Verisure project."""
     
-    def __init__(self):
+    def __init__(self, project_root: Path | None = None):
         """Initialize the file manager."""
-        self._project_root = self._detect_project_root()
+        self._project_root = project_root or self._detect_project_root()
         self._data_dir = self._project_root / "data"
         self._ensure_data_directory()
     

@@ -27,10 +27,14 @@ TOKEN_MAX_AGE_SECONDS = 3600  # 60 minutes
 class SessionManager:
     """Manages authentication session for My Verisure integration."""
 
-    def __init__(self) -> None:
+    def __init__(self, session_file: str | os.PathLike[str] | None = None) -> None:
         self._is_authenticated = False
         self.current_installation = None
-        self.session_file = self._get_session_file_path()
+        self.session_file = (
+            os.fspath(session_file)
+            if session_file is not None
+            else self._get_session_file_path()
+        )
         self.username = None
         self.password = None
         self.hash_token = None
