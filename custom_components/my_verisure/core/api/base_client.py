@@ -9,7 +9,7 @@ import aiohttp
 
 from .fields import VERISURE_GRAPHQL_URL
 from .exceptions import MyVerisureServiceBlockedError
-from ..session_manager import SessionManager, get_session_manager
+from ..session_manager import SessionManager
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -23,7 +23,9 @@ class BaseClient:
 
     def _resolve_session_manager(self) -> SessionManager:
         """Return the injected manager, falling back to legacy global state."""
-        return self._session_manager or get_session_manager()
+        if self._session_manager is None:
+            raise RuntimeError("BaseClient requires an entry-scoped SessionManager")
+        return self._session_manager
     def _get_native_app_headers(self) -> Dict[str, str]:
         """Get native app headers for better authentication."""
         return {

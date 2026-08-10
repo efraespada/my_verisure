@@ -11,7 +11,7 @@ import random
 import time
 from typing import Any, Dict, Optional
 
-from ..file_manager import FileManager, get_file_manager
+from ..file_manager import FileManager
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -29,7 +29,9 @@ class DeviceManager:
 
     def _resolve_file_manager(self) -> FileManager:
         """Return the injected file manager, falling back to legacy global state."""
-        return self._file_manager or get_file_manager()
+        if self._file_manager is None:
+            raise RuntimeError("DeviceManager requires an entry-scoped FileManager")
+        return self._file_manager
 
 
     @staticmethod

@@ -13,7 +13,7 @@ from .exceptions import (
     MyVerisureError,
 )
 from ..session_manager import SessionManager
-from ..file_manager import FileManager, get_file_manager
+from ..file_manager import FileManager
 from ..api.models.dto.camera_request_image_dto import CameraRequestImageResultDTO
 from ..log_utils import redact_headers_for_log, should_log_detailed, truncate_secret
 
@@ -116,7 +116,9 @@ class CameraClient(BaseClient):
 
     def _resolve_file_manager(self) -> FileManager:
         """Return the injected file manager, falling back to legacy global state."""
-        return self._file_manager or get_file_manager()
+        if self._file_manager is None:
+            raise RuntimeError("CameraClient requires an entry-scoped FileManager")
+        return self._file_manager
 
     
     async def request_image(
