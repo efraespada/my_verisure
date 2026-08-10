@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 
-from ...api.models.domain.camera_request_image import CameraRequestImageResult
+from ...api.models.domain.camera_refresh import CameraRefresh
 
 
 class RefreshCameraImagesUseCase(ABC):
@@ -14,6 +14,6 @@ class RefreshCameraImagesUseCase(ABC):
         installation_id: str,
         max_attempts: int = 30,
         check_interval: int = 4,
-    ) -> CameraRequestImageResult:
+    ) -> CameraRefresh:
         """Refresh images from cameras."""
         pass

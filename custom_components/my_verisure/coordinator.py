@@ -645,9 +645,9 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         fallback_file = translations_dir / "en.json"
 
         # Leer archivos sin bloquear el event loop
-        async def _load_json(file_path: Path) -> dict:
+        async def _load_json(file_path: Path) -> str:
             if not file_path.exists():
-                return {}
+                return "{}"
             try:
                 # Usamos run_in_executor para evitar bloqueo del hilo principal
                 import asyncio

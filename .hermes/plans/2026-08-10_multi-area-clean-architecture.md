@@ -17,7 +17,9 @@
 - [x] Disarm service contract audited: the HA `code` field was removed because the
   Verisure GraphQL disarm contract does not accept or forward it.
 - [ ] Complete remaining alarm service handlers through the application dispatcher.
-- [ ] Classify and address incomplete/TODO production paths.
+- [x] Camera refresh use-case return type aligned with its concrete `CameraRefresh` result.
+- [x] Coordinator translation loader annotated as JSON text, matching runtime behavior.
+- [ ] Classify and address remaining incomplete/TODO production paths.
 - [ ] Complete bounded typing/lint batches and final release gates.
 
 ## Principles
