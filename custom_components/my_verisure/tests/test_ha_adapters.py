@@ -6,6 +6,7 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
 
 from custom_components.my_verisure import integration, services
@@ -85,6 +86,12 @@ def test_sensors_handle_missing_data(config_entry):
     assert alarm.available is False
     assert active.available is False
 
+
+def test_disarm_schema_rejects_unsupported_code(config_entry):
+    with pytest.raises(vol.Invalid):
+        services.SERVICE_DISARM_SCHEMA(
+            {"installation_id": "123", "code": "2468"}
+        )
 
 def test_last_updated_sensor_reads_timestamp(config_entry):
     timestamp = datetime.now(timezone.utc)

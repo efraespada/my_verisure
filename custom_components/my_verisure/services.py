@@ -25,7 +25,6 @@ SERVICE_ARM_NIGHT_SCHEMA = vol.Schema({
 
 SERVICE_DISARM_SCHEMA = vol.Schema({
     vol.Required("installation_id"): cv.string,
-    vol.Optional("code"): cv.string,
 })
 
 SERVICE_GET_STATUS_SCHEMA = vol.Schema({

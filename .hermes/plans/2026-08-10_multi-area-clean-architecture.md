@@ -14,7 +14,9 @@
 - [x] Alarm dispatcher application boundary implemented and connected to `arm_away`.
 - [x] Explicit isolated `CompositionRoot` implemented and unit-tested.
 - [ ] Migrate provider callers from global injector to the explicit root.
-- [ ] Complete remaining alarm service handlers through the dispatcher.
+- [x] Disarm service contract audited: the HA `code` field was removed because the
+  Verisure GraphQL disarm contract does not accept or forward it.
+- [ ] Complete remaining alarm service handlers through the application dispatcher.
 - [ ] Classify and address incomplete/TODO production paths.
 - [ ] Complete bounded typing/lint batches and final release gates.
 
