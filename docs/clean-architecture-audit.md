@@ -11,13 +11,16 @@ This audit covers the Python CLI and the Home Assistant custom integration under
 - Architecture guard: `ARCHITECTURE_GUARD_OK`.
 - Core unit suite after contract migration: `229 passed`.
 - Application/CLI/integration suite: `39 passed, 2 skipped`.
-- Combined coverage run: `268 passed, 2 skipped`, total coverage `56%`.
-- Incremental mypy gate for domain models, DTOs, and mappers: `Success: no issues found in 25 source files`.
+- Combined coverage run: `275 passed, 2 skipped`, total coverage `58%`.
+- Adapter slice coverage: `sensor.py` `67%`, `integration.py` `44%`, and service
+  registration/unload behavior is covered by `test_ha_adapters.py`.
+- Incremental mypy gate for domain models, DTOs, and mappers: `25 source files`, no issues.
+- Incremental mypy for `sensor.py`, `services.py`, and `integration.py`: no issues.
 - Critical Flake8 gate (`E9,F63,F7,F82`): passes.
 - Full Flake8 baseline remains `1121` findings, primarily formatting/legacy style debt; it is not suppressed globally.
 - Full mypy over the integration currently reports `99` errors after restricting package roots; these are tracked legacy adapter/coordinator/CLI typing debt, not hidden by ignores.
-- Coverage gaps are concentrated in Home Assistant lifecycle modules: `sensor.py` 0%, `integration.py` 25%, `services.py` 12%.
-- The working tree contains the intentional migration changes from this audit; no commit or push was performed.
+- Coverage gaps are concentrated in Home Assistant service execution branches and coordinator-heavy lifecycle paths.
+- The next quality-block adapter changes are validated locally and are pending their own commit/push.
 ## Findings
 
 ### F-001 — Test bootstrap used a non-existent `core/` root
