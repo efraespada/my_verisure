@@ -10,7 +10,6 @@ from ..api.models.domain.alarm import ArmResult, DisarmResult
 
 
 AlarmCommandResult: TypeAlias = ArmResult | DisarmResult
-AlarmCommand = Callable[[], Awaitable[AlarmCommandResult]]
 
 
 class AlarmCoordinator(Protocol):
@@ -33,6 +32,11 @@ class AlarmCoordinator(Protocol):
     async def async_disarm(self) -> DisarmResult:
         """Disarm the installation."""
         ...
+
+
+CoordinatorOperation: TypeAlias = Callable[
+    [AlarmCoordinator], Awaitable[AlarmCommandResult]
+]
 
 
 @dataclass(frozen=True)
@@ -68,8 +72,8 @@ class AlarmServiceDispatcher:
         )
 
     @staticmethod
-    def _operation(command: str) -> Callable[[AlarmCoordinator], Awaitable[AlarmCommandResult]] | None:
-        operations: dict[str, Callable[[AlarmCoordinator], Awaitable[AlarmCommandResult]]] = {
+    def _operation(command: str) -> CoordinatorOperation | None:
+        operations: dict[str, CoordinatorOperation] = {
             "async_arm_away": lambda coordinator: coordinator.async_arm_away(),
             "async_arm_home": lambda coordinator: coordinator.async_arm_home(),
             "async_arm_night": lambda coordinator: coordinator.async_arm_night(),

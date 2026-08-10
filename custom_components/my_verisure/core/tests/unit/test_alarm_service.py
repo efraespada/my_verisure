@@ -14,7 +14,9 @@ from custom_components.my_verisure.core.application.alarm_service import (
 def coordinator():
     value = SimpleNamespace(
         config_entry=SimpleNamespace(data={"installation_id": "home-1"}),
-        async_arm_away=AsyncMock(return_value=SimpleNamespace(success=True, message="ok")),
+        async_arm_away=AsyncMock(
+            return_value=SimpleNamespace(success=True, message="ok")
+        ),
     )
     return value
 

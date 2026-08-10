@@ -65,7 +65,10 @@ def test_active_alarms_sensor_reports_multiple_states(config_entry):
     sensor = MyVerisureActiveAlarmsSensor(coordinator, config_entry, "active", "Active")
 
     assert sensor.native_value == "Multiple (2)"
-    assert sensor.extra_state_attributes["active_alarms"] == ["Internal Day", "External"]
+    assert sensor.extra_state_attributes["active_alarms"] == [
+        "Internal Day",
+        "External",
+    ]
 
 
 def test_sensors_handle_missing_data(config_entry):
