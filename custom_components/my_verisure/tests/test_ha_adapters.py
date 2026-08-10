@@ -93,6 +93,7 @@ def test_disarm_schema_rejects_unsupported_code(config_entry):
             {"installation_id": "123", "code": "2468"}
         )
 
+
 def test_last_updated_sensor_reads_timestamp(config_entry):
     timestamp = datetime.now(timezone.utc)
     sensor = MyVerisureLastUpdatedSensor(
