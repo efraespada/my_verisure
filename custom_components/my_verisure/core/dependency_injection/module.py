@@ -29,6 +29,8 @@ from ..use_cases.implementations.alarm_use_case_impl import AlarmUseCaseImpl
 from ..use_cases.implementations.get_installation_devices_use_case_impl import GetInstallationDevicesUseCaseImpl
 from ..use_cases.implementations.refresh_camera_images_use_case_impl import RefreshCameraImagesUseCaseImpl
 from ..use_cases.implementations.create_dummy_camera_images_use_case_impl import CreateDummyCameraImagesUseCaseImpl
+from ..config_manager import ConfigManager
+from ..log_manager import LogManager
 from ..api.device_manager import DeviceManager
 from ..file_manager import FileManager
 from ..session_manager import SessionManager
@@ -59,6 +61,18 @@ class MyVerisureModule(Module):
     def provide_file_manager(self) -> FileManager:
         """Provide the file manager owned by this composition root."""
         return self._file_manager or FileManager()
+
+    @singleton
+    @provider
+    def provide_log_manager(self, file_manager: FileManager) -> LogManager:
+        """Provide LogManager with the graph-owned file manager."""
+        return LogManager(file_manager=file_manager)
+
+    @singleton
+    @provider
+    def provide_config_manager(self, file_manager: FileManager) -> ConfigManager:
+        """Provide ConfigManager with the graph-owned file manager."""
+        return ConfigManager(file_manager=file_manager)
 
     @singleton
     @provider

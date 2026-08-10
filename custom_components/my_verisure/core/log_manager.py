@@ -5,7 +5,7 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from .file_manager import get_file_manager
+from .file_manager import FileManager, get_file_manager
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -13,11 +13,15 @@ _LOGGER = logging.getLogger(__name__)
 class LogManager:
     """Manager for application logs using FileManager."""
     
-    def __init__(self):
+    def __init__(self, file_manager: FileManager | None = None):
         """Initialize the log manager."""
-        self._file_manager = get_file_manager()
+        self._file_manager = file_manager or get_file_manager()
         self._log_file = "my_verisure_logs.json"
         self._max_logs = 1000  # Maximum number of logs to keep
+
+    def _resolve_file_manager(self) -> FileManager:
+        """Return the injected file manager, falling back to legacy global state."""
+        return self._file_manager or get_file_manager()
     
     def log_event(self, event_type: str, message: str, data: Optional[Dict[str, Any]] = None) -> bool:
         """Log an event to the log file."""
@@ -40,7 +44,7 @@ class LogManager:
                 logs = logs[-self._max_logs:]
             
             # Save logs
-            success = self._file_manager.save_json(self._log_file, logs)
+            success = self._resolve_file_manager().save_json(self._log_file, logs)
             if success:
                 _LOGGER.debug("Event logged: %s - %s", event_type, message)
             return success
@@ -128,7 +132,7 @@ class LogManager:
     def clear_logs(self) -> bool:
         """Clear all logs."""
         try:
-            success = self._file_manager.save_json(self._log_file, [])
+            success = self._resolve_file_manager().save_json(self._log_file, [])
             if success:
                 _LOGGER.info("All logs cleared")
             return success
@@ -140,7 +144,7 @@ class LogManager:
         """Export logs to a specific file."""
         try:
             logs = self.get_logs(event_type)
-            return self._file_manager.save_json(filename, logs)
+            return self._resolve_file_manager().save_json(filename, logs)
         except Exception as e:
             _LOGGER.error("Failed to export logs: %s", e)
             return False
@@ -151,7 +155,7 @@ class LogManager:
             logs = self._load_logs()
             
             # Count by event type
-            event_counts = {}
+            event_counts: Dict[str, int] = {}
             for log in logs:
                 event_type = log.get("event_type", "unknown")
                 event_counts[event_type] = event_counts.get(event_type, 0) + 1
@@ -163,7 +167,7 @@ class LogManager:
                 "total_logs": len(logs),
                 "recent_logs": len(recent_logs),
                 "event_counts": event_counts,
-                "file_size": self._file_manager.get_file_size(self._log_file)
+                "file_size": self._resolve_file_manager().get_file_size(self._log_file)
             }
         except Exception as e:
             _LOGGER.error("Failed to get log stats: %s", e)
@@ -172,7 +176,7 @@ class LogManager:
     def _load_logs(self) -> List[Dict[str, Any]]:
         """Load logs from file."""
         try:
-            logs = self._file_manager.load_json(self._log_file)
+            logs = self._resolve_file_manager().load_json(self._log_file)
             return logs if logs is not None else []
         except Exception as e:
             _LOGGER.error("Failed to load logs: %s", e)

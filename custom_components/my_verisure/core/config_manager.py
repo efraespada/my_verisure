@@ -3,7 +3,7 @@
 import logging
 from typing import Any, Dict, Optional
 
-from .file_manager import get_file_manager
+from .file_manager import FileManager, get_file_manager
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -11,9 +11,9 @@ _LOGGER = logging.getLogger(__name__)
 class ConfigManager:
     """Manager for configuration data using FileManager."""
     
-    def __init__(self):
+    def __init__(self, file_manager: FileManager | None = None):
         """Initialize the configuration manager."""
-        self._file_manager = get_file_manager()
+        self._file_manager = file_manager or get_file_manager()
         self._config_file = "my_verisure_config.json"
         self._default_config = {
             "version": "1.0.0",
@@ -33,11 +33,15 @@ class ConfigManager:
             },
             "auto_arm_perimeter_with_internal": False
         }
+
+    def _resolve_file_manager(self) -> FileManager:
+        """Return the injected file manager, falling back to legacy global state."""
+        return self._file_manager or get_file_manager()
     
     def get_config(self) -> Dict[str, Any]:
         """Get the current configuration."""
         try:
-            config = self._file_manager.load_json(self._config_file)
+            config = self._resolve_file_manager().load_json(self._config_file)
             if config is None:
                 _LOGGER.info("No config file found, using defaults")
                 return self._default_config.copy()
@@ -62,7 +66,7 @@ class ConfigManager:
                 "config": config
             }
             
-            success = self._file_manager.save_json(self._config_file, config_with_meta)
+            success = self._resolve_file_manager().save_json(self._config_file, config_with_meta)
             if success:
                 _LOGGER.info("Configuration saved successfully")
             return success
@@ -101,7 +105,7 @@ class ConfigManager:
         """Export configuration to a specific file."""
         try:
             config = self.get_config()
-            return self._file_manager.save_json(filename, config)
+            return self._resolve_file_manager().save_json(filename, config)
         except Exception as e:
             _LOGGER.error("Failed to export config: %s", e)
             return False
@@ -109,7 +113,7 @@ class ConfigManager:
     def import_config(self, filename: str) -> bool:
         """Import configuration from a specific file."""
         try:
-            config = self._file_manager.load_json(filename)
+            config = self._resolve_file_manager().load_json(filename)
             if config is None:
                 _LOGGER.error("Config file not found: %s", filename)
                 return False
@@ -127,22 +131,22 @@ class ConfigManager:
     def get_config_info(self) -> Dict[str, Any]:
         """Get configuration metadata and info."""
         try:
-            config_data = self._file_manager.load_json(self._config_file)
+            config_data = self._resolve_file_manager().load_json(self._config_file)
             if config_data is None:
                 return {
                     "exists": False,
                     "using_defaults": True,
-                    "file_path": str(self._file_manager.get_file_path(self._config_file))
+                    "file_path": str(self._resolve_file_manager().get_file_path(self._config_file))
                 }
             
             metadata = config_data.get("metadata", {})
             return {
                 "exists": True,
                 "using_defaults": False,
-                "file_path": str(self._file_manager.get_file_path(self._config_file)),
+                "file_path": str(self._resolve_file_manager().get_file_path(self._config_file)),
                 "saved_at": metadata.get("saved_at"),
                 "version": metadata.get("version"),
-                "file_size": self._file_manager.get_file_size(self._config_file)
+                "file_size": self._resolve_file_manager().get_file_size(self._config_file)
             }
         except Exception as e:
             _LOGGER.error("Failed to get config info: %s", e)
