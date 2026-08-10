@@ -6,6 +6,7 @@ from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers import config_validation as cv
 import voluptuous as vol
 
+from .core.application.alarm_service import AlarmServiceDispatcher
 from .core.const import DOMAIN, LOGGER
 from .coordinator import MyVerisureDataUpdateCoordinator
 
@@ -67,28 +68,28 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         """Service to arm the alarm away."""
         installation_id = call.data["installation_id"]
         LOGGER.warning("Service arm_away called for installation %s", installation_id)
-        
-        # Find the coordinator for this installation
-        for coordinator in _iter_coordinators(hass):
-            if coordinator.config_entry.data.get("installation_id") == installation_id:
-                LOGGER.warning("Found coordinator for installation %s, calling async_arm_away", installation_id)
-                try:
-                    result = await coordinator.async_arm_away()
-                    if result.success:
-                        LOGGER.warning("Alarm armed away successfully via service")
-                        # Update alarm control panel state
-                        _update_alarm_panel_state(coordinator)
-                    else:
-                        LOGGER.error("Failed to arm alarm away via service: %s", result.message)
-                        # Update alarm control panel state even on failure
-                        _update_alarm_panel_state(coordinator)
-                except Exception as e:
-                    LOGGER.error("Error arming alarm away via service: %s", e)
-                    # Update alarm control panel state on error
-                    _update_alarm_panel_state(coordinator)
-                break
-        else:
+
+        coordinators = tuple(_iter_coordinators(hass))
+        dispatcher = AlarmServiceDispatcher(coordinators)
+        result = await dispatcher.dispatch(installation_id, "async_arm_away")
+        coordinator = next(
+            (
+                item
+                for item in coordinators
+                if item.config_entry.data.get("installation_id") == installation_id
+            ),
+            None,
+        )
+
+        if coordinator is None:
             LOGGER.error("Installation %s not found", installation_id)
+            return
+
+        if result.success:
+            LOGGER.warning("Alarm armed away successfully via service")
+        else:
+            LOGGER.error("Failed to arm alarm away via service: %s", result.message)
+        _update_alarm_panel_state(coordinator)
 
     async def async_arm_home_service(call: ServiceCall) -> None:
         """Service to arm the alarm home."""
