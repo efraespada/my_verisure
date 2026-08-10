@@ -7,7 +7,7 @@ import json
 import logging
 import os
 import time
-from typing import Any, Dict, Optional
+from typing import Any, Awaitable, Callable, Dict, Optional
 
 from .utils.jwt_utils import is_jwt_expired
 from .log_utils import get_dev_mode
@@ -35,16 +35,23 @@ class SessionManager:
             if session_file is not None
             else self._get_session_file_path()
         )
-        self.username = None
-        self.password = None
-        self.hash_token = None
-        self.refresh_token = None
-        self.session_timestamp = None
+        self.username: str | None = None
+        self.password: str | None = None
+        self.hash_token: str | None = None
+        self.refresh_token: str | None = None
+        self.session_timestamp: float | None = None
         self._session_disk_hydrated = False
+        self._reauthenticator: Callable[[str, str], Awaitable[Any]] | None = None
         # After HTTP 403: pause automatic logins until this monotonic deadline
         self._service_blocked_until: float = 0.0
         self._reauth_failures = 0
         self._last_reauth_attempt_monotonic: float = 0.0
+
+    def set_authenticator(
+        self, authenticator: Callable[[str, str], Awaitable[Any]]
+    ) -> None:
+        """Set the application-owned authentication boundary for reauth."""
+        self._reauthenticator = authenticator
 
     @property
     def is_authenticated(self) -> bool:
@@ -235,40 +242,47 @@ class SessionManager:
                 "Attempting automatic reauthentication with stored credentials..."
             )
 
-            from .dependency_injection.providers import (
-                setup_dependencies,
-                get_auth_use_case,
-                clear_dependencies,
-            )
-
-            setup_dependencies()
-
-            try:
-                auth_use_case = get_auth_use_case()
-                self._last_reauth_attempt_monotonic = time.monotonic()
-                auth_result = await auth_use_case.login(self.username, self.password)
-
-                if auth_result.success:
-                    self.update_credentials(
-                        self.username,
-                        self.password,
-                        auth_result.hash,
-                        auth_result.refresh_token,
-                        persist=False,
-                    )
-                    await self.async_persist_session_to_disk()
-                    self.clear_service_blocked()
-                    logger.info("Automatic reauthentication successful")
-                    return True
-
-                self._reauth_failures += 1
-                logger.warning(
-                    "Automatic reauthentication failed: %s", auth_result.message
-                )
+            if self.username is None or self.password is None:
+                logger.warning("Cannot reauthenticate without stored credentials")
                 return False
 
-            finally:
-                clear_dependencies()
+            username = self.username
+            password = self.password
+            self._last_reauth_attempt_monotonic = time.monotonic()
+            if self._reauthenticator is not None:
+                auth_result = await self._reauthenticator(username, password)
+            else:
+                from .dependency_injection.providers import (
+                    setup_dependencies,
+                    get_auth_use_case,
+                    clear_dependencies,
+                )
+
+                setup_dependencies()
+                try:
+                    auth_use_case = get_auth_use_case()
+                    auth_result = await auth_use_case.login(username, password)
+                finally:
+                    clear_dependencies()
+
+            if auth_result.success:
+                self.update_credentials(
+                    username,
+                    password,
+                    auth_result.hash,
+                    auth_result.refresh_token,
+                    persist=False,
+                )
+                await self.async_persist_session_to_disk()
+                self.clear_service_blocked()
+                logger.info("Automatic reauthentication successful")
+                return True
+
+            self._reauth_failures += 1
+            logger.warning(
+                "Automatic reauthentication failed: %s", auth_result.message
+            )
+            return False
 
         except Exception as e:
             self._reauth_failures += 1

@@ -33,9 +33,16 @@ def build_my_verisure_composition_root(
     """Build the production graph for one integration entry."""
     from .module import MyVerisureModule
 
-    return CompositionRoot(
+    root = CompositionRoot(
         MyVerisureModule(
             session_manager=SessionManager(session_file),
             file_manager=FileManager(project_root),
         )
     )
+
+    from ..use_cases.interfaces.auth_use_case import AuthUseCase
+
+    session_manager = root.get(SessionManager)
+    auth_use_case = root.get(AuthUseCase)
+    session_manager.set_authenticator(auth_use_case.login)
+    return root
