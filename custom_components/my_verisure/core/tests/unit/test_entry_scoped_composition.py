@@ -1,6 +1,7 @@
 """Tests for entry-scoped manager ownership in the composition root."""
 
 from pathlib import Path
+from typing import cast
 
 from custom_components.my_verisure.core.dependency_injection.composition_root import (
     build_my_verisure_composition_root,
@@ -14,6 +15,8 @@ from custom_components.my_verisure.core.api.camera_client import CameraClient
 from custom_components.my_verisure.core.api.device_manager import DeviceManager
 from custom_components.my_verisure.core.log_manager import LogManager
 from custom_components.my_verisure.core.config_manager import ConfigManager
+from custom_components.my_verisure.core.repositories.interfaces.installation_repository import InstallationRepository
+from custom_components.my_verisure.core.repositories.implementations.installation_repository_impl import InstallationRepositoryImpl
 
 
 def test_composition_root_owns_isolated_session_and_file_managers(tmp_path: Path):
@@ -56,3 +59,5 @@ def test_composition_root_owns_isolated_session_and_file_managers(tmp_path: Path
     assert second_root.get(LogManager)._resolve_file_manager() is second_files
     assert first_root.get(ConfigManager)._resolve_file_manager() is first_files
     assert second_root.get(ConfigManager)._resolve_file_manager() is second_files
+    assert cast(InstallationRepositoryImpl, first_root.get(InstallationRepository))._file_manager is first_files
+    assert cast(InstallationRepositoryImpl, second_root.get(InstallationRepository))._file_manager is second_files

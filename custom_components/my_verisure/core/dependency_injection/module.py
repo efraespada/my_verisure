@@ -123,9 +123,13 @@ class MyVerisureModule(Module):
 
     @singleton
     @provider
-    def provide_installation_repository(self, installation_client: InstallationClient) -> InstallationRepository:
-        """Provide InstallationRepository instance."""
-        return InstallationRepositoryImpl(installation_client)
+    def provide_installation_repository(
+        self, installation_client: InstallationClient, file_manager: FileManager
+    ) -> InstallationRepository:
+        """Provide InstallationRepository with graph-owned file storage."""
+        return InstallationRepositoryImpl(
+            installation_client, file_manager=file_manager
+        )
 
     @singleton
     @provider

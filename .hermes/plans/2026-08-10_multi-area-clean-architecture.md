@@ -19,7 +19,8 @@
 - [x] Migrate `CameraClient` from global `FileManager` lookup to entry-scoped ownership.
 - [x] Migrate `DeviceManager` from global `FileManager` lookup.
 - [x] Migrate `LogManager` and `ConfigManager` from global manager ownership.
-- [ ] Remove global manager ownership after all clients are migrated.
+- [x] Migrate `InstallationRepositoryImpl` cache storage to entry-scoped `FileManager`.
+- [ ] Migrate coordinator and integration runtime callers from global managers.
 - [x] Disarm service contract audited: the HA `code` field was removed because the
   Verisure GraphQL disarm contract does not accept or forward it.
 - [ ] Complete remaining alarm service handlers through the application dispatcher.
