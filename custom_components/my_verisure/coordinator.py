@@ -22,18 +22,19 @@ from .core.api.exceptions import (
     MyVerisureError,
     MyVerisureServiceBlockedError,
 )
-from .core.dependency_injection.providers import (
-    setup_dependencies,
-    get_auth_use_case,
-    get_installation_use_case,
-    get_alarm_use_case,
-    get_get_installation_devices_use_case,
-    clear_dependencies,
-    get_refresh_camera_images_use_case,
-    get_create_dummy_camera_images_use_case,
+from .core.dependency_injection.composition_root import (
+    CompositionRoot,
+    build_my_verisure_composition_root,
 )
-from .core.file_manager import get_file_manager
-from .core.session_manager import get_session_manager
+from .core.api.models.domain.alarm import ArmResult, DisarmResult
+from .core.use_cases.interfaces.auth_use_case import AuthUseCase
+from .core.use_cases.interfaces.installation_use_case import InstallationUseCase
+from .core.use_cases.interfaces.alarm_use_case import AlarmUseCase
+from .core.use_cases.interfaces.get_installation_devices_use_case import GetInstallationDevicesUseCase
+from .core.use_cases.interfaces.refresh_camera_images_use_case import RefreshCameraImagesUseCase
+from .core.use_cases.interfaces.create_dummy_camera_images_use_case import CreateDummyCameraImagesUseCase
+from .core.session_manager import SessionManager
+from .core.file_manager import FileManager
 from .core.const import (
     CONF_INSTALLATION_ID,
     CONF_USER,
@@ -54,32 +55,41 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
 
     config_entry: ConfigEntry
 
-    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        entry: ConfigEntry,
+        composition_root: CompositionRoot | None = None,
+    ) -> None:
         """Initialize the My Verisure hub."""
         self.hass = hass
         self.installation_id = entry.data.get(CONF_INSTALLATION_ID)
         
-        # Session file path
         session_file = hass.config.path(
             STORAGE_DIR, f"my_verisure_{entry.data[CONF_USER]}.json"
         )
-        
-        # Setup dependencies (no credentials needed, clients will get them from SessionManager)
-        setup_dependencies()
-        
-        # Get use cases
-        self.auth_use_case = get_auth_use_case()
-        self.installation_use_case = get_installation_use_case()
-        self.get_installation_devices_use_case = get_get_installation_devices_use_case()
-        self.alarm_use_case = get_alarm_use_case()
-        self.refresh_camera_images_use_case = get_refresh_camera_images_use_case()
-        self.create_dummy_camera_images_use_case = get_create_dummy_camera_images_use_case()
 
-        # Get session manager
-        self.session_manager = get_session_manager()
-        
-        # Get file manager for data persistence
-        self.file_manager = get_file_manager()
+        self.composition_root = composition_root or build_my_verisure_composition_root(
+            session_file=session_file,
+            project_root=Path(hass.config.path(STORAGE_DIR))
+            / f"my_verisure_{entry.entry_id}",
+        )
+
+        self.auth_use_case = self.composition_root.get(AuthUseCase)
+        self.installation_use_case = self.composition_root.get(InstallationUseCase)
+        self.get_installation_devices_use_case = self.composition_root.get(
+            GetInstallationDevicesUseCase
+        )
+        self.alarm_use_case = self.composition_root.get(AlarmUseCase)
+        self.refresh_camera_images_use_case = self.composition_root.get(
+            RefreshCameraImagesUseCase
+        )
+        self.create_dummy_camera_images_use_case = self.composition_root.get(
+            CreateDummyCameraImagesUseCase
+        )
+
+        self.session_manager = self.composition_root.get(SessionManager)
+        self.file_manager = self.composition_root.get(FileManager)
         
         # Reference to alarm control panel for state updates
         self._alarm_control_panel = None
@@ -742,8 +752,6 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
     async def async_cleanup(self):
         """Clean up resources."""
         try:
-            # Clear dependencies
-            clear_dependencies()
             LOGGER.warning("Coordinator cleanup completed")
         except Exception as e:
             LOGGER.error("Error during cleanup: %s", e) 

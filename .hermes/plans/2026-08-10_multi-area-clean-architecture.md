@@ -20,7 +20,8 @@
 - [x] Migrate `DeviceManager` from global `FileManager` lookup.
 - [x] Migrate `LogManager` and `ConfigManager` from global manager ownership.
 - [x] Migrate `InstallationRepositoryImpl` cache storage to entry-scoped `FileManager`.
-- [ ] Migrate coordinator and integration runtime callers from global managers.
+- [x] Migrate coordinator and integration runtime callers from global managers.
+- [ ] Migrate camera entity and dummy-image use case from global file manager.
 - [x] Disarm service contract audited: the HA `code` field was removed because the
   Verisure GraphQL disarm contract does not accept or forward it.
 - [ ] Complete remaining alarm service handlers through the application dispatcher.
