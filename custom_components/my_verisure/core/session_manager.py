@@ -9,6 +9,7 @@ import os
 import time
 from typing import Any, Awaitable, Callable, Dict, Optional
 
+from .file_manager import FileManager, get_file_manager
 from .utils.jwt_utils import is_jwt_expired
 from .log_utils import get_dev_mode
 
@@ -27,7 +28,11 @@ TOKEN_MAX_AGE_SECONDS = 3600  # 60 minutes
 class SessionManager:
     """Manages authentication session for My Verisure integration."""
 
-    def __init__(self, session_file: str | os.PathLike[str] | None = None) -> None:
+    def __init__(
+        self,
+        session_file: str | os.PathLike[str] | None = None,
+        file_manager: FileManager | None = None,
+    ) -> None:
         self._is_authenticated = False
         self.current_installation = None
         self.session_file = (
@@ -35,6 +40,7 @@ class SessionManager:
             if session_file is not None
             else self._get_session_file_path()
         )
+        self.file_manager = file_manager or get_file_manager()
         self.username: str | None = None
         self.password: str | None = None
         self.hash_token: str | None = None
@@ -433,9 +439,7 @@ class SessionManager:
             return False
 
         logger.info("Session expired — clearing detailed installation cache")
-        from .file_manager import get_file_manager
-
-        await get_file_manager().async_delete_files_by_prefix("detailed_installation_")
+        await self.file_manager.async_delete_files_by_prefix("detailed_installation_")
 
         if not self.username or not self.password:
             if interactive:

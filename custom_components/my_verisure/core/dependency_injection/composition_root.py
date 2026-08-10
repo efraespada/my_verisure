@@ -33,10 +33,11 @@ def build_my_verisure_composition_root(
     """Build the production graph for one integration entry."""
     from .module import MyVerisureModule
 
+    file_manager = FileManager(project_root)
     root = CompositionRoot(
         MyVerisureModule(
-            session_manager=SessionManager(session_file),
-            file_manager=FileManager(project_root),
+            session_manager=SessionManager(session_file, file_manager=file_manager),
+            file_manager=file_manager,
         )
     )
 

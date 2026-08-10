@@ -102,8 +102,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if not unload_ok:
         return False
 
-    # Note: do not call coordinator.async_cleanup() here — clear_dependencies()
-    # is global and would break other loaded my_verisure config entries.
+    # Each coordinator owns its composition root; no global dependency graph
+    # needs to be cleared during entry unload.
 
     remaining_entries = [
         e

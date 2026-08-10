@@ -24,6 +24,7 @@
 - [x] Migrate camera entity and dummy-image use case from global file manager.
 - [x] Migrate `config_flow.py` and remaining session-manager callers from global injector.
 - [x] Replace `SessionManager` auto-reauth global provider usage with an injected auth boundary.
+- [x] Migrate `SessionManager` cache cleanup to its entry-scoped `FileManager`.
 - [ ] Remove legacy global manager/provider fallbacks after production callers are eliminated.
 - [x] Disarm service contract audited: the HA `code` field was removed because the
   Verisure GraphQL disarm contract does not accept or forward it.
