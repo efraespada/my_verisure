@@ -14,7 +14,7 @@ from .exceptions import (
     MyVerisureDeviceAuthorizationError,
 )
 from .models.dto.auth_dto import AuthDTO, PhoneDTO
-from ..session_manager import SessionManager, get_session_manager
+from ..session_manager import SessionManager
 from ..log_utils import (
     redact_otp_message,
     redact_sensitive_data,
@@ -94,14 +94,9 @@ class AuthClient(BaseClient):
     def __init__(self, session_manager: SessionManager | None = None) -> None:
         """Initialize the authentication client."""
         _LOGGER.debug("AuthClient initialized (id=%s)", id(self))
-        super().__init__()
-        self._session_manager = session_manager
+        super().__init__(session_manager=session_manager)
         self._otp_data: Optional[Dict[str, Any]] = None
         self._device_manager = DeviceManager()
-
-    def _resolve_session_manager(self) -> SessionManager:
-        """Return the entry-scoped manager, falling back to legacy global state."""
-        return self._session_manager or get_session_manager()
 
     async def login(self, user: str, password: str) -> AuthDTO:
         """Login to My Verisure API (Native App Simulation)."""

@@ -8,6 +8,9 @@ from custom_components.my_verisure.core.dependency_injection.composition_root im
 from custom_components.my_verisure.core.file_manager import FileManager
 from custom_components.my_verisure.core.session_manager import SessionManager
 from custom_components.my_verisure.core.api.auth_client import AuthClient
+from custom_components.my_verisure.core.api.installation_client import InstallationClient
+from custom_components.my_verisure.core.api.alarm_client import AlarmClient
+from custom_components.my_verisure.core.api.camera_client import CameraClient
 
 
 def test_composition_root_owns_isolated_session_and_file_managers(tmp_path: Path):
@@ -32,3 +35,9 @@ def test_composition_root_owns_isolated_session_and_file_managers(tmp_path: Path
 
     assert first_root.get(AuthClient)._resolve_session_manager() is first_session
     assert second_root.get(AuthClient)._resolve_session_manager() is second_session
+    assert first_root.get(InstallationClient)._resolve_session_manager() is first_session
+    assert first_root.get(AlarmClient)._resolve_session_manager() is first_session
+    assert first_root.get(CameraClient)._resolve_session_manager() is first_session
+    assert second_root.get(InstallationClient)._resolve_session_manager() is second_session
+    assert second_root.get(AlarmClient)._resolve_session_manager() is second_session
+    assert second_root.get(CameraClient)._resolve_session_manager() is second_session

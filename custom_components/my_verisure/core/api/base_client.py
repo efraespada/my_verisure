@@ -9,6 +9,7 @@ import aiohttp
 
 from .fields import VERISURE_GRAPHQL_URL
 from .exceptions import MyVerisureServiceBlockedError
+from ..session_manager import SessionManager, get_session_manager
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -16,6 +17,13 @@ _LOGGER = logging.getLogger(__name__)
 class BaseClient:
     """Base client with HTTP and GraphQL functionality."""
 
+    def __init__(self, session_manager: SessionManager | None = None) -> None:
+        """Initialize the client with an optional entry-scoped session."""
+        self._session_manager = session_manager
+
+    def _resolve_session_manager(self) -> SessionManager:
+        """Return the injected manager, falling back to legacy global state."""
+        return self._session_manager or get_session_manager()
     def _get_native_app_headers(self) -> Dict[str, str]:
         """Get native app headers for better authentication."""
         return {
@@ -37,8 +45,7 @@ class BaseClient:
 
     def _get_current_credentials(self) -> tuple[Optional[str], Dict[str, Any]]:
         """Get current credentials from SessionManager."""
-        from ..session_manager import get_session_manager
-        session_manager = get_session_manager()
+        session_manager = self._resolve_session_manager()
         return session_manager.hash_token, session_manager.get_current_session_data()
 
 
@@ -90,9 +97,7 @@ class BaseClient:
                         "Service temporarily blocked (HTTP 403) - too many requests"
                     )
                     try:
-                        from ..session_manager import get_session_manager
-
-                        get_session_manager().record_service_blocked()
+                        self._resolve_session_manager().record_service_blocked()
                     except Exception:  # noqa: BLE001
                         _LOGGER.debug("Could not record service-blocked backoff", exc_info=True)
                     raise MyVerisureServiceBlockedError(

@@ -6,6 +6,7 @@ import logging
 import os
 from typing import Any, Dict, Optional
 
+from ..session_manager import SessionManager
 from ..api.models.domain.alarm import ArmResult, DisarmResult
 from .base_client import BaseClient
 from .exceptions import (
@@ -35,9 +36,9 @@ _alarm_status_json_cache: Dict[str, Any] | None = None
 class AlarmClient(BaseClient):
     """Alarm client for My Verisure API."""
 
-    def __init__(self) -> None:
+    def __init__(self, session_manager: SessionManager | None = None) -> None:
         """Initialize the alarm client."""
-        super().__init__()
+        super().__init__(session_manager=session_manager)
 
     def _log_graphql_outbound(
         self,

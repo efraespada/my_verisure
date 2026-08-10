@@ -14,7 +14,8 @@
 - [x] Alarm dispatcher application boundary implemented and connected to `arm_away`.
 - [x] Explicit isolated `CompositionRoot` implemented and unit-tested.
 - [x] Composition root owns explicit per-entry `SessionManager` and `FileManager` instances.
-- [x] Migrate `AuthClient` to an injected entry-scoped `SessionManager` with legacy fallback.
+- [x] Route `InstallationClient`, `AlarmClient`, and `CameraClient` through the entry-scoped session manager.
+- [ ] Correct legacy `AlarmClient` response typing before widening the mypy gate.
 - [ ] Migrate remaining API clients from global manager lookups.
 - [ ] Remove global manager ownership after all clients are migrated.
 - [x] Disarm service contract audited: the HA `code` field was removed because the

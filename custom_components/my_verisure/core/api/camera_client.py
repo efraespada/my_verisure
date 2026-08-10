@@ -12,7 +12,7 @@ from .exceptions import (
     MyVerisureConnectionError,
     MyVerisureError,
 )
-from ..session_manager import get_session_manager
+from ..session_manager import SessionManager
 from ..file_manager import get_file_manager
 from ..api.models.dto.camera_request_image_dto import CameraRequestImageResultDTO
 from ..log_utils import redact_headers_for_log, should_log_detailed, truncate_secret
@@ -105,10 +105,9 @@ query mkGetPhotoImages($numinst: String!, $idSignal: String!, $signalType: Strin
 class CameraClient(BaseClient):
     """Client for camera operations."""
 
-    def __init__(self) -> None:
+    def __init__(self, session_manager: SessionManager | None = None) -> None:
         """Initialize the camera client."""
-        super().__init__()
-        self._session_manager = get_session_manager()
+        super().__init__(session_manager=session_manager)
 
     
     async def request_image(
