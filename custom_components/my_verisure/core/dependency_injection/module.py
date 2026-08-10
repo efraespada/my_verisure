@@ -68,21 +68,23 @@ class MyVerisureModule(Module):
 
     @singleton
     @provider
-    def provide_installation_client(self) -> InstallationClient:
-        """Provide InstallationClient instance."""
-        return InstallationClient()
+    def provide_installation_client(
+        self, session_manager: SessionManager
+    ) -> InstallationClient:
+        """Provide InstallationClient with the graph-owned session manager."""
+        return InstallationClient(session_manager=session_manager)
 
     @singleton
     @provider
-    def provide_alarm_client(self) -> AlarmClient:
-        """Provide AlarmClient instance."""
-        return AlarmClient()
+    def provide_alarm_client(self, session_manager: SessionManager) -> AlarmClient:
+        """Provide AlarmClient with the graph-owned session manager."""
+        return AlarmClient(session_manager=session_manager)
 
     @singleton
     @provider
-    def provide_camera_client(self) -> CameraClient:
-        """Provide CameraClient instance."""
-        return CameraClient()
+    def provide_camera_client(self, session_manager: SessionManager) -> CameraClient:
+        """Provide CameraClient with the graph-owned session manager."""
+        return CameraClient(session_manager=session_manager)
 
     @singleton
     @provider
