@@ -16,6 +16,13 @@ class CompositionRoot:
         """Build an isolated graph from the supplied module."""
         self._injector = Injector([module])
 
-    def get(self, interface: type[T]) -> T:
-        """Resolve one dependency from this graph."""
-        return self._injector.get(interface)
+    def get(self, dependency: type[T]) -> T:
+        """Resolve one dependency from this root."""
+        return self._injector.get(dependency)
+
+
+def build_my_verisure_composition_root() -> CompositionRoot:
+    """Build the production dependency graph for one integration entry."""
+    from .module import MyVerisureModule
+
+    return CompositionRoot(MyVerisureModule())

@@ -4,6 +4,7 @@ from injector import Module, provider, singleton
 
 from custom_components.my_verisure.core.dependency_injection.composition_root import (
     CompositionRoot,
+    build_my_verisure_composition_root,
 )
 
 
@@ -32,3 +33,9 @@ def test_composition_roots_are_isolated():
     second_root = CompositionRoot(_TestModule())
 
     assert first_root.get(_Service) is not second_root.get(_Service)
+
+
+def test_production_factory_builds_an_isolated_root():
+    root = build_my_verisure_composition_root()
+
+    assert isinstance(root, CompositionRoot)
