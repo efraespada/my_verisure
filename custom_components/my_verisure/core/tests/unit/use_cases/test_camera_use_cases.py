@@ -80,13 +80,13 @@ async def test_refresh_camera_images_camera_error(installation_repository):
 
 
 def test_create_dummy_implements_interface(installation_repository):
-    assert isinstance(CreateDummyCameraImagesUseCaseImpl(installation_repository), CreateDummyCameraImagesUseCase)
+    assert isinstance(CreateDummyCameraImagesUseCaseImpl(installation_repository, Mock()), CreateDummyCameraImagesUseCase)
 
 
 @pytest.mark.asyncio
 async def test_create_dummy_without_cameras_returns_empty(installation_repository):
     installation_repository.get_installation_services.return_value = _installation([])
-    use_case = CreateDummyCameraImagesUseCaseImpl(installation_repository)
+    use_case = CreateDummyCameraImagesUseCaseImpl(installation_repository, Mock())
 
     result = await use_case.create_dummy_camera_images("12345")
 

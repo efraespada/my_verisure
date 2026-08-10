@@ -33,7 +33,7 @@ class TestInstallationRepository:
     @pytest.fixture
     def installation_repository(self, mock_client):
         """Create InstallationRepository instance with mocked client."""
-        repo = InstallationRepositoryImpl(client=mock_client)
+        repo = InstallationRepositoryImpl(client=mock_client, file_manager=Mock())
         mock_fm = Mock()
         mock_fm.async_load_json = AsyncMock(return_value=None)
         mock_fm.async_save_json = AsyncMock(return_value=True)

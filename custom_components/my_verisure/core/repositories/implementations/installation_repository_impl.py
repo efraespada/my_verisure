@@ -11,7 +11,7 @@ from ...api.mappers.installation_mapper import (
 )
 from ...api.models.domain.installation import Installation, DetailedInstallation
 from ...api.models.dto.installation_dto import DetailedInstallationDTO
-from ...file_manager import FileManager, get_file_manager
+from ...file_manager import FileManager
 from ..interfaces.installation_repository import InstallationRepository
 from ...utils.jwt_utils import is_jwt_expired
 
@@ -22,11 +22,11 @@ class InstallationRepositoryImpl(InstallationRepository):
     """Implementation of installation repository."""
 
     def __init__(
-        self, client, file_manager: FileManager | None = None
+        self, client, file_manager: FileManager
     ):
         """Initialize the repository with a client and file manager."""
         self.client = client
-        self._file_manager = file_manager or get_file_manager()
+        self._file_manager = file_manager
 
     def _get_cache_filename(self, installation_id: str) -> str:
         """Get cache filename for a specific installation."""

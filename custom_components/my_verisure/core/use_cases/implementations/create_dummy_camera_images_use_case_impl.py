@@ -11,7 +11,7 @@ from PIL import Image
 from ...api.models.domain.camera_refresh import CameraRefresh
 from ...api.models.domain.camera_refresh_data import CameraRefreshData
 from ...repositories.interfaces.installation_repository import InstallationRepository
-from ...file_manager import FileManager, get_file_manager
+from ...file_manager import FileManager
 from ..interfaces.create_dummy_camera_images_use_case import CreateDummyCameraImagesUseCase
 
 
@@ -24,11 +24,11 @@ class CreateDummyCameraImagesUseCaseImpl(CreateDummyCameraImagesUseCase):
     def __init__(
         self,
         installation_repository: InstallationRepository,
-        file_manager: FileManager | None = None,
+        file_manager: FileManager,
     ) -> None:
         """Initialize the create dummy camera images use case."""
         self.installation_repository = installation_repository
-        self.file_manager = file_manager or get_file_manager()
+        self.file_manager = file_manager
 
     async def create_dummy_camera_images(
         self,
