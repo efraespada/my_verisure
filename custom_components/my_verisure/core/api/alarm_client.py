@@ -30,8 +30,6 @@ from ..log_utils import (
 
 _LOGGER = logging.getLogger(__name__)
 
-_alarm_status_json_cache: Dict[str, Any] | None = None
-
 
 class AlarmClient(BaseClient):
     """Alarm client for My Verisure API."""
@@ -39,6 +37,7 @@ class AlarmClient(BaseClient):
     def __init__(self, session_manager: SessionManager | None = None) -> None:
         """Initialize the alarm client."""
         super().__init__(session_manager=session_manager)
+        self._alarm_status_json_cache: Dict[str, Any] | None = None
 
     def _log_graphql_outbound(
         self,
@@ -63,28 +62,26 @@ class AlarmClient(BaseClient):
 
     async def _load_alarm_status_config(self) -> Dict[str, Any]:
         """Load alarm status configuration from JSON file (cached, non-blocking)."""
-        global _alarm_status_json_cache
-
-        if _alarm_status_json_cache is not None:
-            return _alarm_status_json_cache
+        if self._alarm_status_json_cache is not None:
+            return self._alarm_status_json_cache
 
         current_dir = os.path.dirname(os.path.abspath(__file__))
         config_path = os.path.join(current_dir, "alarm_status.json")
 
         try:
-            _alarm_status_json_cache = await asyncio.to_thread(
+            self._alarm_status_json_cache = await asyncio.to_thread(
                 self._read_alarm_status_file, config_path
             )
             _LOGGER.debug(
                 "Alarm status configuration loaded from %s", config_path
             )
-            return _alarm_status_json_cache
+            return self._alarm_status_json_cache
         except OSError as e:
             _LOGGER.error("Failed to load alarm status configuration: %s", e)
         except json.JSONDecodeError as e:
             _LOGGER.error("Invalid alarm status JSON: %s", e)
 
-        _alarm_status_json_cache = {
+        self._alarm_status_json_cache = {
             "internal": {
                 "day": {"alarm": []},
                 "night": {"alarm": []},
@@ -92,7 +89,7 @@ class AlarmClient(BaseClient):
             },
             "external": {"alarm": []},
         }
-        return _alarm_status_json_cache
+        return self._alarm_status_json_cache
 
     def _read_alarm_status_file(self, config_path: str) -> Dict[str, Any]:
         """Read alarm status configuration file (blocking operation)."""
