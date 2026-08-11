@@ -1,12 +1,14 @@
 """Unit tests for CLI commands."""
 
 import pytest
-from unittest.mock import Mock, AsyncMock, patch
+from unittest.mock import Mock, AsyncMock, PropertyMock, patch
 
 from cli.commands.auth import AuthCommand
 from cli.commands.info import InfoCommand
 from cli.commands.alarm import AlarmCommand
 from cli.commands.base import BaseCommand
+from custom_components.my_verisure.core.api.models.domain.alarm import ArmResult, DisarmResult
+from custom_components.my_verisure.core.api.models.domain.auth import AuthResult
 
 
 class TestBaseCommand:
@@ -56,23 +58,15 @@ class TestBaseCommand:
 
     def test_get_installation_id_from_session(self):
         """Test get_installation_id from session."""
-        with patch(
-            "cli.commands.base.session_manager"
-        ) as mock_session_manager:
-            mock_session_manager.current_installation = "12345"
-
-            result = self.command.get_installation_id(None)
-            assert result == "12345"
+        self.command.session_manager.current_installation = "12345"
+        result = self.command.get_installation_id(None)
+        assert result == "12345"
 
     def test_get_installation_id_select(self):
         """Test get_installation_id with selection."""
-        with patch(
-            "cli.commands.base.session_manager"
-        ) as mock_session_manager:
-            mock_session_manager.current_installation = None
-
-            result = self.command.get_installation_id(None)
-            assert result is None
+        self.command.session_manager.current_installation = None
+        result = self.command.get_installation_id(None)
+        assert result is None
 
     @pytest.mark.asyncio
     async def test_select_installation_if_needed_single(self):
@@ -148,6 +142,12 @@ class TestAuthCommand:
         """Test _login method success."""
         with patch.object(self.command, "setup") as mock_setup:
             mock_setup.return_value = True
+            self.command.session_manager.username = "user"
+            self.command.session_manager.password = "password"
+            self.command.auth_use_case = Mock()
+            self.command.auth_use_case.login = AsyncMock(
+                return_value=AuthResult(success=True, message="ok", hash="hash", refresh_token="refresh")
+            )
 
             result = await self.command._login()
             assert result is True
@@ -164,26 +164,26 @@ class TestAuthCommand:
     @pytest.mark.asyncio
     async def test_logout(self):
         """Test _logout method."""
-        with patch(
-            "cli.commands.auth.session_manager"
-        ) as mock_session_manager:
-            mock_session_manager.logout = AsyncMock()
+        with patch.object(self.command, "setup") as mock_setup:
+            mock_setup.return_value = True
+            self.command.session_manager.logout = AsyncMock()
 
             result = await self.command._logout()
             assert result is True
-            mock_session_manager.logout.assert_called_once()
+            self.command.session_manager.logout.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_status_authenticated(self):
         """Test _status method when authenticated."""
-        with patch(
-            "cli.utils.session_manager.session_manager"
-        ) as mock_session_manager:
-
-            mock_session_manager.username = "test_user"
-            mock_session_manager.is_authenticated = True
-            mock_session_manager.current_installation = "12345"
-            mock_session_manager.ensure_authenticated = AsyncMock(
+        with patch.object(
+            type(self.command.session_manager),
+            "is_authenticated",
+            new_callable=PropertyMock,
+            return_value=True,
+        ):
+            self.command.session_manager.username = "test_user"
+            self.command.session_manager.current_installation = "12345"
+            self.command.session_manager.ensure_authenticated = AsyncMock(
                 return_value=True
             )
 
@@ -290,7 +290,7 @@ class TestAlarmCommand:
     async def test_execute_arm(self):
         """Test execute with arm action."""
         with patch.object(self.command, "_arm") as mock_arm:
-            mock_arm.return_value = True
+            mock_arm.return_value = ArmResult(success=True, message="ok")
 
             result = await self.command.execute(
                 "arm", mode="away", installation_id="12345"
@@ -304,7 +304,7 @@ class TestAlarmCommand:
     async def test_execute_disarm(self):
         """Test execute with disarm action."""
         with patch.object(self.command, "_disarm") as mock_disarm:
-            mock_disarm.return_value = True
+            mock_disarm.return_value = DisarmResult(success=True, message="ok")
 
             result = await self.command.execute(
                 "disarm", installation_id="12345"
@@ -345,12 +345,14 @@ class TestAlarmCommand:
             mock_confirm.return_value = True
             mock_select.return_value = "12345"
             self.command.alarm_use_case = Mock()
-            self.command.alarm_use_case.arm_away = AsyncMock(return_value=True)
+            self.command.alarm_use_case.arm_away = AsyncMock(
+                return_value=ArmResult(success=True, message="ok")
+            )
 
             result = await self.command._arm(
                 mode="away", installation_id="12345"
             )
-            assert result is True
+            assert result.success is True
 
     @pytest.mark.asyncio
     async def test_disarm_success(self):
@@ -365,7 +367,9 @@ class TestAlarmCommand:
             mock_confirm.return_value = True
             mock_select.return_value = "12345"
             self.command.alarm_use_case = Mock()
-            self.command.alarm_use_case.disarm = AsyncMock(return_value=True)
+            self.command.alarm_use_case.disarm = AsyncMock(
+                return_value=DisarmResult(success=True, message="ok")
+            )
 
             result = await self.command._disarm(installation_id="12345")
-            assert result is True
+            assert result.success is True

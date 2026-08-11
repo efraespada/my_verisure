@@ -4,17 +4,18 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Optional
 
-from custom_components.my_verisure.core.dependency_injection.providers import (
-    setup_dependencies,
-    get_auth_use_case,
-    get_alarm_use_case,
-    get_installation_use_case,
-    get_get_installation_devices_use_case,
-    get_refresh_camera_images_use_case,
-    get_create_dummy_camera_images_use_case,
+from custom_components.my_verisure.core.dependency_injection.composition_root import (
+    CompositionRoot,
 )
+from custom_components.my_verisure.core.session_manager import SessionManager
+from custom_components.my_verisure.core.use_cases.interfaces.auth_use_case import AuthUseCase
+from custom_components.my_verisure.core.use_cases.interfaces.alarm_use_case import AlarmUseCase
+from custom_components.my_verisure.core.use_cases.interfaces.installation_use_case import InstallationUseCase
+from custom_components.my_verisure.core.use_cases.interfaces.get_installation_devices_use_case import GetInstallationDevicesUseCase
+from custom_components.my_verisure.core.use_cases.interfaces.refresh_camera_images_use_case import RefreshCameraImagesUseCase
+from custom_components.my_verisure.core.use_cases.interfaces.create_dummy_camera_images_use_case import CreateDummyCameraImagesUseCase
 
-from custom_components.my_verisure.core.session_manager import get_session_manager
+from ..composition import build_cli_composition_root
 
 from ..utils.input_helpers import select_installation
 from ..utils.display import print_error, print_info
@@ -25,16 +26,21 @@ logger = logging.getLogger(__name__)
 class BaseCommand(ABC):
     """Base class for all CLI commands."""
 
-    def __init__(self, session_manager=None):
-        """Create a command with an explicit session boundary."""
-        self.session_manager = session_manager or get_session_manager()
-        self.auth_use_case = None
-        self.alarm_use_case = None
-        self.installation_use_case = None
-        self.get_installation_devices_use_case = None
+    def __init__(
+        self,
+        session_manager: SessionManager | None = None,
+        composition_root: CompositionRoot | None = None,
+    ):
+        """Create a command with one explicit composition boundary."""
+        self.composition_root = composition_root or build_cli_composition_root()
+        self.session_manager = session_manager or self.composition_root.get(SessionManager)
+        self.auth_use_case = self.composition_root.get(AuthUseCase)
+        self.alarm_use_case = self.composition_root.get(AlarmUseCase)
+        self.installation_use_case = self.composition_root.get(InstallationUseCase)
+        self.get_installation_devices_use_case = self.composition_root.get(GetInstallationDevicesUseCase)
         self.session_use_case = None
-        self.refresh_camera_images_use_case = None
-        self.create_dummy_camera_images_use_case = None
+        self.refresh_camera_images_use_case = self.composition_root.get(RefreshCameraImagesUseCase)
+        self.create_dummy_camera_images_use_case = self.composition_root.get(CreateDummyCameraImagesUseCase)
 
     async def setup(self, interactive: bool = True) -> bool:
         """Setup the command by ensuring authentication and getting use cases."""
@@ -46,16 +52,12 @@ class BaseCommand(ABC):
             if not await session_manager.ensure_authenticated(interactive):
                 return False        
             
-            # Setup dependencies
-            setup_dependencies()
-
-            # Get use cases
-            self.auth_use_case = get_auth_use_case()
-            self.alarm_use_case = get_alarm_use_case()
-            self.installation_use_case = get_installation_use_case()
-            self.get_installation_devices_use_case = get_get_installation_devices_use_case()
-            self.refresh_camera_images_use_case = get_refresh_camera_images_use_case()
-            self.create_dummy_camera_images_use_case = get_create_dummy_camera_images_use_case()
+            self.auth_use_case = self.composition_root.get(AuthUseCase)
+            self.alarm_use_case = self.composition_root.get(AlarmUseCase)
+            self.installation_use_case = self.composition_root.get(InstallationUseCase)
+            self.get_installation_devices_use_case = self.composition_root.get(GetInstallationDevicesUseCase)
+            self.refresh_camera_images_use_case = self.composition_root.get(RefreshCameraImagesUseCase)
+            self.create_dummy_camera_images_use_case = self.composition_root.get(CreateDummyCameraImagesUseCase)
             return True
 
         except Exception as e:

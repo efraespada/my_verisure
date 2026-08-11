@@ -12,13 +12,6 @@ from ..utils.display import (
     print_header,
 )
 from custom_components.my_verisure.core.api.exceptions import MyVerisureOTPError
-from custom_components.my_verisure.core.dependency_injection.providers import (
-    setup_dependencies,
-    get_auth_use_case,
-    clear_dependencies,
-)
-            
-            
 logger = logging.getLogger(__name__)
 
 
@@ -44,20 +37,13 @@ class AuthCommand(BaseCommand):
         print_header("INICIO DE SESIÓN")
 
         try:
-            # Get session manager
-            session_manager = self.session_manager
-            
-            # Ensure we have credentials
-            if not await session_manager.ensure_authenticated(interactive):
-                print_error("No se pudieron obtener las credenciales")
+            if not await self.setup(interactive):
                 return False
-            
-            # Setup dependencies
-            setup_dependencies()
-            
+
+            session_manager = self.session_manager
             try:
-                # Get auth use case and perform login
-                auth_use_case = get_auth_use_case()
+                # Perform login through the command composition root
+                auth_use_case = self.auth_use_case
                 auth_result = await auth_use_case.login(
                     session_manager.username, 
                     session_manager.password
@@ -82,8 +68,6 @@ class AuthCommand(BaseCommand):
                 print_info("🔐 Autenticación MFA requerida")
                 return await self._handle_otp_flow()
             except Exception:
-                # Clean up dependencies on other errors
-                clear_dependencies()
                 raise
 
         except Exception as e:
@@ -146,8 +130,7 @@ class AuthCommand(BaseCommand):
         
         try:
             try:
-                # Get auth use case to access the client
-                auth_use_case = get_auth_use_case()
+                auth_use_case = self.auth_use_case
                 
                 # Get available phone numbers
                 phones = auth_use_case.get_available_phones()
@@ -215,7 +198,6 @@ class AuthCommand(BaseCommand):
                     
             except Exception as e:
                 print_error(f"Error durante autenticación MFA: {e}")
-                clear_dependencies()
                 return False
             finally:
                 # Only clear dependencies if there was an error
@@ -223,5 +205,4 @@ class AuthCommand(BaseCommand):
                 
         except Exception as e:
             print_error(f"Error durante autenticación MFA: {e}")
-            clear_dependencies()
             return False

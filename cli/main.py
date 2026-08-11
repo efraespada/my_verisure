@@ -11,7 +11,8 @@ from .commands.info import InfoCommand
 from .commands.alarm import AlarmCommand
 from .commands.cameras import CameraCommand
 from .utils.display import print_header, print_error, print_info
-from custom_components.my_verisure.core.session_manager import get_session_manager
+from .composition import build_cli_composition_root
+from custom_components.my_verisure.core.session_manager import SessionManager
 
 logger = logging.getLogger(__name__)
 
@@ -179,16 +180,17 @@ async def main():
     print_info("Command Line Interface for My Verisure integration")
     print()
 
-    session_manager = get_session_manager()
+    composition_root = build_cli_composition_root()
+    session_manager = composition_root.get(SessionManager)
     try:
         if args.command == "auth":
-            command = AuthCommand(session_manager)
+            command = AuthCommand(session_manager, composition_root)
             success = await command.execute(
                 args.action, interactive=not args.non_interactive
             )
 
         elif args.command == "info":
-            command = InfoCommand(session_manager)
+            command = InfoCommand(session_manager, composition_root)
             if args.action == "services":
                 success = await command.execute(
                     args.action,
@@ -213,7 +215,7 @@ async def main():
                 )
 
         elif args.command == "alarm":
-            command = AlarmCommand(session_manager)
+            command = AlarmCommand(session_manager, composition_root)
             if args.action == "status":
                 success = await command.execute(
                     args.action,
@@ -239,7 +241,7 @@ async def main():
                 success = False
 
         elif args.command == "cameras":
-            command = CameraCommand(session_manager)
+            command = CameraCommand(session_manager, composition_root)
             if args.action == "info":
                 success = await command.execute(
                     args.action,
