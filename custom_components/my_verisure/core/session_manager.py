@@ -255,21 +255,11 @@ class SessionManager:
             username = self.username
             password = self.password
             self._last_reauth_attempt_monotonic = time.monotonic()
-            if self._reauthenticator is not None:
-                auth_result = await self._reauthenticator(username, password)
-            else:
-                from .dependency_injection.providers import (
-                    setup_dependencies,
-                    get_auth_use_case,
-                    clear_dependencies,
-                )
+            if self._reauthenticator is None:
+                logger.warning("Cannot reauthenticate without an injected authenticator")
+                return False
 
-                setup_dependencies()
-                try:
-                    auth_use_case = get_auth_use_case()
-                    auth_result = await auth_use_case.login(username, password)
-                finally:
-                    clear_dependencies()
+            auth_result = await self._reauthenticator(username, password)
 
             if auth_result.success:
                 self.update_credentials(
