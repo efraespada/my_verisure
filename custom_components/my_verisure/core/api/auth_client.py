@@ -93,14 +93,14 @@ class AuthClient(BaseClient):
 
     def __init__(
         self,
-        session_manager: SessionManager | None = None,
-        device_manager: DeviceManager | None = None,
+        session_manager: SessionManager,
+        device_manager: DeviceManager,
     ) -> None:
         """Initialize the authentication client."""
         _LOGGER.debug("AuthClient initialized (id=%s)", id(self))
         super().__init__(session_manager=session_manager)
         self._otp_data: Optional[Dict[str, Any]] = None
-        self._device_manager = device_manager or DeviceManager()
+        self._device_manager = device_manager
 
     async def login(self, user: str, password: str) -> AuthDTO:
         """Login to My Verisure API (Native App Simulation)."""

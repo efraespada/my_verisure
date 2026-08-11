@@ -34,6 +34,7 @@
 - [x] Replace global injector tests with explicit CompositionRoot resolution and isolation tests.
 - [x] Remove the legacy global injector (`providers.py` and `container.py`).
 - [x] Remove legacy singleton manager factories (`get_*_manager`/`reset_*_manager`).
+- [x] Require explicit FileManager in DeviceManager and AuthClient.
 - [ ] Audit remaining global access in alert clients, repositories, and adapters.
 - [x] Disarm service contract audited: the HA `code` field was removed because the
   Verisure GraphQL disarm contract does not accept or forward it.

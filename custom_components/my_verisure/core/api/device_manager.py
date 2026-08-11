@@ -22,7 +22,7 @@ _cached_platform_string: str | None = None
 class DeviceManager:
     """Manages device identifiers and device authorization."""
 
-    def __init__(self, file_manager: FileManager | None = None) -> None:
+    def __init__(self, file_manager: FileManager) -> None:
         """Initialize the device manager."""
         self._device_identifiers: Optional[Dict[str, Any]] = None
         self._file_manager = file_manager
