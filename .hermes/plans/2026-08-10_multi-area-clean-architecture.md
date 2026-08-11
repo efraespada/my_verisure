@@ -31,6 +31,7 @@
 - [x] Migrate CLI commands from global injector calls to one explicit CLI composition root.
 - [x] Remove the SessionManager fallback to global setup for automatic reauthentication.
 - [x] Make SessionManager require an explicit entry-scoped FileManager.
+- [x] Replace global injector tests with explicit CompositionRoot resolution and isolation tests.
 - [ ] Remove legacy global manager/provider fallbacks after production callers are eliminated.
 - [x] Disarm service contract audited: the HA `code` field was removed because the
   Verisure GraphQL disarm contract does not accept or forward it.
