@@ -5,9 +5,8 @@ import tempfile
 from datetime import datetime, timedelta
 from pathlib import Path
 from unittest.mock import patch, Mock
-import pytest
-
-from ...log_manager import LogManager, get_log_manager, reset_log_manager
+from contextlib import nullcontext
+from ...log_manager import LogManager
 
 
 class TestLogManager:
@@ -15,8 +14,7 @@ class TestLogManager:
 
     def setup_method(self):
         """Set up test fixtures."""
-        # Reset global instance before each test
-        reset_log_manager()
+        self.mock_file_manager = Mock()
         
         # Create a temporary directory for testing
         self.temp_dir = tempfile.mkdtemp()
@@ -29,11 +27,10 @@ class TestLogManager:
 
     def teardown_method(self):
         """Clean up after each test."""
-        reset_log_manager()
 
     def test_log_manager_initialization(self):
         """Test LogManager initialization."""
-        with patch('my_verisure.core.log_manager.get_file_manager', return_value=self.mock_file_manager):
+        with nullcontext():
             log_manager = LogManager(file_manager=self.mock_file_manager)
             
             assert log_manager._file_manager == self.mock_file_manager
@@ -42,7 +39,7 @@ class TestLogManager:
 
     def test_log_event_success(self):
         """Test successful event logging."""
-        with patch('my_verisure.core.log_manager.get_file_manager', return_value=self.mock_file_manager):
+        with nullcontext():
             log_manager = LogManager(file_manager=self.mock_file_manager)
             
             result = log_manager.log_event("test", "Test message", {"key": "value"})
@@ -61,7 +58,7 @@ class TestLogManager:
 
     def test_log_event_failure(self):
         """Test event logging failure."""
-        with patch('my_verisure.core.log_manager.get_file_manager', return_value=self.mock_file_manager):
+        with nullcontext():
             # Mock save failure
             self.mock_file_manager.save_json.return_value = False
             
@@ -73,7 +70,7 @@ class TestLogManager:
 
     def test_log_event_with_existing_logs(self):
         """Test event logging with existing logs."""
-        with patch('my_verisure.core.log_manager.get_file_manager', return_value=self.mock_file_manager):
+        with nullcontext():
             # Mock existing logs
             existing_logs = [
                 {
@@ -100,7 +97,7 @@ class TestLogManager:
 
     def test_log_event_max_logs_limit(self):
         """Test event logging with max logs limit."""
-        with patch('my_verisure.core.log_manager.get_file_manager', return_value=self.mock_file_manager):
+        with nullcontext():
             # Mock existing logs at the limit
             existing_logs = [
                 {
@@ -127,7 +124,7 @@ class TestLogManager:
 
     def test_log_auth_event(self):
         """Test authentication event logging."""
-        with patch('my_verisure.core.log_manager.get_file_manager', return_value=self.mock_file_manager):
+        with nullcontext():
             log_manager = LogManager(file_manager=self.mock_file_manager)
             
             result = log_manager.log_auth_event("login", "user123", True, "Success")
@@ -146,7 +143,7 @@ class TestLogManager:
 
     def test_log_alarm_event(self):
         """Test alarm event logging."""
-        with patch('my_verisure.core.log_manager.get_file_manager', return_value=self.mock_file_manager):
+        with nullcontext():
             log_manager = LogManager(file_manager=self.mock_file_manager)
             
             result = log_manager.log_alarm_event("arm", "inst123", "ARMED", "Away mode")
@@ -165,7 +162,7 @@ class TestLogManager:
 
     def test_log_error(self):
         """Test error event logging."""
-        with patch('my_verisure.core.log_manager.get_file_manager', return_value=self.mock_file_manager):
+        with nullcontext():
             log_manager = LogManager(file_manager=self.mock_file_manager)
             
             exception = ValueError("Test error")
@@ -184,7 +181,7 @@ class TestLogManager:
 
     def test_log_api_call(self):
         """Test API call logging."""
-        with patch('my_verisure.core.log_manager.get_file_manager', return_value=self.mock_file_manager):
+        with nullcontext():
             log_manager = LogManager(file_manager=self.mock_file_manager)
             
             result = log_manager.log_api_call("/api/test", "GET", True, 1.5)
@@ -204,7 +201,7 @@ class TestLogManager:
 
     def test_get_logs_all(self):
         """Test getting all logs."""
-        with patch('my_verisure.core.log_manager.get_file_manager', return_value=self.mock_file_manager):
+        with nullcontext():
             # Mock existing logs
             existing_logs = [
                 {"event_type": "auth", "message": "Auth message", "timestamp": "2024-01-01T00:00:00"},
@@ -223,7 +220,7 @@ class TestLogManager:
 
     def test_get_logs_filtered(self):
         """Test getting filtered logs."""
-        with patch('my_verisure.core.log_manager.get_file_manager', return_value=self.mock_file_manager):
+        with nullcontext():
             # Mock existing logs
             existing_logs = [
                 {"event_type": "auth", "message": "Auth message", "timestamp": "2024-01-01T00:00:00"},
@@ -240,7 +237,7 @@ class TestLogManager:
 
     def test_get_logs_with_limit(self):
         """Test getting logs with limit."""
-        with patch('my_verisure.core.log_manager.get_file_manager', return_value=self.mock_file_manager):
+        with nullcontext():
             # Mock existing logs
             existing_logs = [
                 {"event_type": "test", "message": f"Message {i}", "timestamp": "2024-01-01T00:00:00"}
@@ -256,7 +253,7 @@ class TestLogManager:
 
     def test_get_recent_logs(self):
         """Test getting recent logs."""
-        with patch('my_verisure.core.log_manager.get_file_manager', return_value=self.mock_file_manager):
+        with nullcontext():
             # Mock logs with different timestamps
             now = datetime.now()
             existing_logs = [
@@ -281,7 +278,7 @@ class TestLogManager:
 
     def test_clear_logs(self):
         """Test clearing logs."""
-        with patch('my_verisure.core.log_manager.get_file_manager', return_value=self.mock_file_manager):
+        with nullcontext():
             log_manager = LogManager(file_manager=self.mock_file_manager)
             
             result = log_manager.clear_logs()
@@ -291,7 +288,7 @@ class TestLogManager:
 
     def test_export_logs(self):
         """Test exporting logs."""
-        with patch('my_verisure.core.log_manager.get_file_manager', return_value=self.mock_file_manager):
+        with nullcontext():
             # Mock existing logs
             existing_logs = [
                 {"event_type": "auth", "message": "Auth message"},
@@ -307,7 +304,7 @@ class TestLogManager:
 
     def test_export_logs_filtered(self):
         """Test exporting filtered logs."""
-        with patch('my_verisure.core.log_manager.get_file_manager', return_value=self.mock_file_manager):
+        with nullcontext():
             # Mock existing logs
             existing_logs = [
                 {"event_type": "auth", "message": "Auth message"},
@@ -327,7 +324,7 @@ class TestLogManager:
 
     def test_get_log_stats(self):
         """Test getting log statistics."""
-        with patch('my_verisure.core.log_manager.get_file_manager', return_value=self.mock_file_manager):
+        with nullcontext():
             # Mock existing logs
             existing_logs = [
                 {"event_type": "auth", "message": "Auth message", "timestamp": "2024-01-01T00:00:00"},
@@ -347,7 +344,7 @@ class TestLogManager:
 
     def test_get_log_stats_error(self):
         """Test getting log statistics when error occurs."""
-        with patch('my_verisure.core.log_manager.get_file_manager', return_value=self.mock_file_manager):
+        with nullcontext():
             # Mock error
             self.mock_file_manager.load_json.side_effect = Exception("File error")
             
@@ -363,7 +360,7 @@ class TestLogManager:
 
     def test_load_logs_error(self):
         """Test loading logs when error occurs."""
-        with patch('my_verisure.core.log_manager.get_file_manager', return_value=self.mock_file_manager):
+        with nullcontext():
             # Mock error
             self.mock_file_manager.load_json.side_effect = Exception("File error")
             
@@ -371,37 +368,3 @@ class TestLogManager:
             result = log_manager._load_logs()
             
             assert result == []
-
-
-class TestLogManagerGlobal:
-    """Test LogManager global functions."""
-
-    def setup_method(self):
-        """Set up test fixtures."""
-        reset_log_manager()
-
-    def teardown_method(self):
-        """Clean up after each test."""
-        reset_log_manager()
-
-    def test_get_log_manager_singleton(self):
-        """Test LogManager singleton behavior."""
-        # First call should create instance
-        manager1 = get_log_manager()
-        assert isinstance(manager1, LogManager)
-        
-        # Second call should return same instance
-        manager2 = get_log_manager()
-        assert manager1 is manager2
-
-    def test_reset_log_manager(self):
-        """Test resetting LogManager."""
-        # Get instance
-        manager1 = get_log_manager()
-        
-        # Reset
-        reset_log_manager()
-        
-        # Get new instance
-        manager2 = get_log_manager()
-        assert manager1 is not manager2

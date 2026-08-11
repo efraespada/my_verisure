@@ -9,7 +9,7 @@ import pytest
 
 from ...file_manager import FileManager
 from ... import session_manager as session_module
-from ...session_manager import SessionManager, get_session_manager
+from ...session_manager import SessionManager
 
 
 @pytest.fixture
@@ -69,14 +69,6 @@ def test_service_blocked_cooldown(manager):
     assert manager.is_service_blocked() is True
     manager.clear_service_blocked()
     assert manager.is_service_blocked() is False
-
-
-def test_get_session_manager_is_singleton():
-    session_module._session_manager_instance = None
-    first = get_session_manager()
-    second = get_session_manager()
-    assert first is second
-    session_module._session_manager_instance = None
 
 
 @pytest.mark.asyncio

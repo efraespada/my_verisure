@@ -7,7 +7,7 @@ from pathlib import Path
 from unittest.mock import patch, mock_open
 import pytest
 
-from ...file_manager import FileManager, get_file_manager, reset_file_manager
+from ...file_manager import FileManager
 
 
 class TestFileManager:
@@ -15,9 +15,6 @@ class TestFileManager:
 
     def setup_method(self):
         """Set up test fixtures."""
-        # Reset global instance before each test
-        reset_file_manager()
-        
         # Create a temporary directory for testing
         self.temp_dir = tempfile.mkdtemp()
         self.original_cwd = os.getcwd()
@@ -25,9 +22,6 @@ class TestFileManager:
 
     def teardown_method(self):
         """Clean up after each test."""
-        # Reset global instance
-        reset_file_manager()
-        
         # Restore original working directory
         os.chdir(self.original_cwd)
         
@@ -456,37 +450,3 @@ class TestFileManager:
             test_file.write_text("{}")
             
             assert file_manager.device_identifiers_exists() is True
-
-
-class TestFileManagerGlobal:
-    """Test FileManager global functions."""
-
-    def setup_method(self):
-        """Set up test fixtures."""
-        reset_file_manager()
-
-    def teardown_method(self):
-        """Clean up after each test."""
-        reset_file_manager()
-
-    def test_get_file_manager_singleton(self):
-        """Test FileManager singleton behavior."""
-        # First call should create instance
-        manager1 = get_file_manager()
-        assert isinstance(manager1, FileManager)
-        
-        # Second call should return same instance
-        manager2 = get_file_manager()
-        assert manager1 is manager2
-
-    def test_reset_file_manager(self):
-        """Test resetting FileManager."""
-        # Get instance
-        manager1 = get_file_manager()
-        
-        # Reset
-        reset_file_manager()
-        
-        # Get new instance
-        manager2 = get_file_manager()
-        assert manager1 is not manager2

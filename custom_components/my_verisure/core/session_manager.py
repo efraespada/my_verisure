@@ -9,14 +9,11 @@ import os
 import time
 from typing import Any, Awaitable, Callable, Dict, Optional
 
-from .file_manager import FileManager, get_file_manager
+from .file_manager import FileManager
 from .utils.jwt_utils import is_jwt_expired
 from .log_utils import get_dev_mode
 
 logger = logging.getLogger(__name__)
-
-# Global singleton instance
-_session_manager_instance: Optional["SessionManager"] = None
 
 # Default cooldown after HTTP 403 / rate limit (seconds)
 DEFAULT_SERVICE_BLOCKED_COOLDOWN = 600
@@ -489,11 +486,3 @@ class SessionManager:
     async def cleanup(self) -> None:
         """Clean up resources."""
         await self.async_clear_credentials()
-
-
-def get_session_manager() -> SessionManager:
-    """Get the global session manager instance."""
-    global _session_manager_instance
-    if _session_manager_instance is None:
-        _session_manager_instance = SessionManager(file_manager=get_file_manager())
-    return _session_manager_instance

@@ -5,7 +5,7 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from .file_manager import FileManager, get_file_manager
+from .file_manager import FileManager
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -177,25 +177,10 @@ class LogManager:
         """Load logs from file."""
         try:
             logs = self._resolve_file_manager().load_json(self._log_file)
-            return logs if logs is not None else []
+            if not isinstance(logs, list):
+                _LOGGER.error("Log file has invalid format: %s", self._log_file)
+                return []
+            return [entry for entry in logs if isinstance(entry, dict)]
         except Exception as e:
             _LOGGER.error("Failed to load logs: %s", e)
             return []
-
-
-# Global instance
-_log_manager_instance: Optional[LogManager] = None
-
-
-def get_log_manager() -> LogManager:
-    """Get the global log manager instance."""
-    global _log_manager_instance
-    if _log_manager_instance is None:
-        _log_manager_instance = LogManager(file_manager=get_file_manager())
-    return _log_manager_instance
-
-
-def reset_log_manager() -> None:
-    """Reset the global log manager instance."""
-    global _log_manager_instance
-    _log_manager_instance = None

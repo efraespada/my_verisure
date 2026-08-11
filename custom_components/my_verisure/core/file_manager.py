@@ -319,21 +319,3 @@ class FileManager:
     async def async_device_identifiers_exists(self) -> bool:
         """Check if device identifiers file exists without blocking the event loop."""
         return await _to_thread(self.device_identifiers_exists)
-
-
-# Global instance
-_file_manager_instance: Optional[FileManager] = None
-
-
-def get_file_manager() -> FileManager:
-    """Get the global file manager instance."""
-    global _file_manager_instance
-    if _file_manager_instance is None:
-        _file_manager_instance = FileManager()
-    return _file_manager_instance
-
-
-def reset_file_manager() -> None:
-    """Reset the global file manager instance."""
-    global _file_manager_instance
-    _file_manager_instance = None

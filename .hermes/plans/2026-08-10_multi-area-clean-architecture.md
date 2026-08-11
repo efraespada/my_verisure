@@ -33,7 +33,8 @@
 - [x] Make SessionManager require an explicit entry-scoped FileManager.
 - [x] Replace global injector tests with explicit CompositionRoot resolution and isolation tests.
 - [x] Remove the legacy global injector (`providers.py` and `container.py`).
-- [ ] Remove legacy singleton manager factories after production callers are eliminated.
+- [x] Remove legacy singleton manager factories (`get_*_manager`/`reset_*_manager`).
+- [ ] Audit remaining global access in alert clients, repositories, and adapters.
 - [x] Disarm service contract audited: the HA `code` field was removed because the
   Verisure GraphQL disarm contract does not accept or forward it.
 - [ ] Complete remaining alarm service handlers through the application dispatcher.

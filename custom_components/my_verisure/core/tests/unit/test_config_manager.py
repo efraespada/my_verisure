@@ -4,9 +4,8 @@ import json
 import tempfile
 from pathlib import Path
 from unittest.mock import patch, Mock
-import pytest
-
-from ...config_manager import ConfigManager, get_config_manager, reset_config_manager
+from contextlib import nullcontext
+from ...config_manager import ConfigManager
 
 
 class TestConfigManager:
@@ -14,8 +13,7 @@ class TestConfigManager:
 
     def setup_method(self):
         """Set up test fixtures."""
-        # Reset global instance before each test
-        reset_config_manager()
+        self.mock_file_manager = Mock()
         
         # Create a temporary directory for testing
         self.temp_dir = tempfile.mkdtemp()
@@ -30,11 +28,10 @@ class TestConfigManager:
 
     def teardown_method(self):
         """Clean up after each test."""
-        reset_config_manager()
 
     def test_config_manager_initialization(self):
         """Test ConfigManager initialization."""
-        with patch('my_verisure.core.config_manager.get_file_manager', return_value=self.mock_file_manager):
+        with nullcontext():
             config_manager = ConfigManager(file_manager=self.mock_file_manager)
             
             assert config_manager._file_manager == self.mock_file_manager
@@ -44,7 +41,7 @@ class TestConfigManager:
 
     def test_get_config_default(self):
         """Test getting default configuration."""
-        with patch('my_verisure.core.config_manager.get_file_manager', return_value=self.mock_file_manager):
+        with nullcontext():
             config_manager = ConfigManager(file_manager=self.mock_file_manager)
             result = config_manager.get_config()
             
@@ -58,7 +55,7 @@ class TestConfigManager:
 
     def test_get_config_from_file(self):
         """Test getting configuration from file."""
-        with patch('my_verisure.core.config_manager.get_file_manager', return_value=self.mock_file_manager):
+        with nullcontext():
             # Mock file content
             file_config = {
                 "version": "1.0.0",
@@ -85,7 +82,7 @@ class TestConfigManager:
 
     def test_get_config_file_error(self):
         """Test getting configuration when file loading fails."""
-        with patch('my_verisure.core.config_manager.get_file_manager', return_value=self.mock_file_manager):
+        with nullcontext():
             # Mock file loading error
             self.mock_file_manager.load_json.side_effect = Exception("File error")
             
@@ -98,7 +95,7 @@ class TestConfigManager:
 
     def test_save_config_success(self):
         """Test successful configuration saving."""
-        with patch('my_verisure.core.config_manager.get_file_manager', return_value=self.mock_file_manager):
+        with nullcontext():
             config_manager = ConfigManager(file_manager=self.mock_file_manager)
             test_config = {"debug": True, "timeout": 60}
             
@@ -117,7 +114,7 @@ class TestConfigManager:
 
     def test_save_config_failure(self):
         """Test configuration saving failure."""
-        with patch('my_verisure.core.config_manager.get_file_manager', return_value=self.mock_file_manager):
+        with nullcontext():
             # Mock save failure
             self.mock_file_manager.save_json.return_value = False
             
@@ -130,7 +127,7 @@ class TestConfigManager:
 
     def test_update_config_success(self):
         """Test successful configuration update."""
-        with patch('my_verisure.core.config_manager.get_file_manager', return_value=self.mock_file_manager):
+        with nullcontext():
             # Mock existing config
             existing_config = {"debug": False, "timeout": 30}
             self.mock_file_manager.load_json.return_value = existing_config
@@ -151,7 +148,7 @@ class TestConfigManager:
 
     def test_get_setting(self):
         """Test getting a specific setting."""
-        with patch('my_verisure.core.config_manager.get_file_manager', return_value=self.mock_file_manager):
+        with nullcontext():
             # Mock existing config
             existing_config = {"debug": True, "timeout": 60}
             self.mock_file_manager.load_json.return_value = existing_config
@@ -172,7 +169,7 @@ class TestConfigManager:
 
     def test_set_setting(self):
         """Test setting a specific setting."""
-        with patch('my_verisure.core.config_manager.get_file_manager', return_value=self.mock_file_manager):
+        with nullcontext():
             # Mock existing config
             existing_config = {"debug": False}
             self.mock_file_manager.load_json.return_value = existing_config
@@ -186,7 +183,7 @@ class TestConfigManager:
 
     def test_reset_to_defaults(self):
         """Test resetting configuration to defaults."""
-        with patch('my_verisure.core.config_manager.get_file_manager', return_value=self.mock_file_manager):
+        with nullcontext():
             config_manager = ConfigManager(file_manager=self.mock_file_manager)
             
             result = config_manager.reset_to_defaults()
@@ -202,7 +199,7 @@ class TestConfigManager:
 
     def test_export_config_success(self):
         """Test successful configuration export."""
-        with patch('my_verisure.core.config_manager.get_file_manager', return_value=self.mock_file_manager):
+        with nullcontext():
             # Mock existing config
             existing_config = {"debug": True, "timeout": 60}
             self.mock_file_manager.load_json.return_value = existing_config
@@ -220,7 +217,7 @@ class TestConfigManager:
 
     def test_export_config_failure(self):
         """Test configuration export failure."""
-        with patch('my_verisure.core.config_manager.get_file_manager', return_value=self.mock_file_manager):
+        with nullcontext():
             # Mock save failure
             self.mock_file_manager.save_json.return_value = False
             
@@ -232,7 +229,7 @@ class TestConfigManager:
 
     def test_import_config_success(self):
         """Test successful configuration import."""
-        with patch('my_verisure.core.config_manager.get_file_manager', return_value=self.mock_file_manager):
+        with nullcontext():
             # Mock import file content
             import_config = {"debug": True, "timeout": 60}
             self.mock_file_manager.load_json.return_value = import_config
@@ -247,7 +244,7 @@ class TestConfigManager:
 
     def test_import_config_file_not_found(self):
         """Test configuration import when file doesn't exist."""
-        with patch('my_verisure.core.config_manager.get_file_manager', return_value=self.mock_file_manager):
+        with nullcontext():
             # Mock file not found
             self.mock_file_manager.load_json.return_value = None
             
@@ -259,7 +256,7 @@ class TestConfigManager:
 
     def test_get_timestamp(self):
         """Test timestamp generation."""
-        with patch('my_verisure.core.config_manager.get_file_manager', return_value=self.mock_file_manager):
+        with nullcontext():
             config_manager = ConfigManager(file_manager=self.mock_file_manager)
             
             timestamp = config_manager._get_timestamp()
@@ -271,7 +268,7 @@ class TestConfigManager:
 
     def test_get_config_info_exists(self):
         """Test getting configuration info when file exists."""
-        with patch('my_verisure.core.config_manager.get_file_manager', return_value=self.mock_file_manager):
+        with nullcontext():
             # Mock existing config with metadata
             config_data = {
                 "metadata": {
@@ -293,7 +290,7 @@ class TestConfigManager:
 
     def test_get_config_info_not_exists(self):
         """Test getting configuration info when file doesn't exist."""
-        with patch('my_verisure.core.config_manager.get_file_manager', return_value=self.mock_file_manager):
+        with nullcontext():
             # Mock no config file
             self.mock_file_manager.load_json.return_value = None
             
@@ -306,7 +303,7 @@ class TestConfigManager:
 
     def test_get_config_info_error(self):
         """Test getting configuration info when error occurs."""
-        with patch('my_verisure.core.config_manager.get_file_manager', return_value=self.mock_file_manager):
+        with nullcontext():
             # Mock error
             self.mock_file_manager.load_json.side_effect = Exception("File error")
             
@@ -315,37 +312,3 @@ class TestConfigManager:
             
             assert "error" in result
             assert "File error" in result["error"]
-
-
-class TestConfigManagerGlobal:
-    """Test ConfigManager global functions."""
-
-    def setup_method(self):
-        """Set up test fixtures."""
-        reset_config_manager()
-
-    def teardown_method(self):
-        """Clean up after each test."""
-        reset_config_manager()
-
-    def test_get_config_manager_singleton(self):
-        """Test ConfigManager singleton behavior."""
-        # First call should create instance
-        manager1 = get_config_manager()
-        assert isinstance(manager1, ConfigManager)
-        
-        # Second call should return same instance
-        manager2 = get_config_manager()
-        assert manager1 is manager2
-
-    def test_reset_config_manager(self):
-        """Test resetting ConfigManager."""
-        # Get instance
-        manager1 = get_config_manager()
-        
-        # Reset
-        reset_config_manager()
-        
-        # Get new instance
-        manager2 = get_config_manager()
-        assert manager1 is not manager2

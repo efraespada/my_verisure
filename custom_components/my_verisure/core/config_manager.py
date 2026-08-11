@@ -3,7 +3,7 @@
 import logging
 from typing import Any, Dict, Optional
 
-from .file_manager import FileManager, get_file_manager
+from .file_manager import FileManager
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -118,6 +118,9 @@ class ConfigManager:
                 _LOGGER.error("Config file not found: %s", filename)
                 return False
             
+            if not isinstance(config, dict):
+                _LOGGER.error("Config file has invalid format: %s", filename)
+                return False
             return self.save_config(config)
         except Exception as e:
             _LOGGER.error("Failed to import config: %s", e)
@@ -139,7 +142,15 @@ class ConfigManager:
                     "file_path": str(self._resolve_file_manager().get_file_path(self._config_file))
                 }
             
+            if not isinstance(config_data, dict):
+                return {
+                    "exists": False,
+                    "using_defaults": True,
+                    "file_path": str(self._resolve_file_manager().get_file_path(self._config_file)),
+                }
             metadata = config_data.get("metadata", {})
+            if not isinstance(metadata, dict):
+                metadata = {}
             return {
                 "exists": True,
                 "using_defaults": False,
@@ -151,21 +162,3 @@ class ConfigManager:
         except Exception as e:
             _LOGGER.error("Failed to get config info: %s", e)
             return {"error": str(e)}
-
-
-# Global instance
-_config_manager_instance: Optional[ConfigManager] = None
-
-
-def get_config_manager() -> ConfigManager:
-    """Get the global configuration manager instance."""
-    global _config_manager_instance
-    if _config_manager_instance is None:
-        _config_manager_instance = ConfigManager(file_manager=get_file_manager())
-    return _config_manager_instance
-
-
-def reset_config_manager() -> None:
-    """Reset the global configuration manager instance."""
-    global _config_manager_instance
-    _config_manager_instance = None
