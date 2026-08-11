@@ -54,7 +54,9 @@ class MyVerisureModule(Module):
     @provider
     def provide_session_manager(self) -> SessionManager:
         """Provide the session manager owned by this composition root."""
-        return self._session_manager or SessionManager()
+        return self._session_manager or SessionManager(
+            file_manager=self.provide_file_manager()
+        )
 
     @singleton
     @provider

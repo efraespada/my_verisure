@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 import pytest
 
+from custom_components.my_verisure.core.file_manager import FileManager
 from custom_components.my_verisure.core.session_manager import SessionManager
 
 
@@ -14,9 +15,11 @@ from custom_components.my_verisure.core.session_manager import SessionManager
     "custom_components.my_verisure.core.session_manager.is_jwt_expired",
     return_value=False,
 )
-def test_token_expiration_with_60min_lifetime(_mock_is_jwt_expired: object) -> None:
+def test_token_expiration_with_60min_lifetime(
+    _mock_is_jwt_expired: object, tmp_path
+) -> None:
     """Session stays valid until local max age exceeds TOKEN_MAX_AGE_SECONDS."""
-    session_manager = SessionManager()
+    session_manager = SessionManager(file_manager=FileManager(tmp_path))
     session_manager.username = "test_user"
     session_manager.password = "test_pass"
     session_manager.hash_token = "test_token"

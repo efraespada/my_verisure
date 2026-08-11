@@ -30,6 +30,7 @@
 - [x] Make `CreateDummyCameraImagesUseCase` and `InstallationRepositoryImpl` require explicit `FileManager` injection.
 - [x] Migrate CLI commands from global injector calls to one explicit CLI composition root.
 - [x] Remove the SessionManager fallback to global setup for automatic reauthentication.
+- [x] Make SessionManager require an explicit entry-scoped FileManager.
 - [ ] Remove legacy global manager/provider fallbacks after production callers are eliminated.
 - [x] Disarm service contract audited: the HA `code` field was removed because the
   Verisure GraphQL disarm contract does not accept or forward it.

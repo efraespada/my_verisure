@@ -4,6 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from custom_components.my_verisure.core.file_manager import FileManager
 from custom_components.my_verisure.core.session_manager import SessionManager
 
 
@@ -20,7 +21,9 @@ async def test_session_manager_uses_injected_reauthentication_boundary(tmp_path)
             message="ok",
         )
 
-    manager = SessionManager(tmp_path / "session.json")
+    manager = SessionManager(
+        tmp_path / "session.json", file_manager=FileManager(tmp_path)
+    )
     manager.update_credentials("user", "password", "expired-token", persist=False)
     manager.set_authenticator(authenticate)
 

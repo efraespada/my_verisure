@@ -31,7 +31,8 @@ class SessionManager:
     def __init__(
         self,
         session_file: str | os.PathLike[str] | None = None,
-        file_manager: FileManager | None = None,
+        *,
+        file_manager: FileManager,
     ) -> None:
         self._is_authenticated = False
         self.current_installation = None
@@ -40,7 +41,7 @@ class SessionManager:
             if session_file is not None
             else self._get_session_file_path()
         )
-        self.file_manager = file_manager or get_file_manager()
+        self.file_manager = file_manager
         self.username: str | None = None
         self.password: str | None = None
         self.hash_token: str | None = None
@@ -494,5 +495,5 @@ def get_session_manager() -> SessionManager:
     """Get the global session manager instance."""
     global _session_manager_instance
     if _session_manager_instance is None:
-        _session_manager_instance = SessionManager()
+        _session_manager_instance = SessionManager(file_manager=get_file_manager())
     return _session_manager_instance

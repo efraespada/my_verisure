@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
+from ...file_manager import FileManager
 from ... import session_manager as session_module
 from ...session_manager import SessionManager, get_session_manager
 
@@ -14,7 +15,7 @@ from ...session_manager import SessionManager, get_session_manager
 @pytest.fixture
 def manager(tmp_path):
     with patch.object(SessionManager, "_get_session_file_path", return_value=str(tmp_path / "session.json")):
-        value = SessionManager()
+        value = SessionManager(file_manager=FileManager(tmp_path))
     return value
 
 
