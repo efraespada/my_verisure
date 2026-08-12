@@ -7,6 +7,7 @@
 - Starting commit: `2134289`
 - Working tree: clean
 - Verified baseline: `275 passed, 2 skipped`; architecture guard green; critical Flake8 green; incremental mypy green; global coverage `58%`.
+- Latest verified regression suite: `269 passed, 2 skipped`; architecture guard, compileall, critical Flake8, and git diff checks green.
 
 ## Progress
 
