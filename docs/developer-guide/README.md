@@ -13,7 +13,8 @@ For contributors working on `custom_components/my_verisure` and the bundled `cor
 | [architecture.md](architecture.md) | Short overview (deep dive in [../architecture/](../architecture/)) |
 | [coordinator.md](coordinator.md) | `MyVerisureDataUpdateCoordinator` |
 | [config-flow.md](config-flow.md) | Config & options flows |
-| [dependency-injection.md](dependency-injection.md) | Injector setup |
+| [dependency-injection.md](dependency-injection.md) | Composition and dependency boundaries |
+| [repowise.md](repowise.md) | Optional isolated development analysis and baseline policy |
 | [api-client.md](api-client.md) | GraphQL clients |
 | [entity-platforms.md](entity-platforms.md) | Platforms mapping |
 | [session-management.md](session-management.md) | Session manager interaction |

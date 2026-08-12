@@ -104,6 +104,8 @@ celerybeat.pid
 # Environments
 .env
 .venv
+.repowise-venv
+.repowise/
 env/
 venv/
 ENV/

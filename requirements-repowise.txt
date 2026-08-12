@@ -1,0 +1,2 @@
+# Isolated development toolchain; do not install into the Home Assistant test environment.
+repowise==0.41.0

@@ -1,7 +1,7 @@
 # Makefile para My Verisure Project
 # Comandos útiles para desarrollo y testing
 
-.PHONY: help test test-cli test-core test-all lint type-check clean install dev-setup
+.PHONY: help test test-cli test-core test-all lint type-check clean install dev-setup repowise
 
 # Variables
 PYTHON = python3
@@ -36,6 +36,11 @@ dev-setup: ## Configurar entorno de desarrollo
 	@echo "$(GREEN)Para activar el entorno virtual, ejecuta: source $(VENV)/bin/activate$(NC)"
 	$(PIP) install -r requirements.txt
 	$(PIP) install pytest pytest-cov pytest-asyncio flake8 mypy
+
+repowise: ## Ejecutar análisis Repowise aislado y no bloqueante
+	@./scripts/repowise.sh init --no-prose --no-claude-md --no-codex --no-editor-setup --no-onboarding --no-workspace --mode fast .
+	@./scripts/repowise.sh status --format json --no-workspace .
+	@./scripts/repowise.sh dead-code --safe-only --format json --no-workspace .
 
 test: ## Ejecutar todos los tests
 	@echo "$(BLUE)Ejecutando todos los tests...$(NC)"
