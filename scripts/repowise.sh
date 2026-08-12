@@ -12,4 +12,18 @@ if [[ ! -x "${venv_dir}/bin/repowise" ]]; then
 fi
 
 export REPOWISE_SKIP_EDITOR_SETUP=1
+
+cleanup_repowise_editor_files() {
+  local file
+  for file in "${repo_root}/.mcp.json" "${repo_root}/.vscode/mcp.json" "${repo_root}/.vscode/extensions.json"; do
+    if [[ -f "${file}" ]] && grep -qi 'repowise' "${file}"; then
+      rm -f "${file}"
+    fi
+  done
+  if [[ -d "${repo_root}/.vscode" ]] && [[ -z "$(find "${repo_root}/.vscode" -mindepth 1 -maxdepth 1 -print -quit)" ]]; then
+    rmdir "${repo_root}/.vscode"
+  fi
+}
+
+trap cleanup_repowise_editor_files EXIT
 exec "${venv_dir}/bin/repowise" "$@"

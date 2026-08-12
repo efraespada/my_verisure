@@ -38,9 +38,14 @@ dev-setup: ## Configurar entorno de desarrollo
 	$(PIP) install pytest pytest-cov pytest-asyncio flake8 mypy
 
 repowise: ## Ejecutar análisis Repowise aislado y no bloqueante
-	@./scripts/repowise.sh init --no-prose --no-claude-md --no-codex --no-editor-setup --no-onboarding --no-workspace --mode fast .
+	@if test -f ".repowise/state.json"; then \
+		./scripts/repowise.sh update --index-only --no-workspace .; \
+	else \
+		./scripts/repowise.sh init --no-prose --no-claude-md --no-codex --no-editor-setup --no-onboarding --no-workspace --mode fast .; \
+	fi
 	@./scripts/repowise.sh status --format json --no-workspace .
-	@./scripts/repowise.sh dead-code --safe-only --format json --no-workspace .
+	@./scripts/repowise.sh health --format json --no-workspace .
+	@./scripts/repowise.sh dead-code --safe-only --format json --no-workspace . || true
 
 test: ## Ejecutar todos los tests
 	@echo "$(BLUE)Ejecutando todos los tests...$(NC)"
