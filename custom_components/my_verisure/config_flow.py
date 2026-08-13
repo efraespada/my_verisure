@@ -49,7 +49,7 @@ from .core.const import (
 )
 
 
-class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
+class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
     """Handle a config flow for My Verisure."""
 
     VERSION = 1

@@ -1,7 +1,7 @@
 """Information command for the CLI."""
 
 import logging
-from typing import Optional
+from typing import Any, Optional
 
 from .base import BaseCommand
 from ..utils.display import (
@@ -189,7 +189,7 @@ class InfoCommand(BaseCommand):
                 print()
                 
                 # Group devices by type
-                devices_by_type = {}
+                devices_by_type: dict[str, list[Any]] = {}
                 for device in devices:
                     device_type = device.type
                     if device_type not in devices_by_type:

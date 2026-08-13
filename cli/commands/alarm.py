@@ -30,11 +30,11 @@ class AlarmCommand(BaseCommand):
         if action == "status":
             return await self._show_status(**kwargs)
         elif action == "arm":
-            result = await self._arm(**kwargs)
-            return result.success
+            arm_result = await self._arm(**kwargs)
+            return arm_result.success
         elif action == "disarm":
-            result = await self._disarm(**kwargs)
-            return result.success
+            disarm_result = await self._disarm(**kwargs)
+            return disarm_result.success
         else:
             print_error(f"Unknown alarm action: {action}")
             return False

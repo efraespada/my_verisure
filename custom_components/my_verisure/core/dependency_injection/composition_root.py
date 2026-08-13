@@ -3,14 +3,12 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, TypeVar, cast
+from typing import Any
 
 from injector import Injector, Module
 
 from ..file_manager import FileManager
 from ..session_manager import SessionManager
-
-T = TypeVar("T")
 
 
 class CompositionRoot:
@@ -20,9 +18,14 @@ class CompositionRoot:
         """Build an isolated graph from the supplied module."""
         self._injector = Injector([module])
 
-    def get(self, dependency: type[T]) -> T:
-        """Resolve one dependency from this root."""
-        return cast(T, self._injector.get(cast(type[Any], dependency)))
+    def get(self, dependency: type[Any]) -> Any:
+        """Resolve a dependency at the dynamic Injector boundary.
+
+        Injector resolves abstract application ports at runtime.  Keeping this
+        dynamic typing confined to this facade prevents framework typing
+        limitations from leaking into domain and adapter code.
+        """
+        return self._injector.get(dependency)
 
 
 def build_my_verisure_composition_root(
@@ -44,6 +47,6 @@ def build_my_verisure_composition_root(
     from ..use_cases.interfaces.auth_use_case import AuthUseCase
 
     session_manager = root.get(SessionManager)
-    auth_use_case = root.get(cast(type[Any], AuthUseCase))
+    auth_use_case = root.get(AuthUseCase)
     session_manager.set_authenticator(auth_use_case.login)
     return root

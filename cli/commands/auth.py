@@ -41,19 +41,21 @@ class AuthCommand(BaseCommand):
                 return False
 
             session_manager = self.session_manager
+            username = session_manager.username
+            password = session_manager.password
+            if username is None or password is None:
+                print_error("Usuario y contraseña son necesarios para iniciar sesión")
+                return False
             try:
                 # Perform login through the command composition root
                 auth_use_case = self.auth_use_case
-                auth_result = await auth_use_case.login(
-                    session_manager.username, 
-                    session_manager.password
-                )
+                auth_result = await auth_use_case.login(username, password)
                 
                 if auth_result.success:
                     # Update session manager with new credentials
                     session_manager.update_credentials(
-                        session_manager.username,
-                        session_manager.password,
+                        username,
+                        password,
                         auth_result.hash,
                         auth_result.refresh_token
                     )
@@ -174,9 +176,14 @@ class AuthCommand(BaseCommand):
                         if auth_result.success:
                             # Update session manager with new credentials
                             session_manager = self.session_manager
+                            username = session_manager.username
+                            password = session_manager.password
+                            if username is None or password is None:
+                                print_error("Usuario y contraseña son necesarios para completar OTP")
+                                return False
                             session_manager.update_credentials(
-                                session_manager.username,
-                                session_manager.password,
+                                username,
+                                password,
                                 auth_result.hash,
                                 auth_result.refresh_token
                             )

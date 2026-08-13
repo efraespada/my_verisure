@@ -68,12 +68,46 @@
 4. Run complete suite, coverage with test contexts, Repowise impacted-tests, security scan, architecture guard, mypy, lint, and diff checks.
 5. Commit/push only with a clean tree and verifiable output.
 
+## Iteration 7 — Full type gate and legacy cleanup
+
+1. Resolve the full repository mypy gate, including CLI, config flow, composition tokens, and async mocks.
+2. Remove or rewrite stale documentation and scripts that reference unsupported Python/HA versions or nonexistent commands.
+3. Keep production fallbacks out of runtime paths; compatibility belongs only in explicit test adapters.
+4. Commit and push.
+
+## Iteration 8 — CI parity and security gates
+
+1. Make CI execute the pinned HA 2026.8.1 suite through `make test-ha-2026-8`.
+2. Add full mypy, dependency consistency, diff, architecture, coverage, and redacted-logging checks.
+3. Keep HACS validation as an independent job.
+4. Commit and push.
+
+## Iteration 9 — Structural decomposition
+
+1. Add characterization tests for coordinator refresh/error/cache/auth/unload behavior.
+2. Extract focused application services from `coordinator.py` without changing HA adapter semantics.
+3. Add characterization tests for AlarmClient transport, parsing, polling, and command outcomes.
+4. Extract transport, response interpretation, and polling behind explicit ports.
+5. Run Repowise and commit each verified slice.
+
+## Iteration 10 — Isolation, coverage, and release verification
+
+1. Complete two-entry isolation for credentials, sessions, files, identifiers, reload, reauth, and unload.
+2. Resolve every TODO/FIXME in production code or document an intentional invariant.
+3. Raise meaningful coverage in coordinator, AlarmClient, CameraClient, config flow, and service error paths.
+4. Document and execute disposable Home Assistant manual verification without real secrets in the repository.
+5. Run all gates and prepare a release-readiness report.
+
 ## Definition of done
 
+- `make test-ha-2026-8` passes against the pinned target.
+- `make type-check` passes with zero errors.
+- Full lint, architecture, dependency, diff, and security/redaction gates pass.
 - No production runtime path silently falls back to global managers/injectors.
+- No stale legacy documentation or executable script remains undocumented.
 - Composition is explicit and isolated per `ConfigEntry`.
 - HA 2026.8.1 tests cover lifecycle, platforms, config flow, services, errors, and isolation.
 - Coordinator and AlarmClient have explicit boundaries and materially reduced complexity.
+- Coverage thresholds are defined per layer and enforced for changed code.
 - Modern HA test command is reproducible and documented.
-- All gates pass with reports based on real execution.
 - Real-account validation remains a separate manual step and is never claimed without executing it.
