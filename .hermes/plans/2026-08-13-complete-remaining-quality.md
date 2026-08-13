@@ -118,7 +118,33 @@ committed and pushed independently.
 
 The remaining coordinator responsibilities (provider refresh error mapping,
 alarm command orchestration, notifications, and translation loading) remain
-separate candidates for future characterization-led slices. Broad exception
-handling at HTTP, filesystem, and HA boundaries remains intentionally localized
-where it converts external failures into safe integration behavior; redundant
-wrappers were removed instead of performing a cosmetic global rewrite.
+separate candidates for future characterization-led slices. 
+## Follow-up iteration — Coordinator and client hotspot reduction
+
+Completed independently verified slices:
+
+- `AlarmClient`: isolated initial arm/disarm GraphQL response interpretation in
+  `AlarmCommandResponseInterpreter`; transport and polling remain separate.
+- `Coordinator`: isolated provider failure classification and retained HA-only
+  notification/cache/auth side effects at the adapter boundary.
+- `AuthClient`: isolated OTP metadata validation and phone selection without
+  mutating provider response dictionaries.
+- `CameraClient`: isolated request context/header construction and image
+  timestamp-directory normalization.
+- `Coordinator`: consolidated four alarm command adapters into one typed command
+  executor driven by explicit command metadata, removing duplicated notification
+  and error handling without replacing the existing application dispatcher.
+
+Focused evidence: 13 alarm tests, 16 coordinator failure tests, 15 authentication
+ tests, 15 camera tests, and 24 coordinator command/service tests passed across
+ the slices. Full HA-targeted validation then passed with 431 tests and 2 skips;
+ total coverage reached 81%. Mypy passed on 196 source files, critical Flake8,
+ compileall, architecture guard, pip check, and git diff checks passed.
+
+Repowise advisory evidence improved from hotspot health 4.13 to 4.28,
+average health 8.87 to 8.91, and maintainability average 9.20 to 9.24. The
+Coordinator remains the worst structural hotspot, and AlarmClient/AuthClient/
+CameraClient remain substantial files; this iteration reduced concrete
+responsibility duplication but did not claim that all monoliths are eliminated.
+Manual HA Docker validation and real Verisure validation remain unavailable and
+were not substituted with fabricated evidence.
