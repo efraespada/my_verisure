@@ -102,6 +102,11 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if not unload_ok:
         return False
 
+    coordinator = getattr(entry, "runtime_data", None)
+    if isinstance(coordinator, MyVerisureDataUpdateCoordinator):
+        await coordinator.async_cleanup()
+    entry.runtime_data = None
+
     # Each coordinator owns its composition root; no global dependency graph
     # needs to be cleared during entry unload.
 

@@ -168,6 +168,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         super().__init__(
             hass,
             LOGGER,
+            config_entry=entry,
             name=DOMAIN,
             update_interval=scan_interval,
         )
@@ -492,9 +493,12 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             self._button.clear_executing_state()
             LOGGER.debug("Cleared button executing state")
 
-    async def async_cleanup(self):
-        """Clean up resources."""
+    async def async_cleanup(self) -> None:
+        """Cancel scheduled coordinator work and release entry-local references."""
         try:
-            LOGGER.warning("Coordinator cleanup completed")
-        except Exception as e:
-            LOGGER.error("Error during cleanup: %s", e) 
+            await self.async_shutdown()
+            self._alarm_control_panel = None
+            self._button = None
+            LOGGER.debug("Coordinator cleanup completed for %s", self.installation_id)
+        except Exception as error:
+            LOGGER.error("Error during coordinator cleanup: %s", error)

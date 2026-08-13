@@ -81,9 +81,19 @@ Execution:
 ### Slice 4 — Coordinator lifecycle
 
 Characterize and test refresh, reauthentication, failure recovery, unload,
-concurrent refresh, and cancellation. Separate remaining application policies
-from HA lifecycle glue. Prove that one ConfigEntry cannot affect another and
-that no orphan asyncio tasks remain after unload.
+cancellation, and entry isolation. Keep HA exception mapping at the integration
+boundary and application policies independently testable.
+
+Execution:
+
+- Coordinator now passes `config_entry=entry` explicitly to HA Core 2026.8.1,
+  avoiding implicit ContextVar entry resolution.
+- `async_cleanup()` calls HA's `async_shutdown()` and clears registered entity
+  references.
+- `async_unload_entry()` invokes cleanup and clears `runtime_data` after platform
+  unload.
+- Focused HA lifecycle/reauth/composition suite: 11 passed.
+
 
 ### Slice 5 — HA-facing adapters
 
