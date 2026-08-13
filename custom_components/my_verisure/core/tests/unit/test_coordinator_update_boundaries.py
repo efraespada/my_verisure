@@ -22,6 +22,7 @@ def coordinator() -> MyVerisureDataUpdateCoordinator:
     value._dev_mode = False
     value.session_manager = Mock()
     value.file_manager = Mock()
+    value.snapshot_store = Mock()
     value.snapshot_service = Mock()
     value.create_dummy_camera_images_use_case = Mock()
     value.hass = SimpleNamespace(data={})
@@ -36,14 +37,14 @@ def coordinator() -> MyVerisureDataUpdateCoordinator:
 async def test_update_data_returns_snapshot_and_persists_cache(coordinator) -> None:
     snapshot = {"installation_id": "home-1", "alarm_status": {"status": "armed"}}
     coordinator.snapshot_service.refresh = AsyncMock(return_value=snapshot)
-    coordinator.file_manager.async_save_json = AsyncMock(return_value=True)
+    coordinator.snapshot_store.save = AsyncMock(return_value=True)
     coordinator.create_dummy_camera_images_use_case.create_dummy_camera_images = AsyncMock()
 
     result = await coordinator._async_update_data()
 
     assert result == snapshot
     coordinator.async_set_updated_data.assert_called_once_with(snapshot)
-    coordinator.file_manager.async_save_json.assert_awaited_once()
+    coordinator.snapshot_store.save.assert_awaited_once_with(snapshot)
     coordinator.create_dummy_camera_images_use_case.create_dummy_camera_images.assert_awaited_once_with(
         installation_id="home-1"
     )

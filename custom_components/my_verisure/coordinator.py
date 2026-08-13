@@ -27,6 +27,7 @@ from .core.dependency_injection.composition_root import (
     build_my_verisure_composition_root,
 )
 from .core.application.coordinator_snapshot import merge_alarm_snapshot
+from .core.application.coordinator_snapshot_store import CoordinatorSnapshotStore
 from .core.application.installation_snapshot_service import InstallationSnapshotService
 from .core.use_cases.interfaces.auth_use_case import AuthUseCase
 from .core.use_cases.interfaces.installation_use_case import InstallationUseCase
@@ -43,7 +44,6 @@ from .core.const import (
     DOMAIN,
     LOGGER,
     CONF_SCAN_INTERVAL,
-    COORDINATOR_DATA_FILE,
     CONF_AUTO_ARM_PERIMETER_WITH_INTERNAL,
     CONF_DEV_MODE,
 )
@@ -96,6 +96,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
 
         self.session_manager = self.composition_root.get(SessionManager)
         self.file_manager = self.composition_root.get(FileManager)
+        self.snapshot_store = CoordinatorSnapshotStore(self.file_manager)
         
         # Reference to alarm control panel for state updates
         self._alarm_control_panel = None
@@ -252,20 +253,11 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             )
             try:
                 self.async_set_updated_data(result)
-                save_success = await self.file_manager.async_save_json(
-                    COORDINATOR_DATA_FILE,
-                    result,
-                )
+                save_success = await self.snapshot_store.save(result)
                 if not save_success:
-                    LOGGER.error(
-                        "Failed to save coordinator data to %s", COORDINATOR_DATA_FILE
-                    )
+                    LOGGER.error("Failed to save coordinator data")
             except Exception as save_err:
-                LOGGER.error(
-                    "Error saving coordinator data to %s: %s",
-                    COORDINATOR_DATA_FILE,
-                    save_err,
-                )
+                LOGGER.error("Error saving coordinator data: %s", save_err)
             LOGGER.info("Alarm state refreshed for installation %s", self.installation_id)
             return result
         finally:
@@ -285,10 +277,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
                     # If login fails, try to use cached data
                     cached_data = self.load_alarm_info()
                     if cached_data:
-                        LOGGER.warning(
-                            "Login failed but using cached data from %s",
-                            COORDINATOR_DATA_FILE
-                        )
+                        LOGGER.warning("Login failed but using cached coordinator data")
                         return cached_data
                     raise UpdateFailed("Failed to login to My Verisure")
 
@@ -306,26 +295,13 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
                 try:
                     self.async_set_updated_data(result)
                     try:
-                        save_success = await self.file_manager.async_save_json(
-                            COORDINATOR_DATA_FILE,
-                            result,
-                        )
+                        save_success = await self.snapshot_store.save(result)
                         if save_success:
-                            LOGGER.debug(
-                                "Coordinator data saved to cache: %s",
-                                COORDINATOR_DATA_FILE,
-                            )
+                            LOGGER.debug("Coordinator data saved to cache")
                         if not save_success:
-                            LOGGER.error(
-                                "Failed to save coordinator data to %s",
-                                COORDINATOR_DATA_FILE,
-                            )
+                            LOGGER.error("Failed to save coordinator data")
                     except Exception as save_err:
-                        LOGGER.error(
-                            "Error saving coordinator data to %s: %s",
-                            COORDINATOR_DATA_FILE,
-                            save_err,
-                        )
+                        LOGGER.error("Error saving coordinator data: %s", save_err)
 
                     await self.create_dummy_camera_images_use_case.create_dummy_camera_images(
                         installation_id=self.installation_id,
@@ -353,10 +329,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
                 # Try to use cached data instead of failing
                 cached_data = self.load_alarm_info()
                 if cached_data:
-                    LOGGER.warning(
-                        "Service blocked but using cached data from %s",
-                        COORDINATOR_DATA_FILE
-                    )
+                    LOGGER.warning("Service blocked but using cached coordinator data")
                     return cached_data
                 raise UpdateFailed(f"Service temporarily blocked: {ex}") from ex
             except MyVerisureAuthenticationError as ex:
@@ -376,33 +349,11 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
 
     def load_alarm_info(self) -> Dict[str, Any]:
         """Load the last saved data from coordinator data file."""
-        try:
-            alarm_info = self.file_manager.load_json(COORDINATOR_DATA_FILE)
-            if isinstance(alarm_info, dict) and alarm_info:
-                return alarm_info
-            else:
-                LOGGER.warning("No last data found in %s", COORDINATOR_DATA_FILE)
-                return {}
-        except Exception as e:
-            LOGGER.error("Failed to load last data from %s: %s", COORDINATOR_DATA_FILE, e)
-            return {}
+        return self.snapshot_store.load()
 
     def get_alarm_info_info(self) -> Dict[str, Any]:
         """Get information about the last saved data file."""
-        try:
-            file_path = self.file_manager.get_file_path(COORDINATOR_DATA_FILE)
-            file_size = self.file_manager.get_file_size(COORDINATOR_DATA_FILE)
-            exists = self.file_manager.file_exists(COORDINATOR_DATA_FILE)
-            
-            return {
-                "file_path": str(file_path),
-                "exists": exists,
-                "file_size": file_size,
-                "last_modified": file_path.stat().st_mtime if exists else None
-            }
-        except Exception as e:
-            LOGGER.error("Failed to get last data info: %s", e)
-            return {"error": str(e)}
+        return self.snapshot_store.metadata()
 
     async def async_arm_away(self) -> ArmResult:
         """Arm the alarm in away mode."""
