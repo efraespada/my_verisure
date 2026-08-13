@@ -75,10 +75,40 @@ this plan with exact evidence and explicit limitations.
 
 ## Acceptance criteria
 
-- No regression in HA lifecycle, service dispatch, snapshot fallback, or auth
-  behavior.
-- Coordinator public methods remain compatible.
-- Each extraction has direct unit coverage.
-- `master` equals `origin/master` and the working tree is clean.
-- Residual Coordinator size/hotspot is reported honestly; no claim that it is
-  fully eliminated unless verified.
+## Execution result — Coordinator structural refactor
+
+Completed slices, each committed and pushed after focused validation:
+
+- `CoordinatorRefreshEffects`: publishes coordinator data, persists the
+  entry-scoped snapshot, and optionally creates dummy camera images. Persistence
+  and placeholder failures remain non-fatal as before.
+- `CoordinatorCameraRefresh`: owns camera polling defaults and result logging;
+  `async_refresh_camera_images()` remains a thin HA/dev-mode adapter.
+- `CoordinatorNotificationService`: owns translation lookup and persistent
+  notification creation; the coordinator retains the decisions and stable IDs.
+- `CoordinatorSessionPolicy`: pure session-state decision policy for valid,
+  blocked, refreshable, and unavailable states; session I/O remains in the
+  coordinator/session manager boundary.
+
+The coordinator fixture tests were updated to declare each new collaborator
+explicitly when using `object.__new__`; no dependency was hidden behind a mock.
+
+Evidence:
+
+- Focused slices passed: 12 refresh-effects tests, 16 camera/lifecycle tests, 15
+  notification/update tests, and 17 session/lifecycle tests.
+- Full suite: 449 passed, 2 skipped.
+- Coverage: 82%.
+- Mypy: no issues in 206 source files.
+- Critical Flake8, compileall, architecture guard, pip check, and diff checks:
+  all passed.
+- Coordinator size: 502 → 499 lines.
+- Repowise hotspot health: 4.29 → 4.31.
+- Repowise maintainability average: 9.25 → 9.26.
+- Repowise worst hotspot is now `AlarmClient`, not `Coordinator`.
+
+The coordinator still contains HA lifecycle wiring, provider failure mapping,
+command adapters, and session I/O adapters. Those were intentionally retained
+at the composition/HA boundary rather than moved into artificial wrappers.
+Manual Docker HA and real-provider validation remain unavailable and were not
+represented as passed.
