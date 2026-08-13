@@ -48,3 +48,9 @@ No live Verisure end-to-end call is part of the automated or manual gate in this
 repository. A real-provider check requires a dedicated test account and must
 be approved and run outside the household HA instance. The absence of that
 check is reported explicitly rather than replaced with synthetic success.
+
+The current development host has Docker installed but the active operator does
+not have permission to access `/var/run/docker.sock`. Therefore the disposable
+HA process/container checklist has not been executed here. The pytest harness
+against the pinned HA Core 2026.8.1 environment remains the verified lifecycle
+evidence; it must not be conflated with manual UI or provider validation.

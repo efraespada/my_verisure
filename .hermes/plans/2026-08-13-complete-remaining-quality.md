@@ -56,3 +56,25 @@ regression tests, focused gates, a commit, and a push.
 - Structural changes have tests proving behavior and isolation.
 - Manual/Docker/provider limitations are explicit and not misreported as passed.
 - All changes are committed and pushed in small verified slices.
+
+## Iteration result
+
+Completed slices:
+
+- removed the root CLI `sys.path` mutation and extended the architecture guard;
+- pinned CI to Python 3.14.4;
+- consolidated duplicated alarm GraphQL transport preparation while preserving
+  AlarmClient result contracts;
+- covered ConfigFlow options and the real HA reauth lifecycle;
+- documented the one unavoidable HA `ConfigFlow.__init_subclass__` typing
+  boundary.
+
+Measured evidence: 394 passed, 2 skipped, 78% total coverage. Repowise reports
+AlarmClient duplication reduced from 42.94% to 33.54%; CameraClient duplication
+is 2.68%. Coordinator remains the primary structural hotspot and is explicitly
+deferred for a separate characterization-led iteration rather than a risky
+large rewrite.
+
+Manual Docker validation remains blocked: Docker is installed, but the current
+operator lacks permission to access `/var/run/docker.sock`. No household HA or
+real Verisure account was used.
