@@ -55,9 +55,72 @@ compileall, architecture guard, pip check, diff check, and Repowise. Update
 this plan with measured results and explicit limitations. Commit and push each
 validated iteration.
 
-## Non-goals
+## Execution result
 
-- No real Verisure calls.
-- No fake provider responses presented as live validation.
-- No wrapper-only extraction made solely to reduce line count.
-- No broad legacy compatibility shims.
+The refactor was executed in three validated iterations:
+
+### Iteration 1 — alarm status configuration
+
+Published as `be5de8a refactor: isolate alarm status service`.
+
+- Added `AlarmStatusService` in the application layer.
+- Moved configuration loading, per-instance caching, safe fallback, default
+  status construction, and message matching out of `AlarmClient`.
+- Preserved the existing private client entry points as thin application-boundary
+  calls so current internal contracts remain stable.
+- Added direct tests for internal/external matching, empty messages, caching,
+  invalid JSON, and missing files.
+
+### Iteration 2 — realtime status workflow
+
+Published as `64ed130 refactor: isolate realtime alarm status workflow`.
+
+- Added `RealtimeAlarmStatusWorkflow`.
+- Moved retry count, wait policy, delay injection, terminal response handling,
+  and transport-failure normalization out of the API adapter.
+- Kept `RealtimeAlarmStatusInterpreter` as the pure provider-response parser.
+- `AlarmClient` now only supplies the GraphQL transport callback.
+
+### Iteration 3 — arm/disarm command workflow
+
+Published as `69f1288 refactor: isolate alarm command workflow`, followed by
+`85bfb6c test: align alarm workflow contract`.
+
+- Added `AlarmCommandWorkflow` with explicit `arm()` and `disarm()` operations.
+- Moved initial response acceptance, reference validation, status transport
+  factory creation, and polling delegation out of `AlarmClient`.
+- Preserved separate arm/disarm payload contracts; no reflection or generic
+  command shim was introduced.
+- Fixed and tested the contract that an `OK` provider response without a
+  `referenceId` is a failure with `Missing command reference`.
+
+## Measured result
+
+- `AlarmClient`: `672 → 537` lines.
+- Repowise hotspot health: `4.36 → 4.47`.
+- Repowise worst performer changed from `AlarmClient` to `AuthClient`.
+- Maintainability average: `9.26 → 9.30`.
+- Full suite: `457 → 471` passed tests.
+- Coverage: `82% → 83%`.
+
+## Verification
+
+- `make ci`: `471 passed, 2 skipped`.
+- `make test-ha-2026-8`: `471 passed, 2 skipped` on Home Assistant Core
+  2026.8.1 / Python 3.14.4.
+- Mypy: no issues in 215 source files.
+- Critical Flake8: passed.
+- `compileall`: passed.
+- `ARCHITECTURE_GUARD_OK`.
+- `pip check`: no broken requirements.
+- `git diff --check`: passed.
+
+## Remaining boundary
+
+`AlarmClient` remains an external API adapter and still owns GraphQL request
+transport, entry-scoped credentials, redacted logging, and direct request
+builders. Those are intentional adapter responsibilities. Further extraction
+should only happen when another provider-facing contract is independently
+cohesive; reducing the line count alone is not a sufficient reason.
+
+No real Verisure calls or manual Docker Home Assistant validation were claimed.
