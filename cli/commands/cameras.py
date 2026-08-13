@@ -59,9 +59,9 @@ class CameraCommand(BaseCommand):
             print_info(f"Getting camera devices for installation: {installation_id}")
         
             # Get installation devices
-            devices = await self.get_installation_devices_use_case.get_installation_devices(
+            devices = (await self.get_installation_devices_use_case.get_installation_devices(
                 installation_id
-            )
+            )).devices
 
             # Filter devices to get only cameras (type "YR" or "YP")
             camera_devices = [

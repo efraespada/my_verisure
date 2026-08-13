@@ -1,8 +1,7 @@
 """Get installation devices use case implementation."""
 
 import logging
-from typing import List
-from ...api.models.domain.device import Device
+from ...api.models.domain.device import DeviceList
 from ...repositories.interfaces.installation_repository import InstallationRepository
 from ..interfaces.get_installation_devices_use_case import GetInstallationDevicesUseCase
 
@@ -20,7 +19,7 @@ class GetInstallationDevicesUseCaseImpl(GetInstallationDevicesUseCase):
         self, 
         installation_id: str, 
         force_refresh: bool = False
-    ) -> List[Device]:
+    ) -> DeviceList:
         """Get devices for an installation."""
         try:
             _LOGGER.info(
@@ -59,7 +58,7 @@ class GetInstallationDevicesUseCaseImpl(GetInstallationDevicesUseCase):
             )
 
             # Log device types
-            device_types = {}
+            device_types: dict[str, int] = {}
             for device in devices:
                 device_type = device.type
                 device_types[device_type] = device_types.get(device_type, 0) + 1
@@ -67,7 +66,7 @@ class GetInstallationDevicesUseCaseImpl(GetInstallationDevicesUseCase):
             if device_types:
                 _LOGGER.info("Device types: %s", device_types)
 
-            return devices
+            return DeviceList(result="OK", devices=devices)
 
         except ValueError as e:
             _LOGGER.error("Validation error getting installation devices: %s", e)

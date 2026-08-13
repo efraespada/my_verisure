@@ -179,7 +179,7 @@ class InfoCommand(BaseCommand):
                         return False
 
             # Get installation services to get panel info
-            devices = await self.get_installation_devices_use_case.get_installation_devices(installation_id)
+            devices = (await self.get_installation_devices_use_case.get_installation_devices(installation_id)).devices
             
             print_info(f"Obteniendo dispositivos para instalación {installation_id}...")
             

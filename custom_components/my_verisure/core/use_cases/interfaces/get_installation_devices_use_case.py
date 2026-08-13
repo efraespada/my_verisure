@@ -1,7 +1,6 @@
 """Get installation devices use case interface."""
 
 from abc import ABC, abstractmethod
-from typing import Optional
 
 from ...api.models.domain.device import DeviceList
 
