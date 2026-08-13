@@ -96,6 +96,29 @@ authentication policy, provider refresh error mapping, alarm commands, camera
 refresh orchestration, notifications, and translation loading; those require
 separate characterization-led slices and were not bundled into this iteration.
 
-Docker diagnostics: Docker Engine 29.6.2 is installed; `/var/run/docker.sock`
-is `root:docker` with mode `0660`, while the active user is not in the `docker`
-group. No permission changes were made.
+## Follow-up iteration — Coordinator, protocol boundaries, cameras, and HA adapters
+
+Completed additional quality slices:
+
+- isolated the coordinator authentication decision (authenticated session,
+  cached snapshot, or no usable data) behind an application policy;
+- isolated realtime alarm GraphQL response interpretation (`OK`, `KO`, `WAIT`,
+  unknown, and GraphQL errors) without moving transport or retry timing;
+- centralized active Verisure camera selection and identifier formatting for the
+  refresh and dummy-image use cases;
+- removed redundant exception wrappers from the installation use case so
+  repository exceptions propagate without artificial rethrow layers;
+- added HA camera adapter coverage for missing directories, invalid timestamp
+  directories, preferred thumbnails, and fallback image files.
+
+Focused evidence for these slices: 8 coordinator tests, 15 alarm tests, 7
+camera use-case tests, 6 installation-use-case tests, and 26 HA adapter/lifecycle
+tests passed. Mypy and critical Flake8 passed after each slice. Each slice was
+committed and pushed independently.
+
+The remaining coordinator responsibilities (provider refresh error mapping,
+alarm command orchestration, notifications, and translation loading) remain
+separate candidates for future characterization-led slices. Broad exception
+handling at HTTP, filesystem, and HA boundaries remains intentionally localized
+where it converts external failures into safe integration behavior; redundant
+wrappers were removed instead of performing a cosmetic global rewrite.

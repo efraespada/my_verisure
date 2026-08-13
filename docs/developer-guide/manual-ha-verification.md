@@ -58,3 +58,10 @@ evidence; it must not be conflated with manual UI or provider validation.
 Diagnostic detail: Docker Engine 29.6.2 is installed and the socket is owned by
 `root:docker` with mode `0660`; the active user is not a member of `docker`. No
 permission or host configuration changes were made by the validation process.
+
+## Follow-up implementation evidence
+
+The current iteration added focused coverage for camera filesystem boundaries
+and preserved the explicit limitation that Docker/manual UI and live Verisure
+validation were not executed. See the plan file for the slice-by-slice commits
+and the final gate output.
