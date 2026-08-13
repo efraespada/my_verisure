@@ -5,7 +5,6 @@ from __future__ import annotations
 import time
 from typing import Any, Dict, cast
 from datetime import timedelta
-import json
 from pathlib import Path
 
 from homeassistant.config_entries import ConfigEntry
@@ -23,6 +22,7 @@ from .core.dependency_injection.composition_root import (
 )
 from .core.application.coordinator_authentication import CoordinatorAuthenticationPolicy
 from .core.application.coordinator_alarm_commands import COMMANDS
+from .core.application.translation_service import TranslationService
 from .core.application.coordinator_failure import (
     CoordinatorFailureClassifier,
     CoordinatorFailureKind,
@@ -106,6 +106,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         # Reference to alarm control panel for state updates
         self._alarm_control_panel = None
         self._failure_classifier = CoordinatorFailureClassifier()
+        self._translation_service = TranslationService(Path(__file__).parent / "translations")
         
         # Set credentials in session manager (memory only; persist after login)
         self.session_manager.update_credentials(
@@ -431,52 +432,13 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         finally:
             reset_dev_mode(tok)
 
-    async def get_translation(self, key: str, **kwargs) -> str:
-        """Get translation for a given key (async and non-blocking)."""
-        lang = self.hass.config.language or "en"
-        translations_dir = Path(__file__).parent / "translations"
-        lang_file = translations_dir / f"{lang}.json"
-        fallback_file = translations_dir / "en.json"
-
-        # Leer archivos sin bloquear el event loop
-        async def _load_json(file_path: Path) -> str:
-            if not file_path.exists():
-                return "{}"
-            try:
-                # Usamos run_in_executor para evitar bloqueo del hilo principal
-                import asyncio
-                loop = asyncio.get_event_loop()
-                return await loop.run_in_executor(None, file_path.read_text, "utf-8")
-            except Exception:
-                return "{}"
-
-        try:
-            content = await _load_json(lang_file)
-            data = json.loads(content)
-        except Exception:
-            try:
-                content = await _load_json(fallback_file)
-                data = json.loads(content)
-            except Exception:
-                data = {}
-
-        # Navegar en el dict usando "puntos" (ej. notifications.alarm.disarm.success)
-        value = data
-        for part in key.split("."):
-            if not isinstance(value, dict):
-                value = None
-                break
-            value = value.get(part)
-
-        if value is None:
-            # Si no hay traducción, devolvemos la clave literal
-            return key
-
-        # Formatear con kwargs opcionales
-        try:
-            return value.format(**kwargs)
-        except Exception:
-            return value
+    async def get_translation(self, key: str, **kwargs: object) -> str:
+        """Resolve one localized notification string."""
+        return await self._translation_service.get(
+            self.hass.config.language,
+            key,
+            **kwargs,
+        )
 
     def has_valid_session(self) -> bool:
         """Check if we have a valid session."""
