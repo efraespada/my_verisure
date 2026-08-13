@@ -53,6 +53,14 @@ response classification, and session persistence coordination. Preserve login,
 OTP, reauthentication, invalid credentials, transport errors, GraphQL errors,
 and session-expiry semantics. Add contract tests before deleting inline logic.
 
+Execution started in `2a8c23f`:
+
+- `AuthSessionPersistence` owns session projection and entry-scoped credential
+  persistence for normal and post-OTP login.
+- 18 authentication/session contract tests pass.
+- AuthClient reduced from 703 to 680 lines.
+- Full mypy covers 217 files without errors.
+
 ### Slice 3 — CameraClient and InstallationClient
 
 Audit each separately. Extract request/response policies only where they have
