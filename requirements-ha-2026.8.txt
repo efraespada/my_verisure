@@ -1,0 +1,14 @@
+# Home Assistant target used by the production installation.
+# Home Assistant 2026.8.1 requires Python >=3.14.2.
+homeassistant==2026.8.1
+pytest-homeassistant-custom-component==0.13.355
+
+# Runtime dependencies declared by custom_components/my_verisure/manifest.json.
+injector>=0.21.0
+PyJWT>=2.8.0
+Pillow>=10.0.0
+
+# Test runner configuration used by the Home Assistant test plugin.
+pytest==9.0.3
+pytest-asyncio==1.4.0
+pytest-timeout==2.4.0

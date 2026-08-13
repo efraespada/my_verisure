@@ -8,6 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.my_verisure import integration, services
 from custom_components.my_verisure.sensor import (
@@ -20,7 +21,7 @@ from custom_components.my_verisure.sensor import (
 
 @pytest.fixture
 def config_entry() -> ConfigEntry:
-    return ConfigEntry(
+    return MockConfigEntry(
         version=1,
         minor_version=1,
         domain="my_verisure",

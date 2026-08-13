@@ -51,6 +51,33 @@ This harness is the first line for installation/configuration regressions. A
 separate Home Assistant process or container can be added later for manual UI
 and frontend validation, but Docker is not required for the deterministic
 lifecycle suite.
+
+### Production-version Home Assistant validation
+
+The legacy `.venv` is retained for the repository's Python 3.11-compatible
+unit-test baseline. It must not be presented as validation for the production
+installation shown in the Home Assistant app. The production target is:
+
+```text
+Home Assistant Core 2026.8.1
+Python >=3.14.2
+pytest-homeassistant-custom-component 0.13.355
+```
+
+The exact target stack is declared in `requirements-ha-2026.8.txt`. Use a
+separate Python 3.14 environment; do not install it into `.venv`:
+
+```bash
+python3.14 -m venv .ha-2026.8-venv
+.ha-2026.8-venv/bin/python -m pip install -r requirements-ha-2026.8.txt
+PYTHONPATH="$PWD" .ha-2026.8-venv/bin/python -m pytest \
+  custom_components/my_verisure/tests/test_ha_lifecycle.py -q
+```
+
+This target test has been executed successfully against Core 2026.8.1. The
+legacy HA 2024.3.3 environment remains useful only for historical compatibility
+and must not be used to claim compatibility with Core 2026.8.1.
+
 ## Known gaps
 
 - Limited **Home Assistant core** integration tests (no `tests/components/my_verisure` style harness in this repo).  
