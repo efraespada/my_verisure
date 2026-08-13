@@ -11,6 +11,7 @@ from homeassistant.config_entries import ConfigEntry
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.my_verisure import integration, services
+from custom_components.my_verisure.core.api.models.domain.alarm import ArmResult
 from custom_components.my_verisure.sensor import (
     MyVerisureActiveAlarmsSensor,
     MyVerisureAlarmStatusSensor,
@@ -125,6 +126,48 @@ async def test_services_register_and_unload_all_handlers():
     await services.async_unload_services(hass)
     removed = [call.args[1] for call in hass.services.async_remove.call_args_list]
     assert removed == registered
+
+
+@pytest.mark.asyncio
+async def test_arm_service_dispatches_only_to_matching_installation():
+    """A service command must remain scoped to its installation entry."""
+    hass = MagicMock()
+    first = MagicMock()
+    first.config_entry.data = {"installation_id": "first"}
+    first.async_arm_away = AsyncMock(return_value=ArmResult(True, "ok"))
+    second = MagicMock()
+    second.config_entry.data = {"installation_id": "second"}
+    second.async_arm_away = AsyncMock(return_value=ArmResult(True, "ok"))
+
+    with patch.object(services, "_iter_coordinators", return_value=iter((first, second))):
+        await services.async_setup_services(hass)
+        handlers = {
+            call.args[1]: call.args[2]
+            for call in hass.services.async_register.call_args_list
+        }
+        await handlers["arm_away"](SimpleNamespace(data={"installation_id": "second"}))
+
+    first.async_arm_away.assert_not_awaited()
+    second.async_arm_away.assert_awaited_once_with()
+
+
+@pytest.mark.asyncio
+async def test_arm_service_does_not_execute_for_unknown_installation():
+    """Unknown installation identifiers must not invoke any coordinator."""
+    hass = MagicMock()
+    coordinator = MagicMock()
+    coordinator.config_entry.data = {"installation_id": "known"}
+    coordinator.async_arm_away = AsyncMock()
+
+    with patch.object(services, "_iter_coordinators", return_value=iter((coordinator,))):
+        await services.async_setup_services(hass)
+        handlers = {
+            call.args[1]: call.args[2]
+            for call in hass.services.async_register.call_args_list
+        }
+        await handlers["arm_away"](SimpleNamespace(data={"installation_id": "missing"}))
+
+    coordinator.async_arm_away.assert_not_awaited()
 
 
 @pytest.mark.asyncio
