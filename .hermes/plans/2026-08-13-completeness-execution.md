@@ -198,9 +198,33 @@ Execution:
 4. **Live-boundary evidence:** retry only read-only environment discovery for
    Docker/HA availability; never change host permissions or use provider
    credentials. Record blockers precisely.
+
+Execution:
+
+- Docker Engine 29.6.2 is installed, but `docker info` still returns
+  `permission denied` for `/var/run/docker.sock` for the current user.
+- HA Core checkout remains available at `/tmp/ha-core-2026.8.1` with Python
+  3.14.4; no Docker permissions were changed.
+- No Verisure credentials, OTP, real session, or provider request was used.
+- Isolated Docker HA and provider E2E remain explicitly unverified.
 5. **Final gates:** run the official Makefile suite, HA Core suite, type/lint/
    architecture/compile/dependency checks, official coverage, Repowise, and
    branch cleanliness. Publish each validated slice independently.
+
+Execution:
+
+- `make ci`: passed.
+- `make test-ha-2026-8`: **505 passed** on HA Core 2026.8.1/Python 3.14.4.
+- Mypy: **224 source files**, no errors.
+- Critical lint, compileall, architecture guard, pip check, and diff check:
+  all passed.
+- Official Makefile coverage: **85%** over 9,243 statements.
+- Repowise: hotspot health **4.59**, maintainability average **9.34**; worst
+  hotspot remains `AuthClient` with score 1.0.
+- Published slices: `b257e49` (service contracts), `ff66296` (alarm panel
+  lifecycle), and `ce5dc50` (device identifier validation).
+- Final branch verification and generated-artifact cleanup remain required
+  immediately before the documentation commit.
 
 ## Definition of done
 
