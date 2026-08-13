@@ -26,10 +26,8 @@ from .core.dependency_injection.composition_root import (
     CompositionRoot,
     build_my_verisure_composition_root,
 )
-from .core.application.coordinator_snapshot import (
-    build_coordinator_snapshot,
-    merge_alarm_snapshot,
-)
+from .core.application.coordinator_snapshot import merge_alarm_snapshot
+from .core.application.installation_snapshot_service import InstallationSnapshotService
 from .core.use_cases.interfaces.auth_use_case import AuthUseCase
 from .core.use_cases.interfaces.installation_use_case import InstallationUseCase
 from .core.use_cases.interfaces.alarm_use_case import AlarmUseCase
@@ -85,6 +83,10 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             cast(type[Any], GetInstallationDevicesUseCase)
         )
         self.alarm_use_case = self.composition_root.get(cast(type[Any], AlarmUseCase))
+        self.snapshot_service = InstallationSnapshotService(
+            self.installation_use_case,
+            self.alarm_use_case,
+        )
         self.refresh_camera_images_use_case = self.composition_root.get(
             cast(type[Any], RefreshCameraImagesUseCase)
         )
@@ -294,36 +296,12 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
                     "Updating alarm and installation data for installation %s",
                     self.installation_id,
                 )
-                detailed_installation = await self.installation_use_case.get_installation_services(
-                    self.installation_id
-                )
+                result = await self.snapshot_service.refresh(self.installation_id)
                 if should_log_detailed():
                     LOGGER.debug(
-                        "Installation snapshot (redacted): %s",
-                        redact_sensitive_data(detailed_installation.dict()),
+                        "Coordinator snapshot (redacted): %s",
+                        redact_sensitive_data(result),
                     )
-                panel = detailed_installation.installation.panel or "PROTOCOL"
-                capabilities = (
-                    detailed_installation.installation.capabilities
-                    or "default_capabilities"
-                )
-                alarm_status = await self.alarm_use_case.get_alarm_status(
-                    self.installation_id,
-                    panel=panel,
-                    capabilities=capabilities,
-                )
-                if should_log_detailed():
-                    LOGGER.debug(
-                        "Alarm status snapshot (redacted): %s",
-                        redact_sensitive_data(alarm_status.dict()),
-                    )
-
-                result = build_coordinator_snapshot(
-                    installation_id=self.installation_id,
-                    alarm_status=alarm_status.dict(),
-                    detailed_installation=detailed_installation.dict(),
-                    timestamp=time.time(),
-                )
 
                 try:
                     self.async_set_updated_data(result)
