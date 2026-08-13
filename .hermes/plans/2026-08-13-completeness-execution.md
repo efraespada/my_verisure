@@ -276,3 +276,29 @@ Execution:
 - HA-facing behavior has focused tests for all supported platforms/services.
 - All skips are documented and justified.
 - Full gates pass, metrics are measured, and live-validation limits are explicit.
+
+## AuthClient hotspot follow-up — 2026-08-13
+
+### Baseline
+
+- `AuthClient`: 680 lines; Repowise NLOC `539`, max CCN `14`, max nesting `5`,
+  score `1.0`.
+- Focused AuthClient tests: `11 passed`.
+- Scoped mypy: `3 source files`, no errors.
+- Working tree was clean before this follow-up.
+
+### Planned vertical slices
+
+1. Extract a pure `DeviceAuthorizationResponseInterpreter` for the response
+   envelope and authorization-code policy. Keep transport, headers, token
+   mutation, and OTP state in `AuthClient`.
+2. Add direct interpreter contract tests for successful authorization, OTP
+   challenge, unauthorized device, unknown provider errors, and empty payloads.
+3. Re-run focused tests, scoped mypy, critical lint, and diff checks; publish
+   this slice independently before considering the OTP workflow.
+4. Re-measure Repowise and inspect whether a second cohesive boundary exists.
+   Do not extract login or OTP state merely to reduce line count.
+
+The current evidence does not justify a broad rewrite or a generic GraphQL
+adapter. Live Verisure behavior remains unverified; tests will use deterministic
+provider-shaped payloads only.
