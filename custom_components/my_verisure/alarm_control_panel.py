@@ -179,10 +179,8 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
             else:
                 LOGGER.error("No installation ID available")
 
-            # Clear transition state and refresh
-            # self._transition_state = None
-
-            # await self.coordinator.async_request_refresh()
+            self._transition_state = None
+            self.async_write_ha_state()
 
         except Exception as e:
             LOGGER.error("Failed to disarm alarm: %s", e)
@@ -211,9 +209,8 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
             else:
                 LOGGER.error("No installation ID available")
 
-            # Clear transition state and refresh
-            # self._transition_state = None
-            # await self.coordinator.async_request_refresh()
+            self._transition_state = None
+            self.async_write_ha_state()
         except Exception as e:
             LOGGER.error("Failed to arm alarm away: %s", e)
             # Clear transition state on error
@@ -241,9 +238,9 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
             else:
                 LOGGER.error("No installation ID available")
 
-            # Clear transition state and refresh
-            #self._transition_state = None
-            #await self.coordinator.async_request_refresh()
+            self._transition_state = None
+            self.async_write_ha_state()
+
         except Exception as e:
             LOGGER.error("Failed to arm alarm home: %s", e)
             # Clear transition state on error
@@ -271,9 +268,8 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
             else:
                 LOGGER.error("No installation ID available")
 
-            # Clear transition state and refresh
-            # self._transition_state = None
-            # await self.coordinator.async_request_refresh()
+            self._transition_state = None
+            self.async_write_ha_state()
         except Exception as e:
             LOGGER.error("Failed to arm alarm night: %s", e)
             # Clear transition state on error

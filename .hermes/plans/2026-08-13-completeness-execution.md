@@ -172,6 +172,15 @@ Execution:
    failure, missing installation IDs, unavailable coordinator data, entity
    registration, and removal. Fix any state that can remain stuck after a
    completed command.
+
+Execution:
+
+- Added lifecycle tests for successful arm/disarm, service failure, missing
+  installation ID, and coordinator availability.
+- Cleared alarm transition state after successful completion for all four command
+  paths; failure paths already clear it as well.
+- Focused platform suite: **24 passed**.
+- Mypy covers 224 files without errors.
 3. **Critical client contracts:** cover installation/auth/device-manager paths
    for empty payloads, malformed payloads, authentication expiry, transport
    errors, and safe exception conversion. Do not extract code without a cohesive
