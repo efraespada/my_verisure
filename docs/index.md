@@ -26,13 +26,13 @@ Custom integration for Home Assistant connecting to **Verisure / Securitas Direc
 ## Repository facts (current implementation)
 
 - **Domain:** `my_verisure` · **Integration type:** hub · **IoT class:** cloud_polling  
-- **Minimum Home Assistant:** 2024.1.0 (see [`hacs.json`](../hacs.json))  
+- **Home Assistant:** `2026.8.1` (Core; Python >=3.14.2)
 - **API endpoint:** `https://customers.securitasdirect.es/owa-api/graphql` (see [`core/const.py`](../custom_components/my_verisure/core/const.py))  
 - **Platforms:** `alarm_control_panel`, `sensor`, `binary_sensor`, `camera`, `button` (see [`integration.py`](../custom_components/my_verisure/integration.py))
 
 ## Search keywords (findability)
 
-`my_verisure`, `Verisure`, `Securitas Direct`, `GraphQL`, `alarm_control_panel`, `arm_away`, `arm_home`, `arm_night`, `disarm`, `get_status`, `refresh_camera_images`, `HACS`, `config flow`, `OTP`, `installation_id`, `cloud polling`, `Home Assistant 2024`.
+`my_verisure`, `Verisure`, `Securitas Direct`, `GraphQL`, `alarm_control_panel`, `arm_away`, `arm_home`, `arm_night`, `disarm`, `get_status`, `refresh_camera_images`, `HACS`, `config flow`, `OTP`, `installation_id`, `cloud polling`, `Home Assistant 2026.8.1`.
 
 ## Contributing to docs
 

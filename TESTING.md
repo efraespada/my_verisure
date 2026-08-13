@@ -61,7 +61,7 @@ python run_all_tests.py
 - **test_session_manager.py**: Tests para gestión de sesiones
 - **test_integration.py**: Tests de integración
 
-### 2. Tests del Core (`core/tests/`)
+### 2. Tests del Core (`custom_components/my_verisure/core/tests/`)
 - Tests unitarios para la lógica de negocio
 - Tests de repositorios
 - Tests de casos de uso
@@ -80,11 +80,11 @@ python run_all_tests.py
 ### Instalación
 ```bash
 # Crear y activar entorno virtual
-python3 -m venv venv
-source venv/bin/activate
+python3.14 -m venv .ha-2026.8-venv
+source .ha-2026.8-venv/bin/activate
 
 # Instalar dependencias
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
 
 # Instalar herramientas de testing
 pip install pytest pytest-cov pytest-asyncio flake8 mypy
@@ -172,7 +172,7 @@ my_verisure/
 - **test_display.py**: Tests de visualización
 - **test_session_manager.py**: Tests de gestión de sesiones
 - **test_integration.py**: Tests de integración
-- **core/tests/**: Tests del core
+- **custom_components/my_verisure/core/tests/**: Tests del core
 
 ## 🐛 Solución de Problemas
 
@@ -186,10 +186,10 @@ Si los tests se quedan esperando input del usuario:
 ### Error de entorno virtual
 ```bash
 # Recrear entorno virtual
-rm -rf venv
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
+rm -rf .ha-2026.8-venv
+python3.14 -m venv .ha-2026.8-venv
+source .ha-2026.8-venv/bin/activate
+pip install -r requirements-dev.txt
 ```
 
 ### Error de dependencias

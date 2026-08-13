@@ -112,26 +112,26 @@ print_error() {
 }
 
 # Verificar que estamos en el directorio correcto
-if [[ ! -d "cli" ]] || [[ ! -d "core" ]]; then
+if [[ ! -d "cli" ]] || [[ ! -d "custom_components/my_verisure/core" ]]; then
     print_error "Este script debe ejecutarse desde el directorio raíz del proyecto"
     exit 1
 fi
 
 # Verificar si existe el entorno virtual
-if [[ ! -d "venv" ]]; then
-    print_warning "No se encontró el entorno virtual. Creando uno nuevo..."
-    python3 -m venv venv
+if [[ ! -d ".ha-2026.8-venv" ]]; then
+    print_warning "No se encontró el entorno Home Assistant 2026.8.1. Creando uno nuevo..."
+    python3.14 -m venv .ha-2026.8-venv
     print_success "Entorno virtual creado"
 fi
 
 # Activar entorno virtual
 print_info "Activando entorno virtual..."
-source venv/bin/activate
+source .ha-2026.8-venv/bin/activate
 
 # Verificar que las dependencias estén instaladas
 if ! python -c "import pytest" 2>/dev/null; then
     print_warning "pytest no está instalado. Instalando dependencias..."
-    pip install -r requirements.txt
+    pip install -r requirements-dev.txt
     pip install pytest pytest-cov pytest-asyncio
 fi
 
@@ -152,12 +152,12 @@ run_cli_tests() {
 # Función para ejecutar tests del Core
 run_core_tests() {
     print_info "Ejecutando tests del Core..."
-    if [[ ! -d "core/tests" ]]; then
+    if [[ ! -d "custom_components/my_verisure/core/tests" ]]; then
         print_warning "No se encontraron tests del Core"
         return 0
     fi
-    
-    cd core/tests
+
+    cd custom_components/my_verisure/core/tests
     
     if [[ "$VERBOSE" == true ]]; then
         python -m pytest -v -s
@@ -165,7 +165,7 @@ run_core_tests() {
         python -m pytest -v
     fi
     
-    cd ../..
+    cd ../../../../
 }
 
 # Función para ejecutar tests rápidos
@@ -191,7 +191,7 @@ run_linting() {
         pip install flake8
     fi
     
-    if flake8 cli/ core/ custom_components/; then
+    if flake8 cli/ custom_components/; then
         print_success "Linting completado sin errores"
     else
         print_error "Se encontraron errores de linting"
@@ -208,7 +208,7 @@ run_type_checking() {
         pip install mypy
     fi
     
-    if mypy cli/ core/; then
+    if mypy cli/ custom_components/; then
         print_success "Verificación de tipos completada sin errores"
     else
         print_error "Se encontraron errores de tipos"

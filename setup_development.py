@@ -76,15 +76,16 @@ def check_venv():
         return True
     else:
         print_error("No estás en un entorno virtual")
-        print_info("Activa el entorno virtual con: source venv/bin/activate")
+        print_info("Activa el entorno virtual con: source .ha-2026.8-venv/bin/activate")
         return False
 
 def install_requirements():
-    """Instalar dependencias desde requirements.txt."""
-    print_section("Instalando Dependencias")
-    
-    print_info("Instalando desde requirements.txt...")
-    result = run_command([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"])
+    """Install the supported Home Assistant development dependencies."""
+    print_section("Installing Dependencies")
+    print_info("Installing from requirements-dev.txt...")
+    result = run_command(
+        [sys.executable, "-m", "pip", "install", "-r", "requirements-dev.txt"]
+    )
     
     if result['success']:
         print_success("Dependencias instaladas correctamente")
@@ -148,9 +149,9 @@ def show_next_steps():
   python check_coverage.py                   # Verificar coverage
 
 📋 Herramientas de Desarrollo:
-  flake8 cli/ core/                          # Linting
-  mypy cli/ core/                            # Type checking
-  black cli/ core/                           # Formatear código
+  flake8 cli/ custom_components/          # Linting
+  mypy cli/ custom_components/            # Type checking
+  black cli/ custom_components/           # Formatear código
   python -m pytest cli/tests/ -v             # Tests CLI
   python -m pytest custom_components/my_verisure/core/tests/ -v  # Tests Core
 

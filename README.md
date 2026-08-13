@@ -21,8 +21,7 @@ Quick links: [Installation](docs/user-guide/installation.md) · [Configuration](
 
 ## 📋 Requirements
 
-- Home Assistant 2024.1.0 or higher (integration features)
-- **Home Assistant 2026.3 or higher** to show the bundled integration icon from `custom_components/my_verisure/brand/` in the UI. On older versions you may see a placeholder unless the domain is listed in the [Home Assistant brands](https://github.com/home-assistant/brands) repository.
+- Home Assistant 2026.8.1 (Core; Python >=3.14.2)
 - Verisure/Securitas Direct account
 - DNI/NIE and account password
 
@@ -186,8 +185,8 @@ git clone <repository-url>
 cd my_verisure
 
 # Create and activate virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+python3.14 -m venv .ha-2026.8-venv
+source .ha-2026.8-venv/bin/activate  # Windows: use an equivalent Python 3.14 environment
 
 # Run the setup script (installs all dependencies automatically)
 python setup_development.py
@@ -233,41 +232,30 @@ python run_all_tests.py
 # Run specific test suites
 python run_cli_tests.py                    # CLI tests only
 python run_coverage.py cli         # CLI coverage
-python run_coverage.py core        # Core coverage
+python run_coverage.py custom_components/my_verisure/core
 python run_coverage.py             # Full coverage
 
 # Individual tools
 python -m pytest cli/tests/ -v             # CLI tests
-python -m pytest core/tests/ -v            # Core tests
+python -m pytest custom_components/my_verisure/core/tests/ -v  # Core tests
 python -m coverage run -m pytest cli/tests # Manual coverage
 python -m coverage report                  # Coverage report
 python -m coverage html                    # HTML report
 
 # Code quality tools
-flake8 cli/ core/                          # Linting
-mypy cli/ core/                            # Type checking
-black cli/ core/                           # Code formatting
+flake8 cli/ custom_components/         # Linting
+mypy cli/ custom_components/           # Type checking
+black cli/ custom_components/          # Code formatting
 ```
 
 #### 📋 **Dependencies**
 
-All development dependencies are automatically installed from `requirements.txt`:
+All development dependencies are automatically installed from `requirements-dev.txt`:
 
-```txt
-# Core dependencies
-aiohttp>=3.8.0
-voluptuous>=0.13.0
-
-# Development tools
-pytest>=8.4.0
-pytest-asyncio>=0.21.0
-pytest-cov>=6.2.0
-pytest-mock>=3.14.0
-pytest-timeout>=2.4.0
-coverage>=7.10.0
-black>=23.11.0
-flake8>=6.1.0
-mypy>=1.7.0
+```text
+Home Assistant Core 2026.8.1
+Python >=3.14.2
+pytest-homeassistant-custom-component 0.13.355
 ```
 
 #### 🔍 **Verification Scripts**
@@ -284,15 +272,9 @@ my_verisure/
 │   ├── commands/          # CLI commands
 │   ├── tests/            # CLI tests
 │   └── utils/            # CLI utilities
-├── core/                  # Core business logic
-│   ├── api/              # API clients and models
-│   ├── repositories/     # Data access layer
-│   ├── use_cases/        # Business logic
-│   └── tests/            # Core tests
-├── docs/                  # Full documentation site (start at docs/index.md)
 ├── custom_components/     # Home Assistant integration
-│   └── my_verisure/      # Integration code
-├── requirements.txt       # Dependencies
+│   └── my_verisure/      # Integration and embedded application core
+├── requirements-dev.txt   # Development/test dependencies
 ├── setup_development.py   # Development setup
 ├── run_all_tests.py      # Test runner
 └── README.md             # This file

@@ -4,7 +4,7 @@
 
 | Requirement | Detail |
 |-------------|--------|
-| Home Assistant | `2024.1.0+` per [`hacs.json`](../../hacs.json) for running the integration |
+| Home Assistant | `2026.8.1` (Core; Python >=3.14.2) |
 | Integration icon in UI | **2026.3+** loads [`brand/`](../../custom_components/my_verisure/brand/) images locally; older cores use the [brands CDN](https://github.com/home-assistant/brands) or a placeholder if the domain is not published there |
 | Python packages | Declared in [`manifest.json`](../../custom_components/my_verisure/manifest.json): `aiohttp`, `voluptuous`, `injector`, `PyJWT`, `Pillow` |
 | Network | HTTPS access to Securitas Direct GraphQL (`VERISURE_GRAPHQL_URL` in [`core/const.py`](../../custom_components/my_verisure/core/const.py)) |

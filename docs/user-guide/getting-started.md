@@ -9,7 +9,7 @@
 
 ## Prerequisites
 
-- **Home Assistant** 2024.1.0 or newer (see [`hacs.json`](../../hacs.json))  
+- **Home Assistant:** 2026.8.1 (Core; Python >=3.14.2)
 - **Verisure / Securitas Direct (Spain)** account credentials used in the official app  
 - **Network** — outbound HTTPS to `customers.securitasdirect.es`  
 

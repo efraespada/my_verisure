@@ -6,4 +6,5 @@
 - Follow Google-style **docstrings** for public helpers.  
 - Align with project guidance in [`.cursor/rules/python-standards.mdc`](../../.cursor/rules/python-standards.mdc).  
 
-Run repo lint scripts (`flake8`/`ruff`) before PRs — exact toolchain depends on `requirements.txt` / `pyproject.toml`.
+Run `make lint-critical` and `make type-check-migrated` before PRs; the exact
+Home Assistant test stack is pinned in `requirements-dev.txt`.

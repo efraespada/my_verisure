@@ -1,164 +1,63 @@
-# Makefile para My Verisure Project
-# Comandos útiles para desarrollo y testing
+# My Verisure development and verification commands.
 
-.PHONY: help test test-cli test-core test-all test-ha-2026-8 lint type-check clean install dev-setup repowise
+.PHONY: help test test-cli test-core test-ha-2026-8 lint lint-critical type-check type-check-migrated clean install dev-setup repowise
 
-# Variables
-PYTHON = python3
-VENV = .venv
-PIP = $(VENV)/bin/pip
-PYTEST = $(VENV)/bin/pytest
+# Home Assistant Core 2026.8.1 is the only supported validation target.
+HA_PYTHON ?= /tmp/ha-2026.8.1-venv/bin/python
+PYTHON = $(HA_PYTHON)
+PIP = $(PYTHON) -m pip
+PYTEST = $(PYTHON) -m pytest
 
-# Colores para la salida
-GREEN = \033[0;32m
-RED = \033[0;31m
-YELLOW = \033[1;33m
-BLUE = \033[0;34m
-NC = \033[0m # No Color
+help: ## Show available commands
+	@grep -E '^[a-zA-Z0-9_-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-22s %s\n", $$1, $$2}'
 
-help: ## Mostrar esta ayuda
-	@echo "$(BLUE)My Verisure - Comandos disponibles:$(NC)"
-	@echo ""
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-15s$(NC) %s\n", $$1, $$2}'
-	@echo ""
+install: ## Install the pinned development dependencies
+	$(PIP) install -r requirements-dev.txt
 
-install: ## Instalar dependencias del proyecto
-	@echo "$(BLUE)Instalando dependencias...$(NC)"
-	$(PIP) install -r requirements.txt
+dev-setup: ## Install development dependencies in the selected Python environment
+	$(PIP) install -r requirements-dev.txt
 
-dev-setup: ## Configurar entorno de desarrollo
-	@echo "$(BLUE)Configurando entorno de desarrollo...$(NC)"
-	@if [ ! -d "$(VENV)" ]; then \
-		echo "$(YELLOW)Creando entorno virtual...$(NC)"; \
-		$(PYTHON) -m venv $(VENV); \
-	fi
-	@echo "$(YELLOW)Activando entorno virtual...$(NC)"
-	@echo "$(GREEN)Para activar el entorno virtual, ejecuta: source $(VENV)/bin/activate$(NC)"
-	$(PIP) install -r requirements.txt
-	$(PIP) install pytest pytest-cov pytest-asyncio flake8 mypy
+test: ## Run the complete repository test suite
+	$(PYTHON) run_all_tests.py
 
-repowise: ## Ejecutar análisis Repowise aislado y no bloqueante
-	@if test -f ".repowise/state.json"; then \
-		./scripts/repowise.sh update --index-only --no-workspace .; \
-	else \
-		./scripts/repowise.sh init --no-prose --no-claude-md --no-codex --no-editor-setup --no-onboarding --no-workspace --mode fast .; \
-	fi
+test-ha-2026-8: ## Run the complete suite against Home Assistant Core 2026.8.1
+	@./scripts/test-ha-2026.8.sh
+
+test-cli: ## Run CLI tests
+	$(PYTEST) cli/tests -q
+
+test-core: ## Run application/core unit tests
+	$(PYTEST) custom_components/my_verisure/core/tests -q
+
+lint: ## Run the full Flake8 check
+	$(PYTHON) -m flake8 cli custom_components scripts
+
+lint-critical: ## Run the CI critical Flake8 check
+	$(PYTHON) -m flake8 --select=E9,F63,F7,F82 cli custom_components scripts
+
+type-check: ## Run the repository mypy check
+	$(PYTHON) -m mypy --explicit-package-bases --ignore-missing-imports cli custom_components scripts
+
+type-check-migrated: ## Run mypy on the migrated application/core layers
+	$(PYTHON) -m mypy --explicit-package-bases --ignore-missing-imports \
+		custom_components/my_verisure/core/api \
+		custom_components/my_verisure/core/application \
+		custom_components/my_verisure/core/dependency_injection \
+		custom_components/my_verisure/core/repositories \
+		custom_components/my_verisure/core/use_cases
+
+clean: ## Remove Python caches and local test reports
+	find . -type f -name '*.pyc' -delete
+	find . -type d -name '__pycache__' -prune -exec rm -rf {} +
+	find . -type d -name '.pytest_cache' -prune -exec rm -rf {} +
+
+git-check: ## Verify formatting, architecture and dependency consistency
+	git diff --check
+	$(PYTHON) -m compileall -q custom_components scripts setup_development.py
+	$(PYTHON) scripts/architecture_guard.py
+	$(PIP) check
+
+repowise: ## Run the advisory Repowise analysis
 	@./scripts/repowise.sh status --format json --no-workspace .
 	@./scripts/repowise.sh health --format json --no-workspace .
 	@./scripts/repowise.sh dead-code --safe-only --format json --no-workspace . || true
-
-test: ## Ejecutar todos los tests
-	@echo "$(BLUE)Ejecutando todos los tests...$(NC)"
-	$(PYTHON) run_all_tests.py
-
-test-ha-2026-8: ## Ejecutar la suite contra Home Assistant Core 2026.8.1
-	@./scripts/test-ha-2026.8.sh
-
-test-cli: ## Ejecutar solo tests del CLI
-	@echo "$(BLUE)Ejecutando tests del CLI...$(NC)"
-	cd cli/tests && $(PYTEST) -v
-
-test-core: ## Ejecutar solo tests del Core
-	@echo "$(BLUE)Ejecutando tests del Core...$(NC)"
-	cd custom_components/my_verisure/core/tests && $(PYTEST) -v
-
-test-fast: ## Ejecutar tests rápidos (sin integración)
-	@echo "$(BLUE)Ejecutando tests rápidos...$(NC)"
-	cd cli/tests && $(PYTEST) test_input_helpers.py test_commands.py -v
-
-test-coverage: ## Ejecutar tests con cobertura
-	@echo "$(BLUE)Ejecutando tests con cobertura...$(NC)"
-	cd cli/tests && $(PYTEST) --cov=cli --cov-report=term-missing --cov-report=html
-
-lint: ## Ejecutar linting del código
-	@echo "$(BLUE)Ejecutando linting...$(NC)"
-	@if test -x "$(VENV)/bin/flake8"; then \
-		$(VENV)/bin/flake8 cli/ custom_components/ scripts/; \
-		echo "$(GREEN)Linting completado$(NC)"; \
-	else \
-		echo "$(YELLOW)flake8 no está instalado. Instalando...$(NC)"; \
-		$(PIP) install flake8; \
-		$(VENV)/bin/flake8 cli/ custom_components/ scripts/; \
-	fi
-
-type-check: ## Ejecutar verificación de tipos
-	@echo "$(BLUE)Ejecutando verificación de tipos...$(NC)"
-	@if test -x "$(VENV)/bin/mypy"; then \
-		$(VENV)/bin/mypy cli/ custom_components/ scripts/; \
-		echo "$(GREEN)Verificación de tipos completada$(NC)"; \
-	else \
-		echo "$(YELLOW)mypy no está instalado. Instalando...$(NC)"; \
-		$(PIP) install mypy; \
-		$(VENV)/bin/mypy cli/ custom_components/ scripts/; \
-	fi
-
-clean: ## Limpiar archivos temporales y cache
-	@echo "$(BLUE)Limpiando archivos temporales...$(NC)"
-	find . -type f -name "*.pyc" -delete
-	find . -type d -name "__pycache__" -delete
-	find . -type d -name "*.egg-info" -exec rm -rf {} +
-	find . -type d -name ".pytest_cache" -exec rm -rf {} +
-	find . -type d -name ".coverage" -delete
-	find . -type d -name "htmlcov" -exec rm -rf {} +
-	@echo "$(GREEN)Limpieza completada$(NC)"
-
-format: ## Formatear código con black
-	@echo "$(BLUE)Formateando código...$(NC)"
-	@if command -v black >/dev/null 2>&1; then \
-		black cli/ core/ custom_components/; \
-		echo "$(GREEN)Formateo completado$(NC)"; \
-	else \
-		echo "$(YELLOW)black no está instalado. Instalando...$(NC)"; \
-		$(PIP) install black; \
-		black cli/ core/ custom_components/; \
-	fi
-
-check: ## Ejecutar todas las verificaciones (lint, type-check, test)
-	@echo "$(BLUE)Ejecutando todas las verificaciones...$(NC)"
-	@$(MAKE) lint
-	@$(MAKE) type-check
-	@$(MAKE) test-fast
-
-ci: ## Comandos para CI/CD
-	@echo "$(BLUE)Ejecutando pipeline de CI...$(NC)"
-	@$(MAKE) clean
-	@$(MAKE) install
-	@$(MAKE) check
-	@$(MAKE) test
-
-# Comandos específicos para desarrollo
-dev-test: ## Ejecutar tests en modo desarrollo (con más información)
-	@echo "$(BLUE)Ejecutando tests en modo desarrollo...$(NC)"
-	cd cli/tests && $(PYTEST) -v -s --tb=long
-
-watch: ## Ejecutar tests en modo watch (requiere pytest-watch)
-	@echo "$(BLUE)Ejecutando tests en modo watch...$(NC)"
-	@if command -v ptw >/dev/null 2>&1; then \
-		cd cli/tests && ptw -- -v; \
-	else \
-		echo "$(YELLOW)pytest-watch no está instalado. Instalando...$(NC)"; \
-		$(PIP) install pytest-watch; \
-		cd cli/tests && ptw -- -v; \
-	fi
-
-# Comandos para debugging
-debug-test: ## Ejecutar tests con debugging
-	@echo "$(BLUE)Ejecutando tests con debugging...$(NC)"
-	cd cli/tests && $(PYTEST) -v -s --pdb
-
-# Comandos para reportes
-report: ## Generar reporte de tests
-	@echo "$(BLUE)Generando reporte de tests...$(NC)"
-	cd cli/tests && $(PYTEST) --cov=cli --cov-report=html --cov-report=term-missing
-	@echo "$(GREEN)Reporte generado en htmlcov/index.html$(NC)"
-
-# Comandos para el CLI
-cli-help: ## Mostrar ayuda del CLI
-	@echo "$(BLUE)Mostrando ayuda del CLI...$(NC)"
-	$(PYTHON) my_verisure_cli.py --help
-
-cli-test: ## Probar el CLI básico
-	@echo "$(BLUE)Probando el CLI...$(NC)"
-	$(PYTHON) my_verisure_cli.py auth --help
-	$(PYTHON) my_verisure_cli.py info --help
-	$(PYTHON) my_verisure_cli.py alarm --help

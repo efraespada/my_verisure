@@ -144,7 +144,7 @@ response = requests.get(url)
 ```
 
 ```python
-# ✅ ALWAYS — prefer entry.runtime_data (HA 2024.4+)
+# ✅ ALWAYS — use entry.runtime_data for ConfigEntry-owned runtime state
 entry.runtime_data = coordinator
 
 # ❌ NEVER — do not introduce new hass.data patterns for this

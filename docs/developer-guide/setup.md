@@ -3,10 +3,9 @@
 ## Repository layout (high level)
 
 ```
-custom_components/my_verisure/   # HA integration + embedded core
+custom_components/my_verisure/   # HA integration and embedded application core
 cli/                             # Optional CLI tooling
-core/                            # Duplicate/shared core (legacy split — verify which tree CI uses)
-requirements.txt                 # Dev/test dependencies at repo root
+requirements-dev.txt             # Development and test dependencies
 ```
 
 The Home Assistant integration imports **`custom_components.my_verisure.core`** (see [`__init__.py`](../../custom_components/my_verisure/__init__.py)).
@@ -14,9 +13,9 @@ The Home Assistant integration imports **`custom_components.my_verisure.core`** 
 ## Python environment
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+python3.14 -m venv .ha-2026.8-venv
+source .ha-2026.8-venv/bin/activate
+pip install -r requirements-dev.txt
 ```
 
 Use **`setup_development.py`** at repo root if present for automated bootstrap.

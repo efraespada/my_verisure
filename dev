@@ -90,20 +90,20 @@ EOF
 cmd_setup() {
     info "Setting up development environment..."
     
-    if [ ! -d "venv" ]; then
-        info "Creating virtual environment..."
-        python3 -m venv venv
+    if [ ! -d ".ha-2026.8-venv" ]; then
+        info "Creating Home Assistant 2026.8.1 virtual environment..."
+        python3.14 -m venv .ha-2026.8-venv
     fi
     
     info "Activating virtual environment..."
-    source venv/bin/activate
+    source .ha-2026.8-venv/bin/activate
     
     info "Installing dependencies..."
     pip install --upgrade pip
-    pip install -r requirements.txt
+    pip install -r requirements-dev.txt
     
     success "Development environment ready!"
-    info "Activate with: source venv/bin/activate"
+    info "Activate with: source .ha-2026.8-venv/bin/activate"
 }
 
 cmd_devcontainer() {
@@ -200,7 +200,7 @@ cmd_test_cli() {
 
 cmd_test_core() {
     info "Running core tests..."
-    python -m pytest core/tests/ -v --tb=short
+    python -m pytest custom_components/my_verisure/core/tests/ -v --tb=short
 }
 
 cmd_test_watch() {
@@ -224,7 +224,7 @@ cmd_lint() {
 
 cmd_format() {
     info "Formatting code with black..."
-    python -m black custom_components/my_verisure cli/ core/
+    python -m black custom_components/my_verisure cli/
     success "Code formatted"
 }
 
@@ -312,12 +312,12 @@ cmd_clean() {
 cmd_deps() {
     info "Updating dependencies..."
     
-    if [ -d "venv" ]; then
-        source venv/bin/activate
+    if [ -d ".ha-2026.8-venv" ]; then
+        source .ha-2026.8-venv/bin/activate
     fi
     
     pip install --upgrade pip
-    pip install -r requirements.txt
+    pip install -r requirements-dev.txt
     
     success "Dependencies updated"
 }

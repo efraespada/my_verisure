@@ -10,7 +10,7 @@
 
 ## Why DI here?
 
-Use cases depend on repository interfaces; repositories depend on API clients — DI keeps GraphQL wiring testable (see unit tests under `core/tests/unit/`).
+Use cases depend on repository interfaces; repositories depend on API clients — DI keeps GraphQL wiring testable (see unit tests under `custom_components/my_verisure/core/tests/unit/`).
 
 ## Home Assistant lifecycle
 
