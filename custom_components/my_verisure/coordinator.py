@@ -32,6 +32,10 @@ from .core.application.coordinator_snapshot_store import CoordinatorSnapshotStor
 from .core.application.coordinator_refresh_effects import CoordinatorRefreshEffects
 from .core.application.coordinator_camera_refresh import CoordinatorCameraRefresh
 from .core.application.coordinator_notifications import CoordinatorNotificationService
+from .core.application.coordinator_session_policy import (
+    CoordinatorSessionPolicy,
+    SessionAction,
+)
 from .core.application.installation_snapshot_service import InstallationSnapshotService
 from .core.use_cases.interfaces.auth_use_case import AuthUseCase
 from .core.use_cases.interfaces.installation_use_case import InstallationUseCase
@@ -127,6 +131,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
                 notification_id=notification_id,
             ),
         )
+        self.session_policy = CoordinatorSessionPolicy()
         
         # Set credentials in session manager (memory only; persist after login)
         self.session_manager.update_credentials(
@@ -170,30 +175,32 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
     async def async_login(self) -> bool:
         """Login to My Verisure with improved error handling and caching."""
         try:
+            decision = self.session_policy.decide(self.session_manager)
             LOGGER.debug(
-                "AUTH_FLOW[async_login]: authenticated=%s, valid=%s, blocked=%s, has_cache=%s",
-                self.session_manager.is_authenticated,
-                self.session_manager.is_session_valid(),
-                self.session_manager.is_service_blocked(),
+                "AUTH_FLOW[async_login]: action=%s, authenticated=%s, valid=%s, blocked=%s, has_cache=%s",
+                decision.action,
+                decision.authenticated,
+                decision.valid,
+                decision.blocked,
                 bool(self.load_alarm_info()),
             )
-            if self.session_manager.is_service_blocked():
+            if decision.action is SessionAction.SKIP_BLOCKED:
                 LOGGER.warning(
                     "Login skipped: service temporarily blocked (cooldown active) - "
                     "will use cached data if available"
                 )
                 return False
 
-            if self.session_manager.is_authenticated and self.session_manager.is_session_valid():
+            if decision.action is SessionAction.USE_VALID_SESSION:
                 LOGGER.debug("Using existing valid session")
                 return True
 
-            if not self.session_manager.can_attempt_refresh():
+            if decision.action is SessionAction.UNAVAILABLE:
                 LOGGER.warning(
                     "Cannot attempt session refresh (authenticated=%s, blocked=%s, valid=%s)",
-                    self.session_manager.is_authenticated,
-                    self.session_manager.is_service_blocked(),
-                    self.session_manager.is_session_valid(),
+                    decision.authenticated,
+                    decision.blocked,
+                    decision.valid,
                 )
                 return False
 

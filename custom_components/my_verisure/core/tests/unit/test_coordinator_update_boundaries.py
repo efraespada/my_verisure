@@ -17,6 +17,9 @@ from custom_components.my_verisure.core.application.coordinator_failure import (
 from custom_components.my_verisure.core.application.coordinator_refresh_effects import (
     CoordinatorRefreshEffects,
 )
+from custom_components.my_verisure.core.application.coordinator_session_policy import (
+    CoordinatorSessionPolicy,
+)
 from custom_components.my_verisure.core.api.exceptions import (
     MyVerisureAuthenticationError,
     MyVerisureConnectionError,
@@ -37,6 +40,7 @@ def coordinator() -> MyVerisureDataUpdateCoordinator:
     value._failure_classifier = CoordinatorFailureClassifier()
     value.notifications = Mock()
     value.notifications.notify = AsyncMock()
+    value.session_policy = CoordinatorSessionPolicy()
     value.authentication_policy.authenticate = AsyncMock(
         return_value=CoordinatorAuthenticationDecision(authenticated=True)
     )
