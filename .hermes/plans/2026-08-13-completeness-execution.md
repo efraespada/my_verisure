@@ -244,6 +244,20 @@ Execution:
   parity.
 - Local equivalent verification collected **505 tests** with HA Core 2026.8.1.
 
+### Slice B — reproduce the CI type environment
+
+- The first post-fix GitHub run had HACS green and the HA suite green, but
+  `mypy` exposed 52 errors that the local editable HA checkout did not expose.
+- The pinned Home Assistant wheel was downloaded and used in an isolated
+  source path to reproduce the GitHub type environment exactly.
+- Corrected the integration contracts for `ConfigFlowResult`, coordinator
+  installation identifiers, camera entity APIs, and coordinator-owned button
+  references.
+- Corrected test doubles to respect HA final/method attributes without adding
+  production ignores.
+- Exact wheel-equivalent type check now passes on **224 files**.
+- Focused HA/adaptor/lifecycle tests pass: **41 passed**.
+
 - No contradictory active legacy documentation.
 - No unintentional global manager access or product fallback.
 - AuthClient, CameraClient, InstallationClient, and Coordinator boundaries are

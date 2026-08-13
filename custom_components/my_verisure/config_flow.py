@@ -10,7 +10,7 @@ import voluptuous as vol
 from homeassistant.config_entries import (
     ConfigEntry,
     ConfigFlow,
-    FlowResult,
+    ConfigFlowResult,
     OptionsFlow,
 )
 from homeassistant.const import CONF_PASSWORD
@@ -87,7 +87,7 @@ class MyVerisureConfigFlowHandler(
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Handle the initial step."""
         errors: dict[str, str] = {}
 
@@ -163,7 +163,7 @@ class MyVerisureConfigFlowHandler(
 
     async def async_step_phone_selection(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Handle phone selection for OTP."""
         errors: dict[str, str] = {}
 
@@ -233,7 +233,7 @@ class MyVerisureConfigFlowHandler(
 
     async def async_step_otp_verification(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Handle OTP verification."""
         errors: dict[str, str] = {}
 
@@ -268,7 +268,7 @@ class MyVerisureConfigFlowHandler(
 
     async def async_step_installation(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Handle installation selection."""
         errors: dict[str, str] = {}
 
@@ -340,7 +340,7 @@ class MyVerisureConfigFlowHandler(
 
     async def async_step_reauth(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Handle re-authentication."""
         errors: dict[str, str] = {}
 
@@ -405,7 +405,7 @@ class MyVerisureOptionsFlowHandler(OptionsFlow):
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Manage the options."""
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)

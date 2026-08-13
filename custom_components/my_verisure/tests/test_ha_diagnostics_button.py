@@ -63,8 +63,9 @@ async def test_button_clears_executing_state_after_success() -> None:
     coordinator = MagicMock(spec=MyVerisureDataUpdateCoordinator)
     coordinator.last_update_success = True
     button = RefreshCameraImagesButton(coordinator, "home-1", _entry())
-    button.hass = hass
-    button.async_write_ha_state = MagicMock()
+    object.__setattr__(button, "hass", hass)
+    state_writer = MagicMock()
+    object.__setattr__(button, "async_write_ha_state", state_writer)
 
     await button.async_press()
 
@@ -86,8 +87,9 @@ async def test_button_clears_executing_state_after_failure() -> None:
     coordinator = MagicMock(spec=MyVerisureDataUpdateCoordinator)
     coordinator.last_update_success = True
     button = RefreshCameraImagesButton(coordinator, "home-1", _entry())
-    button.hass = hass
-    button.async_write_ha_state = MagicMock()
+    object.__setattr__(button, "hass", hass)
+    state_writer = MagicMock()
+    object.__setattr__(button, "async_write_ha_state", state_writer)
 
     await button.async_press()
 

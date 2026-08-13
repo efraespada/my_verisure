@@ -73,7 +73,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         """Initialize the My Verisure hub."""
         self.hass = hass
         self.config_entry = entry
-        self.installation_id = entry.data.get(CONF_INSTALLATION_ID)
+        self.installation_id: str = cast(str, entry.data[CONF_INSTALLATION_ID])
         
         session_file = hass.config.path(
             STORAGE_DIR, f"my_verisure_{entry.data[CONF_USER]}.json"
@@ -120,6 +120,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         
         # Reference to alarm control panel for state updates
         self._alarm_control_panel = None
+        self._button = None
         self._failure_classifier = CoordinatorFailureClassifier()
         self._translation_service = TranslationService(Path(__file__).parent / "translations")
         self.notifications = CoordinatorNotificationService(

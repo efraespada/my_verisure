@@ -84,7 +84,7 @@ class RefreshCameraImagesButton(CoordinatorEntity, ButtonEntity):
         """When entity is added to hass."""
         await super().async_added_to_hass()
         # Register with coordinator for state updates
-        self.coordinator.register_button(self)
+        self._coordinator.register_button(self)
         self.async_on_remove(
             self.coordinator.async_add_listener(self.async_write_ha_state)
         )

@@ -1,6 +1,7 @@
 """Focused tests for coordinator session and update error boundaries."""
 
 from types import SimpleNamespace
+from typing import Any, cast
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
@@ -46,11 +47,11 @@ def coordinator() -> MyVerisureDataUpdateCoordinator:
     )
     value.snapshot_service = Mock()
     value.create_dummy_camera_images_use_case = Mock()
-    value.hass = SimpleNamespace(data={})
+    value.hass = cast(Any, SimpleNamespace(data={}))
     value.data = {}
     setattr(value, "load_alarm_info", Mock(return_value={}))
     setattr(value, "async_login", AsyncMock(return_value=True))
-    value.async_set_updated_data = Mock()
+    object.__setattr__(value, "async_set_updated_data", Mock())
     return value
 
 

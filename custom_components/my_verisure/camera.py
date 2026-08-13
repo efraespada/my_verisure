@@ -2,11 +2,12 @@
 
 import logging
 import os
-import secrets
+
 from datetime import datetime
 from typing import Optional
 
 from homeassistant.components.camera import Camera
+from homeassistant.components.camera import CameraEntityFeature
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -29,6 +30,7 @@ class VerisureCamera(CoordinatorEntity, Camera):
     ) -> None:
         """Initialize the camera entity."""
         super().__init__(coordinator)
+        self._my_coordinator = coordinator
         self._device = device
         self._attr_name = f"Verisure {device['name']}"
         self._attr_unique_id = f"{config_entry.entry_id}_camera_{device['code']}"
@@ -37,18 +39,12 @@ class VerisureCamera(CoordinatorEntity, Camera):
         self._latest_image_timestamp: str | None = None
         self._sync_image_cache: bytes | None = None
         
-        # Required attributes for Camera entity
-        self._webrtc_provider = None
-        self._stream_source = None
-        self._supported_features = 0
-        self._frontend_stream_type = None
-        self._is_streaming = False
-        self._stream = None
-        # Ensure at least one access token exists to satisfy HA's Camera base
-        self._access_tokens = [secrets.token_urlsafe(32)]
+        self._attr_supported_features = CameraEntityFeature(0)
+        self.content_type = "image/jpeg"
 
-    @property
-    def camera_image(self) -> Optional[bytes]:
+    def camera_image(
+        self, width: int | None = None, height: int | None = None
+    ) -> Optional[bytes]:
         """Return the latest cached image (sync API); prefer async_camera_image."""
         return self._sync_image_cache
 
@@ -56,7 +52,7 @@ class VerisureCamera(CoordinatorEntity, Camera):
         """Get the most recent image for this camera."""
         try:
             # Get the camera directory path
-            camera_dir = self.coordinator.file_manager.get_data_directory()
+            camera_dir = self._my_coordinator.file_manager.get_data_directory()
             device_path = os.path.join(camera_dir, "cameras", f"{self._device['type']}{int(self._device['code']):02d}")
             
             _LOGGER.debug("Looking for camera images in: %s", device_path)
@@ -159,49 +155,11 @@ class VerisureCamera(CoordinatorEntity, Camera):
         self._sync_image_cache = image
         return image
 
-    @property
-    def supported_features(self) -> int:
-        """Return supported features for this camera."""
-        return self._supported_features
+    async def stream_source(self) -> str | None:
+        """Static-image cameras do not expose a stream."""
+        return None
 
-    @property
-    def webrtc_provider(self) -> Optional[str]:
-        """Return the WebRTC provider for this camera."""
-        return self._webrtc_provider
-
-    @property
-    def stream_source(self) -> Optional[str]:
-        """Return the stream source for this camera."""
-        return self._stream_source
-
-    @property
-    def access_tokens(self) -> list:
-        """Return access tokens for this camera."""
-        if not self._access_tokens:
-            self._access_tokens = [secrets.token_urlsafe(32)]
-        return self._access_tokens
-
-    @property
-    def frontend_stream_type(self) -> Optional[str]:
-        """Return the frontend stream type for this camera."""
-        return self._frontend_stream_type
-
-    @property
-    def is_streaming(self) -> bool:
-        """Return whether the camera is currently streaming."""
-        return self._is_streaming
-
-    @property
-    def stream(self) -> Optional[object]:
-        """Return the stream object for this camera."""
-        return self._stream
-
-    @property
-    def content_type(self) -> str:
-        """Return the content type for camera images."""
-        return "image/jpeg"
-
-    async def async_refresh_providers(self, write_state: bool = True) -> None:
+    async def async_refresh_providers(self, *, write_state: bool = True) -> None:
         """Refresh camera providers."""
         # This method is required by Home Assistant Camera component
         # We don't need to implement WebRTC or streaming for static images

@@ -1,6 +1,7 @@
 """Focused tests for Home Assistant service dispatch boundaries."""
 
 from types import SimpleNamespace
+from typing import Any, cast
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
@@ -22,7 +23,7 @@ async def test_dispatch_alarm_service_updates_matching_coordinator() -> None:
     coordinator = _coordinator(
         "home-1", result=SimpleNamespace(success=True, message="ok")
     )
-    hass = SimpleNamespace()
+    hass = cast(Any, SimpleNamespace())
 
     with patch.object(services, "_iter_coordinators", return_value=(coordinator,)):
         await services._dispatch_alarm_service(
@@ -38,7 +39,7 @@ async def test_dispatch_alarm_service_reports_failed_command() -> None:
     coordinator = _coordinator(
         "home-1", result=SimpleNamespace(success=False, message="rejected")
     )
-    hass = SimpleNamespace()
+    hass = cast(Any, SimpleNamespace())
 
     with patch.object(services, "_iter_coordinators", return_value=(coordinator,)):
         await services._dispatch_alarm_service(
@@ -54,7 +55,7 @@ async def test_dispatch_alarm_service_handles_unknown_installation() -> None:
     coordinator = _coordinator(
         "home-1", result=SimpleNamespace(success=True, message="ok")
     )
-    hass = SimpleNamespace()
+    hass = cast(Any, SimpleNamespace())
 
     with patch.object(services, "_iter_coordinators", return_value=(coordinator,)):
         await services._dispatch_alarm_service(

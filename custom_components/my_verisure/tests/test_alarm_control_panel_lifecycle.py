@@ -1,6 +1,7 @@
 """Lifecycle contracts for the alarm control panel entity."""
 
 from types import SimpleNamespace
+from typing import Any, cast
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -21,20 +22,23 @@ def _entity(installation_id: str | None = "installation-1") -> MyVerisureAlarmCo
         entry_id="entry-alarm",
     )
     entity = MyVerisureAlarmControlPanel(coordinator, entry)
-    entity.hass = MagicMock()
-    entity.async_write_ha_state = MagicMock()
+    object.__setattr__(entity, "hass", MagicMock())
+    state_writer = MagicMock()
+    object.__setattr__(entity, "async_write_ha_state", state_writer)
+    cast(Any, entity)._state_writer = state_writer
     return entity
 
 
 @pytest.mark.asyncio
 async def test_arm_success_clears_transition_state() -> None:
     entity = _entity()
-    entity.hass.services.async_call = AsyncMock()
+    service_call = AsyncMock()
+    object.__setattr__(entity.hass.services, "async_call", service_call)
 
     await entity.async_alarm_arm_away()
 
     assert entity._transition_state is None
-    entity.hass.services.async_call.assert_awaited_once_with(
+    service_call.assert_awaited_once_with(
         "my_verisure", "arm_away", {"installation_id": "installation-1"}
     )
 
@@ -42,7 +46,8 @@ async def test_arm_success_clears_transition_state() -> None:
 @pytest.mark.asyncio
 async def test_disarm_success_clears_transition_state() -> None:
     entity = _entity()
-    entity.hass.services.async_call = AsyncMock()
+    service_call = AsyncMock()
+    object.__setattr__(entity.hass.services, "async_call", service_call)
 
     await entity.async_alarm_disarm()
 
@@ -52,22 +57,23 @@ async def test_disarm_success_clears_transition_state() -> None:
 @pytest.mark.asyncio
 async def test_command_failure_clears_transition_state() -> None:
     entity = _entity()
-    entity.hass.services.async_call = AsyncMock(side_effect=RuntimeError("service failed"))
+    object.__setattr__(entity.hass.services, "async_call", AsyncMock(side_effect=RuntimeError("service failed")))
 
     await entity.async_alarm_arm_home()
 
     assert entity._transition_state is None
-    assert entity.async_write_ha_state.call_count >= 2
+    assert cast(Any, entity)._state_writer.call_count >= 2
 
 
 @pytest.mark.asyncio
 async def test_missing_installation_id_does_not_leave_entity_arming() -> None:
     entity = _entity(None)
-    entity.hass.services.async_call = AsyncMock()
+    service_call = AsyncMock()
+    object.__setattr__(entity.hass.services, "async_call", service_call)
 
     await entity.async_alarm_arm_night()
 
-    entity.hass.services.async_call.assert_not_awaited()
+    service_call.assert_not_awaited()
     assert entity._transition_state is None
 
 

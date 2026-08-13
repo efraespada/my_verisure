@@ -51,7 +51,7 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
             | AlarmControlPanelEntityFeature.ARM_HOME
         )
         # Track transition state for ARMING/DISARMING feedback
-        self._transition_state = None
+        self._transition_state: AlarmControlPanelState | None = None
 
         # Set device info
         self._attr_device_info = get_device_info(config_entry)
