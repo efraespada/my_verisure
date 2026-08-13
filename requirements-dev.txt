@@ -1,6 +1,8 @@
 # Development-only dependencies for Home Assistant integration tests.
 -r requirements.txt
 pytest-homeassistant-custom-component==0.13.109
+# Required by the HA test fixture for IANA time zones such as US/Pacific.
+tzdata>=2024.1
 flake8>=7.0,<8.0
 mypy>=1.11,<3.0
 Pillow>=10.0,<13.0

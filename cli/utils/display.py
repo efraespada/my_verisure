@@ -71,15 +71,42 @@ def print_alarm_status(status) -> None:
 
 def print_services_info(services_data) -> None:
     """Imprime información de servicios de una instalación."""
-    if not services_data.installation.services or len(services_data.installation.services) == 0:
+    if not getattr(services_data, "success", True):
+        print_error(
+            f"Error obteniendo servicios: "
+            f"{getattr(services_data, 'message', 'Unknown error')}"
+        )
+        return
+
+    installation = getattr(services_data, "installation", None)
+    if installation is None:
+        services = getattr(services_data, "services", None) or []
+        raw_installation = getattr(services_data, "installation_data", {}) or {}
+        if isinstance(raw_installation, dict):
+            from types import SimpleNamespace
+
+            installation = SimpleNamespace(
+                services=services,
+                capabilities=getattr(services_data, "capabilities", None),
+                **raw_installation,
+            )
+
+    if installation is None:
+        print_error(
+            f"Error obteniendo servicios: "
+            f"{getattr(services_data, 'message', 'No se encontraron servicios')}"
+        )
+        return
+
+    services = getattr(installation, "services", None) or []
+    if not services:
         print_error("No se encontraron servicios para esta instalación")
         return
 
-    services = services_data.installation.services
     print_success(f"Se encontraron {len(services)} servicios")
-    
+
     # Mostrar información básica de la instalación
-    installation_info = services_data.installation
+    installation_info = installation
     print(f"   📊 Estado: {installation_info.status}")
     print(f"   🛡️  Panel: {installation_info.panel}")
     print(f"   📱 SIM: {installation_info.sim}")
@@ -141,7 +168,7 @@ def print_services_info(services_data) -> None:
             print(f"      ❌ {service_id}: {service_request}")
 
     # Capacidades
-    capabilities = services_data.installation.capabilities
+    capabilities = getattr(installation_info, "capabilities", None)
     if capabilities:
         print(
             f"   🔐 Capacidades: {capabilities[:30] + '...' if capabilities else 'None'}"

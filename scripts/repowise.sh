@@ -25,5 +25,9 @@ cleanup_repowise_editor_files() {
   fi
 }
 
-trap cleanup_repowise_editor_files EXIT
-exec "${venv_dir}/bin/repowise" "$@"
+set +e
+"${venv_dir}/bin/repowise" "$@"
+status=$?
+set -e
+cleanup_repowise_editor_files
+exit "${status}"

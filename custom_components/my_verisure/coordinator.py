@@ -63,6 +63,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
     ) -> None:
         """Initialize the My Verisure hub."""
         self.hass = hass
+        self.config_entry = entry
         self.installation_id = entry.data.get(CONF_INSTALLATION_ID)
         
         session_file = hass.config.path(
@@ -129,7 +130,6 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         super().__init__(
             hass,
             LOGGER,
-            config_entry=entry,
             name=DOMAIN,
             update_interval=scan_interval,
         )
