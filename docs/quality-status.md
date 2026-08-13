@@ -7,9 +7,9 @@ Updated: 2026-08-13
 - Home Assistant Core: `2026.8.1`
 - Python: `3.14.4`
 - Home Assistant test plugin: `pytest-homeassistant-custom-component==0.13.355`
-- Full Home Assistant/Core suite: `508 passed` in the pinned validation environment
-- Official coverage gate: `85%` (`9,225` statements; `1,354` missed)
-- Mypy: no issues in `226` source files
+- Full Home Assistant/Core suite: `519 passed` in the pinned validation environment
+- Official coverage gate: `86%` (`9,351` statements; `1,343` missed)
+- Mypy: no issues in `230` source files
 - Critical Flake8 gate: passing
 - Actionable Flake8 subset (`F401`, `F541`, `F841`): clean
 - Architecture guard: passing
@@ -17,7 +17,7 @@ Updated: 2026-08-13
 - HACS validation: passing
 - GitHub Actions workflow: passing on `master`
 
-The final run `31754337504` for commit `7b846c4` passed both the HACS and
+The final run `31754471141` for commit `30d0033` passed both the HACS and
 Python-quality jobs, including the distribution artifact check.
 
 ## Full lint policy

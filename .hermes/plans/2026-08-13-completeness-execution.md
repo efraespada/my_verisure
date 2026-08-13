@@ -302,3 +302,28 @@ Execution:
 The current evidence does not justify a broad rewrite or a generic GraphQL
 adapter. Live Verisure behavior remains unverified; tests will use deterministic
 provider-shaped payloads only.
+
+### AuthClient follow-up execution
+
+- `f1e4686`: extracted `DeviceAuthorizationResponse` classification and added
+  six pure contract cases.
+- `198b3af`: extracted OTP verification response classification and added four
+  pure contract cases.
+- `b3c6f25`: reused the device-authorization interpreter in the already-
+  authorized path, fixed the `validateDevice` versus `xSValidateDevice`
+  envelope mismatch, initialized optional session state in the constructor,
+  and added the regression test that exposed the uninitialized token bug.
+- Focused AuthClient/application contracts: `22 passed`.
+- Final full HA/Core suite: `519 passed`.
+- Final mypy: `230 source files`, no errors.
+- Final official coverage: `86%` over `9,351` statements (`1,343` missed).
+- Final Repowise: hotspot health `4.97`, average health `8.93`, maintainability
+  average `9.36`; worst global hotspot is now `CameraClient`. `AuthClient` is
+  score `1.33`, NLOC `523`, max CCN `14`, max nesting `5`.
+- Critical lint, compileall, architecture guard, pip check, distribution
+  validation, and diff checks passed.
+
+The remaining AuthClient complexity is primarily transport/orchestration and
+post-OTP login/session persistence. A further extraction is deferred until a
+separate cohesive contract is identified; no wrapper-only split is justified by
+the current evidence.
