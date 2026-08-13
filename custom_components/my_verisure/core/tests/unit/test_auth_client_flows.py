@@ -1,5 +1,6 @@
 """Characterization tests for AuthClient protocol branches."""
 
+import json
 from typing import Any, cast
 from unittest.mock import AsyncMock, Mock
 
@@ -159,3 +160,42 @@ async def test_verify_otp_rejects_unsuccessful_validation(client: AuthClient) ->
 
     with pytest.raises(MyVerisureOTPError, match="invalid code"):
         await client.verify_otp("123456")
+
+
+@pytest.mark.asyncio
+async def test_verify_otp_sends_security_contract_and_refreshes_session(
+    client: AuthClient,
+) -> None:
+    client._otp_data = {"phones": [], "otp_hash": "otp-hash"}
+    _set_query_result(
+        client,
+        {
+            "data": {
+                "xSValidateDevice": {
+                    "res": "OK",
+                    "hash": "otp-session-hash",
+                    "refreshToken": "otp-refresh-token",
+                    "needDeviceAuthorization": False,
+                }
+            }
+        },
+    )
+    post_otp_login = AsyncMock(
+        return_value=AuthDTO(
+            res="OK",
+            msg="fresh session",
+            hash="fresh-hash",
+            refresh_token="fresh-refresh",
+        )
+    )
+    setattr(client, "_perform_post_otp_login", post_otp_login)
+
+    result = await client.verify_otp("123456")
+
+    assert result.hash == "fresh-hash"
+    post_otp_login.assert_awaited_once_with()
+    execute_query = cast(AsyncMock, client._execute_query_direct)
+    assert execute_query.await_args is not None
+    request_headers = execute_query.await_args.args[2]
+    security = json.loads(request_headers["Security"])
+    assert security == {"token": "123456", "type": "OTP", "otpHash": "otp-hash"}
