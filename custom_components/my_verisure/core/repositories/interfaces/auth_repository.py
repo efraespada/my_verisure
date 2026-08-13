@@ -26,3 +26,8 @@ class AuthRepository(ABC):
     ) -> AuthResult:
         """Verify OTP code."""
         pass
+
+    @abstractmethod
+    def get_available_phones(self) -> list[dict[str, object]]:
+        """Return phone numbers available for OTP verification."""
+        pass

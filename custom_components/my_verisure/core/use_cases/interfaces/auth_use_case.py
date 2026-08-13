@@ -20,8 +20,8 @@ class AuthUseCase(ABC):
         pass
 
     @abstractmethod
-    async def verify_otp(self, otp_code: str) -> bool:
-        """Verify OTP code."""
+    async def verify_otp(self, otp_code: str) -> AuthResult:
+        """Verify OTP code and return the authentication result."""
         pass
 
     @abstractmethod

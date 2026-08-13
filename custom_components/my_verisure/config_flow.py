@@ -240,7 +240,7 @@ class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):
             
             try:
                 # Verify OTP
-                if await self.auth_use_case.verify_otp(otp_code):
+                if (await self.auth_use_case.verify_otp(otp_code)).success:
                     # Small delay to ensure SessionManager is fully updated
                     import asyncio
                     await asyncio.sleep(0.1)

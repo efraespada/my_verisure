@@ -131,7 +131,7 @@ class AuthRepositoryImpl(AuthRepository):
             _LOGGER.error("Unexpected error during OTP verification: %s", e)
             raise MyVerisureOTPError(f"OTP verification failed: {e}") from e
 
-    def get_available_phones(self) -> List[Dict[str, Any]]:
+    def get_available_phones(self) -> list[dict[str, object]]:
         """Get available phone numbers for OTP."""
         try:
             _LOGGER.info("Getting available phones for OTP")

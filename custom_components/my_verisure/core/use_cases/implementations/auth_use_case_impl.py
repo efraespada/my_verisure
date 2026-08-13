@@ -18,7 +18,7 @@ class AuthUseCaseImpl(AuthUseCase):
     def __init__(self, auth_repository: AuthRepository):
         """Initialize the use case with dependencies."""
         self.auth_repository = auth_repository
-        self._otp_data = None
+        self._otp_data: object | None = None
 
     async def login(self, username: str, password: str) -> AuthResult:
         """Login with username and password."""
@@ -37,7 +37,7 @@ class AuthUseCaseImpl(AuthUseCase):
         except MyVerisureOTPError as e:
             _LOGGER.info("OTP authentication required: %s", e)
             # Store OTP data from the auth client for later use
-            self._otp_data = getattr(e, "otp_data", e)
+            self._otp_data = getattr(e, "otp_data", None)
             if should_log_detailed():
                 _LOGGER.debug(
                     "Stored OTP data in AuthUseCase (redacted): %s",
@@ -66,7 +66,7 @@ class AuthUseCaseImpl(AuthUseCase):
             _LOGGER.error("Error sending OTP: %s", e)
             raise
 
-    async def verify_otp(self, otp_code: str) -> bool:
+    async def verify_otp(self, otp_code: str) -> AuthResult:
         """Verify OTP code."""
         try:
             _LOGGER.info("Verifying OTP: %s", redact_otp_message())
@@ -129,16 +129,8 @@ class AuthUseCaseImpl(AuthUseCase):
             return result
         # Fallback to client
         _LOGGER.debug("_otp_data is not a dict, delegating to client")
-        phones = self.auth_repository.client.get_available_phones()
-        result = [
-            {
-                "id": phone.id,
-                "phone": phone.phone,
-                "record_id": phone.record_id,
-                "otp_hash": phone.otp_hash,
-            }
-            for phone in phones
-        ]
+        phones = self.auth_repository.get_available_phones()
+        result = [dict(phone) for phone in phones]
         _LOGGER.debug("Returning %d phones to config flow", len(result))
         return result
 
