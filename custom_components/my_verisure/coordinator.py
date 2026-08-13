@@ -16,17 +16,16 @@ from homeassistant.helpers.storage import STORAGE_DIR
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.components.persistent_notification import async_create
 
-from .core.api.exceptions import (
-    MyVerisureAuthenticationError,
-    MyVerisureConnectionError,
-    MyVerisureError,
-    MyVerisureServiceBlockedError,
-)
+from .core.api.exceptions import MyVerisureServiceBlockedError
 from .core.dependency_injection.composition_root import (
     CompositionRoot,
     build_my_verisure_composition_root,
 )
 from .core.application.coordinator_authentication import CoordinatorAuthenticationPolicy
+from .core.application.coordinator_failure import (
+    CoordinatorFailureClassifier,
+    CoordinatorFailureKind,
+)
 from .core.application.coordinator_snapshot import merge_alarm_snapshot
 from .core.application.coordinator_snapshot_store import CoordinatorSnapshotStore
 from .core.application.installation_snapshot_service import InstallationSnapshotService
@@ -105,6 +104,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         
         # Reference to alarm control panel for state updates
         self._alarm_control_panel = None
+        self._failure_classifier = CoordinatorFailureClassifier()
         
         # Set credentials in session manager (memory only; persist after login)
         self.session_manager.update_credentials(
@@ -318,35 +318,30 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
                 )
                 return result
 
-            except MyVerisureServiceBlockedError as ex:
-                LOGGER.error("Service temporarily blocked: %s", ex)
-                # Send service blocked notification
-                title = await self.get_translation("notifications.service.blocked.title")
-                message = await self.get_translation("notifications.service.blocked.message")
-                async_create(
-                    self.hass,
-                    message,
-                    title=title,
-                    notification_id="verisure_service_blocked"
-                )
-                # Try to use cached data instead of failing
-                cached_data = self.load_alarm_info()
-                if cached_data:
-                    LOGGER.warning("Service blocked but using cached coordinator data")
-                    return cached_data
-                raise UpdateFailed(f"Service temporarily blocked: {ex}") from ex
-            except MyVerisureAuthenticationError as ex:
-                LOGGER.error("Authentication error: %s", ex)
-                raise ConfigEntryAuthFailed from ex
-            except MyVerisureConnectionError as ex:
-                LOGGER.error("Connection error: %s", ex)
-                raise UpdateFailed(f"Connection error: {ex}") from ex
-            except MyVerisureError as ex:
-                LOGGER.error("My Verisure error: %s", ex)
-                raise UpdateFailed(f"My Verisure error: {ex}") from ex
             except Exception as ex:
-                LOGGER.error("Unexpected error: %s", ex)
-                raise UpdateFailed(f"Unexpected error: {ex}") from ex
+                failure = self._failure_classifier.classify(ex)
+                LOGGER.error("Coordinator update failed (%s): %s", failure.kind, failure.message)
+                if failure.kind is CoordinatorFailureKind.SERVICE_BLOCKED:
+                    title = await self.get_translation("notifications.service.blocked.title")
+                    message = await self.get_translation("notifications.service.blocked.message")
+                    async_create(
+                        self.hass,
+                        message,
+                        title=title,
+                        notification_id="verisure_service_blocked",
+                    )
+                    cached_data = self.load_alarm_info()
+                    if cached_data:
+                        LOGGER.warning("Service blocked but using cached coordinator data")
+                        return cached_data
+                    raise UpdateFailed(
+                        f"Service temporarily blocked: {failure.message}"
+                    ) from ex
+                if failure.kind is CoordinatorFailureKind.AUTHENTICATION:
+                    raise ConfigEntryAuthFailed from ex
+                raise UpdateFailed(
+                    f"{failure.kind.replace('_', ' ').capitalize()}: {failure.message}"
+                ) from ex
         finally:
             reset_dev_mode(tok)
 

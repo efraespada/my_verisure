@@ -11,6 +11,9 @@ from custom_components.my_verisure.coordinator import MyVerisureDataUpdateCoordi
 from custom_components.my_verisure.core.application.coordinator_authentication import (
     CoordinatorAuthenticationDecision,
 )
+from custom_components.my_verisure.core.application.coordinator_failure import (
+    CoordinatorFailureClassifier,
+)
 from custom_components.my_verisure.core.api.exceptions import (
     MyVerisureAuthenticationError,
     MyVerisureConnectionError,
@@ -27,6 +30,7 @@ def coordinator() -> MyVerisureDataUpdateCoordinator:
     value.file_manager = Mock()
     value.snapshot_store = Mock()
     value.authentication_policy = Mock()
+    value._failure_classifier = CoordinatorFailureClassifier()
     value.authentication_policy.authenticate = AsyncMock(
         return_value=CoordinatorAuthenticationDecision(authenticated=True)
     )
