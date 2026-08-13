@@ -49,6 +49,21 @@ class TestInstallationRepository:
         assert isinstance(installation_repository, InstallationRepository)
 
     @pytest.mark.asyncio
+    async def test_invalid_detailed_installation_cache_is_ignored(
+        self, installation_repository
+    ):
+        """Invalid JSON shapes must not cross the DTO boundary."""
+        installation_repository._file_manager.async_load_json = AsyncMock(
+            return_value=["not", "an", "object"]
+        )
+
+        result = await installation_repository._async_load_detailed_installation_cache(
+            "12345"
+        )
+
+        assert result is None
+
+    @pytest.mark.asyncio
     async def test_get_installations_success(
         self, installation_repository, mock_client
     ):
