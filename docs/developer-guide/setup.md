@@ -18,18 +18,25 @@ source .ha-2026.8-venv/bin/activate
 pip install -r requirements-dev.txt
 ```
 
-Use **`setup_development.py`** at repo root if present for automated bootstrap.
+Use the pinned `requirements-dev.txt` and the Makefile targets below; there is
+no second bootstrap script or legacy test runner.
 
 ## Running tests
 
-See [testing.md](testing.md) and root [`TESTING.md`](../../TESTING.md). Typical commands:
+Use the repository Makefile so every command uses the pinned Home Assistant
+validation interpreter:
 
 ```bash
-./run_tests.sh -f        # fast subset (per project scripts)
-python run_all_tests.py    # full suite (if configured)
-pytest custom_components/my_verisure/core/tests/unit -q
-pytest cli/tests -q
+make test-ha-2026-8
+make test-cli
+make test-core
+make type-check
+make lint-critical
+make git-check
 ```
+
+The complete test and coverage commands are documented in [the root testing
+guide](../../TESTING.md).
 
 ## Lint / format
 

@@ -4,15 +4,15 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 HA_PYTHON="${HA_PYTHON:-/tmp/ha-2026.8.1-venv/bin/python}"
-HA_CORE="${HA_CORE:-/tmp/ha-core-2026.8.1}"
+HA_CORE="${HA_CORE-/tmp/ha-core-2026.8.1}"
 
 if [[ ! -x "${HA_PYTHON}" ]]; then
   echo "ERROR: HA_PYTHON is not executable: ${HA_PYTHON}" >&2
   exit 2
 fi
-if [[ ! -f "${HA_CORE}/pyproject.toml" ]]; then
-  echo "ERROR: HA_CORE does not point to a Home Assistant checkout: ${HA_CORE}" >&2
-  exit 2
+if [[ -n "${HA_CORE}" && ! -f "${HA_CORE}/pyproject.toml" ]]; then
+  echo "WARNING: HA_CORE is not a Home Assistant checkout; using the installed package" >&2
+  HA_CORE=""
 fi
 
 actual_ha="$(${HA_PYTHON} -c 'from importlib.metadata import version; print(version("homeassistant"))')"
@@ -25,6 +25,10 @@ ${HA_PYTHON} -c 'import sys; assert sys.version_info >= (3, 14, 2)'
 ${HA_PYTHON} -c 'import turbojpeg'
 
 cd "${REPO_ROOT}"
-export PYTHONPATH="${HA_CORE}:${REPO_ROOT}${PYTHONPATH:+:${PYTHONPATH}}"
+if [[ -n "${HA_CORE}" ]]; then
+  export PYTHONPATH="${HA_CORE}:${REPO_ROOT}${PYTHONPATH:+:${PYTHONPATH}}"
+else
+  export PYTHONPATH="${REPO_ROOT}${PYTHONPATH:+:${PYTHONPATH}}"
+fi
 printf 'Home Assistant %s | Python %s | pytest-homeassistant-custom-component %s\n' "${actual_ha}" "${actual_py}" "${actual_plugin}"
 exec "${HA_PYTHON}" -m pytest -c pytest.ini -q "$@"

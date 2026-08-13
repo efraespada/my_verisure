@@ -30,13 +30,6 @@ def main() -> int:
                 f"{path.relative_to(ROOT)}"
             )
 
-    for path in (ROOT / "run_all_tests.py", ROOT / "run_coverage.py", ROOT / "setup_development.py"):
-        source = path.read_text(encoding="utf-8")
-        if 'Path("core")' in source or '"core/tests"' in source:
-            errors.append(
-                "runner references the old core root: "
-                f"{path.relative_to(ROOT)}"
-            )
 
     pure_domain_models = (
         "auth.py",

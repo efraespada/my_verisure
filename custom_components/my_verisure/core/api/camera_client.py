@@ -290,8 +290,6 @@ class CameraClient(BaseClient):
                     _LOGGER.error("❌ Invalid response from images status query")
                     raise MyVerisureError("Invalid response from camera status service")
 
-                # TODO 
-                
                 status_response = status_result["data"]["xSRequestImagesStatus"]
 
                 if not status_response:

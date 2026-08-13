@@ -11,12 +11,19 @@ Tests are **pytest**-based. Counts vary over time; the README historically cited
 
 ## Useful commands
 
+The root `Makefile` is the canonical interface and uses the pinned
+Home Assistant validation environment:
+
 ```bash
-pytest custom_components/my_verisure/core/tests/unit -v
-pytest cli/tests -v
+make test-ha-2026-8
+make test-cli
+make test-core
+make type-check
+make lint-critical
+make git-check
 ```
 
-Coverage scripts (`run_coverage.py`, `run_all_tests.py`) live at repo root.
+Coverage is generated with `make coverage`; generated reports are temporary.
 
 ## Home Assistant runtime tests
 

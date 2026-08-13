@@ -2,3 +2,4 @@
 -r requirements-ha-2026.8.txt
 flake8>=7.0,<8.0
 mypy>=1.11,<3.0
+pytest-cov>=6.0,<8.0
