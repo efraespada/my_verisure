@@ -81,8 +81,14 @@ def create_and_validate_zip() -> Path:
         for path in sorted(tracked_files()):
             if INTEGRATION not in path.parents:
                 continue
-            if path.is_file() and not any(part in FORBIDDEN_PARTS for part in path.parts):
-                archive.write(path, Path("custom_components/my_verisure") / path.relative_to(INTEGRATION))
+            if path.is_file() and not any(
+                part in FORBIDDEN_PARTS for part in path.parts
+            ):
+                archive.write(
+                    path,
+                    Path("custom_components/my_verisure")
+                    / path.relative_to(INTEGRATION),
+                )
 
     with ZipFile(artifact) as archive:
         names = set(archive.namelist())
@@ -90,7 +96,11 @@ def create_and_validate_zip() -> Path:
         missing = sorted(expected - names)
         if missing:
             raise ValueError(f"ZIP is missing required files: {', '.join(missing)}")
-        forbidden = sorted(name for name in names if any(part in FORBIDDEN_PARTS for part in Path(name).parts))
+        forbidden = sorted(
+            name
+            for name in names
+            if any(part in FORBIDDEN_PARTS for part in Path(name).parts)
+        )
         if forbidden:
             raise ValueError(f"ZIP contains generated artifacts: {forbidden}")
     return artifact

@@ -11,7 +11,9 @@ def test_validate_tree_accepts_current_repository() -> None:
     validate_tree()
 
 
-def test_validate_tree_rejects_tracked_generated_artifact(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_validate_tree_rejects_tracked_generated_artifact(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     from scripts import validate_distribution
 
     generated = Path(".coverage")
