@@ -15,10 +15,6 @@ from ..file_manager import FileManager
 
 _LOGGER = logging.getLogger(__name__)
 
-# platform.platform() can trigger blocking reads; cache after first resolution
-_cached_platform_string: str | None = None
-
-
 class DeviceManager:
     """Manages device identifiers and device authorization."""
 
@@ -26,21 +22,22 @@ class DeviceManager:
         """Initialize the device manager."""
         self._device_identifiers: Optional[Dict[str, Any]] = None
         self._file_manager = file_manager
+        # Keep platform discovery scoped to this manager.  A module-level cache
+        # would leak host-derived state between ConfigEntry graphs and tests.
+        self._platform_string: str | None = None
 
     def _resolve_file_manager(self) -> FileManager:
-        """Return the injected file manager, falling back to legacy global state."""
+        """Return the manager owned by this composition root."""
         if self._file_manager is None:
             raise RuntimeError("DeviceManager requires an entry-scoped FileManager")
         return self._file_manager
 
 
-    @staticmethod
-    def _platform_string_for_identifiers() -> str:
+    def _platform_string_for_identifiers(self) -> str:
         """Return platform string for seeding (uses cached value when available)."""
-        global _cached_platform_string
-        if _cached_platform_string is None:
-            _cached_platform_string = platform.platform()
-        return _cached_platform_string
+        if self._platform_string is None:
+            self._platform_string = platform.platform()
+        return self._platform_string
 
     def _generate_device_identifiers(self) -> Dict[str, Any]:
         """Generate device identifiers with improved randomness."""
@@ -219,9 +216,8 @@ class DeviceManager:
 
     async def async_ensure_device_identifiers(self) -> None:
         """Ensure device identifiers are loaded or generated without blocking."""
-        global _cached_platform_string
-        if _cached_platform_string is None:
-            _cached_platform_string = await asyncio.to_thread(platform.platform)
+        if self._platform_string is None:
+            self._platform_string = await asyncio.to_thread(platform.platform)
 
         if self._device_identifiers is None:
             if not await self._async_load_device_identifiers():
