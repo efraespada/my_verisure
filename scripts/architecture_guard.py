@@ -6,6 +6,16 @@ from __future__ import annotations
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+PRODUCTION_ROOTS = (
+    ROOT / "custom_components" / "my_verisure",
+    ROOT / "cli",
+)
+FORBIDDEN_GLOBAL_MANAGER_ACCESS = (
+    "get_file_manager()",
+    "get_session_manager()",
+    "get_config_manager()",
+    "get_log_manager()",
+)
 
 
 def main() -> int:
@@ -32,6 +42,18 @@ def main() -> int:
                 f"{path.relative_to(ROOT)}"
             )
 
+
+    for production_root in PRODUCTION_ROOTS:
+        for path in production_root.rglob("*.py"):
+            if "/tests/" in path.as_posix():
+                continue
+            source = path.read_text(encoding="utf-8")
+            for forbidden_access in FORBIDDEN_GLOBAL_MANAGER_ACCESS:
+                if forbidden_access in source:
+                    errors.append(
+                        "production code uses global manager accessor "
+                        f"{forbidden_access}: {path.relative_to(ROOT)}"
+                    )
 
     pure_domain_models = (
         "auth.py",
