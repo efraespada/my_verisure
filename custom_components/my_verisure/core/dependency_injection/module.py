@@ -1,7 +1,7 @@
 """Dependency injection module for My Verisure integration."""
 
 import logging
-from typing import Optional
+
 
 from injector import Module, provider, singleton
 
@@ -43,10 +43,10 @@ class MyVerisureModule(Module):
 
     def __init__(
         self,
-        session_manager: Optional[SessionManager] = None,
-        file_manager: Optional[FileManager] = None,
+        session_manager: SessionManager,
+        file_manager: FileManager,
     ) -> None:
-        """Initialize the module with optional entry-scoped managers."""
+        """Initialize the module with entry-scoped managers."""
         self._session_manager = session_manager
         self._file_manager = file_manager
 
@@ -54,15 +54,13 @@ class MyVerisureModule(Module):
     @provider
     def provide_session_manager(self) -> SessionManager:
         """Provide the session manager owned by this composition root."""
-        return self._session_manager or SessionManager(
-            file_manager=self.provide_file_manager()
-        )
+        return self._session_manager
 
     @singleton
     @provider
     def provide_file_manager(self) -> FileManager:
         """Provide the file manager owned by this composition root."""
-        return self._file_manager or FileManager()
+        return self._file_manager
 
     @singleton
     @provider

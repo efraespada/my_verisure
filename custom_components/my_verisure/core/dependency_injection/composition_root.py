@@ -37,16 +37,16 @@ def build_my_verisure_composition_root(
     from .module import MyVerisureModule
 
     file_manager = FileManager(project_root)
+    session_manager = SessionManager(session_file, file_manager=file_manager)
     root = CompositionRoot(
         MyVerisureModule(
-            session_manager=SessionManager(session_file, file_manager=file_manager),
+            session_manager=session_manager,
             file_manager=file_manager,
         )
     )
 
     from ..use_cases.interfaces.auth_use_case import AuthUseCase
 
-    session_manager = root.get(SessionManager)
     auth_use_case = root.get(AuthUseCase)
     session_manager.set_authenticator(auth_use_case.login)
     return root
