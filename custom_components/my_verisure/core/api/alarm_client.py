@@ -1,15 +1,15 @@
 """Alarm client for My Verisure API."""
 
 import asyncio
-import json
 import logging
-import os
-from typing import Any, Dict, Optional, cast
+from pathlib import Path
+from typing import Any, Dict, Optional
 
 from ..session_manager import SessionManager
 from ..application.alarm_command_poller import AlarmCommandPoller
 from ..application.alarm_command_response import AlarmCommandResponseInterpreter
 from ..application.alarm_graphql_requests import AlarmGraphQLRequestPolicy
+from ..application.alarm_status_service import AlarmStatusService
 from ..application.realtime_alarm_status import (
     RealtimeAlarmStatusInterpreter,
     RealtimeStatusAction,
@@ -40,10 +40,12 @@ class AlarmClient(BaseClient):
     def __init__(self, session_manager: SessionManager) -> None:
         """Initialize the alarm client."""
         super().__init__(session_manager=session_manager)
-        self._alarm_status_json_cache: Dict[str, Any] | None = None
         self._command_poller = AlarmCommandPoller()
         self._command_response_interpreter = AlarmCommandResponseInterpreter()
         self._request_policy = AlarmGraphQLRequestPolicy()
+        self._status_service = AlarmStatusService(
+            Path(__file__).with_name("alarm_status.json")
+        )
         self._realtime_status_interpreter = RealtimeAlarmStatusInterpreter()
 
     def _log_graphql_outbound(
@@ -98,95 +100,18 @@ class AlarmClient(BaseClient):
             _LOGGER.error("Direct %s failed: %s", operation, e)
             return {"errors": [{"message": str(e), "data": {}}]}
 
-    async def _load_alarm_status_config(self) -> Dict[str, Any]:
-        """Load alarm status configuration from JSON file (cached, non-blocking)."""
-        if self._alarm_status_json_cache is not None:
-            return self._alarm_status_json_cache
+    async def _load_alarm_status_config(self) -> dict[str, Any]:
+        """Load alarm status configuration through the application service."""
+        return dict(await self._status_service.load_config())
 
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        config_path = os.path.join(current_dir, "alarm_status.json")
+    async def _process_alarm_message(self, message: str) -> dict[str, Any]:
+        """Translate an alarm message through the application service."""
+        return await self._status_service.process_message(message)
 
-        try:
-            self._alarm_status_json_cache = await asyncio.to_thread(
-                self._read_alarm_status_file, config_path
-            )
-            _LOGGER.debug(
-                "Alarm status configuration loaded from %s", config_path
-            )
-            return self._alarm_status_json_cache
-        except OSError as e:
-            _LOGGER.error("Failed to load alarm status configuration: %s", e)
-        except json.JSONDecodeError as e:
-            _LOGGER.error("Invalid alarm status JSON: %s", e)
+    def _get_default_alarm_status(self) -> dict[str, Any]:
+        """Return the default alarm status through the application service."""
+        return self._status_service.default_status()
 
-        self._alarm_status_json_cache = {
-            "internal": {
-                "day": {"alarm": []},
-                "night": {"alarm": []},
-                "total": {"alarm": []},
-            },
-            "external": {"alarm": []},
-        }
-        return self._alarm_status_json_cache
-
-    def _read_alarm_status_file(self, config_path: str) -> Dict[str, Any]:
-        """Read alarm status configuration file (blocking operation)."""
-        with open(config_path, "r") as f:
-            return json.load(f)
-
-    async def _process_alarm_message(self, message: str) -> Dict[str, Any]:
-        """Process alarm message and return status structure."""
-        if not message:
-            return self._get_default_alarm_status()
-
-        config = cast(
-            dict[str, dict[str, Any]], await self._load_alarm_status_config()
-        )
-
-        # Initialize response structure
-        response: Dict[str, Any] = {
-            "internal": {
-                "day": {"status": False},
-                "night": {"status": False},
-                "total": {"status": False},
-            },
-            "external": {"status": False},
-        }
-
-        # Check if message matches any alarm in the configuration
-        for section, section_config in config.items():
-            if section == "internal":
-                for subsection, subsection_config in section_config.items():
-                    alarm_messages = subsection_config.get("alarm", [])
-                    if message in alarm_messages:
-                        response["internal"][subsection]["status"] = True
-                        _LOGGER.debug(
-                            "Alarm message '%s' matches %s.%s",
-                            message,
-                            section,
-                            subsection,
-                        )
-            elif section == "external":
-                alarm_messages = section_config.get("alarm", [])
-                if message in alarm_messages:
-                    response["external"]["status"] = True
-                    _LOGGER.debug(
-                        "Alarm message '%s' matches %s", message, section
-                    )
-
-        _LOGGER.debug("Processed alarm message '%s' -> %s", message, response)
-        return response
-
-    def _get_default_alarm_status(self) -> Dict[str, Any]:
-        """Get default alarm status structure with all statuses as False."""
-        return {
-            "internal": {
-                "day": {"status": False},
-                "night": {"status": False},
-                "total": {"status": False},
-            },
-            "external": {"status": False},
-        }
 
     async def get_alarm_status(
         self,

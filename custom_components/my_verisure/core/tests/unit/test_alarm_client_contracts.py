@@ -6,6 +6,7 @@ import pytest
 
 from custom_components.my_verisure.core.api.alarm_client import AlarmClient
 from custom_components.my_verisure.core.api.exceptions import MyVerisureAuthenticationError
+from custom_components.my_verisure.core.application.alarm_status_service import AlarmStatusService
 from custom_components.my_verisure.core.file_manager import FileManager
 from custom_components.my_verisure.core.session_manager import SessionManager
 
@@ -18,13 +19,15 @@ def _alarm_client(tmp_path):
 
 @pytest.mark.asyncio
 async def test_alarm_status_configuration_cache_is_instance_scoped(tmp_path):
-    first = _alarm_client(tmp_path / "first")
-    second = _alarm_client(tmp_path / "second")
-    first._read_alarm_status_file = Mock(return_value={"owner": "first"})
-    second._read_alarm_status_file = Mock(return_value={"owner": "second"})
+    first = AlarmStatusService(
+        tmp_path / "first.json", read_config=lambda _: {"owner": "first"}
+    )
+    second = AlarmStatusService(
+        tmp_path / "second.json", read_config=lambda _: {"owner": "second"}
+    )
 
-    first_config = await first._load_alarm_status_config()
-    second_config = await second._load_alarm_status_config()
+    first_config = await first.load_config()
+    second_config = await second.load_config()
 
     assert first_config == {"owner": "first"}
     assert second_config == {"owner": "second"}
