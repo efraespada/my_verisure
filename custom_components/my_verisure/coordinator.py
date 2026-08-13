@@ -26,7 +26,10 @@ from .core.dependency_injection.composition_root import (
     CompositionRoot,
     build_my_verisure_composition_root,
 )
-from .core.api.models.domain.alarm import ArmResult, DisarmResult
+from .core.application.coordinator_snapshot import (
+    build_coordinator_snapshot,
+    merge_alarm_snapshot,
+)
 from .core.use_cases.interfaces.auth_use_case import AuthUseCase
 from .core.use_cases.interfaces.installation_use_case import InstallationUseCase
 from .core.use_cases.interfaces.alarm_use_case import AlarmUseCase
@@ -239,12 +242,12 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             if not detailed_installation:
                 return await self._async_update_data()
 
-            result = {
-                "last_updated": time.time(),
-                "installation_id": self.installation_id,
-                "alarm_status": alarm_status.dict(),
-                "detailed_installation": detailed_installation,
-            }
+            result = merge_alarm_snapshot(
+                installation_id=self.installation_id,
+                alarm_status=alarm_status.dict(),
+                detailed_installation=detailed_installation,
+                timestamp=time.time(),
+            )
             try:
                 self.async_set_updated_data(result)
                 save_success = await self.file_manager.async_save_json(
@@ -315,12 +318,12 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
                         redact_sensitive_data(alarm_status.dict()),
                     )
 
-                result = {
-                    "last_updated": time.time(),
-                    "installation_id": self.installation_id,
-                    "alarm_status": alarm_status.dict(),
-                    "detailed_installation": detailed_installation.dict(),
-                }
+                result = build_coordinator_snapshot(
+                    installation_id=self.installation_id,
+                    alarm_status=alarm_status.dict(),
+                    detailed_installation=detailed_installation.dict(),
+                    timestamp=time.time(),
+                )
 
                 try:
                     self.async_set_updated_data(result)
