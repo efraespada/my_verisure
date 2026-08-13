@@ -12,6 +12,7 @@ from ...api.models.domain.camera_refresh import CameraRefresh
 from ...api.models.domain.camera_refresh_data import CameraRefreshData
 from ...repositories.interfaces.installation_repository import InstallationRepository
 from ...file_manager import FileManager
+from ...application.camera_devices import camera_devices, camera_identifier
 from ..interfaces.create_dummy_camera_images_use_case import CreateDummyCameraImagesUseCase
 
 
@@ -48,12 +49,9 @@ class CreateDummyCameraImagesUseCaseImpl(CreateDummyCameraImagesUseCase):
             devices = detailed_installation.installation.devices
             
             # Filter devices to get only cameras (type "YR" or "YP")
-            camera_devices = [
-                device for device in devices 
-                if device.type in ["YR", "YP"]
-            ]
+            camera_devices_list = camera_devices(devices)
             
-            if not camera_devices:
+            if not camera_devices_list:
                 _LOGGER.warning("⚠️ No active camera devices (YR/YP) found in installation %s", installation_id)
                 return CameraRefresh(
                     refresh_data=[],
@@ -74,9 +72,9 @@ class CreateDummyCameraImagesUseCaseImpl(CreateDummyCameraImagesUseCase):
                 lambda: os.makedirs(cameras_dir, exist_ok=True)
             )
 
-            for camera_device in camera_devices:
+            for camera_device in camera_devices_list:
                 try:
-                    formatted_code = f"{camera_device.type}{int(camera_device.code):02d}"
+                    formatted_code = camera_identifier(camera_device)
                     camera_dir = os.path.join(cameras_dir, formatted_code)
 
                     if await asyncio.to_thread(
@@ -143,14 +141,14 @@ class CreateDummyCameraImagesUseCaseImpl(CreateDummyCameraImagesUseCase):
 
             _LOGGER.info(
                 "🎉 Dummy camera images creation completed for %d cameras",
-                len(camera_devices),
+                len(camera_devices_list),
             )
             
             return CameraRefresh(
                 refresh_data=refresh_data,
-                total_cameras=len(camera_devices),
+                total_cameras=len(camera_devices_list),
                 successful_refreshes=successful_count,
-                failed_refreshes=len(camera_devices) - successful_count,
+                failed_refreshes=len(camera_devices_list) - successful_count,
                 timestamp=datetime.now().isoformat(),
             )
 

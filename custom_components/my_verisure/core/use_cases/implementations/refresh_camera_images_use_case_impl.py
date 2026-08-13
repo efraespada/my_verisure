@@ -6,6 +6,10 @@ import time
 
 from ...api.models.domain.camera_refresh import CameraRefresh
 from ...api.models.domain.camera_refresh_data import CameraRefreshData
+from ...application.camera_devices import (
+    camera_devices as select_camera_devices,
+    camera_identifier,
+)
 from ...repositories.interfaces.camera_repository import CameraRepository
 from ...repositories.interfaces.installation_repository import InstallationRepository
 from ..interfaces.refresh_camera_images_use_case import RefreshCameraImagesUseCase
@@ -50,12 +54,9 @@ class RefreshCameraImagesUseCaseImpl(RefreshCameraImagesUseCase):
             devices = detailed_installation.installation.devices
             
             # Filter devices to get only cameras (type "YR" or "YP")
-            camera_devices = [
-                device for device in devices 
-                if device.type in ["YR", "YP"]
-            ]
+            camera_devices_list = select_camera_devices(devices)
             
-            if not camera_devices:
+            if not camera_devices_list:
                 _LOGGER.warning("⚠️ No active camera devices (YR/YP) found in installation %s", installation_id)
                 return CameraRefresh(
                     refresh_data=[],
@@ -67,7 +68,7 @@ class RefreshCameraImagesUseCaseImpl(RefreshCameraImagesUseCase):
             
             refresh_data = []
             index = 0
-            for camera_device in camera_devices:
+            for camera_device in camera_devices_list:
                 formatted_code = f"{camera_device.type}{int(camera_device.code):02d}"
                 try:
                     result = await self.camera_repository.request_image(
@@ -77,7 +78,7 @@ class RefreshCameraImagesUseCaseImpl(RefreshCameraImagesUseCase):
                         capabilities=capabilities,
                     )
 
-                    formatted_code = f"{camera_device.type}{int(camera_device.code):02d}"
+                    formatted_code = camera_identifier(camera_device)
                     if (result.successful_requests > 0):
                         _LOGGER.info("⏳ Waiting 3 seconds before retrieving images from camera %s...", formatted_code)
                         await asyncio.sleep(3)
@@ -103,7 +104,7 @@ class RefreshCameraImagesUseCaseImpl(RefreshCameraImagesUseCase):
                         _LOGGER.info(
                             "✅ Camera images requests completed. Successful requests: %d/%d",
                             index,
-                            len(camera_devices)
+                            len(camera_devices_list)
                         )
 
                 except Exception as e:
@@ -123,7 +124,7 @@ class RefreshCameraImagesUseCaseImpl(RefreshCameraImagesUseCase):
 
             _LOGGER.info(
                 "🎉 Camera images retrieval completed for %d cameras",
-                len(camera_devices),
+                len(camera_devices_list),
             )
             
             # Calculate total execution time
@@ -136,9 +137,9 @@ class RefreshCameraImagesUseCaseImpl(RefreshCameraImagesUseCase):
             # Return the original request result with additional images information
             return CameraRefresh(
                 refresh_data=refresh_data,
-                total_cameras=len(camera_devices),
+                total_cameras=len(camera_devices_list),
                 successful_refreshes=index,
-                failed_refreshes=len(camera_devices) - index,
+                failed_refreshes=len(camera_devices_list) - index,
                 timestamp=datetime.now().isoformat(),
             )
 
