@@ -8,6 +8,10 @@ from typing import Any, Dict, Optional, cast
 
 from ..session_manager import SessionManager
 from ..application.alarm_command_poller import AlarmCommandPoller
+from ..application.realtime_alarm_status import (
+    RealtimeAlarmStatusInterpreter,
+    RealtimeStatusAction,
+)
 from ..api.models.domain.alarm import ArmResult, DisarmResult
 from .base_client import BaseClient
 from .exceptions import (
@@ -40,6 +44,7 @@ class AlarmClient(BaseClient):
         super().__init__(session_manager=session_manager)
         self._alarm_status_json_cache: Dict[str, Any] | None = None
         self._command_poller = AlarmCommandPoller()
+        self._realtime_status_interpreter = RealtimeAlarmStatusInterpreter()
 
     def _log_graphql_outbound(
         self,
@@ -302,41 +307,16 @@ class AlarmClient(BaseClient):
                     session_data=session_data,
                 )
 
-                # Check for errors
-                if "errors" in result:
-                    error = result["errors"][0] if result["errors"] else {}
-                    error_msg = error.get("message", "Unknown error")
+                decision = self._realtime_status_interpreter.interpret(result)
+                if decision.action is RealtimeStatusAction.SUCCESS:
+                    return decision.message
+                if decision.action is RealtimeStatusAction.FAILURE:
                     _LOGGER.error(
-                        "Real-time alarm status check failed: %s", error_msg
+                        "Real-time alarm status check failed: %s",
+                        decision.message,
                     )
-                    return ""
-
-                # Check for successful response
-                data = result.get("data", {})
-                alarm_status_data = data.get("xSCheckAlarmStatus", {})
-                res = alarm_status_data.get("res", "Unknown")
-                msg = alarm_status_data.get("msg", "Unknown")
-
-                _LOGGER.debug(
-                    "Alarm status check attempt %d: res=%s, msg=%s",
-                    retry_count + 1,
-                    res,
-                    msg,
-                )
-
-                if res == "OK":
-                    return msg
-
-                elif res == "KO":
-                    # Failed
-                    error_msg = alarm_status_data.get("msg", "Unknown error")
-                    _LOGGER.error(
-                        "Real-time alarm status check failed: %s", error_msg
-                    )
-                    return msg
-
-                elif res == "WAIT":
-                    # Need to wait and retry
+                    return decision.message
+                if decision.action is RealtimeStatusAction.WAIT:
                     retry_count += 1
                     if retry_count < max_retries:
                         _LOGGER.debug(
@@ -344,20 +324,14 @@ class AlarmClient(BaseClient):
                             "before retry %d",
                             retry_count + 1,
                         )
-                        await asyncio.sleep(15)  # Wait 15 seconds before retry
+                        await asyncio.sleep(15)
                     else:
-                        _LOGGER.warning(
-                            "Max retries reached for alarm status check"
-                        )
+                        _LOGGER.warning("Max retries reached for alarm status check")
                         return ""
-                else:
-                    # Unknown response
-                    _LOGGER.warning(
-                        "Unknown response from alarm status check: res=%s, msg=%s",
-                        res,
-                        msg,
-                    )
-                    return ""
+                    continue
+
+                _LOGGER.warning("Unknown response from alarm status check")
+                return ""
 
             return ""
 
