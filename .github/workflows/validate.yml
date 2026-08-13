@@ -38,6 +38,9 @@ jobs:
       - name: Run architecture and dependency gates
         run: make git-check
 
+      - name: Validate distribution artifact
+        run: make distribution-check
+
       - name: Run contextual coverage
         run: make coverage
 

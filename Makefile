@@ -1,6 +1,6 @@
 # My Verisure development and verification commands.
 
-.PHONY: help test test-cli test-core test-ha-2026-8 coverage ci lint lint-critical type-check type-check-migrated clean install dev-setup git-check repowise
+.PHONY: help test test-cli test-core test-ha-2026-8 coverage ci lint lint-critical type-check type-check-migrated clean install dev-setup git-check distribution-check repowise
 
 # Home Assistant Core 2026.8.1 is the only supported validation target.
 HA_PYTHON ?= /tmp/ha-2026.8.1-venv/bin/python
@@ -66,11 +66,15 @@ git-check: ## Verify formatting, architecture and dependency consistency
 	$(PYTHON) scripts/architecture_guard.py
 	$(PIP) check
 
+distribution-check: ## Validate the installable Home Assistant artifact
+	$(PYTHON) scripts/validate_distribution.py
+
 ci: ## Run all local release-quality gates
 	$(MAKE) test-ha-2026-8
 	$(MAKE) type-check
 	$(MAKE) lint-critical
 	$(MAKE) git-check
+	$(MAKE) distribution-check
 	$(MAKE) coverage
 
 repowise: ## Run the advisory Repowise analysis
