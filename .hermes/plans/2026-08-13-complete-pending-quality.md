@@ -74,12 +74,51 @@ third, and broad coverage/gates last.
 - Update this plan with measured results and explicit unresolved limitations.
 - Do not claim manual HA or real-provider validation.
 
-## Acceptance criteria
+## Execution result
 
-- All current tests remain green; no real network/provider calls.
-- Entry isolation is proven by concurrent tests, not only by constructor mocks.
-- No productive global manager access remains unless explicitly justified and
-  documented as an external boundary.
-- AlarmClient complexity is reduced through real cohesive boundaries, not
-  wrapper-only extraction.
-- All quality gates pass and `master == origin/master` with a clean tree.
+The pending-quality plan was executed in multiple published slices:
+
+- `6f8a37a refactor: isolate alarm graphql request policy`
+  - Added `AlarmGraphQLRequestPolicy` and `AlarmGraphQLRequest`.
+  - Centralized six GraphQL operation/query/variable definitions while keeping
+    transport, response interpretation, and polling separate.
+- `c7f5e4e fix: preserve alarm repository result contracts`
+  - `AlarmRepositoryImpl` now preserves typed `ArmResult` and `DisarmResult`
+    from the client instead of using truthiness and replacing failure messages.
+- `c93b75e test: prove concurrent entry isolation`
+  - Added real concurrent offline persistence checks for two independent
+    composition roots, sessions, configuration files, and logs.
+- `1ea6bf9 guard: forbid global manager access`
+  - Architecture guard now rejects productive calls to global manager accessors
+    while allowing tests and documented local fallbacks.
+- `0712440 test: cover alarm client edge contracts`
+  - Added no-network coverage for missing authentication, incomplete CheckAlarm
+    payloads, transport failures, and failed command results.
+
+Evidence:
+
+- `make ci`: 457 passed, 2 skipped; coverage 82%.
+- `make test-ha-2026-8`: 457 passed, 2 skipped on Home Assistant Core 2026.8.1
+  / Python 3.14.4.
+- Focused AlarmClient/repository/request tests and composition isolation tests
+  passed.
+- Mypy: no issues in 209 source files.
+- Critical Flake8: passed.
+- `compileall`: passed.
+- `ARCHITECTURE_GUARD_OK`.
+- `pip check`: no broken requirements.
+- `git diff --check`: passed.
+- Repowise hotspot health: `4.31 → 4.36`.
+- Full suite growth: `449 → 457` passed tests.
+
+The audit found no productive global `get_*_manager()` accessor calls remaining;
+manager and repository constructors are entry-scoped in the production graph.
+The remaining `_resolve_file_manager()` methods are invariant boundaries, not
+fallbacks to global state.
+
+Remaining work is intentionally recorded rather than hidden: `AlarmClient` is
+still the worst Repowise hotspot and its status/configuration methods remain
+large adapter code. Further reduction should wait for additional explicit
+contracts around provider status payloads, rather than introducing wrapper-only
+abstractions. Manual Docker HA validation remains blocked by host socket
+permissions, and no real Verisure validation was attempted.
