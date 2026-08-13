@@ -78,6 +78,16 @@ This target test has been executed successfully against Core 2026.8.1. The
 legacy HA 2024.3.3 environment remains useful only for historical compatibility
 and must not be used to claim compatibility with Core 2026.8.1.
 
+For a deterministic gate, use:
+
+```bash
+make test-ha-2026-8
+```
+
+The script validates the Python, Core, pytest plugin, and `PyTurboJPEG`
+versions before running the complete repository suite. Override the temporary
+locations with `HA_PYTHON=/path/to/python HA_CORE=/path/to/core` when needed.
+
 ## Known gaps
 
 - Limited **Home Assistant core** integration tests (no `tests/components/my_verisure` style harness in this repo).  

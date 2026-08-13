@@ -1,7 +1,7 @@
 # Makefile para My Verisure Project
 # Comandos útiles para desarrollo y testing
 
-.PHONY: help test test-cli test-core test-all lint type-check clean install dev-setup repowise
+.PHONY: help test test-cli test-core test-all test-ha-2026-8 lint type-check clean install dev-setup repowise
 
 # Variables
 PYTHON = python3
@@ -50,6 +50,9 @@ repowise: ## Ejecutar análisis Repowise aislado y no bloqueante
 test: ## Ejecutar todos los tests
 	@echo "$(BLUE)Ejecutando todos los tests...$(NC)"
 	$(PYTHON) run_all_tests.py
+
+test-ha-2026-8: ## Ejecutar la suite contra Home Assistant Core 2026.8.1
+	@./scripts/test-ha-2026.8.sh
 
 test-cli: ## Ejecutar solo tests del CLI
 	@echo "$(BLUE)Ejecutando tests del CLI...$(NC)"
