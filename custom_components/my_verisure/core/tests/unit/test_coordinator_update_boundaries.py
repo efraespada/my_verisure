@@ -35,6 +35,8 @@ def coordinator() -> MyVerisureDataUpdateCoordinator:
     value.refresh_effects = Mock(spec=CoordinatorRefreshEffects)
     value.authentication_policy = Mock()
     value._failure_classifier = CoordinatorFailureClassifier()
+    value.notifications = Mock()
+    value.notifications.notify = AsyncMock()
     value.authentication_policy.authenticate = AsyncMock(
         return_value=CoordinatorAuthenticationDecision(authenticated=True)
     )
@@ -106,4 +108,9 @@ async def test_update_data_uses_cache_when_service_is_blocked(coordinator) -> No
     with patch("custom_components.my_verisure.coordinator.async_create") as notify:
         assert await coordinator._async_update_data() == cached
 
-    notify.assert_called_once()
+    coordinator.notifications.notify.assert_awaited_once_with(
+        title_key="notifications.service.blocked.title",
+        message_key="notifications.service.blocked.message",
+        notification_id="verisure_service_blocked",
+    )
+    notify.assert_not_called()

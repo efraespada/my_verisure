@@ -31,6 +31,7 @@ from .core.application.coordinator_snapshot import merge_alarm_snapshot
 from .core.application.coordinator_snapshot_store import CoordinatorSnapshotStore
 from .core.application.coordinator_refresh_effects import CoordinatorRefreshEffects
 from .core.application.coordinator_camera_refresh import CoordinatorCameraRefresh
+from .core.application.coordinator_notifications import CoordinatorNotificationService
 from .core.application.installation_snapshot_service import InstallationSnapshotService
 from .core.use_cases.interfaces.auth_use_case import AuthUseCase
 from .core.use_cases.interfaces.installation_use_case import InstallationUseCase
@@ -117,6 +118,15 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         self._alarm_control_panel = None
         self._failure_classifier = CoordinatorFailureClassifier()
         self._translation_service = TranslationService(Path(__file__).parent / "translations")
+        self.notifications = CoordinatorNotificationService(
+            self.get_translation,
+            lambda message, *, title, notification_id: async_create(
+                self.hass,
+                message,
+                title=title,
+                notification_id=notification_id,
+            ),
+        )
         
         # Set credentials in session manager (memory only; persist after login)
         self.session_manager.update_credentials(
@@ -193,13 +203,10 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         except MyVerisureServiceBlockedError as ex:
             LOGGER.error("Service temporarily blocked during login: %s", ex)
             # Send service blocked notification
-            title = await self.get_translation("notifications.service.blocked.title")
-            message = await self.get_translation("notifications.service.blocked.message")
-            async_create(
-                self.hass,
-                message,
-                title=title,
-                notification_id="verisure_service_blocked"
+            await self.notifications.notify(
+                title_key="notifications.service.blocked.title",
+                message_key="notifications.service.blocked.message",
+                notification_id="verisure_service_blocked",
             )
             return False
         except Exception as e:
@@ -320,12 +327,9 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
                 failure = self._failure_classifier.classify(ex)
                 LOGGER.error("Coordinator update failed (%s): %s", failure.kind, failure.message)
                 if failure.kind is CoordinatorFailureKind.SERVICE_BLOCKED:
-                    title = await self.get_translation("notifications.service.blocked.title")
-                    message = await self.get_translation("notifications.service.blocked.message")
-                    async_create(
-                        self.hass,
-                        message,
-                        title=title,
+                    await self.notifications.notify(
+                        title_key="notifications.service.blocked.title",
+                        message_key="notifications.service.blocked.message",
                         notification_id="verisure_service_blocked",
                     )
                     cached_data = self.load_alarm_info()
@@ -367,24 +371,26 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             result = await operation(self.installation_id, **kwargs)
             if result.success:
                 await self._async_refresh_alarm_only()
-                title = await self.get_translation("notifications.title.success")
-                message = await self.get_translation(command.success_key)
-                notification_id = f"{command.notification_id}_success"
+                await self.notifications.notify(
+                    title_key="notifications.title.success",
+                    message_key=command.success_key,
+                    notification_id=f"{command.notification_id}_success",
+                )
             else:
-                title = await self.get_translation("notifications.title.error")
-                message = await self.get_translation(command.error_key, message=result.message)
-                notification_id = f"{command.notification_id}_error"
-            async_create(self.hass, message, title=title, notification_id=notification_id)
+                await self.notifications.notify(
+                    title_key="notifications.title.error",
+                    message_key=command.error_key,
+                    notification_id=f"{command.notification_id}_error",
+                    message_args={"message": result.message},
+                )
             return result
         except Exception as error:
             LOGGER.error("Failed to execute alarm command %s: %s", command_name, error)
-            title = await self.get_translation("notifications.title.error")
-            message = await self.get_translation(command.exception_key, error=str(error))
-            async_create(
-                self.hass,
-                message,
-                title=title,
+            await self.notifications.notify(
+                title_key="notifications.title.error",
+                message_key=command.exception_key,
                 notification_id=f"{command.notification_id}_exception",
+                message_args={"error": str(error)},
             )
             result_type = DisarmResult if command_name == "disarm" else ArmResult
             return result_type(success=False, message=f"Failed to {command_name}: {error}")
