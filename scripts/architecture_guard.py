@@ -20,7 +20,9 @@ def main() -> int:
         if not path.exists():
             errors.append(f"required path is missing: {path.relative_to(ROOT)}")
 
-    for path in (ROOT / "cli").rglob("*.py"):
+    bootstrap_files = [ROOT / "my_verisure_cli.py"]
+    bootstrap_files.extend((ROOT / "cli").rglob("*.py"))
+    for path in bootstrap_files:
         source = path.read_text(encoding="utf-8")
         if "sys.path.append" in source or "sys.path.insert" in source:
             errors.append(f"CLI mutates sys.path: {path.relative_to(ROOT)}")
