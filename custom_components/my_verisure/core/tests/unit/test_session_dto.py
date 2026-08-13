@@ -1,6 +1,5 @@
 """Unit tests for SessionDTO and related DTOs."""
 
-import pytest
 
 from ...api.models.dto.session_dto import SessionDTO, DeviceIdentifiersDTO
 

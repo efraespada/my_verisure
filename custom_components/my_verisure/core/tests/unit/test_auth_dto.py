@@ -1,6 +1,5 @@
 """Unit tests for AuthDTO and related DTOs."""
 
-import pytest
 
 from ...api.models.dto.auth_dto import AuthDTO, OTPDataDTO, PhoneDTO
 

@@ -1,6 +1,5 @@
 """Log manager for My Verisure integration."""
 
-import json
 import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional

@@ -3,7 +3,6 @@
 import asyncio
 import logging
 from typing import Any, Dict, List
-import json
 
 from .base_client import BaseClient
 from .exceptions import (

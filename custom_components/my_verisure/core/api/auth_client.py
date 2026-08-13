@@ -113,7 +113,7 @@ class AuthClient(BaseClient):
         await self._device_manager.async_ensure_device_identifiers()
 
         # Generate unique ID for this session
-        session_id = f"OWI______________________"
+        session_id = "OWI______________________"
 
         # Prepare variables for the login mutation
         variables = self._device_manager.get_login_variables(session_id)
@@ -571,7 +571,7 @@ class AuthClient(BaseClient):
         await self._device_manager.async_ensure_device_identifiers()
 
         # Generate unique ID for this session
-        session_id = f"OWI______________________"
+        session_id = "OWI______________________"
 
         # Get user credentials from session data
         user = self._session_data.get("user")

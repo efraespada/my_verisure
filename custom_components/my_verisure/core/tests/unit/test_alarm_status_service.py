@@ -1,9 +1,7 @@
 """Tests for the alarm status application service."""
 
-import json
-from pathlib import Path
-
 import pytest
+from pathlib import Path
 
 from custom_components.my_verisure.core.application.alarm_status_service import (
     AlarmStatusService,

@@ -1,6 +1,6 @@
 """Characterization tests for CameraClient request and retrieval branches."""
 
-from typing import Any, cast
+from typing import Any
 from unittest.mock import AsyncMock, Mock
 
 import pytest

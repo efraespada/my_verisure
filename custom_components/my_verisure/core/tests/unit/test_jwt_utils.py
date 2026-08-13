@@ -1,8 +1,7 @@
 """Unit tests for JWT utilities."""
 
 import time
-from unittest.mock import patch, Mock
-import pytest
+from unittest.mock import patch
 
 from ...utils import jwt_utils
 is_jwt_expired = jwt_utils.is_jwt_expired

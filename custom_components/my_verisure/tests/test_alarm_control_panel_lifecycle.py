@@ -1,11 +1,9 @@
 """Lifecycle contracts for the alarm control panel entity."""
 
-from types import SimpleNamespace
 from typing import Any, cast
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from homeassistant.components.alarm_control_panel.const import AlarmControlPanelState
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.my_verisure.alarm_control_panel import MyVerisureAlarmControlPanel

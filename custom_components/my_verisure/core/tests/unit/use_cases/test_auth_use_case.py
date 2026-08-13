@@ -10,7 +10,6 @@ from ....use_cases.implementations.auth_use_case_impl import AuthUseCaseImpl
 from ....use_cases.interfaces.auth_use_case import AuthUseCase
 from ....repositories.interfaces.auth_repository import AuthRepository
 from ....api.models.domain.auth import Auth, AuthResult
-from ....api.models.domain.session import DeviceIdentifiers
 from ....api.exceptions import MyVerisureAuthenticationError, MyVerisureOTPError
 
 

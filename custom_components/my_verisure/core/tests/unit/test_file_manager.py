@@ -4,8 +4,7 @@ import json
 import os
 import tempfile
 from pathlib import Path
-from unittest.mock import patch, mock_open
-import pytest
+from unittest.mock import patch
 
 from ...file_manager import FileManager
 

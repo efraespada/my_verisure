@@ -1,7 +1,5 @@
 """Unit tests for AlarmDTO and related DTOs."""
 
-import pytest
-
 from ...api.models.dto.alarm_dto import (
     AlarmStatusDTO,
     ArmResultDTO,

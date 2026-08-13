@@ -258,6 +258,16 @@ Execution:
 - Exact wheel-equivalent type check now passes on **224 files**.
 - Focused HA/adaptor/lifecycle tests pass: **41 passed**.
 
+### Slice C — semantic lint cleanup
+
+- The complete Flake8 baseline was measured at 1,028 findings.
+- Removed unused imports and constant f-strings across the application/core
+  code and tests, without adding exclusions or changing the lint policy.
+- The actionable `F401`, `F541`, and `F841` subset is now clean.
+- Remaining full-lint findings are formatting/legacy whitespace and line-length
+  debt (`W293` and `E501` dominate); they remain visible and are not silently
+  suppressed.
+
 - No contradictory active legacy documentation.
 - No unintentional global manager access or product fallback.
 - AuthClient, CameraClient, InstallationClient, and Coordinator boundaries are

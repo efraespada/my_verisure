@@ -1,14 +1,12 @@
 """Authentication repository implementation."""
 
 import logging
-from typing import List, Dict, Any
 
 from ...api.models.domain.auth import Auth, AuthResult
 from ..interfaces.auth_repository import AuthRepository
 from ...api.exceptions import (
     MyVerisureAuthenticationError,
     MyVerisureOTPError,
-    MyVerisureDeviceAuthorizationError,
 )
 
 _LOGGER = logging.getLogger(__name__)

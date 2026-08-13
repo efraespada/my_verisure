@@ -1,6 +1,5 @@
 """Unit tests for InstallationDTO and related DTOs."""
 
-import pytest
 
 from ...api.models.dto.installation_dto import (
     InstallationDTO,

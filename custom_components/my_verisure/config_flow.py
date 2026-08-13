@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 from typing import Any
 
 import voluptuous as vol
@@ -21,7 +20,6 @@ from .core.api.exceptions import (
     MyVerisureConnectionError,
     MyVerisureError,
     MyVerisureOTPError,
-    MyVerisureDeviceAuthorizationError,
 )
 from pathlib import Path
 

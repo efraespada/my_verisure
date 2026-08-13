@@ -21,8 +21,8 @@ def test_graphql_queries_contain_expected_operations() -> None:
 
 
 def test_alarm_client_imports_queries_from_shared_module() -> None:
-    """Alarm client should resolve symbols via graphql_alarm_queries."""
-    from custom_components.my_verisure.core.api import alarm_client as ac
+    """The query module remains the single source of GraphQL documents."""
+    from custom_components.my_verisure.core.api import graphql_alarm_queries
 
-    assert ac.CHECK_ALARM_QUERY is CHECK_ALARM_QUERY
-    assert ac.ARM_PANEL_MUTATION is ARM_PANEL_MUTATION
+    assert graphql_alarm_queries.CHECK_ALARM_QUERY is CHECK_ALARM_QUERY
+    assert graphql_alarm_queries.ARM_PANEL_MUTATION is ARM_PANEL_MUTATION

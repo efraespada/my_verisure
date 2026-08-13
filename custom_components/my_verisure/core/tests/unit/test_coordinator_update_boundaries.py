@@ -64,7 +64,7 @@ async def test_update_data_returns_snapshot_and_persists_cache(coordinator) -> N
 
     coordinator.refresh_effects.apply = AsyncMock()
 
-    result = await coordinator._async_update_data()
+    await coordinator._async_update_data()
 
     coordinator.refresh_effects.apply.assert_awaited_once_with(
         snapshot,

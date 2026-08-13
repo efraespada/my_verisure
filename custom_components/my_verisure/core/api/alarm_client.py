@@ -19,15 +19,10 @@ from .exceptions import (
     MyVerisureAuthenticationError,
     MyVerisureError,
 )
-from .graphql_alarm_queries import (
-    ARM_PANEL_MUTATION,
-    CHECK_ALARM_QUERY,
-)
 from ..log_utils import (
     redact_headers_for_log,
     redact_sensitive_data,
     should_log_detailed,
-    truncate_secret,
 )
 
 _LOGGER = logging.getLogger(__name__)

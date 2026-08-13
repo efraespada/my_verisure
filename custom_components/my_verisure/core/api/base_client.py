@@ -61,7 +61,7 @@ class BaseClient:
         session_header = {
             "loginTimestamp": int(time.time() * 1000),
             "user": session_data.get("user", ""),
-            "id": f"OWI______________________",
+            "id": "OWI______________________",
             "country": "ES",
             "lang": session_data.get("lang", "es"),
             "callby": "OWI_10",

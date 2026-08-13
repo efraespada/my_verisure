@@ -1,6 +1,5 @@
 """Camera commands for My Verisure CLI."""
 
-import asyncio
 import logging
 from typing import Optional
 

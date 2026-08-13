@@ -1,10 +1,8 @@
 """Unit tests for LogManager."""
 
-import json
 import tempfile
 from datetime import datetime, timedelta
-from pathlib import Path
-from unittest.mock import patch, Mock
+from unittest.mock import Mock
 from contextlib import nullcontext
 from ...log_manager import LogManager
 

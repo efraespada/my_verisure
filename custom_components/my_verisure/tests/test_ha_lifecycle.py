@@ -8,7 +8,6 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.my_verisure.core.const import DOMAIN
 from custom_components.my_verisure.core.api.exceptions import (
-    MyVerisureAuthenticationError,
     MyVerisureConnectionError,
 )
 from custom_components.my_verisure.core.api.models.domain.auth import AuthResult
