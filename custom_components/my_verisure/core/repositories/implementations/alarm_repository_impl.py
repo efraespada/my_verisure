@@ -113,18 +113,7 @@ class AlarmRepositoryImpl(AlarmRepository):
 
             _LOGGER.warning("Arm result: %s", result)
 
-            if result:
-                return ArmResult(
-                    success=True,
-                    message=f"Alarm armed successfully with request {request}",
-                    # The client doesn't return reference_id in this case
-                    reference_id=None,
-                )
-            else:
-                return ArmResult(
-                    success=False,
-                    message=f"Failed to arm alarm with request {request}",
-                )
+            return result
 
         except Exception as e:
             _LOGGER.error("Error arming panel: %s", e)
@@ -146,17 +135,7 @@ class AlarmRepositoryImpl(AlarmRepository):
                 capabilities=capabilities
             )
 
-            if result:
-                return DisarmResult(
-                    success=True,
-                    message="Alarm disarmed successfully",
-                    # The client doesn't return reference_id in this case
-                    reference_id=None,
-                )
-            else:
-                return DisarmResult(
-                    success=False, message="Failed to disarm alarm"
-                )
+            return result
 
         except Exception as e:
             _LOGGER.error("Error disarming panel: %s", e)

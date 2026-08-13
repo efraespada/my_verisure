@@ -63,6 +63,16 @@ async def test_arm_modes_delegate(repository, client, method, client_method):
 
 
 @pytest.mark.asyncio
+async def test_arm_panel_preserves_failed_result(repository, client):
+    expected = ArmResult(False, "provider rejected")
+    client.arm_alarm_away.return_value = expected
+
+    result = await repository.arm_panel("1", "ARM1", "panel", "caps")
+
+    assert result == expected
+
+
+@pytest.mark.asyncio
 async def test_arm_away_can_arm_perimeter(repository, client):
     client.arm_alarm_away.return_value = ArmResult(True, "away")
     client.arm_alarm_home.return_value = ArmResult(True, "home")
@@ -74,8 +84,7 @@ async def test_arm_away_can_arm_perimeter(repository, client):
 @pytest.mark.asyncio
 async def test_disarm_delegates(repository, client):
     expected = DisarmResult(True, "disarmed")
-    client.disarm_alarm.return_value = True
+    client.disarm_alarm.return_value = expected
     result = await repository.disarm_panel("1", "panel", "caps")
-    assert isinstance(result, DisarmResult)
-    assert result.success is True
+    assert result == expected
     client.disarm_alarm.assert_awaited_once_with("1", "panel", capabilities="caps")
