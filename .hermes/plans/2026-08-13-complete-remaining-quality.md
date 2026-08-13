@@ -148,3 +148,26 @@ CameraClient remain substantial files; this iteration reduced concrete
 responsibility duplication but did not claim that all monoliths are eliminated.
 Manual HA Docker validation and real Verisure validation remain unavailable and
 were not substituted with fabricated evidence.
+
+## Follow-up iteration — translation boundary and external client contracts
+
+Completed slices:
+
+- audited global-manager usage in `DeviceManager`, `LogManager`, and
+  `ConfigManager`; all production paths already require entry-scoped managers,
+  so no cosmetic fallback rewrite was introduced;
+- extracted `TranslationService` from `Coordinator`, isolating asynchronous JSON
+  loading, English fallback, dotted-key resolution, and formatting while keeping
+  the coordinator facade stable;
+- added external client contract regressions for alarm transport failures, empty
+  OTP payloads, and invalid camera status responses.
+
+Focused evidence: 14 translation/coordinator tests and 21 client contract tests
+passed. Full validation passed with 437 tests and 2 skips, 81% total coverage,
+mypy clean on 198 source files, critical Flake8 clean, compileall clean,
+architecture guard clean, pip check clean, and diff checks clean.
+
+Repowise improved to hotspot health 4.29 and maintainability average 9.25.
+The Coordinator remains the primary structural hotspot. No provider calls,
+real credentials, household Home Assistant instance, or Docker-based manual
+validation were used.
