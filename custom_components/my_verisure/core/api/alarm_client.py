@@ -9,6 +9,7 @@ from typing import Any, Dict, Optional, cast
 from ..session_manager import SessionManager
 from ..application.alarm_command_poller import AlarmCommandPoller
 from ..application.alarm_command_response import AlarmCommandResponseInterpreter
+from ..application.alarm_graphql_requests import AlarmGraphQLRequestPolicy
 from ..application.realtime_alarm_status import (
     RealtimeAlarmStatusInterpreter,
     RealtimeStatusAction,
@@ -21,11 +22,7 @@ from .exceptions import (
 )
 from .graphql_alarm_queries import (
     ARM_PANEL_MUTATION,
-    ARM_STATUS_QUERY,
     CHECK_ALARM_QUERY,
-    CHECK_ALARM_STATUS_QUERY,
-    DISARM_PANEL_MUTATION,
-    DISARM_STATUS_QUERY,
 )
 from ..log_utils import (
     redact_headers_for_log,
@@ -46,6 +43,7 @@ class AlarmClient(BaseClient):
         self._alarm_status_json_cache: Dict[str, Any] | None = None
         self._command_poller = AlarmCommandPoller()
         self._command_response_interpreter = AlarmCommandResponseInterpreter()
+        self._request_policy = AlarmGraphQLRequestPolicy()
         self._realtime_status_interpreter = RealtimeAlarmStatusInterpreter()
 
     def _log_graphql_outbound(
@@ -513,10 +511,11 @@ class AlarmClient(BaseClient):
     ) -> Dict[str, Any]:
         """Execute CheckAlarm query using direct aiohttp request to get referenceId."""
 
+        request = self._request_policy.check_alarm(installation_id, panel)
         return await self._execute_alarm_graphql(
-            "CheckAlarm",
-            CHECK_ALARM_QUERY,
-            {"numinst": installation_id, "panel": panel},
+            request.operation,
+            request.query,
+            request.variables,
             installation_id,
             panel,
             capabilities,
@@ -536,15 +535,16 @@ class AlarmClient(BaseClient):
     ) -> Dict[str, Any]:
         """Execute alarm status check query using direct aiohttp request."""
 
+        request = self._request_policy.check_alarm_status(
+            installation_id,
+            panel,
+            id_service,
+            reference_id,
+        )
         return await self._execute_alarm_graphql(
-            "CheckAlarmStatus",
-            CHECK_ALARM_STATUS_QUERY,
-            {
-                "numinst": installation_id,
-                "panel": panel,
-                "idService": id_service,
-                "referenceId": reference_id,
-            },
+            request.operation,
+            request.query,
+            request.variables,
             installation_id,
             panel,
             capabilities,
@@ -564,17 +564,16 @@ class AlarmClient(BaseClient):
     ) -> Dict[str, Any]:
         """Execute arm panel mutation using direct aiohttp request."""
         
+        gql_request = self._request_policy.arm_panel(
+            installation_id,
+            panel,
+            request,
+            current_status,
+        )
         return await self._execute_alarm_graphql(
-            "ArmPanel",
-            ARM_PANEL_MUTATION,
-            {
-                "numinst": installation_id,
-                "request": request,
-                "panel": panel,
-                "currentStatus": current_status,
-                "forceArmingRemoteId": None,
-                "armAndLock": False,
-            },
+            gql_request.operation,
+            gql_request.query,
+            gql_request.variables,
             installation_id,
             panel,
             capabilities,
@@ -595,18 +594,17 @@ class AlarmClient(BaseClient):
     ) -> Dict[str, Any]:
         """Execute arm status query using direct aiohttp request."""
 
+        gql_request = self._request_policy.arm_status(
+            installation_id,
+            panel,
+            request,
+            reference_id,
+            counter,
+        )
         return await self._execute_alarm_graphql(
-            "ArmStatus",
-            ARM_STATUS_QUERY,
-            {
-                "numinst": installation_id,
-                "request": request,
-                "panel": panel,
-                "referenceId": reference_id,
-                "counter": counter,
-                "forceArmingRemoteId": None,
-                "armAndLock": False,
-            },
+            gql_request.operation,
+            gql_request.query,
+            gql_request.variables,
             installation_id,
             panel,
             capabilities,
@@ -625,14 +623,15 @@ class AlarmClient(BaseClient):
     ) -> Dict[str, Any]:
         """Execute disarm panel mutation using direct aiohttp request."""
 
+        gql_request = self._request_policy.disarm_panel(
+            installation_id,
+            panel,
+            request,
+        )
         return await self._execute_alarm_graphql(
-            "DisarmPanel",
-            DISARM_PANEL_MUTATION,
-            {
-                "numinst": installation_id,
-                "request": request,
-                "panel": panel,
-            },
+            gql_request.operation,
+            gql_request.query,
+            gql_request.variables,
             installation_id,
             panel,
             capabilities,
@@ -653,16 +652,17 @@ class AlarmClient(BaseClient):
     ) -> Dict[str, Any]:
         """Execute disarm status query using direct aiohttp request."""
 
+        gql_request = self._request_policy.disarm_status(
+            installation_id,
+            panel,
+            request,
+            reference_id,
+            counter,
+        )
         return await self._execute_alarm_graphql(
-            "DisarmStatus",
-            DISARM_STATUS_QUERY,
-            {
-                "numinst": installation_id,
-                "panel": panel,
-                "referenceId": reference_id,
-                "counter": counter,
-                "request": request,
-            },
+            gql_request.operation,
+            gql_request.query,
+            gql_request.variables,
             installation_id,
             panel,
             capabilities,
