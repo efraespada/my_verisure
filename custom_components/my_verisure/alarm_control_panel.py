@@ -7,8 +7,8 @@ from typing import Any
 from homeassistant.components.alarm_control_panel import (
     AlarmControlPanelEntity,
     AlarmControlPanelEntityFeature,
-    AlarmControlPanelState,
 )
+from homeassistant.components.alarm_control_panel.const import AlarmControlPanelState
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -16,6 +16,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .core.const import DOMAIN, LOGGER, ENTITY_NAMES
 from .coordinator import MyVerisureDataUpdateCoordinator
 from .device import get_device_info
+from .core.application.alarm_state import AlarmState, analyze_alarm_state
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -69,60 +70,21 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
         Returns:
             tuple: (primary_state, detailed_states_dict)
         """
-        if not alarm_data:
-            return AlarmControlPanelState.DISARMED, {}
-
-        # Parse the JSON structure with internal/external sections
-        # The internal/external data is nested under the "data" field
-        raw_data = alarm_data.get("data", {})
-        if not raw_data:
-            return AlarmControlPanelState.DISARMED, {}
-
-        internal = raw_data.get("internal", {})
-        external = raw_data.get("external", {})
-
-        # Check internal states
-        internal_day = internal.get("day", {}).get("status", False)
-        internal_night = internal.get("night", {}).get("status", False)
-        internal_total = internal.get("total", {}).get("status", False)
-
-        # Check external state
-        external_status = external.get("status", False)
-
-        # Create detailed state information
-        detailed_states = {
-            "internal_day": internal_day,
-            "internal_night": internal_night,
-            "internal_total": internal_total,
-            "external": external_status,
-            "active_alarms": []
+        snapshot = analyze_alarm_state(alarm_data)
+        state_map = {
+            AlarmState.DISARMED: AlarmControlPanelState.DISARMED,
+            AlarmState.ARMED_AWAY: AlarmControlPanelState.ARMED_AWAY,
+            AlarmState.ARMED_NIGHT: AlarmControlPanelState.ARMED_NIGHT,
+            AlarmState.ARMED_HOME: AlarmControlPanelState.ARMED_HOME,
         }
-
-        # Determine which alarms are active
-        if internal_total:
-            detailed_states["active_alarms"].append("Internal Total")
-        if internal_day:
-            detailed_states["active_alarms"].append("Internal Day")
-        if internal_night:
-            detailed_states["active_alarms"].append("Internal Night")
-        if external_status:
-            detailed_states["active_alarms"].append("External")
-
-        # Determine primary state based on priority
-        # Priority order: Total > Night > Day > External > Disarmed
-        if internal_total:
-            primary_state = AlarmControlPanelState.ARMED_AWAY
-        elif internal_night:
-            primary_state = AlarmControlPanelState.ARMED_NIGHT
-        elif internal_day:
-            primary_state = AlarmControlPanelState.ARMED_HOME
-        elif external_status:
-            # Map external to home
-            primary_state = AlarmControlPanelState.ARMED_HOME
-        else:
-            primary_state = AlarmControlPanelState.DISARMED
-
-        return primary_state, detailed_states
+        detailed_states = {
+            "internal_day": snapshot.internal_day,
+            "internal_night": snapshot.internal_night,
+            "internal_total": snapshot.internal_total,
+            "external": snapshot.external,
+            "active_alarms": list(snapshot.active_alarms),
+        }
+        return state_map[snapshot.state], detailed_states
 
     @property
     def alarm_state(self) -> AlarmControlPanelState | None:
