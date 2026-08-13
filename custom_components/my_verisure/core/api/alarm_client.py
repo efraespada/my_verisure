@@ -62,6 +62,37 @@ class AlarmClient(BaseClient):
         if should_log_detailed():
             _LOGGER.debug("%s result=%s", operation, redact_sensitive_data(result))
 
+    async def _execute_alarm_graphql(
+        self,
+        operation: str,
+        query: str,
+        variables: Dict[str, Any],
+        installation_id: str,
+        panel: str,
+        capabilities: str,
+        hash_token: Optional[str] = None,
+        session_data: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Execute an alarm GraphQL operation with entry-scoped credentials."""
+        try:
+            headers = (
+                self._get_session_headers(session_data or {}, hash_token)
+                if session_data
+                else None
+            )
+            if headers:
+                headers["numinst"] = installation_id
+                headers["panel"] = panel
+                headers["x-capabilities"] = capabilities
+
+            self._log_graphql_outbound(operation, variables, headers)
+            result = await self._execute_query_direct(query, variables, headers)
+            self._log_graphql_result(operation, result)
+            return result
+        except Exception as e:
+            _LOGGER.error("Direct %s failed: %s", operation, e)
+            return {"errors": [{"message": str(e), "data": {}}]}
+
     async def _load_alarm_status_config(self) -> Dict[str, Any]:
         """Load alarm status configuration from JSON file (cached, non-blocking)."""
         if self._alarm_status_json_cache is not None:
@@ -522,32 +553,16 @@ class AlarmClient(BaseClient):
     ) -> Dict[str, Any]:
         """Execute CheckAlarm query using direct aiohttp request to get referenceId."""
 
-        try:
-            variables = {"numinst": installation_id, "panel": panel}
-
-            headers = (
-                self._get_session_headers(session_data or {}, hash_token)
-                if session_data
-                else None
-            )
-
-            if headers:
-                headers["numinst"] = installation_id
-                headers["panel"] = panel
-                headers["x-capabilities"] = capabilities
-
-            self._log_graphql_outbound("CheckAlarm", variables, headers)
-
-            result = await self._execute_query_direct(
-                CHECK_ALARM_QUERY, variables, headers
-            )
-            self._log_graphql_result("CheckAlarm", result)
-
-            return result
-
-        except Exception as e:
-            _LOGGER.error("Direct check alarm failed: %s", e)
-            return {"errors": [{"message": str(e), "data": {}}]}
+        return await self._execute_alarm_graphql(
+            "CheckAlarm",
+            CHECK_ALARM_QUERY,
+            {"numinst": installation_id, "panel": panel},
+            installation_id,
+            panel,
+            capabilities,
+            hash_token,
+            session_data,
+        )
 
     async def _execute_alarm_status_check_direct(
         self,
@@ -561,38 +576,21 @@ class AlarmClient(BaseClient):
     ) -> Dict[str, Any]:
         """Execute alarm status check query using direct aiohttp request."""
 
-        try:
-            variables = {
+        return await self._execute_alarm_graphql(
+            "CheckAlarmStatus",
+            CHECK_ALARM_STATUS_QUERY,
+            {
                 "numinst": installation_id,
                 "panel": panel,
                 "idService": id_service,
                 "referenceId": reference_id,
-            }
-
-            headers = (
-                self._get_session_headers(session_data or {}, hash_token)
-                if session_data
-                else None
-            )
-
-            if headers:
-                headers["numinst"] = installation_id
-                headers["panel"] = panel
-                headers["x-capabilities"] = capabilities
-
-            self._log_graphql_outbound("CheckAlarmStatus", variables, headers)
-
-            result = await self._execute_query_direct(
-                CHECK_ALARM_STATUS_QUERY, variables, headers
-            )
-
-            self._log_graphql_result("CheckAlarmStatus", result)
-
-            return result
-
-        except Exception as e:
-            _LOGGER.error("Direct alarm status check failed: %s", e)
-            return {"errors": [{"message": str(e), "data": {}}]}
+            },
+            installation_id,
+            panel,
+            capabilities,
+            hash_token,
+            session_data,
+        )
 
     async def _execute_arm_panel_direct(
         self,
@@ -606,40 +604,23 @@ class AlarmClient(BaseClient):
     ) -> Dict[str, Any]:
         """Execute arm panel mutation using direct aiohttp request."""
         
-        try:
-            variables = {
+        return await self._execute_alarm_graphql(
+            "ArmPanel",
+            ARM_PANEL_MUTATION,
+            {
                 "numinst": installation_id,
                 "request": request,
                 "panel": panel,
                 "currentStatus": current_status,
                 "forceArmingRemoteId": None,
                 "armAndLock": False,
-            }
-
-            headers = (
-                self._get_session_headers(session_data or {}, hash_token)
-                if session_data
-                else None
-            )
-
-            if headers:
-                headers["numinst"] = installation_id
-                headers["panel"] = panel
-                headers["x-capabilities"] = capabilities
-
-            self._log_graphql_outbound("ArmPanel", variables, headers)
-
-            result = await self._execute_query_direct(
-                ARM_PANEL_MUTATION, variables, headers
-            )
-
-            self._log_graphql_result("ArmPanel", result)
-
-            return result
-
-        except Exception as e:
-            _LOGGER.error("Direct arm panel failed: %s", e)
-            return {"errors": [{"message": str(e), "data": {}}]}
+            },
+            installation_id,
+            panel,
+            capabilities,
+            hash_token,
+            session_data,
+        )
 
     async def _execute_arm_status_direct(
         self,
@@ -654,8 +635,10 @@ class AlarmClient(BaseClient):
     ) -> Dict[str, Any]:
         """Execute arm status query using direct aiohttp request."""
 
-        try:
-            variables = {
+        return await self._execute_alarm_graphql(
+            "ArmStatus",
+            ARM_STATUS_QUERY,
+            {
                 "numinst": installation_id,
                 "request": request,
                 "panel": panel,
@@ -663,32 +646,13 @@ class AlarmClient(BaseClient):
                 "counter": counter,
                 "forceArmingRemoteId": None,
                 "armAndLock": False,
-            }
-
-            headers = (
-                self._get_session_headers(session_data or {}, hash_token)
-                if session_data
-                else None
-            )
-
-            if headers:
-                headers["numinst"] = installation_id
-                headers["panel"] = panel
-                headers["x-capabilities"] = capabilities
-
-            self._log_graphql_outbound("ArmStatus", variables, headers)
-
-            result = await self._execute_query_direct(
-                ARM_STATUS_QUERY, variables, headers
-            )
-
-            self._log_graphql_result("ArmStatus", result)
-
-            return result
-
-        except Exception as e:
-            _LOGGER.error("Direct arm status failed: %s", e)
-            return {"errors": [{"message": str(e), "data": {}}]}
+            },
+            installation_id,
+            panel,
+            capabilities,
+            hash_token,
+            session_data,
+        )
 
     async def _execute_disarm_panel_direct(
         self,
@@ -701,37 +665,20 @@ class AlarmClient(BaseClient):
     ) -> Dict[str, Any]:
         """Execute disarm panel mutation using direct aiohttp request."""
 
-        try:
-            variables = {
+        return await self._execute_alarm_graphql(
+            "DisarmPanel",
+            DISARM_PANEL_MUTATION,
+            {
                 "numinst": installation_id,
                 "request": request,
                 "panel": panel,
-            }
-
-            headers = (
-                self._get_session_headers(session_data or {}, hash_token)
-                if session_data
-                else None
-            )
-
-            if headers:
-                headers["numinst"] = installation_id
-                headers["panel"] = panel
-                headers["x-capabilities"] = capabilities
-
-            self._log_graphql_outbound("DisarmPanel", variables, headers)
-
-            result = await self._execute_query_direct(
-                DISARM_PANEL_MUTATION, variables, headers
-            )
-
-            self._log_graphql_result("DisarmPanel", result)
-
-            return result
-
-        except Exception as e:
-            _LOGGER.error("Direct disarm panel failed: %s", e)
-            return {"errors": [{"message": str(e), "data": {}}]}
+            },
+            installation_id,
+            panel,
+            capabilities,
+            hash_token,
+            session_data,
+        )
 
     async def _execute_disarm_status_direct(
         self,
@@ -746,37 +693,20 @@ class AlarmClient(BaseClient):
     ) -> Dict[str, Any]:
         """Execute disarm status query using direct aiohttp request."""
 
-        try:
-            variables = {
+        return await self._execute_alarm_graphql(
+            "DisarmStatus",
+            DISARM_STATUS_QUERY,
+            {
                 "numinst": installation_id,
                 "panel": panel,
                 "referenceId": reference_id,
                 "counter": counter,
                 "request": request,
-            }
-
-            headers = (
-                self._get_session_headers(session_data or {}, hash_token)
-                if session_data
-                else None
-            )
-
-            if headers:
-                headers["numinst"] = installation_id
-                headers["panel"] = panel
-                headers["x-capabilities"] = capabilities
-
-            self._log_graphql_outbound("DisarmStatus", variables, headers)
-
-            result = await self._execute_query_direct(
-                DISARM_STATUS_QUERY, variables, headers
-            )
-
-            self._log_graphql_result("DisarmStatus", result)
-
-            return result
-
-        except Exception as e:
-            _LOGGER.error("Direct disarm status failed: %s", e)
-            return {"errors": [{"message": str(e), "data": {}}]}
+            },
+            installation_id,
+            panel,
+            capabilities,
+            hash_token,
+            session_data,
+        )
 
