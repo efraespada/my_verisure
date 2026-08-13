@@ -95,3 +95,13 @@ locations with `HA_PYTHON=/path/to/python HA_CORE=/path/to/core` when needed.
 - End-to-end tests depend on **mocked** HTTP — see repository coverage reports for hotspots.
 
 See [testing-strategy.md](../technical/testing-strategy.md) and [roadmap](../roadmap/gaps-analysis.md).
+## Static typing boundary
+
+`config_flow.py` contains one localized `type: ignore[call-arg]` on the
+`ConfigFlow` subclass declaration. Home Assistant Core 2026.8.1 registers the
+integration domain through `ConfigFlow.__init_subclass__(domain=...)`, while the
+available typing surface exposes `object.__init_subclass__` and therefore
+reports a false positive. The ignore is intentionally limited to that one
+framework boundary; it is covered by the real config-flow lifecycle tests and
+is not a repository-wide mypy exclusion.
+

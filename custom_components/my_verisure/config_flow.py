@@ -49,7 +49,9 @@ from .core.const import (
 )
 
 
-class MyVerisureConfigFlowHandler(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
+class MyVerisureConfigFlowHandler(
+    ConfigFlow, domain=DOMAIN  # type: ignore[call-arg]  # HA registers domain via __init_subclass__
+):
     """Handle a config flow for My Verisure."""
 
     VERSION = 1
