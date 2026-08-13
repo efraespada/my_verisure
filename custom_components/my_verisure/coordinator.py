@@ -26,6 +26,7 @@ from .core.dependency_injection.composition_root import (
     CompositionRoot,
     build_my_verisure_composition_root,
 )
+from .core.application.coordinator_authentication import CoordinatorAuthenticationPolicy
 from .core.application.coordinator_snapshot import merge_alarm_snapshot
 from .core.application.coordinator_snapshot_store import CoordinatorSnapshotStore
 from .core.application.installation_snapshot_service import InstallationSnapshotService
@@ -97,6 +98,10 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         self.session_manager = self.composition_root.get(SessionManager)
         self.file_manager = self.composition_root.get(FileManager)
         self.snapshot_store = CoordinatorSnapshotStore(self.file_manager)
+        self.authentication_policy = CoordinatorAuthenticationPolicy(
+            login=self.async_login,
+            load_cache=self.load_alarm_info,
+        )
         
         # Reference to alarm control panel for state updates
         self._alarm_control_panel = None
@@ -272,13 +277,11 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
                     "AUTH_FLOW[update_data]: starting update cycle, installation=%s",
                     self.installation_id,
                 )
-                # Ensure we're logged in
-                if not await self.async_login():
-                    # If login fails, try to use cached data
-                    cached_data = self.load_alarm_info()
-                    if cached_data:
+                authentication = await self.authentication_policy.authenticate()
+                if not authentication.authenticated:
+                    if authentication.cached_data:
                         LOGGER.warning("Login failed but using cached coordinator data")
-                        return cached_data
+                        return authentication.cached_data
                     raise UpdateFailed("Failed to login to My Verisure")
 
                 LOGGER.info(

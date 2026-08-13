@@ -8,6 +8,9 @@ from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import UpdateFailed
 
 from custom_components.my_verisure.coordinator import MyVerisureDataUpdateCoordinator
+from custom_components.my_verisure.core.application.coordinator_authentication import (
+    CoordinatorAuthenticationDecision,
+)
 from custom_components.my_verisure.core.api.exceptions import (
     MyVerisureAuthenticationError,
     MyVerisureConnectionError,
@@ -23,6 +26,10 @@ def coordinator() -> MyVerisureDataUpdateCoordinator:
     value.session_manager = Mock()
     value.file_manager = Mock()
     value.snapshot_store = Mock()
+    value.authentication_policy = Mock()
+    value.authentication_policy.authenticate = AsyncMock(
+        return_value=CoordinatorAuthenticationDecision(authenticated=True)
+    )
     value.snapshot_service = Mock()
     value.create_dummy_camera_images_use_case = Mock()
     value.hass = SimpleNamespace(data={})
@@ -54,7 +61,11 @@ async def test_update_data_returns_snapshot_and_persists_cache(coordinator) -> N
 async def test_update_data_uses_cache_when_login_fails(coordinator) -> None:
     cached = {"installation_id": "home-1", "cached": True}
     setattr(coordinator, "async_login", AsyncMock(return_value=False))
-    coordinator.load_alarm_info.return_value = cached
+    coordinator.authentication_policy.authenticate = AsyncMock(
+        return_value=CoordinatorAuthenticationDecision(
+            authenticated=False, cached_data=cached
+        )
+    )
 
     assert await coordinator._async_update_data() == cached
 
