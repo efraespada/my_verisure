@@ -1,11 +1,16 @@
 """Home Assistant platform contract tests for My Verisure."""
 
+from pathlib import Path
+from typing import cast
 from types import SimpleNamespace
+
 
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.my_verisure import alarm_control_panel, binary_sensor, button, camera, sensor
+from custom_components.my_verisure.camera import VerisureCamera
+from custom_components.my_verisure.coordinator import MyVerisureDataUpdateCoordinator
 from custom_components.my_verisure.core.const import DOMAIN
 
 
@@ -26,6 +31,50 @@ def _coordinator(data: dict) -> SimpleNamespace:
         register_button=lambda entity: None,
     )
 
+
+def _camera_entity(tmp_path: Path, entry: MockConfigEntry) -> VerisureCamera:
+    coordinator = _coordinator({})
+    coordinator.file_manager = SimpleNamespace(get_data_directory=lambda: tmp_path)
+    return VerisureCamera(
+        cast(MyVerisureDataUpdateCoordinator, coordinator),
+        {"type": "YP", "code": "1", "name": "Front"},
+        entry,
+    )
+
+
+def test_camera_image_returns_none_when_directory_is_missing(tmp_path):
+    entity = _camera_entity(tmp_path, _entry())
+
+    assert entity._get_latest_image() is None
+
+
+def test_camera_image_ignores_invalid_timestamp_directories(tmp_path):
+    entity = _camera_entity(tmp_path, _entry())
+    device_path = tmp_path / "cameras" / "YP01"
+    (device_path / "not-a-timestamp").mkdir(parents=True)
+
+    assert entity._get_latest_image() is None
+
+
+def test_camera_image_prefers_thumbnail(tmp_path):
+    entity = _camera_entity(tmp_path, _entry())
+    timestamp_path = tmp_path / "cameras" / "YP01" / "2026-08-13_12-00-00"
+    timestamp_path.mkdir(parents=True)
+    (timestamp_path / "thumbnail.jpg").write_bytes(b"thumbnail")
+    (timestamp_path / "other.png").write_bytes(b"other")
+
+    assert entity._get_latest_image() == b"thumbnail"
+    assert entity._latest_image_path is not None
+    assert entity._latest_image_path.endswith("thumbnail.jpg")
+
+
+def test_camera_image_falls_back_to_supported_image(tmp_path):
+    entity = _camera_entity(tmp_path, _entry())
+    timestamp_path = tmp_path / "cameras" / "YP01" / "2026-08-13_12-00-00"
+    timestamp_path.mkdir(parents=True)
+    (timestamp_path / "snapshot.png").write_bytes(b"snapshot")
+
+    assert entity._get_latest_image() == b"snapshot"
 
 @pytest.mark.asyncio
 async def test_sensor_platform_creates_four_entry_scoped_entities():
