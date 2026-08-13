@@ -9,7 +9,7 @@ import os
 import platform
 import random
 import time
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, TypeGuard
 
 from ..file_manager import FileManager
 
@@ -18,11 +18,25 @@ _LOGGER = logging.getLogger(__name__)
 class DeviceManager:
     """Manages device identifiers and device authorization."""
 
+    REQUIRED_IDENTIFIER_KEYS = frozenset(
+        {
+            "idDevice",
+            "uuid",
+            "idDeviceIndigitall",
+            "deviceName",
+            "deviceBrand",
+            "deviceOsVersion",
+            "deviceVersion",
+            "deviceType",
+            "deviceResolution",
+        }
+    )
+
     def __init__(self, file_manager: FileManager) -> None:
         """Initialize the device manager."""
         self._device_identifiers: Optional[Dict[str, Any]] = None
         self._file_manager = file_manager
-        # Keep platform discovery scoped to this manager.  A module-level cache
+        # Keep platform discovery scoped to this manager. A module-level cache
         # would leak host-derived state between ConfigEntry graphs and tests.
         self._platform_string: str | None = None
 
@@ -131,11 +145,18 @@ class DeviceManager:
             "generated_time": int(time.time()),
         }
 
+    @classmethod
+    def _has_required_identifiers(
+        cls, device_data: object
+    ) -> TypeGuard[Dict[str, Any]]:
+        """Return whether persisted identifiers satisfy API construction needs."""
+        return isinstance(device_data, dict) and cls.REQUIRED_IDENTIFIER_KEYS <= device_data.keys()
+
     def _load_device_identifiers(self) -> bool:
         """Load device identifiers from file (blocking I/O)."""
         try:
             device_data = self._resolve_file_manager().load_device_identifiers()
-            if device_data:
+            if self._has_required_identifiers(device_data):
                 self._device_identifiers = device_data
                 _LOGGER.warning("Device identifiers loaded from device_identifiers.json")
                 _LOGGER.warning(
@@ -156,7 +177,7 @@ class DeviceManager:
         """Load device identifiers without blocking the event loop."""
         try:
             device_data = await self._resolve_file_manager().async_load_device_identifiers()
-            if device_data:
+            if self._has_required_identifiers(device_data):
                 self._device_identifiers = device_data
                 _LOGGER.warning("Device identifiers loaded from device_identifiers.json")
                 _LOGGER.warning(

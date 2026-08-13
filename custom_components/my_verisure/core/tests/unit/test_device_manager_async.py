@@ -15,7 +15,17 @@ async def test_async_device_identifiers_load_from_entry_scoped_storage(
     tmp_path: Path,
 ) -> None:
     file_manager = FileManager(tmp_path)
-    expected = {"idDevice": "device-1", "uuid": "uuid-1"}
+    expected = {
+        "idDevice": "device-1",
+        "uuid": "uuid-1",
+        "idDeviceIndigitall": "indigitall-1",
+        "deviceName": "name",
+        "deviceBrand": "brand",
+        "deviceOsVersion": "os",
+        "deviceVersion": "version",
+        "deviceType": "",
+        "deviceResolution": "",
+    }
 
     with patch.object(
         file_manager,
@@ -29,6 +39,45 @@ async def test_async_device_identifiers_load_from_entry_scoped_storage(
     cast(Any, load_mock).assert_awaited_once_with()
 
 
+@pytest.mark.asyncio
+async def test_partial_persisted_identifiers_are_regenerated(
+    tmp_path: Path,
+) -> None:
+    file_manager = FileManager(tmp_path)
+    partial = {"idDevice": "device-1"}
+
+    with (
+        patch.object(
+            file_manager,
+            "async_load_device_identifiers",
+            new=AsyncMock(return_value=partial),
+        ),
+        patch.object(
+            file_manager,
+            "async_save_device_identifiers",
+            new=AsyncMock(return_value=True),
+        ) as save_mock,
+        patch.object(
+            DeviceManager,
+            "_generate_device_identifiers",
+            return_value={
+                "idDevice": "generated",
+                "uuid": "uuid",
+                "idDeviceIndigitall": "indigitall",
+                "deviceName": "name",
+                "deviceBrand": "brand",
+                "deviceOsVersion": "os",
+                "deviceVersion": "version",
+                "deviceType": "",
+                "deviceResolution": "",
+            },
+        ),
+    ):
+        manager = DeviceManager(file_manager=file_manager)
+        await manager.async_ensure_device_identifiers()
+
+    assert manager.get_device_identifiers()["idDevice"] == "generated"
+    save_mock.assert_awaited_once()
 @pytest.mark.asyncio
 async def test_async_device_identifier_generation_is_isolated(
     tmp_path: Path,

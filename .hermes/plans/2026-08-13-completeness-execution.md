@@ -185,6 +185,16 @@ Execution:
    for empty payloads, malformed payloads, authentication expiry, transport
    errors, and safe exception conversion. Do not extract code without a cohesive
    contract.
+
+Execution:
+
+- Added required-identifier validation to `DeviceManager` for persisted device
+  data. Partial/corrupt files now regenerate entry-scoped identifiers instead of
+  failing later with `KeyError` during login or OTP.
+- Added regression coverage for partial persisted identifiers and preserved
+  entry isolation.
+- Focused client suite: **21 passed**.
+- Mypy covers 224 files without errors.
 4. **Live-boundary evidence:** retry only read-only environment discovery for
    Docker/HA availability; never change host permissions or use provider
    credentials. Record blockers precisely.
