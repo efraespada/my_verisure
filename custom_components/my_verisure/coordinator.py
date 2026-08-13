@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import time
-from typing import Any, Dict
+from typing import Any, Dict, cast
 from datetime import timedelta
 import json
 from pathlib import Path
@@ -79,17 +79,17 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             / f"my_verisure_{entry.entry_id}",
         )
 
-        self.auth_use_case = self.composition_root.get(AuthUseCase)
-        self.installation_use_case = self.composition_root.get(InstallationUseCase)
+        self.auth_use_case = self.composition_root.get(cast(type[Any], AuthUseCase))
+        self.installation_use_case = self.composition_root.get(cast(type[Any], InstallationUseCase))
         self.get_installation_devices_use_case = self.composition_root.get(
-            GetInstallationDevicesUseCase
+            cast(type[Any], GetInstallationDevicesUseCase)
         )
-        self.alarm_use_case = self.composition_root.get(AlarmUseCase)
+        self.alarm_use_case = self.composition_root.get(cast(type[Any], AlarmUseCase))
         self.refresh_camera_images_use_case = self.composition_root.get(
-            RefreshCameraImagesUseCase
+            cast(type[Any], RefreshCameraImagesUseCase)
         )
         self.create_dummy_camera_images_use_case = self.composition_root.get(
-            CreateDummyCameraImagesUseCase
+            cast(type[Any], CreateDummyCameraImagesUseCase)
         )
 
         self.session_manager = self.composition_root.get(SessionManager)
@@ -400,7 +400,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         """Load the last saved data from coordinator data file."""
         try:
             alarm_info = self.file_manager.load_json(COORDINATOR_DATA_FILE)
-            if alarm_info:
+            if isinstance(alarm_info, dict) and alarm_info:
                 return alarm_info
             else:
                 LOGGER.warning("No last data found in %s", COORDINATOR_DATA_FILE)

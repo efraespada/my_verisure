@@ -1,13 +1,15 @@
 """JWT utility functions for My Verisure integration."""
 
+import importlib
 import logging
 import time
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
+jwt: Any = None
 try:
-    import jwt
+    jwt = importlib.import_module("jwt")
 except ImportError:
-    jwt = None
+    pass
 
 _LOGGER = logging.getLogger(__name__)
 

@@ -450,6 +450,12 @@ class AlarmClient(BaseClient):
                     )
                     return ArmResult(success=False, message=status_msg, reference_id=reference_id)
 
+            return ArmResult(
+                success=False,
+                message="Alarm command polling exhausted",
+                reference_id=reference_id,
+            )
+
         except Exception as e:
             _LOGGER.error("Unexpected error sending alarm command: %s", e)
             return ArmResult(success=False, message=f"Unexpected error: {e}")
@@ -576,6 +582,12 @@ class AlarmClient(BaseClient):
                         "Failed to complete disarm command: %s", status_msg
                     )
                     return DisarmResult(success=False, message=status_msg, reference_id=reference_id)
+
+            return DisarmResult(
+                success=False,
+                message="Disarm command polling exhausted",
+                reference_id=reference_id,
+            )
 
         except Exception as e:
             _LOGGER.error("Unexpected error disarming alarm: %s", e)

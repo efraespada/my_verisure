@@ -282,7 +282,8 @@ class CameraClient(BaseClient):
                         _LOGGER.warning("⚠️ No response to request error detected, exiting status check loop")
                         return CameraRequestImageResultDTO(
                             success=False,
-                            reference_id=reference_id
+                            successful_requests=0,
+                            reference_id=reference_id,
                         )
                 
                 if not status_result or "data" not in status_result or "xSRequestImagesStatus" not in status_result["data"]:

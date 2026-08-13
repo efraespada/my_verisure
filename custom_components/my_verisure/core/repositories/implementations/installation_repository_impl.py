@@ -68,6 +68,10 @@ class InstallationRepositoryImpl(InstallationRepository):
                 )
                 return None
 
+            if not isinstance(data, dict):
+                _LOGGER.warning("Ignoring invalid detailed installation cache payload")
+                return None
+
             detailed_installation = detailed_installation_from_dto(
                 DetailedInstallationDTO.from_dict(data)
             )

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TypeVar
+from typing import Any, TypeVar, cast
 
 from injector import Injector, Module
 
@@ -22,7 +22,7 @@ class CompositionRoot:
 
     def get(self, dependency: type[T]) -> T:
         """Resolve one dependency from this root."""
-        return self._injector.get(dependency)
+        return cast(T, self._injector.get(cast(type[Any], dependency)))
 
 
 def build_my_verisure_composition_root(
@@ -44,6 +44,6 @@ def build_my_verisure_composition_root(
     from ..use_cases.interfaces.auth_use_case import AuthUseCase
 
     session_manager = root.get(SessionManager)
-    auth_use_case = root.get(AuthUseCase)
+    auth_use_case = root.get(cast(type[Any], AuthUseCase))
     session_manager.set_authenticator(auth_use_case.login)
     return root

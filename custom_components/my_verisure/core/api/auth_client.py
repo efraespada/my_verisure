@@ -182,6 +182,10 @@ class AuthClient(BaseClient):
 
                 # Update SessionManager with new credentials
                 session_manager = self._resolve_session_manager()
+                if not self._hash:
+                    raise MyVerisureAuthenticationError(
+                        "Login succeeded without a session hash"
+                    )
                 if should_log_detailed():
                     _LOGGER.debug(
                         "Updating session for user=%s hash=%s",
@@ -692,6 +696,10 @@ class AuthClient(BaseClient):
 
                 # Update SessionManager with new credentials
                 session_manager = self._resolve_session_manager()
+                if not self._hash:
+                    raise MyVerisureAuthenticationError(
+                        "Post-OTP login succeeded without a session hash"
+                    )
                 await session_manager.async_update_credentials(
                     user,
                     password,

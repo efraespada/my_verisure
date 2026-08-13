@@ -46,7 +46,8 @@ class BaseClient:
     def _get_current_credentials(self) -> tuple[Optional[str], Dict[str, Any]]:
         """Get current credentials from SessionManager."""
         session_manager = self._resolve_session_manager()
-        return session_manager.hash_token, session_manager.get_current_session_data()
+        session_data = session_manager.get_current_session_data() or {}
+        return session_manager.hash_token, session_data
 
 
     def _get_session_headers(
@@ -116,4 +117,3 @@ class BaseClient:
         finally:
             if not _session.closed:
                 await _session.close()
-            _session = None
