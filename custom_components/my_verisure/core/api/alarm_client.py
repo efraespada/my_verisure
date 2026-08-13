@@ -1,6 +1,5 @@
 """Alarm client for My Verisure API."""
 
-import asyncio
 import logging
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -10,9 +9,8 @@ from ..application.alarm_command_poller import AlarmCommandPoller
 from ..application.alarm_command_response import AlarmCommandResponseInterpreter
 from ..application.alarm_graphql_requests import AlarmGraphQLRequestPolicy
 from ..application.alarm_status_service import AlarmStatusService
-from ..application.realtime_alarm_status import (
-    RealtimeAlarmStatusInterpreter,
-    RealtimeStatusAction,
+from ..application.realtime_alarm_status_workflow import (
+    RealtimeAlarmStatusWorkflow,
 )
 from ..api.models.domain.alarm import ArmResult, DisarmResult
 from .base_client import BaseClient
@@ -46,7 +44,7 @@ class AlarmClient(BaseClient):
         self._status_service = AlarmStatusService(
             Path(__file__).with_name("alarm_status.json")
         )
-        self._realtime_status_interpreter = RealtimeAlarmStatusInterpreter()
+        self._realtime_status_workflow = RealtimeAlarmStatusWorkflow()
 
     def _log_graphql_outbound(
         self,
@@ -216,55 +214,18 @@ class AlarmClient(BaseClient):
         session_data: Optional[Dict[str, Any]] = None,
     ) -> str:
         """Get real-time alarm status using the CheckAlarmStatus query with polling."""
-        try:
-            max_retries = 10  # Maximum number of retries
-            retry_count = 0
-
-            while retry_count < max_retries:
-                # Execute the alarm status check query
-                result = await self._execute_alarm_status_check_direct(
-                    installation_id=numinst,
-                    panel=panel,
-                    id_service=id_service,
-                    reference_id=reference_id,
-                    capabilities=capabilities,
-                    hash_token=hash_token,
-                    session_data=session_data,
-                )
-
-                decision = self._realtime_status_interpreter.interpret(result)
-                if decision.action is RealtimeStatusAction.SUCCESS:
-                    return decision.message
-                if decision.action is RealtimeStatusAction.FAILURE:
-                    _LOGGER.error(
-                        "Real-time alarm status check failed: %s",
-                        decision.message,
-                    )
-                    return decision.message
-                if decision.action is RealtimeStatusAction.WAIT:
-                    retry_count += 1
-                    if retry_count < max_retries:
-                        _LOGGER.debug(
-                            "Alarm status check returned WAIT, waiting 15 seconds "
-                            "before retry %d",
-                            retry_count + 1,
-                        )
-                        await asyncio.sleep(15)
-                    else:
-                        _LOGGER.warning("Max retries reached for alarm status check")
-                        return ""
-                    continue
-
-                _LOGGER.warning("Unknown response from alarm status check")
-                return ""
-
-            return ""
-
-        except Exception as e:
-            _LOGGER.error(
-                "Unexpected error getting real-time alarm status: %s", e
+        async def transport(attempt: int) -> dict[str, Any]:
+            return await self._execute_alarm_status_check_direct(
+                installation_id=numinst,
+                panel=panel,
+                id_service=id_service,
+                reference_id=reference_id,
+                capabilities=capabilities,
+                hash_token=hash_token,
+                session_data=session_data,
             )
-            return ""
+
+        return await self._realtime_status_workflow.run(transport)
 
     async def send_alarm_command(
         self,
