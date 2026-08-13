@@ -3,7 +3,6 @@
 import asyncio
 import logging
 from typing import Any, Dict, List
-import datetime
 import json
 
 from .base_client import BaseClient
@@ -14,6 +13,7 @@ from .exceptions import (
 )
 from ..session_manager import SessionManager
 from ..file_manager import FileManager
+from ..application.camera_request_policy import CameraRequestPolicy
 from ..api.models.dto.camera_request_image_dto import CameraRequestImageResultDTO
 from ..log_utils import redact_headers_for_log, should_log_detailed, truncate_secret
 
@@ -113,6 +113,7 @@ class CameraClient(BaseClient):
         """Initialize the camera client."""
         super().__init__(session_manager=session_manager)
         self._file_manager = file_manager
+        self._request_policy = CameraRequestPolicy()
 
     def _resolve_file_manager(self) -> FileManager:
         """Return the file manager owned by this composition root."""
@@ -139,24 +140,17 @@ class CameraClient(BaseClient):
                 )
                 raise MyVerisureError("Panel information required for camera operations")
 
-            # Step 1: Execute the first query (REQUEST_IMAGES_MUTATION)
-            variables = {
-                "numinst": installation_id,
-                "panel": panel,
-                "devices": devices,
-            }
-
-            # Prepare headers
-            headers = (
-                self._get_session_headers(session_data or {}, hash_token)
-                if session_data
-                else None
+            context = self._request_policy.build_context(
+                installation_id=installation_id,
+                panel=panel,
+                devices=devices,
+                capabilities=capabilities,
+                session_data=session_data,
+                hash_token=hash_token,
+                header_factory=self._get_session_headers,
             )
-
-            if headers:
-                headers["numinst"] = installation_id
-                headers["panel"] = panel
-                headers["x-capabilities"] = capabilities
+            variables = context.variables
+            headers = context.headers
 
             _LOGGER.info("My Verisure API request: RequestImages")
             if should_log_detailed():
@@ -419,11 +413,7 @@ class CameraClient(BaseClient):
             timestamp = thumbnail_data.get("timestamp", "")
             thumbnail_image = thumbnail_data.get("image", "")
 
-            # Create timestamp-based directory name (replace spaces and special chars)
-            timestamp_dir = timestamp.replace(" ", "_").replace(":", "-").replace("/", "-")
-            if not timestamp_dir:
-                # Fallback to current timestamp if no timestamp provided
-                timestamp_dir = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            timestamp_dir = self._request_policy.image_directory(timestamp)
 
             # Save thumbnail image
             if thumbnail_image:
