@@ -6,6 +6,7 @@ import time
 from typing import Any, Dict, Optional
 
 from .base_client import BaseClient
+from ..application.auth_response_classifier import LoginResponse, classify_login_response
 from .device_manager import DeviceManager
 from .exceptions import (
     MyVerisureError,
@@ -135,28 +136,9 @@ class AuthClient(BaseClient):
                 self._get_headers(),
             )
 
-            # Check for GraphQL errors first
-            if "errors" in result and result["errors"]:
-                error = result["errors"][0]
-                error_message = error.get("message", "Unknown error")
-                error_data = error.get("data", {})
-
-                _LOGGER.error("Login failed: %s", error_message)
-
-                # Check for specific error codes
-                if error_data.get("err") == "60091":
-                    raise MyVerisureAuthenticationError(
-                        "Invalid user or password"
-                    )
-                else:
-                    raise MyVerisureAuthenticationError(
-                        f"Login failed: {error_message}"
-                    )
-
-            # Check for successful response
-            data_wrapper = result.get("data", {})
-            login_data = data_wrapper.get("xSLoginToken", {}) if isinstance(data_wrapper, dict) else {}
-            if login_data and login_data.get("res") == "OK":
+            classified = classify_login_response(result)
+            if isinstance(classified, LoginResponse):
+                login_data = classified.data
                 # Store session data
                 self._session_data = {
                     "user": user,
@@ -228,16 +210,8 @@ class AuthClient(BaseClient):
                 else:
                     _LOGGER.debug("Device authorization not required — login complete")
                     return auth_dto
-            else:
-                error_msg = (
-                    login_data.get("msg", "Unknown error")
-                    if login_data
-                    else "No response data"
-                )
-                _LOGGER.error("Login failed: %s", error_msg)
-                raise MyVerisureAuthenticationError(
-                    f"Login failed: {error_msg}"
-                )
+            _LOGGER.error("Login failed: %s", classified)
+            raise MyVerisureAuthenticationError(str(classified))
 
         except MyVerisureError:
             # Re-raise our custom exceptions
