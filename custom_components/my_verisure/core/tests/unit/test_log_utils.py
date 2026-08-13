@@ -30,6 +30,28 @@ def test_redact_sensitive_data_removes_capabilities_header() -> None:
     assert data["numinst"] == "1"
 
 
+def test_redact_sensitive_data_redacts_all_authentication_material() -> None:
+    """No authentication material may appear in diagnostic/log payloads."""
+    payload = {
+        "password": "secret-password",
+        "hash": "secret-hash",
+        "refresh_token": "secret-refresh-token",
+        "otp_code": "123456",
+        "nested": {"authorization": "Bearer secret-token"},
+    }
+
+    serialized = log_utils.redact_sensitive_data(payload)
+
+    for secret in (
+        "secret-password",
+        "secret-hash",
+        "secret-refresh-token",
+        "123456",
+        "secret-token",
+    ):
+        assert secret not in serialized
+
+
 def test_redact_sensitive_data_truncates_hash() -> None:
     """Hash-like keys are truncated."""
     payload = {"hash": "eyJ" + "x" * 100}

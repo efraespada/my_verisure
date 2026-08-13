@@ -278,8 +278,18 @@ async def test_two_config_entries_keep_runtime_data_separate(
             entries[0].runtime_data.composition_root
             is not entries[1].runtime_data.composition_root
         )
-        assert entries[0].runtime_data.installation_id == "1"
-        assert entries[1].runtime_data.installation_id == "2"
+        first_runtime = entries[0].runtime_data
+        second_runtime = entries[1].runtime_data
+        assert first_runtime.installation_id == "1"
+        assert second_runtime.installation_id == "2"
+        assert first_runtime.session_manager is not second_runtime.session_manager
+        assert first_runtime.file_manager is not second_runtime.file_manager
+        assert first_runtime.session_file != second_runtime.session_file
+        assert first_runtime.file_manager.get_project_root() != (
+            second_runtime.file_manager.get_project_root()
+        )
+        assert first_runtime.session_manager.username == "test-1@example.invalid"
+        assert second_runtime.session_manager.username == "test-2@example.invalid"
 
         assert await hass.config_entries.async_unload(entries[0].entry_id)
         assert entries[1].state.name == "LOADED"
