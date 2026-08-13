@@ -7,6 +7,7 @@ import os
 from typing import Any, Dict, Optional, cast
 
 from ..session_manager import SessionManager
+from ..application.alarm_command_poller import AlarmCommandPoller
 from ..api.models.domain.alarm import ArmResult, DisarmResult
 from .base_client import BaseClient
 from .exceptions import (
@@ -38,6 +39,7 @@ class AlarmClient(BaseClient):
         """Initialize the alarm client."""
         super().__init__(session_manager=session_manager)
         self._alarm_status_json_cache: Dict[str, Any] | None = None
+        self._command_poller = AlarmCommandPoller()
 
     def _log_graphql_outbound(
         self,
@@ -378,82 +380,21 @@ class AlarmClient(BaseClient):
                 )
                 return ArmResult(success=False, message=arm_msg)
 
-            max_retries = 30  # Maximum number of retries
-            retry_count = 0
-
-            while retry_count < max_retries:
-                retry_count += 1
-                _LOGGER.debug(
-                    "Checking arm status, attempt %d/%d",
-                    retry_count,
-                    max_retries,
-                )
-
-                # Execute the status check query
-                status_result = await self._execute_arm_status_direct(
+            async def status_transport(attempt: int) -> dict[str, Any]:
+                return await self._execute_arm_status_direct(
                     installation_id=installation_id,
                     panel=panel,
                     request=request,
                     reference_id=reference_id,
-                    counter=retry_count,
+                    counter=attempt,
                     capabilities=capabilities,
                     hash_token=hash_token,
                     session_data=session_data,
                 )
 
-                # Check for errors in status check
-                if "errors" in status_result:
-                    error = (
-                        status_result["errors"][0]
-                        if status_result["errors"]
-                        else {}
-                    )
-                    error_msg = error.get("message", "Unknown error")
-                    _LOGGER.error("Failed to check arm status: %s", error_msg)
-                    return ArmResult(success=False, message=error_msg, reference_id=reference_id)
-
-                # Check status response
-                status_data = status_result.get("data", {})
-                arm_status_result = status_data.get("xSArmStatus", {})
-                status_res = arm_status_result.get("res", "Unknown")
-                status_msg = arm_status_result.get("msg", "Unknown")
-                status_status = arm_status_result.get("status")
-
-                _LOGGER.debug(
-                    "Arm status check: res=%s, msg=%s, status=%s",
-                    status_res,
-                    status_msg,
-                    status_status,
-                )
-
-                if status_res == "OK":
-                    return ArmResult(success=True, message=status_msg, reference_id=reference_id)
-                elif status_res == "WAIT":
-                    # Need to wait and retry
-                    if retry_count < max_retries:
-                        _LOGGER.debug(
-                            "Arm status returned WAIT, waiting 15 seconds "
-                            "before retry"
-                        )
-                        await asyncio.sleep(15)  # Wait 15 seconds before retry
-                    else:
-                        _LOGGER.warning(
-                            "Max retries reached for arm status check"
-                        )
-                        return ArmResult(success=False, message="Max retries reached for arm status check", reference_id=reference_id)
-                else:
-                    # Error or unknown response
-                    _LOGGER.error(
-                        "Failed to complete alarm command '%s': %s",
-                        request,
-                        status_msg,
-                    )
-                    return ArmResult(success=False, message=status_msg, reference_id=reference_id)
-
-            return ArmResult(
-                success=False,
-                message="Alarm command polling exhausted",
-                reference_id=reference_id,
+            return await self._command_poller.poll_arm(
+                status_transport,
+                reference_id=str(reference_id),
             )
 
         except Exception as e:
@@ -507,86 +448,21 @@ class AlarmClient(BaseClient):
                 truncate_secret(str(reference_id)) if reference_id else "n/a",
             )
 
-            # Step 2: Poll for status until completion
-            max_retries = 30  # Maximum number of retries
-            retry_count = 0
-
-            while retry_count < max_retries:
-                retry_count += 1
-                _LOGGER.debug(
-                    "Checking disarm status, attempt %d/%d",
-                    retry_count,
-                    max_retries,
-                )
-
-                # Execute the status check query
-                status_result = await self._execute_disarm_status_direct(
+            async def status_transport(attempt: int) -> dict[str, Any]:
+                return await self._execute_disarm_status_direct(
                     installation_id=installation_id,
                     panel=panel,
                     request="DARM1",
                     reference_id=reference_id,
-                    counter=retry_count,
+                    counter=attempt,
                     capabilities=capabilities,
                     hash_token=hash_token,
                     session_data=session_data,
                 )
 
-                # Check for errors in status check
-                if "errors" in status_result:
-                    error = (
-                        status_result["errors"][0]
-                        if status_result["errors"]
-                        else {}
-                    )
-                    error_msg = error.get("message", "Unknown error")
-                    _LOGGER.error(
-                        "Failed to check disarm status: %s", error_msg
-                    )
-                    return DisarmResult(success=False, message=error_msg, reference_id=reference_id)
-
-                # Check status response
-                status_data = status_result.get("data", {})
-                disarm_status_result = status_data.get("xSDisarmStatus", {})
-                status_res = disarm_status_result.get("res", "Unknown")
-                status_msg = disarm_status_result.get("msg", "Unknown")
-                status_status = disarm_status_result.get("status")
-                protom_response = disarm_status_result.get("protomResponse")
-
-                _LOGGER.debug(
-                    "Disarm status check: res=%s, msg=%s, status=%s, "
-                    "protomResponse=%s",
-                    status_res,
-                    status_msg,
-                    status_status,
-                    protom_response,
-                )
-
-                if status_res == "OK":
-                    return DisarmResult(success=True, message=status_msg, reference_id=reference_id)
-                elif status_res == "WAIT":
-                    # Need to wait and retry
-                    if retry_count < max_retries:
-                        _LOGGER.debug(
-                            "Disarm status returned WAIT, waiting 15 seconds "
-                            "before retry"
-                        )
-                        await asyncio.sleep(15)  # Wait 15 seconds before retry
-                    else:
-                        _LOGGER.warning(
-                            "Max retries reached for disarm status check"
-                        )
-                        return DisarmResult(success=False, message="Max retries reached for disarm status check", reference_id=reference_id)
-                else:
-                    # Error or unknown response
-                    _LOGGER.error(
-                        "Failed to complete disarm command: %s", status_msg
-                    )
-                    return DisarmResult(success=False, message=status_msg, reference_id=reference_id)
-
-            return DisarmResult(
-                success=False,
-                message="Disarm command polling exhausted",
-                reference_id=reference_id,
+            return await self._command_poller.poll_disarm(
+                status_transport,
+                reference_id=str(reference_id),
             )
 
         except Exception as e:
