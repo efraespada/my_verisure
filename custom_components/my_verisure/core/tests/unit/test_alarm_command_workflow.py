@@ -55,8 +55,7 @@ async def test_arm_workflow_reports_missing_reference():
 
     result = await AlarmCommandWorkflow().arm(
         command,
-        AsyncMock(),
-        request="ARM1",
+        lambda _: AsyncMock(),
     )
 
     assert result.success is False
