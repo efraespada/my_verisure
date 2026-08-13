@@ -14,6 +14,10 @@ from ..application.device_authorization_response import (
     classify_device_authorization_response,
 )
 from ..application.otp_authorization import OTPAuthorizationPolicy
+from ..application.otp_verification_response import (
+    OTPVerificationFailure,
+    classify_otp_verification_response,
+)
 from .device_manager import DeviceManager
 from .exceptions import (
     MyVerisureError,
@@ -479,70 +483,54 @@ class AuthClient(BaseClient):
                 VALIDATE_DEVICE_MUTATION, variables, headers
             )
 
-            # Check for errors first
-            if "errors" in result:
-                error = result["errors"][0] if result["errors"] else {}
-                error_msg = error.get("message", "Unknown error")
-                _LOGGER.error("OTP verification failed: %s", error_msg)
-                raise MyVerisureOTPError(
-                    f"OTP verification failed: {error_msg}"
+            decision = classify_otp_verification_response(result)
+            if isinstance(decision, OTPVerificationFailure):
+                _LOGGER.error("%s", decision.message)
+                raise MyVerisureOTPError(decision.message)
+
+            validation_response = decision.data
+            otp_hash_value = validation_response.get("hash")
+            if isinstance(otp_hash_value, str):
+                self._hash = otp_hash_value
+            refresh_hash = validation_response.get("refreshToken")
+
+            _LOGGER.info("OTP verification successful — session updated")
+            if should_log_detailed():
+                _LOGGER.debug(
+                    "Tokens from OTP (truncated): hash=%s refresh=%s",
+                    truncate_secret(self._hash),
+                    truncate_secret(refresh_hash),
                 )
 
-            # Check for successful response
-            data = result.get("data", {})
-            validation_response = data.get("xSValidateDevice", {})
+            # Check if device authorization is still needed
+            need_device_authorization = validation_response.get(
+                "needDeviceAuthorization", False
+            )
 
-            if validation_response and validation_response.get("res") == "OK":
-                # Store the authentication token from OTP verification
-                self._hash = validation_response.get("hash")
-                refresh_hash = validation_response.get("refreshToken")
-
-                _LOGGER.info("OTP verification successful — session updated")
-                if should_log_detailed():
-                    _LOGGER.debug(
-                        "Tokens from OTP (truncated): hash=%s refresh=%s",
-                        truncate_secret(self._hash),
-                        truncate_secret(refresh_hash),
-                    )
-
-                # Check if device authorization is still needed
-                need_device_authorization = validation_response.get(
-                    "needDeviceAuthorization", False
+            if need_device_authorization:
+                _LOGGER.error(
+                    "Device authorization still required after OTP verification"
+                )
+                raise MyVerisureDeviceAuthorizationError(
+                    "Device authorization failed. This device is not authorized and will require "
+                    "OTP verification on every login. Please contact My Verisure support to "
+                    "authorize this device permanently."
                 )
 
-                if need_device_authorization:
-                    _LOGGER.error(
-                        "Device authorization still required after OTP verification"
-                    )
-                    raise MyVerisureDeviceAuthorizationError(
-                        "Device authorization failed. This device is not authorized and will require "
-                        "OTP verification on every login. Please contact My Verisure support to "
-                        "authorize this device permanently."
-                    )
+            # Now perform a new login to get updated tokens
+            _LOGGER.info("Completing post-OTP login for fresh tokens")
 
-                # Now perform a new login to get updated tokens
-                _LOGGER.info("Completing post-OTP login for fresh tokens")
+            try:
+                # Perform a new login to get fresh tokens
+                return await self._perform_post_otp_login()
 
-                try:
-                    # Perform a new login to get fresh tokens
-                    return await self._perform_post_otp_login()
-
-                except Exception as e:
-                    _LOGGER.warning(
-                        "Post-OTP login failed (%s); using tokens from OTP step",
-                        e,
-                    )
-                    # Even if post-OTP login fails, we still have valid tokens from OTP verification
-                    return AuthDTO.from_dict(validation_response)
-            else:
-                error_msg = (
-                    validation_response.get("msg", "Unknown error")
-                    if validation_response
-                    else "No response data"
+            except Exception as e:
+                _LOGGER.warning(
+                    "Post-OTP login failed (%s); using tokens from OTP step",
+                    e,
                 )
-                raise MyVerisureOTPError(
-                    f"OTP verification failed: {error_msg}"
-                )
+                # Even if post-OTP login fails, we still have valid tokens from OTP verification
+                return AuthDTO.from_dict(validation_response)
 
         except MyVerisureError:
             raise
