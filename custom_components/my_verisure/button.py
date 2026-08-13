@@ -47,16 +47,15 @@ class RefreshCameraImagesButton(CoordinatorEntity, ButtonEntity):
         self.async_write_ha_state()
         
         try:
-            # Use the service to refresh camera images
             await self.hass.services.async_call(
                 DOMAIN,
                 "refresh_camera_images",
-                {"installation_id": self._installation_id}
+                {"installation_id": self._installation_id},
             )
-            _LOGGER.warning("Camera images refresh service called successfully")
-                
-        except Exception as e:
-            _LOGGER.error("Failed to refresh camera images: %s", e)
+            _LOGGER.debug("Camera images refresh service called successfully")
+        except Exception as error:
+            _LOGGER.error("Failed to refresh camera images: %s", error)
+        finally:
             self._is_executing = False
             self.async_write_ha_state()
 

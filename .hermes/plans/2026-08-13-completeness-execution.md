@@ -102,6 +102,15 @@ diagnostics, config flow, reauth, and lifecycle. Validate states, attributes,
 availability, registration/removal, and actionable error reporting against HA
 2026.8.1 contracts.
 
+Execution:
+
+- Added diagnostics redaction/session-summary coverage.
+- Fixed camera refresh button to clear its busy state in `finally` after both
+  success and failure.
+- Added success/failure button lifecycle tests.
+- Focused adapter suite: 13 passed; previous HA lifecycle suite remains green.
+- Mypy covers 222 files without errors.
+
 ### Slice 6 — integration limitations
 
 Attempt isolated HA validation only if Docker becomes available without host
