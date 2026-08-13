@@ -8,6 +8,7 @@ from typing import Any, Dict, Optional, cast
 
 from ..session_manager import SessionManager
 from ..application.alarm_command_poller import AlarmCommandPoller
+from ..application.alarm_command_response import AlarmCommandResponseInterpreter
 from ..application.realtime_alarm_status import (
     RealtimeAlarmStatusInterpreter,
     RealtimeStatusAction,
@@ -44,6 +45,7 @@ class AlarmClient(BaseClient):
         super().__init__(session_manager=session_manager)
         self._alarm_status_json_cache: Dict[str, Any] | None = None
         self._command_poller = AlarmCommandPoller()
+        self._command_response_interpreter = AlarmCommandResponseInterpreter()
         self._realtime_status_interpreter = RealtimeAlarmStatusInterpreter()
 
     def _log_graphql_outbound(
@@ -363,27 +365,21 @@ class AlarmClient(BaseClient):
                 session_data=session_data,
             )
 
-            # Check for errors in arm command
-            if "errors" in arm_result:
-                error = arm_result["errors"][0] if arm_result["errors"] else {}
-                error_msg = error.get("message", "Unknown error")
-                _LOGGER.error("Failed to send arm command: %s", error_msg)
-                return ArmResult(success=False, message=error_msg)
-
-            # Check arm response
-            arm_data = arm_result.get("data", {})
-            arm_panel_result = arm_data.get("xSArmPanel", {})
-            arm_res = arm_panel_result.get("res", "Unknown")
-            arm_msg = arm_panel_result.get("msg", "Unknown")
-            reference_id = arm_panel_result.get("referenceId")
-
-            if arm_res != "OK" or not reference_id:
+            response = self._command_response_interpreter.interpret(
+                arm_result,
+                payload_key="xSArmPanel",
+            )
+            if not response.accepted:
                 _LOGGER.error(
                     "Failed to send arm command '%s': %s",
                     request,
-                    arm_msg,
+                    response.message,
                 )
-                return ArmResult(success=False, message=arm_msg)
+                return ArmResult(success=False, message=response.message)
+
+            reference_id = response.reference_id
+            if reference_id is None:
+                return ArmResult(success=False, message="Missing command reference")
 
             async def status_transport(attempt: int) -> dict[str, Any]:
                 return await self._execute_arm_status_direct(
@@ -426,27 +422,17 @@ class AlarmClient(BaseClient):
                 session_data=session_data,
             )
 
-            # Check for errors in disarm command
-            if "errors" in disarm_result:
-                error = (
-                    disarm_result["errors"][0]
-                    if disarm_result["errors"]
-                    else {}
-                )
-                error_msg = error.get("message", "Unknown error")
-                _LOGGER.error("Failed to send disarm command: %s", error_msg)
-                return DisarmResult(success=False, message=error_msg)
+            response = self._command_response_interpreter.interpret(
+                disarm_result,
+                payload_key="xSDisarmPanel",
+            )
+            if not response.accepted:
+                _LOGGER.error("Failed to send disarm command: %s", response.message)
+                return DisarmResult(success=False, message=response.message)
 
-            # Check disarm response
-            disarm_data = disarm_result.get("data", {})
-            disarm_panel_result = disarm_data.get("xSDisarmPanel", {})
-            disarm_res = disarm_panel_result.get("res", "Unknown")
-            disarm_msg = disarm_panel_result.get("msg", "Unknown")
-            reference_id = disarm_panel_result.get("referenceId")
-
-            if disarm_res != "OK" or not reference_id:
-                _LOGGER.error("Failed to send disarm command: %s", disarm_msg)
-                return DisarmResult(success=False, message=disarm_msg)
+            reference_id = response.reference_id
+            if reference_id is None:
+                return DisarmResult(success=False, message="Missing command reference")
 
             _LOGGER.info(
                 "Disarm command sent (reference %s)",
