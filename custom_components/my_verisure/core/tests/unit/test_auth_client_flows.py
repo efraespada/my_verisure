@@ -117,6 +117,21 @@ async def test_login_requires_otp_when_device_authorization_is_needed(
 
 
 @pytest.mark.asyncio
+async def test_check_device_authorization_accepts_validate_device_graphql_envelope(
+    client: AuthClient,
+) -> None:
+    _set_query_result(
+        client,
+        {"data": {"xSValidateDevice": {"res": "OK"}}},
+    )
+
+    result = await client._check_device_authorization()
+
+    assert result.res == "OK"
+    assert result.need_device_authorization is False
+
+
+@pytest.mark.asyncio
 async def test_send_otp_returns_true_for_successful_response(client: AuthClient) -> None:
     _set_query_result(
         client,

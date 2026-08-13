@@ -112,6 +112,8 @@ class AuthClient(BaseClient):
         _LOGGER.debug("AuthClient initialized (id=%s)", id(self))
         super().__init__(session_manager=session_manager)
         self._otp_data: Optional[Dict[str, Any]] = None
+        self._hash: Optional[str] = None
+        self._refresh_token: Optional[str] = None
         self._otp_policy = OTPAuthorizationPolicy()
         self._session_persistence = AuthSessionPersistence(session_manager)
         self._device_manager = device_manager
@@ -228,12 +230,9 @@ class AuthClient(BaseClient):
                 session_headers,
             )
 
-            device_data = result.get("data", {}).get("validateDevice", {})
-            _LOGGER.debug("Device validation response: %s", device_data)
-            
-            if device_data.get("res") == "OK":
+            decision = classify_device_authorization_response(result)
+            if isinstance(decision, DeviceAuthorizationSuccess):
                 _LOGGER.info("Device is already authorized — no OTP required")
-                # Device is authorized, return success
                 return AuthDTO(
                     res="OK",
                     msg="Device already authorized",
@@ -244,14 +243,16 @@ class AuthClient(BaseClient):
                     change_password=self._session_data.get("changePassword"),
                     need_device_authorization=False,
                 )
-            else:
-                # Device needs authorization
+
+            if isinstance(decision, DeviceAuthorizationOTPChallenge):
                 if should_log_detailed():
                     _LOGGER.debug(
                         "Device requires authorization (redacted): %s",
-                        redact_sensitive_data(device_data),
+                        redact_sensitive_data(decision.data),
                     )
                 raise MyVerisureOTPError("Device authorization required")
+
+            raise MyVerisureOTPError("Device authorization required")
 
         except MyVerisureOTPError:
             # Re-raise OTP errors
