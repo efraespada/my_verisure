@@ -68,6 +68,16 @@ independent observable contracts. Increase coverage for partial responses,
 missing installations/devices, image selection/storage failures, and transport
 errors. Do not create generic adapters merely to reduce NLOC.
 
+Execution:
+
+- `b986a12`: `CameraResponseInterpreter` isolates initial request and polling
+  status interpretation. CameraClient reduced from 508 to 444 lines.
+- Current installation slice adds `InstallationResponseInterpreter` for
+  installations, services, and devices. InstallationClient reduced from 382 to
+  334 lines.
+- 16 camera tests and 19 installation/interpreter tests pass in focused gates.
+- Mypy covers 221 files without errors.
+
 ### Slice 4 — Coordinator lifecycle
 
 Characterize and test refresh, reauthentication, failure recovery, unload,

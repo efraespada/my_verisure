@@ -11,6 +11,12 @@ from .models.dto.installation_dto import (
     DetailedInstallationDTO,
 )
 from .models.dto.device_dto import DeviceListDTO
+from ..application.installation_response_interpreter import (
+    InstallationResponseError,
+    interpret_devices,
+    interpret_installations,
+    interpret_services,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -151,27 +157,15 @@ class InstallationClient(BaseClient):
                 INSTALLATIONS_QUERY, headers=headers
             )
 
-            # Check for errors first
-            if "errors" in result:
-                error = result["errors"][0] if result["errors"] else {}
-                error_msg = error.get("message", "Unknown error")
-                _LOGGER.error("Failed to get installations: %s", error_msg)
-                raise MyVerisureError(
-                    f"Failed to get installations: {error_msg}"
-                )
+            try:
+                installation_records = interpret_installations(result)
+            except InstallationResponseError as error:
+                raise MyVerisureError(str(error)) from error
 
-            # Check for successful response
-            data = result.get("data", {})
-            installations_data = data.get("xSInstallations", {})
-            installations = installations_data.get("installations", [])
-
-            _LOGGER.info("✅ Found %d installations", len(installations))
-
-            # Convert to DTOs
-            installation_dtos = [
-                InstallationDTO.from_dict(inst) for inst in installations
+            _LOGGER.info("✅ Found %d installations", len(installation_records))
+            return [
+                InstallationDTO.from_dict(record) for record in installation_records
             ]
-            return installation_dtos
 
         except MyVerisureError:
             raise
@@ -217,70 +211,55 @@ class InstallationClient(BaseClient):
                 INSTALLATION_SERVICES_QUERY, variables, headers
             )
 
-            # Check for errors first
-            if "errors" in result:
-                error = result["errors"][0] if result["errors"] else {}
-                error_msg = error.get("message", "Unknown error")
-                _LOGGER.error(
-                    "Failed to get installation services: %s", error_msg
-                )
-                raise MyVerisureError(
-                    f"Failed to get installation services: {error_msg}"
-                )
+            try:
+                response_data = interpret_services(result)
+            except InstallationResponseError as error:
+                raise MyVerisureError(str(error)) from error
 
-            # Check for successful response
-            data = result.get("data", {})
-            services_data = data.get("xSSrv", {})
+            installation = response_data["installation"]
 
-            if services_data and services_data.get("res") == "OK":
-                installation = services_data.get("installation", {})
+            device_list = await self.get_installation_devices(
+                installation_id,
+                installation.get("panel", "Unknown"),
+                installation.get("capabilities", "Unknown"),
+            )
 
-                deviceList = await self.get_installation_devices(
-                    installation_id,
-                    installation.get("panel", "Unknown"),
-                    installation.get("capabilities", "Unknown")
-                )
+            installations_dto = await self.get_installations()
+            _LOGGER.info(
+                "✅ Found %d devices for installation %s",
+                len(device_list.devices),
+                installation_id,
+            )
 
-                installations_dto = await self.get_installations()
+            installation_dto = next(
+                (item for item in installations_dto if item.numinst == installation_id),
+                None,
+            )
+            if installation_dto is None:
+                raise MyVerisureError(f"Installation {installation_id} not found")
 
-                _LOGGER.info("✅ Found %d devices for installation %s", len(deviceList.devices), installation_id)
+            installation["devices"] = [
+                device.dict() for device in device_list.devices
+            ]
+            for field in (
+                "type",
+                "name",
+                "surname",
+                "address",
+                "city",
+                "postcode",
+                "province",
+                "email",
+                "phone",
+                "due",
+            ):
+                installation[field] = getattr(installation_dto, field)
 
-                for i in installations_dto:
-                    if i.numinst == installation_id:
-                        installation_dto = i
-                        break
-                if not installation_dto:
-                    raise MyVerisureError(f"Installation {installation_id} not found")
-
-                installation["devices"] = [device.dict() for device in deviceList.devices]
-
-                installation["type"] = installation_dto.type
-                installation["name"] = installation_dto.name
-                installation["surname"] = installation_dto.surname
-                installation["address"] = installation_dto.address
-                installation["city"] = installation_dto.city
-                installation["postcode"] = installation_dto.postcode
-                installation["province"] = installation_dto.province
-                installation["email"] = installation_dto.email
-                installation["phone"] = installation_dto.phone
-                installation["due"] = installation_dto.due
-
-                response_data = {
-                    "installation": installation,
-                    "language": services_data.get("language"),
-                }
-
-                services_dto = DetailedInstallationDTO.from_dict(response_data)
-                return services_dto
-            else:
-                error_msg = (
-                    services_data.get("msg", "Unknown error")
-                    if services_data
-                    else "No response data"
-                )
-                raise MyVerisureError(
-                    f"Failed to get installation services: {error_msg}"
-                )
+            detailed_response = {
+                "installation": installation,
+                "language": response_data.get("language"),
+            }
+            return DetailedInstallationDTO.from_dict(detailed_response)
 
         except MyVerisureError:
             raise
@@ -335,41 +314,14 @@ class InstallationClient(BaseClient):
                 INSTALLATION_DEVICES_QUERY, variables, headers
             )
 
-            # Check for errors first
-            if "errors" in result:
-                error = result["errors"][0] if result["errors"] else {}
-                error_msg = error.get("message", "Unknown error")
-                _LOGGER.error(
-                    "Failed to get installation devices: %s", error_msg
-                )
-                raise MyVerisureError(
-                    f"Failed to get installation devices: {error_msg}"
-                )
+            try:
+                device_records = interpret_devices(result)
+            except InstallationResponseError as error:
+                raise MyVerisureError(str(error)) from error
 
-            # Check for successful response
-            data = result.get("data", {})
-            devices_data = data.get("xSDeviceList", {})
-
-            if devices_data and devices_data.get("res") == "OK":
-                devices = devices_data.get("devices", [])
-
-                response_data = {
-                    "res": devices_data.get("res", ""),
-                    "devices": devices,
-                }
-
-                # Convert to DTO
-                devices_dto = DeviceListDTO.from_dict(response_data)
-                return devices_dto
-            else:
-                error_msg = (
-                    devices_data.get("msg", "Unknown error")
-                    if devices_data
-                    else "No response data"
-                )
-                raise MyVerisureError(
-                    f"Failed to get installation devices: {error_msg}"
-                )
+            return DeviceListDTO.from_dict(
+                {"res": "OK", "devices": device_records}
+            )
 
         except MyVerisureError:
             raise
