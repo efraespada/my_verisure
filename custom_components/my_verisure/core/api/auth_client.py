@@ -8,6 +8,11 @@ from typing import Any, Dict, Optional
 from .base_client import BaseClient
 from ..application.auth_response_classifier import LoginResponse, classify_login_response
 from ..application.auth_session_persistence import AuthSessionPersistence
+from ..application.device_authorization_response import (
+    DeviceAuthorizationOTPChallenge,
+    DeviceAuthorizationSuccess,
+    classify_device_authorization_response,
+)
 from ..application.otp_authorization import OTPAuthorizationPolicy
 from .device_manager import DeviceManager
 from .exceptions import (
@@ -274,52 +279,32 @@ class AuthClient(BaseClient):
                 session_headers,
             )
 
-            # Check for successful device validation first
-            device_data = result.get("xSValidateDevice", {})
-            if device_data and device_data.get("res") == "OK":
-                self._hash = device_data.get("hash")
-                self._refresh_token = device_data.get("refreshToken")
+            decision = classify_device_authorization_response(result)
+            if isinstance(decision, DeviceAuthorizationSuccess):
+                device_data = decision.data
+                device_hash = device_data.get("hash")
+                if isinstance(device_hash, str):
+                    self._hash = device_hash
+                device_refresh_token = device_data.get("refreshToken")
+                if isinstance(device_refresh_token, str):
+                    self._refresh_token = device_refresh_token
                 _LOGGER.info("Device validation successful")
                 return AuthDTO.from_dict(device_data)
 
-            # Check for errors that require OTP
-            if "errors" in result and result["errors"]:
-                error = result["errors"][0]
-                error_data = error.get("data", {})
-                auth_code = error_data.get("auth-code")
-                auth_type = error_data.get("auth-type")
-
+            if isinstance(decision, DeviceAuthorizationOTPChallenge):
                 if should_log_detailed():
                     _LOGGER.debug(
-                        "Device validation error — auth-code=%s auth-type=%s",
-                        auth_code,
-                        auth_type,
+                        "Device validation requires OTP (redacted): %s",
+                        redact_sensitive_data(decision.data),
                     )
+                _LOGGER.info("OTP authentication required")
+                return await self._handle_otp_authentication(decision.data)
 
-                if auth_type == "OTP" or auth_code == "10001":
-                    _LOGGER.info("OTP authentication required")
-                    return await self._handle_otp_authentication(error_data)
-                elif auth_code == "10010":
-                    _LOGGER.error(
-                        "Device validation failed - auth-code 10010: Unauthorized"
-                    )
-                    raise MyVerisureAuthenticationError(
-                        "Device validation failed - unauthorized. This may require additional authentication steps."
-                    )
-                else:
-                    raise MyVerisureAuthenticationError(
-                        f"Device validation failed: {error.get('message', 'Unknown error')} (auth-code: {auth_code})"
-                    )
-
-            # If we reach here, it's an unexpected error
-            error_msg = (
-                device_data.get("msg", "Unknown error")
-                if device_data
-                else "No response data"
-            )
-            raise MyVerisureAuthenticationError(
-                f"Device validation failed: {error_msg}"
-            )
+            if decision.unauthorized:
+                _LOGGER.error(
+                    "Device validation failed - auth-code 10010: Unauthorized"
+                )
+            raise MyVerisureAuthenticationError(decision.message)
 
         except MyVerisureError:
             raise
