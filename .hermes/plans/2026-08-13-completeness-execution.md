@@ -150,6 +150,39 @@ Execution:
 - Final verification: `HEAD == origin/master`, clean tree, generated coverage
   artifacts removed.
 
+## Follow-up completeness plan — 2026-08-13
+
+The previous execution established a green HA Core 2026.8.1 baseline. The
+remaining work is deliberately split by risk rather than by raw coverage:
+
+1. **HA service contracts:** exercise every registered handler, unknown-entry
+   behavior, refresh failures, dispatcher failures, service cleanup, and schema
+   rejection. Replace only broad catches whose failure contract can be made
+   explicit; retain isolation at the HA boundary where one service failure must
+   not crash Home Assistant.
+
+Execution:
+
+- Added `test_services_contracts.py` covering all four alarm handlers, entry
+  matching, status refresh, camera refresh cleanup, dispatcher failures, and
+  schema rejection.
+- Focused service/adapter suite: **15 passed**.
+- Mypy and critical lint remain green across 223 files.
+2. **Alarm platform lifecycle:** verify arm/disarm transition state on success,
+   failure, missing installation IDs, unavailable coordinator data, entity
+   registration, and removal. Fix any state that can remain stuck after a
+   completed command.
+3. **Critical client contracts:** cover installation/auth/device-manager paths
+   for empty payloads, malformed payloads, authentication expiry, transport
+   errors, and safe exception conversion. Do not extract code without a cohesive
+   contract.
+4. **Live-boundary evidence:** retry only read-only environment discovery for
+   Docker/HA availability; never change host permissions or use provider
+   credentials. Record blockers precisely.
+5. **Final gates:** run the official Makefile suite, HA Core suite, type/lint/
+   architecture/compile/dependency checks, official coverage, Repowise, and
+   branch cleanliness. Publish each validated slice independently.
+
 ## Definition of done
 
 - No contradictory active legacy documentation.
