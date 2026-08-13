@@ -30,6 +30,7 @@ from .core.application.coordinator_failure import (
 from .core.application.coordinator_snapshot import merge_alarm_snapshot
 from .core.application.coordinator_snapshot_store import CoordinatorSnapshotStore
 from .core.application.coordinator_refresh_effects import CoordinatorRefreshEffects
+from .core.application.coordinator_camera_refresh import CoordinatorCameraRefresh
 from .core.application.installation_snapshot_service import InstallationSnapshotService
 from .core.use_cases.interfaces.auth_use_case import AuthUseCase
 from .core.use_cases.interfaces.installation_use_case import InstallationUseCase
@@ -94,6 +95,9 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         )
         self.create_dummy_camera_images_use_case = self.composition_root.get(
             cast(type[Any], CreateDummyCameraImagesUseCase)
+        )
+        self.coordinator_camera_refresh = CoordinatorCameraRefresh(
+            self.refresh_camera_images_use_case
         )
 
         self.session_manager = self.composition_root.get(SessionManager)
@@ -406,19 +410,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         """Refresh camera images."""
         tok = set_dev_mode(self._dev_mode)
         try:
-            LOGGER.info("Refreshing camera images for installation %s", self.installation_id)
-            result = await self.refresh_camera_images_use_case.refresh_camera_images(
-                installation_id=self.installation_id,
-                max_attempts=30,
-                check_interval=4,
-            )
-
-            LOGGER.info(
-                "Camera images refresh completed: %d cameras, %d ok, %d failed",
-                result.total_cameras,
-                result.successful_refreshes,
-                result.failed_refreshes,
-            )
+            await self.coordinator_camera_refresh.run(self.installation_id)
         except Exception as e:
             LOGGER.error("Failed to refresh camera images: %s", e)
         finally:
