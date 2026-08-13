@@ -52,7 +52,24 @@ commit/push.
    imports and diff checks.
 3. Keep real-provider and Docker/manual HA validation explicitly separate.
 
-## Success criteria
+## Final status for this iteration
+
+Completed and pushed:
+
+- authentication response classification extracted into a pure application
+  service, with protocol branch characterization;
+- camera request/polling and image persistence branches characterized;
+- HA ConfigFlow OTP/error/lifecycle branches covered;
+- Coordinator cache, authentication, connection and service-blocked boundaries
+  covered;
+- alarm service dispatch boundaries covered.
+
+Measured result: 390 passed, 2 skipped, 77% total coverage. Hotspot coverage
+improved substantially without changing external contracts. Repowise remains
+advisory: Coordinator and AlarmClient still deserve future decomposition, but a
+large uncharacterized rewrite is intentionally deferred. Docker/manual HA and
+real Verisure remain outside this deterministic test run.
+
 
 - All focused tests cover critical error and lifecycle branches.
 - Coverage improves from 73% through behavior, not trivial line execution.
