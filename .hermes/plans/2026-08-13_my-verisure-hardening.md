@@ -98,7 +98,36 @@
 4. Document and execute disposable Home Assistant manual verification without real secrets in the repository.
 5. Run all gates and prepare a release-readiness report.
 
-## Definition of done
+## Execution status (2026-08-13)
+
+Completed and pushed:
+
+- full mypy gate: 167 source files, zero errors;
+- canonical Makefile/CI gates and removal of obsolete runners/docs;
+- `AlarmCommandPoller` extraction with characterization tests;
+- `InstallationSnapshotService` extraction from the HA coordinator;
+- two-entry isolation assertions for sessions, files, credentials, roots, and unload;
+- authentication-material redaction regression tests;
+- manual isolated-HA checklist and import smoke validation;
+- latest full suite: 361 passed, 2 skipped; coverage 73%.
+
+Remaining explicit limitations:
+
+- disposable Docker HA verification could not run because this host denied access
+  to `/var/run/docker.sock`;
+- no live Verisure account/API end-to-end check was performed;
+- coverage remains intentionally below 100%, with the largest gaps in external
+  API clients and HA command/entity adapters.
+
+## Iteration 11 — Targeted coverage and release decision
+
+1. Add targeted tests only for high-risk uncovered behavior in alarm/camera/config
+   flow/services, prioritizing error and cleanup paths over percentage chasing.
+2. Re-run Repowise and inspect changed-file complexity.
+3. Run the complete release gates and verify the tree and remote are aligned.
+4. Report the manual Docker and real-account limitations explicitly; do not claim
+   them as executed.
+
 
 - `make test-ha-2026-8` passes against the pinned target.
 - `make type-check` passes with zero errors.
