@@ -29,6 +29,7 @@ from .core.application.coordinator_failure import (
 )
 from .core.application.coordinator_snapshot import merge_alarm_snapshot
 from .core.application.coordinator_snapshot_store import CoordinatorSnapshotStore
+from .core.application.coordinator_refresh_effects import CoordinatorRefreshEffects
 from .core.application.installation_snapshot_service import InstallationSnapshotService
 from .core.use_cases.interfaces.auth_use_case import AuthUseCase
 from .core.use_cases.interfaces.installation_use_case import InstallationUseCase
@@ -98,6 +99,11 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         self.session_manager = self.composition_root.get(SessionManager)
         self.file_manager = self.composition_root.get(FileManager)
         self.snapshot_store = CoordinatorSnapshotStore(self.file_manager)
+        self.refresh_effects = CoordinatorRefreshEffects(
+            self.snapshot_store,
+            self.async_set_updated_data,
+            self.create_dummy_camera_images_use_case,
+        )
         self.authentication_policy = CoordinatorAuthenticationPolicy(
             login=self.async_login,
             load_cache=self.load_alarm_info,
@@ -258,13 +264,11 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
                 detailed_installation=detailed_installation,
                 timestamp=time.time(),
             )
-            try:
-                self.async_set_updated_data(result)
-                save_success = await self.snapshot_store.save(result)
-                if not save_success:
-                    LOGGER.error("Failed to save coordinator data")
-            except Exception as save_err:
-                LOGGER.error("Error saving coordinator data: %s", save_err)
+            await self.refresh_effects.apply(
+                result,
+                self.installation_id,
+                create_dummy_images=False,
+            )
             LOGGER.info("Alarm state refreshed for installation %s", self.installation_id)
             return result
         finally:
@@ -297,23 +301,11 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
                         redact_sensitive_data(result),
                     )
 
-                try:
-                    self.async_set_updated_data(result)
-                    try:
-                        save_success = await self.snapshot_store.save(result)
-                        if save_success:
-                            LOGGER.debug("Coordinator data saved to cache")
-                        if not save_success:
-                            LOGGER.error("Failed to save coordinator data")
-                    except Exception as save_err:
-                        LOGGER.error("Error saving coordinator data: %s", save_err)
-
-                    await self.create_dummy_camera_images_use_case.create_dummy_camera_images(
-                        installation_id=self.installation_id,
-                    )
-
-                except Exception as set_err:
-                    LOGGER.error("Failed to set coordinator data explicitly: %s", set_err)
+                await self.refresh_effects.apply(
+                    result,
+                    self.installation_id,
+                    create_dummy_images=True,
+                )
                 LOGGER.info(
                     "Alarm and installation data updated for installation %s",
                     self.installation_id,

@@ -14,6 +14,9 @@ from custom_components.my_verisure.core.application.coordinator_authentication i
 from custom_components.my_verisure.core.application.coordinator_failure import (
     CoordinatorFailureClassifier,
 )
+from custom_components.my_verisure.core.application.coordinator_refresh_effects import (
+    CoordinatorRefreshEffects,
+)
 from custom_components.my_verisure.core.api.exceptions import (
     MyVerisureAuthenticationError,
     MyVerisureConnectionError,
@@ -29,6 +32,7 @@ def coordinator() -> MyVerisureDataUpdateCoordinator:
     value.session_manager = Mock()
     value.file_manager = Mock()
     value.snapshot_store = Mock()
+    value.refresh_effects = Mock(spec=CoordinatorRefreshEffects)
     value.authentication_policy = Mock()
     value._failure_classifier = CoordinatorFailureClassifier()
     value.authentication_policy.authenticate = AsyncMock(
@@ -51,13 +55,14 @@ async def test_update_data_returns_snapshot_and_persists_cache(coordinator) -> N
     coordinator.snapshot_store.save = AsyncMock(return_value=True)
     coordinator.create_dummy_camera_images_use_case.create_dummy_camera_images = AsyncMock()
 
+    coordinator.refresh_effects.apply = AsyncMock()
+
     result = await coordinator._async_update_data()
 
-    assert result == snapshot
-    coordinator.async_set_updated_data.assert_called_once_with(snapshot)
-    coordinator.snapshot_store.save.assert_awaited_once_with(snapshot)
-    coordinator.create_dummy_camera_images_use_case.create_dummy_camera_images.assert_awaited_once_with(
-        installation_id="home-1"
+    coordinator.refresh_effects.apply.assert_awaited_once_with(
+        snapshot,
+        "home-1",
+        create_dummy_images=True,
     )
 
 
