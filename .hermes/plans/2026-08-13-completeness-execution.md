@@ -118,6 +118,17 @@ permission changes. Do not use real credentials or provider sessions. If the
 provider sandbox/isolated HA path is unavailable, record the exact blocker and
 separate synthetic contract evidence from live evidence.
 
+Execution:
+
+- `docker info` confirms Docker Engine 29.6.2 is installed, but the current
+  user receives `permission denied` for `/var/run/docker.sock`. No host
+  permissions were changed.
+- No Verisure credentials, OTP, real session, or provider call was used.
+- HA Core 2026.8.1 tests and synthetic contracts are the available evidence;
+  isolated Docker and provider E2E remain explicitly unverified.
+- The only `importorskip("homeassistant")` is in a smoke-import guard; the
+  actual HA gate runs with the pinned HA environment and passes all tests.
+
 ### Slice 7 — final gates and release evidence
 
 Run full HA suite, mypy, critical/full lint as appropriate, compileall,
@@ -125,6 +136,19 @@ architecture guard, pip check, diff check, coverage, Repowise, and git
 verification. Update this plan with measured before/after results, remaining
 limits, commits, and exact evidence. Push every validated slice and finish with
 `HEAD == origin/master` and a clean tree.
+
+Execution:
+
+- Published slices: `12b4c64`, `2a8c23f`, `7faf19d`, `b986a12`, `ff53ace`,
+  `4a6ad59`, `d2a0425`.
+- `make test-ha-2026-8`: **494 passed** on HA Core 2026.8.1/Python 3.14.4.
+- `make ci`: passed full tests, mypy (222 files), critical lint, compileall,
+  architecture guard, pip check, diff check, and coverage.
+- Official Makefile coverage: **84%** over 9,108 statements.
+- Repowise: hotspot health **4.60**, maintainability average **9.34**;
+  worst hotspot remains `AuthClient` (score 1.0, max CCN 14, NLOC 539).
+- Final verification: `HEAD == origin/master`, clean tree, generated coverage
+  artifacts removed.
 
 ## Definition of done
 

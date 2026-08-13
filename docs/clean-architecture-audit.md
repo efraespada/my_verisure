@@ -32,14 +32,17 @@ scripts referenced `core/tests`, `core/`, and the shell `python` executable.
 also exposes the actual package roots without creating duplicate compatibility
 packages.
 
-### F-002 — CLI resolved session state globally
+### F-002 — CLI resolved session state globally (historical baseline)
 
-Commands called `get_session_manager()` inside each operation. This made the
-CLI difficult to test and encouraged tests to patch non-existent module
-attributes.
+At the beginning of the migration, commands called `get_session_manager()` inside
+operations. This made the CLI difficult to test and encouraged tests to patch
+non-existent module attributes.
 
-**Implemented:** `BaseCommand` accepts an optional session manager and keeps one
-explicit session boundary. `AuthCommand` uses the injected boundary.
+**Implemented:** `BaseCommand` accepts an explicit session manager and keeps one
+session boundary. `AuthCommand` uses the injected boundary. Current production
+code and the entry-scoped Home Assistant composition no longer call the global
+accessor; the accessor names remain only in the architecture guard as forbidden
+patterns and in this historical finding.
 
 ### F-003 — Alarm CLI mixed `bool` and result objects
 
