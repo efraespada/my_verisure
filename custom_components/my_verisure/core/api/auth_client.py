@@ -7,6 +7,7 @@ from typing import Any, Dict, Optional
 
 from .base_client import BaseClient
 from ..application.auth_response_classifier import LoginResponse, classify_login_response
+from ..application.otp_authorization import OTPAuthorizationPolicy
 from .device_manager import DeviceManager
 from .exceptions import (
     MyVerisureError,
@@ -101,6 +102,7 @@ class AuthClient(BaseClient):
         _LOGGER.debug("AuthClient initialized (id=%s)", id(self))
         super().__init__(session_manager=session_manager)
         self._otp_data: Optional[Dict[str, Any]] = None
+        self._otp_policy = OTPAuthorizationPolicy()
         self._device_manager = device_manager
 
     async def login(self, user: str, password: str) -> AuthDTO:
@@ -362,25 +364,21 @@ class AuthClient(BaseClient):
         self, otp_data: Dict[str, Any]
     ) -> AuthDTO:
         """Handle OTP authentication process."""
-        auth_phones = otp_data.get("auth-phones", [])
-        otp_hash = otp_data.get("auth-otp-hash")
-
-        if not auth_phones or not otp_hash:
+        prepared = self._otp_policy.prepare(otp_data)
+        if prepared is None:
             raise MyVerisureOTPError("Invalid OTP data received")
 
-        # Store OTP data for later use - add otp_hash to each phone
-        for phone in auth_phones:
-            phone["otp_hash"] = otp_hash
-            phone["record_id"] = phone.get("id")  # Use phone ID as record_id
-        
-        self._otp_data = {"phones": auth_phones, "otp_hash": otp_hash}
+        self._otp_data = {
+            "phones": [phone.to_dict() for phone in prepared.phones],
+            "otp_hash": prepared.otp_hash,
+        }
         if should_log_detailed():
             _LOGGER.debug(
                 "OTP flow data (redacted): %s",
                 redact_sensitive_data(self._otp_data),
             )
 
-        _LOGGER.info("OTP required — %d phone(s) available for SMS", len(auth_phones))
+        _LOGGER.info("OTP required — %d phone(s) available for SMS", len(prepared.phones))
 
         # Don't automatically send OTP - let the config flow handle it
         _LOGGER.debug("Raising OTP error for config flow to continue")
@@ -399,9 +397,12 @@ class AuthClient(BaseClient):
             _LOGGER.debug("No OTP data — device may already be authorized")
             return []
 
-        phones = self._otp_data.get("phones", [])
-        _LOGGER.debug("Found %d phone(s) for OTP", len(phones))
-        return [PhoneDTO.from_dict(phone) for phone in phones]
+        phones = tuple(
+            PhoneDTO.from_dict(phone)
+            for phone in self._otp_data.get("phones", [])
+            if isinstance(phone, dict)
+        )
+        return list(phones)
 
     def select_phone(self, phone_id: int) -> bool:
         """Select a phone number for OTP."""
@@ -411,13 +412,15 @@ class AuthClient(BaseClient):
             _LOGGER.error("No OTP data available")
             return False
 
-        phones = self._otp_data.get("phones", [])
-        selected_phone = next(
-            (p for p in phones if p.get("id") == phone_id), None
+        phones = tuple(
+            PhoneDTO.from_dict(phone)
+            for phone in self._otp_data.get("phones", [])
+            if isinstance(phone, dict)
         )
+        selected_phone = self._otp_policy.select_phone(phones, phone_id)
 
         if selected_phone:
-            self._otp_data["selected_phone"] = selected_phone
+            self._otp_data["selected_phone"] = selected_phone.to_dict()
             _LOGGER.info("OTP phone selected (id=%s)", phone_id)
             if should_log_detailed():
                 _LOGGER.debug(
