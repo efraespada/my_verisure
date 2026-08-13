@@ -35,7 +35,7 @@ class ConfigManager:
         }
 
     def _resolve_file_manager(self) -> FileManager:
-        """Return the injected file manager, falling back to legacy global state."""
+        """Return the file manager owned by this composition root."""
         return self._file_manager
     
     def get_config(self) -> Dict[str, Any]:

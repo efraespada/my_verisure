@@ -20,7 +20,7 @@ class LogManager:
         self._max_logs = 1000  # Maximum number of logs to keep
 
     def _resolve_file_manager(self) -> FileManager:
-        """Return the injected file manager, falling back to legacy global state."""
+        """Return the file manager owned by this composition root."""
         return self._file_manager
     
     def log_event(self, event_type: str, message: str, data: Optional[Dict[str, Any]] = None) -> bool:

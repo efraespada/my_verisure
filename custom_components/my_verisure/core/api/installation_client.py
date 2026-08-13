@@ -120,7 +120,7 @@ query xSDeviceList($numinst: String!, $panel: String!) {
 class InstallationClient(BaseClient):
     """Installation client for My Verisure API."""
 
-    def __init__(self, session_manager: SessionManager | None = None) -> None:
+    def __init__(self, session_manager: SessionManager) -> None:
         """Initialize the installation client."""
         super().__init__(session_manager=session_manager)
 

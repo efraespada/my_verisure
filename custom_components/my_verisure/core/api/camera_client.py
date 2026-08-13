@@ -107,17 +107,15 @@ class CameraClient(BaseClient):
 
     def __init__(
         self,
-        session_manager: SessionManager | None = None,
-        file_manager: FileManager | None = None,
+        session_manager: SessionManager,
+        file_manager: FileManager,
     ) -> None:
         """Initialize the camera client."""
         super().__init__(session_manager=session_manager)
         self._file_manager = file_manager
 
     def _resolve_file_manager(self) -> FileManager:
-        """Return the injected file manager, falling back to legacy global state."""
-        if self._file_manager is None:
-            raise RuntimeError("CameraClient requires an entry-scoped FileManager")
+        """Return the file manager owned by this composition root."""
         return self._file_manager
 
     

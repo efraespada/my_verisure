@@ -34,7 +34,7 @@ _LOGGER = logging.getLogger(__name__)
 class AlarmClient(BaseClient):
     """Alarm client for My Verisure API."""
 
-    def __init__(self, session_manager: SessionManager | None = None) -> None:
+    def __init__(self, session_manager: SessionManager) -> None:
         """Initialize the alarm client."""
         super().__init__(session_manager=session_manager)
         self._alarm_status_json_cache: Dict[str, Any] | None = None

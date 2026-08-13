@@ -17,14 +17,12 @@ _LOGGER = logging.getLogger(__name__)
 class BaseClient:
     """Base client with HTTP and GraphQL functionality."""
 
-    def __init__(self, session_manager: SessionManager | None = None) -> None:
-        """Initialize the client with an optional entry-scoped session."""
+    def __init__(self, session_manager: SessionManager) -> None:
+        """Initialize the client with its entry-scoped session."""
         self._session_manager = session_manager
 
     def _resolve_session_manager(self) -> SessionManager:
-        """Return the injected manager, falling back to legacy global state."""
-        if self._session_manager is None:
-            raise RuntimeError("BaseClient requires an entry-scoped SessionManager")
+        """Return the session manager owned by this composition root."""
         return self._session_manager
     def _get_native_app_headers(self) -> Dict[str, str]:
         """Get native app headers for better authentication."""
