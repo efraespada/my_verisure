@@ -7,6 +7,7 @@ from typing import Any, Dict, Optional
 
 from .base_client import BaseClient
 from ..application.auth_response_classifier import LoginResponse, classify_login_response
+from ..application.auth_session_persistence import AuthSessionPersistence
 from ..application.otp_authorization import OTPAuthorizationPolicy
 from .device_manager import DeviceManager
 from .exceptions import (
@@ -103,6 +104,7 @@ class AuthClient(BaseClient):
         super().__init__(session_manager=session_manager)
         self._otp_data: Optional[Dict[str, Any]] = None
         self._otp_policy = OTPAuthorizationPolicy()
+        self._session_persistence = AuthSessionPersistence(session_manager)
         self._device_manager = device_manager
 
     async def login(self, user: str, password: str) -> AuthDTO:
@@ -141,21 +143,14 @@ class AuthClient(BaseClient):
             classified = classify_login_response(result)
             if isinstance(classified, LoginResponse):
                 login_data = classified.data
-                # Store session data
-                self._session_data = {
-                    "user": user,
-                    "lang": login_data.get("lang", "ES"),
-                    "legals": login_data.get("legals", False),
-                    "changePassword": login_data.get("changePassword", False),
-                    "needDeviceAuthorization": login_data.get(
-                        "needDeviceAuthorization", False
-                    ),
-                    "login_time": int(time.time()),
-                }
-
-                # Store the hash token if available
-                self._hash = login_data.get("hash")
-                self._refresh_token = login_data.get("refreshToken")
+                self._session_data = self._session_persistence.build_session_data(
+                    user, login_data, int(time.time())
+                )
+                self._hash, self._refresh_token = await self._session_persistence.persist(
+                    user=user,
+                    password=password,
+                    login_data=login_data,
+                )
 
                 _LOGGER.info("Successfully logged in to My Verisure")
                 if should_log_detailed():
@@ -163,27 +158,6 @@ class AuthClient(BaseClient):
                         "Session data (redacted): %s",
                         redact_sensitive_data(self._session_data),
                     )
-
-                # Update SessionManager with new credentials
-                session_manager = self._resolve_session_manager()
-                if not self._hash:
-                    raise MyVerisureAuthenticationError(
-                        "Login succeeded without a session hash"
-                    )
-                if should_log_detailed():
-                    _LOGGER.debug(
-                        "Updating session for user=%s hash=%s",
-                        user,
-                        truncate_secret(self._hash),
-                    )
-                await session_manager.async_update_credentials(
-                    user,
-                    password,
-                    self._hash,
-                    self._refresh_token,
-                )
-                session_manager.clear_service_blocked()
-                _LOGGER.debug("SessionManager updated with new credentials")
 
                 # Convert to DTO
                 auth_dto = AuthDTO.from_dict(login_data)
@@ -648,42 +622,19 @@ class AuthClient(BaseClient):
             data_wrapper = result.get("data", {})
             login_data = data_wrapper.get("xSLoginToken", {}) if isinstance(data_wrapper, dict) else {}
             if login_data and login_data.get("res") == "OK":
-                # Store updated session data
-                self._session_data = {
-                    "user": user,
-                    "lang": login_data.get("lang", "ES"),
-                    "legals": login_data.get("legals", False),
-                    "changePassword": login_data.get("changePassword", False),
-                    "needDeviceAuthorization": login_data.get(
-                        "needDeviceAuthorization", False
-                    ),
-                    "login_time": int(time.time()),
-                }
-
-                # Store the updated hash token and refresh token
-                self._hash = login_data.get("hash")
-                self._refresh_token = login_data.get("refreshToken")
-
-                # Update session data with tokens
+                self._session_data = self._session_persistence.build_session_data(
+                    user, login_data, int(time.time())
+                )
+                self._hash, self._refresh_token = await self._session_persistence.persist(
+                    user=user,
+                    password=password,
+                    login_data=login_data,
+                )
                 if self._hash:
                     self._session_data["hash"] = self._hash
                 if self._refresh_token:
                     self._session_data["refreshToken"] = self._refresh_token
 
-
-                # Update SessionManager with new credentials
-                session_manager = self._resolve_session_manager()
-                if not self._hash:
-                    raise MyVerisureAuthenticationError(
-                        "Post-OTP login succeeded without a session hash"
-                    )
-                await session_manager.async_update_credentials(
-                    user,
-                    password,
-                    self._hash,
-                    self._refresh_token,
-                )
-                session_manager.clear_service_blocked()
                 _LOGGER.info("Post-OTP login successful")
 
                 if should_log_detailed():
