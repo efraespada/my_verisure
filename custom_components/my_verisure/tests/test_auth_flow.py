@@ -7,6 +7,9 @@ from unittest.mock import patch
 
 import pytest
 
+from custom_components.my_verisure.core.application.coordinator_authentication import (
+    CoordinatorAuthenticationPolicy,
+)
 from custom_components.my_verisure.core.file_manager import FileManager
 from custom_components.my_verisure.core.session_manager import SessionManager
 
@@ -39,11 +42,31 @@ def test_token_expiration_with_60min_lifetime(
 
 @pytest.mark.asyncio
 async def test_service_blocked_uses_cache() -> None:
-    """Placeholder: full scenario needs Home Assistant coordinator harness."""
-    pytest.skip("Requires HA coordinator + file_manager integration test harness")
+    """Authentication policy returns the persisted cache when login is blocked."""
+    policy = CoordinatorAuthenticationPolicy(
+        login=lambda: _false(),
+        load_cache=lambda: {"alarm": "armed"},
+    )
+
+    decision = await policy.authenticate()
+
+    assert decision.authenticated is False
+    assert decision.cached_data == {"alarm": "armed"}
 
 
 @pytest.mark.asyncio
 async def test_setup_with_expired_session_and_cache() -> None:
-    """Placeholder: full scenario needs config_entries + coordinator harness."""
-    pytest.skip("Requires HA config entry setup integration test harness")
+    """Authentication policy reports no cache when login and cache both fail."""
+    policy = CoordinatorAuthenticationPolicy(
+        login=lambda: _false(),
+        load_cache=lambda: {},
+    )
+
+    decision = await policy.authenticate()
+
+    assert decision.authenticated is False
+    assert decision.cached_data is None
+
+
+async def _false() -> bool:
+    return False

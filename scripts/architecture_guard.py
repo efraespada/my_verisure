@@ -54,6 +54,15 @@ def main() -> int:
                         "production code uses global manager accessor "
                         f"{forbidden_access}: {path.relative_to(ROOT)}"
                     )
+    for path in ROOT.rglob("*.md"):
+        if ".git" in path.parts or ".hermes" in path.parts:
+            continue
+        source = path.read_text(encoding="utf-8")
+        if "singleton accessor `get_session_manager()`" in source:
+            errors.append(
+                "documentation describes the removed global session architecture: "
+                f"{path.relative_to(ROOT)}"
+            )
 
     pure_domain_models = (
         "auth.py",
