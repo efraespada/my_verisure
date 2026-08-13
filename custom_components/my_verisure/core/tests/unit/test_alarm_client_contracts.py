@@ -68,3 +68,17 @@ async def test_realtime_status_returns_empty_message_for_unknown_response(tmp_pa
     )
 
     assert result == ""
+
+
+@pytest.mark.asyncio
+async def test_send_alarm_command_converts_transport_exception_to_failed_result(
+    tmp_path,
+) -> None:
+    client = _alarm_client(tmp_path)
+    client._get_current_credentials = Mock(return_value=("hash", {"user": "user"}))
+    client._execute_arm_panel_direct = AsyncMock(side_effect=RuntimeError("offline"))
+
+    result = await client.send_alarm_command("1", "panel", "ARM1", capabilities="caps")
+
+    assert result.success is False
+    assert result.message == "Unexpected error: offline"

@@ -136,6 +136,14 @@ async def test_send_otp_rejects_graphql_error(client: AuthClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_send_otp_rejects_empty_provider_payload(client: AuthClient) -> None:
+    _set_query_result(client, {"data": {"xSSendOtp": {}}})
+
+    with pytest.raises(MyVerisureOTPError, match="No response data"):
+        await client.send_otp(7, "otp-hash")
+
+
+@pytest.mark.asyncio
 async def test_verify_otp_requires_stored_otp_data(client: AuthClient) -> None:
     with pytest.raises(MyVerisureOTPError, match="No OTP data"):
         await client.verify_otp("123456")

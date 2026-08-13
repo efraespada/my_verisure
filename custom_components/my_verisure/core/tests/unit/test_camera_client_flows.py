@@ -189,6 +189,23 @@ async def test_get_images_rejects_thumbnail_without_signal(
         camera_client,
         [{"data": {"xSGetThumbnail": {"image": "thumb-data"}}}],
     )
-
     with pytest.raises(MyVerisureError, match="No idSignal"):
         await camera_client.get_images("installation", "panel", "camera", "zone", "caps")
+
+
+@pytest.mark.asyncio
+async def test_request_image_rejects_invalid_status_response(
+    camera_client: CameraClient,
+) -> None:
+    _set_query_results(
+        camera_client,
+        [
+            {"data": {"xSRequestImages": {"res": "OK", "referenceId": "ref-1"}}},
+            {"data": {}},
+        ],
+    )
+
+    with pytest.raises(MyVerisureError, match="Invalid response from camera status service"):
+        await camera_client.request_image(
+            "installation", "panel", [1], "caps", max_attempts=1, check_interval=0
+        )
