@@ -3,6 +3,5 @@
   "render_readme": true,
   "homeassistant": "2026.8.1",
   "content_in_root": false,
-  "filename": "my_verisure",
-  "icon": "custom_components/my_verisure/brand/icon.png"
+  "filename": "my_verisure"
 }

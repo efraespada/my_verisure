@@ -6,6 +6,9 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 HA_PYTHON="${HA_PYTHON:-/tmp/ha-2026.8.1-venv/bin/python}"
 HA_CORE="${HA_CORE-/tmp/ha-core-2026.8.1}"
 
+if [[ "${HA_PYTHON}" != */* ]]; then
+  HA_PYTHON="$(command -v "${HA_PYTHON}" || true)"
+fi
 if [[ ! -x "${HA_PYTHON}" ]]; then
   echo "ERROR: HA_PYTHON is not executable: ${HA_PYTHON}" >&2
   exit 2

@@ -228,6 +228,22 @@ Execution:
 
 ## Definition of done
 
+## Follow-up execution — GitHub Actions, distribution, documentation, and quality
+
+### Slice A — diagnose and fix GitHub Actions
+
+- GitHub run `31751004624` was inspected through the real job logs.
+- HACS failed because current validation rejects the obsolete `hacs.json` key
+  `icon` (`extra keys not allowed @ data['icon']`).
+- Python quality failed before tests because the workflow exported
+  `HA_PYTHON=python`, while the runner requires an executable path.
+- Removed the obsolete HACS key.
+- The workflow now exports the interpreter selected by `setup-python` using
+  `command -v python`.
+- The HA runner script also resolves command names defensively for local/CI
+  parity.
+- Local equivalent verification collected **505 tests** with HA Core 2026.8.1.
+
 - No contradictory active legacy documentation.
 - No unintentional global manager access or product fallback.
 - AuthClient, CameraClient, InstallationClient, and Coordinator boundaries are

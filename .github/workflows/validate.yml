@@ -23,10 +23,10 @@ jobs:
       - name: Install development dependencies
         run: python -m pip install -r requirements-dev.txt
 
+      - name: Select configured Python interpreter
+        run: echo "HA_PYTHON=$(command -v python)" >> "$GITHUB_ENV"
+
       - name: Run pinned Home Assistant suite
-        env:
-          HA_PYTHON: python
-          HA_CORE: ""
         run: make test-ha-2026-8
 
       - name: Run complete type gate
