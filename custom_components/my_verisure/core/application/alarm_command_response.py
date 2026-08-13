@@ -35,8 +35,10 @@ class AlarmCommandResponseInterpreter:
         message = str(payload.get("msg", "Unknown"))
         reference_id = payload.get("referenceId")
 
-        if response_code != "OK" or not reference_id:
+        if response_code != "OK":
             return AlarmCommandResponse(False, message)
+        if not reference_id:
+            return AlarmCommandResponse(False, "Missing command reference")
         return AlarmCommandResponse(True, message, str(reference_id))
 
     @staticmethod

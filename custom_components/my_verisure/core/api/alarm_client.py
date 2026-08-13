@@ -7,6 +7,7 @@ from typing import Any, Dict, Optional
 from ..session_manager import SessionManager
 from ..application.alarm_command_poller import AlarmCommandPoller
 from ..application.alarm_command_response import AlarmCommandResponseInterpreter
+from ..application.alarm_command_workflow import AlarmCommandWorkflow
 from ..application.alarm_graphql_requests import AlarmGraphQLRequestPolicy
 from ..application.alarm_status_service import AlarmStatusService
 from ..application.realtime_alarm_status_workflow import (
@@ -40,6 +41,10 @@ class AlarmClient(BaseClient):
         super().__init__(session_manager=session_manager)
         self._command_poller = AlarmCommandPoller()
         self._command_response_interpreter = AlarmCommandResponseInterpreter()
+        self._command_workflow = AlarmCommandWorkflow(
+            interpreter=self._command_response_interpreter,
+            poller=self._command_poller,
+        )
         self._request_policy = AlarmGraphQLRequestPolicy()
         self._status_service = AlarmStatusService(
             Path(__file__).with_name("alarm_status.json")
@@ -239,47 +244,35 @@ class AlarmClient(BaseClient):
         try:
             hash_token, session_data = self._get_current_credentials()
 
-            arm_result = await self._execute_arm_panel_direct(
-                installation_id=installation_id,
-                panel=panel,
-                request=request,
-                current_status=current_status,
-                capabilities=capabilities,
-                hash_token=hash_token,
-                session_data=session_data,
-            )
-
-            response = self._command_response_interpreter.interpret(
-                arm_result,
-                payload_key="xSArmPanel",
-            )
-            if not response.accepted:
-                _LOGGER.error(
-                    "Failed to send arm command '%s': %s",
-                    request,
-                    response.message,
-                )
-                return ArmResult(success=False, message=response.message)
-
-            reference_id = response.reference_id
-            if reference_id is None:
-                return ArmResult(success=False, message="Missing command reference")
-
-            async def status_transport(attempt: int) -> dict[str, Any]:
-                return await self._execute_arm_status_direct(
+            async def command_transport() -> dict[str, Any]:
+                return await self._execute_arm_panel_direct(
                     installation_id=installation_id,
                     panel=panel,
                     request=request,
-                    reference_id=reference_id,
-                    counter=attempt,
+                    current_status=current_status,
                     capabilities=capabilities,
                     hash_token=hash_token,
                     session_data=session_data,
                 )
 
-            return await self._command_poller.poll_arm(
-                status_transport,
-                reference_id=str(reference_id),
+            def status_transport_factory(reference_id: str):
+                async def status_transport(attempt: int) -> dict[str, Any]:
+                    return await self._execute_arm_status_direct(
+                        installation_id=installation_id,
+                        panel=panel,
+                        request=request,
+                        reference_id=reference_id,
+                        counter=attempt,
+                        capabilities=capabilities,
+                        hash_token=hash_token,
+                        session_data=session_data,
+                    )
+
+                return status_transport
+
+            return await self._command_workflow.arm(
+                command_transport,
+                status_transport_factory,
             )
 
         except Exception as e:
@@ -296,48 +289,34 @@ class AlarmClient(BaseClient):
         try:
             hash_token, session_data = self._get_current_credentials()
 
-            # Step 1: Send the disarm command
-            disarm_result = await self._execute_disarm_panel_direct(
-                installation_id=installation_id,
-                panel=panel,
-                request="DARM1",
-                capabilities=capabilities,
-                hash_token=hash_token,
-                session_data=session_data,
-            )
-
-            response = self._command_response_interpreter.interpret(
-                disarm_result,
-                payload_key="xSDisarmPanel",
-            )
-            if not response.accepted:
-                _LOGGER.error("Failed to send disarm command: %s", response.message)
-                return DisarmResult(success=False, message=response.message)
-
-            reference_id = response.reference_id
-            if reference_id is None:
-                return DisarmResult(success=False, message="Missing command reference")
-
-            _LOGGER.info(
-                "Disarm command sent (reference %s)",
-                truncate_secret(str(reference_id)) if reference_id else "n/a",
-            )
-
-            async def status_transport(attempt: int) -> dict[str, Any]:
-                return await self._execute_disarm_status_direct(
+            async def command_transport() -> dict[str, Any]:
+                return await self._execute_disarm_panel_direct(
                     installation_id=installation_id,
                     panel=panel,
                     request="DARM1",
-                    reference_id=reference_id,
-                    counter=attempt,
                     capabilities=capabilities,
                     hash_token=hash_token,
                     session_data=session_data,
                 )
 
-            return await self._command_poller.poll_disarm(
-                status_transport,
-                reference_id=str(reference_id),
+            def status_transport_factory(reference_id: str):
+                async def status_transport(attempt: int) -> dict[str, Any]:
+                    return await self._execute_disarm_status_direct(
+                        installation_id=installation_id,
+                        panel=panel,
+                        request="DARM1",
+                        reference_id=reference_id,
+                        counter=attempt,
+                        capabilities=capabilities,
+                        hash_token=hash_token,
+                        session_data=session_data,
+                    )
+
+                return status_transport
+
+            return await self._command_workflow.disarm(
+                command_transport,
+                status_transport_factory,
             )
 
         except Exception as e:
