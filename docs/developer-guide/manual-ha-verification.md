@@ -54,3 +54,7 @@ not have permission to access `/var/run/docker.sock`. Therefore the disposable
 HA process/container checklist has not been executed here. The pytest harness
 against the pinned HA Core 2026.8.1 environment remains the verified lifecycle
 evidence; it must not be conflated with manual UI or provider validation.
+
+Diagnostic detail: Docker Engine 29.6.2 is installed and the socket is owned by
+`root:docker` with mode `0660`; the active user is not a member of `docker`. No
+permission or host configuration changes were made by the validation process.

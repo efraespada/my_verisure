@@ -78,3 +78,24 @@ large rewrite.
 Manual Docker validation remains blocked: Docker is installed, but the current
 operator lacks permission to access `/var/run/docker.sock`. No household HA or
 real Verisure account was used.
+
+## Follow-up iteration — Coordinator and composition scope
+
+Additional completed slices:
+
+- extracted `CoordinatorSnapshotStore` as an entry-scoped application boundary;
+- moved coordinator snapshot load, save, and metadata operations behind that
+  boundary while preserving the public coordinator helpers;
+- removed implicit `FileManager` and `SessionManager` construction from
+  `MyVerisureModule`; the composition factory now owns explicit construction;
+- added regression tests for snapshot persistence and dependency-module scope.
+
+Updated evidence: 400 passed, 2 skipped, 79% total coverage. Coordinator is now
+597 NLOC and 34% covered. The remaining coordinator responsibilities are
+authentication policy, provider refresh error mapping, alarm commands, camera
+refresh orchestration, notifications, and translation loading; those require
+separate characterization-led slices and were not bundled into this iteration.
+
+Docker diagnostics: Docker Engine 29.6.2 is installed; `/var/run/docker.sock`
+is `root:docker` with mode `0660`, while the active user is not in the `docker`
+group. No permission changes were made.
