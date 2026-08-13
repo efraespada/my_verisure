@@ -263,11 +263,11 @@ rtk --version
 2. Run one full loop: plan → execute → verify.  
 3. Optionally migrate lint/format to ruff if not already.  
 
-### Medium term
+### Medium term — historical setup recommendations
 
 1. Add code-review workflow skills if useful for your team.  
-2. Harden CI (e.g. GitHub Actions).  
-3. Raise coverage toward 85%+ on core modules.  
+2. Harden CI (completed; see `.github/workflows/validate.yml`).
+3. Raise coverage toward 85%+ on core modules when risk-based tests justify it.
 
 ---
 
@@ -292,7 +292,7 @@ cat AGENT_SETUP.md
 
 ---
 
-**Last updated:** 2026-05-06  
+**Last updated:** 2026-08-13
 **Rules:** 5 active under `.cursor/rules/`  
 **RTK:** use `which rtk` / `rtk --version` on your machine  
 **Status:** ready for day-to-day use  

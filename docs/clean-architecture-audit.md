@@ -5,7 +5,10 @@
 This audit covers the Python CLI and the Home Assistant custom integration under
 `custom_components/my_verisure`.
 
-## Verified baseline (2026-08-10)
+## Verified historical baseline (2026-08-10)
+
+> Historical snapshot. The current status is maintained in `docs/quality-status.md`
+> and the execution record in `.hermes/plans/2026-08-13-completeness-execution.md`.
 
 - Python compilation: passes for `cli`, `custom_components`, and `scripts`.
 - Architecture guard: `ARCHITECTURE_GUARD_OK`.
@@ -87,16 +90,19 @@ objects accept every historical signature.
 or obsolete. Current-contract tests become the gate; obsolete tests are
 rewritten against the current port/use-case contract rather than hidden.
 
-## Remaining quality work
+## Historical remaining quality work
 
 1. Reduce the tracked Flake8 baseline in small, reviewable batches, starting with
    files touched by the migration; never replace this with a blanket ignore.
 2. Type the Home Assistant adapters, coordinator, and CLI result boundaries. The
-   current 99-error mypy report is a roadmap, not a passing gate.
+   old 99-error report is historical and no longer describes the current gate.
 3. Add lifecycle tests for `sensor.py`, `integration.py`, and `services.py` before
    raising the 56% coverage baseline.
 4. Replace the global injector with an explicit composition-root object after all
    CLI and Home Assistant entry points share the same application graph.
+
+The items above describe the state at the audit date; they are not an active
+backlog. Current actionable work is tracked separately.
 
 ## Target boundaries
 

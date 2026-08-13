@@ -1,4 +1,9 @@
-# ✅ Setup Completado - My Verisure Agent Configuration
+# ✅ Setup Completado - My Verisure Agent Configuration (historical)
+
+> This document records the Cursor-agent setup performed on 2026-05-06. It is
+> retained for provenance only. Current repository quality, tests, CI, and
+> release status are maintained in `README.md`, `TESTING.md`, and
+> `docs/quality-status.md`.
 
 ## 🎉 Resumen de Configuración
 
@@ -384,7 +389,7 @@ EOF
 - **Reglas**: ~2-5 KB cada una
 - **Total config**: ~150 KB
 
-### Coverage del Proyecto
+### Coverage del Proyecto (historical snapshot)
 - **Líneas de código Python**: ~10,000
 - **Tests**: 229 tests
 - **Coverage actual**: 34-57%
@@ -392,7 +397,7 @@ EOF
 
 ---
 
-## 🎯 Próximos Pasos Sugeridos
+## 🎯 Próximos Pasos Sugeridos (historical snapshot)
 
 ### Inmediato (Hoy)
 - [x] ✅ Skills instaladas
