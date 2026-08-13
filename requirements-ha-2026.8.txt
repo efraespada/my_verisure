@@ -7,6 +7,8 @@ pytest-homeassistant-custom-component==0.13.355
 injector>=0.21.0
 PyJWT>=2.8.0
 Pillow>=10.0.0
+# Required when importing Home Assistant's camera platform from a source checkout.
+PyTurboJPEG>=2.5.0
 
 # Test runner configuration used by the Home Assistant test plugin.
 pytest==9.0.3
