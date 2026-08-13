@@ -1,11 +1,64 @@
 """Real Home Assistant lifecycle tests for the My Verisure integration."""
 
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.my_verisure.core.const import DOMAIN
+from custom_components.my_verisure.core.api.exceptions import (
+    MyVerisureAuthenticationError,
+    MyVerisureConnectionError,
+)
+from custom_components.my_verisure.core.api.models.domain.auth import AuthResult
+from custom_components.my_verisure.core.use_cases.interfaces.auth_use_case import AuthUseCase
+from custom_components.my_verisure.core.use_cases.interfaces.installation_use_case import InstallationUseCase
+from custom_components.my_verisure.core.use_cases.interfaces.create_dummy_camera_images_use_case import CreateDummyCameraImagesUseCase
+
+
+class _FakeAuthUseCase:
+    def __init__(self, result=None, error=None):
+        self.result = result
+        self.error = error
+
+    async def login(self, username, password):
+        if self.error:
+            raise self.error
+        return self.result
+
+
+class _FakeInstallationUseCase:
+    def __init__(self, installations):
+        self.installations = installations
+
+    async def get_installations(self):
+        return self.installations
+
+
+class _FakeDummyCameraUseCase:
+    async def create_dummy_camera_images(self, installation_id):
+        return SimpleNamespace(success=True)
+
+
+class _FakeRoot:
+    def __init__(self, auth, installations):
+        self.values = {
+            AuthUseCase: auth,
+            InstallationUseCase: _FakeInstallationUseCase(installations),
+            CreateDummyCameraImagesUseCase: _FakeDummyCameraUseCase(),
+            "session": SimpleNamespace(
+                update_credentials=lambda *args, **kwargs: None,
+                is_authenticated=False,
+                get_current_hash_token=lambda: None,
+                username="user@example.invalid",
+            ),
+        }
+
+    def get(self, dependency):
+        if dependency.__name__ == "SessionManager":
+            return self.values["session"]
+        return self.values[dependency]
 
 
 @pytest.mark.homeassistant
@@ -19,6 +72,92 @@ async def test_config_flow_starts_with_user_form(hass, enable_custom_integration
 
     assert result["type"] == "form"
     assert result["step_id"] == "user"
+
+
+@pytest.mark.homeassistant
+@pytest.mark.asyncio
+async def test_config_flow_reports_invalid_auth_from_application_port(
+    hass, enable_custom_integrations
+):
+    """Authentication failures become the HA config-flow error contract."""
+    root = _FakeRoot(_FakeAuthUseCase(AuthResult(False, "invalid")), [])
+    with patch(
+        "custom_components.my_verisure.config_flow.build_my_verisure_composition_root",
+        return_value=root,
+    ):
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": "user"}
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {"user": "user@example.invalid", "password": "[REDACTED]"},
+        )
+
+    assert result["type"] == "form"
+    assert result["step_id"] == "user"
+    assert result["errors"] == {"base": "invalid_auth"}
+
+
+@pytest.mark.homeassistant
+@pytest.mark.asyncio
+async def test_config_flow_maps_connection_failure(
+    hass, enable_custom_integrations
+):
+    """Connection failures become an actionable cannot_connect error."""
+    root = _FakeRoot(
+        _FakeAuthUseCase(error=MyVerisureConnectionError("offline")), []
+    )
+    with patch(
+        "custom_components.my_verisure.config_flow.build_my_verisure_composition_root",
+        return_value=root,
+    ):
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": "user"}
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {"user": "user@example.invalid", "password": "[REDACTED]"},
+        )
+
+    assert result["type"] == "form"
+    assert result["errors"] == {"base": "cannot_connect"}
+
+
+@pytest.mark.homeassistant
+@pytest.mark.asyncio
+async def test_config_flow_creates_entry_after_installation_selection(
+    hass, enable_custom_integrations
+):
+    """A valid application result creates a real HA config entry."""
+    installation = SimpleNamespace(
+        numinst="123", alias="Home", type="alarm"
+    )
+    root = _FakeRoot(_FakeAuthUseCase(AuthResult(True, "ok")), [installation])
+    with patch(
+        "custom_components.my_verisure.config_flow.build_my_verisure_composition_root",
+        return_value=root,
+    ), patch(
+        "custom_components.my_verisure.async_setup_entry",
+        new=AsyncMock(return_value=True),
+    ), patch(
+        "custom_components.my_verisure.integration.async_setup_entry",
+        new=AsyncMock(return_value=True),
+    ):
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": "user"}
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {"user": "user@example.invalid", "password": "[REDACTED]"},
+        )
+        assert result["step_id"] == "installation"
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"installation_id": "123"}
+        )
+
+    assert result["type"] == "create_entry"
+    assert result["data"]["installation_id"] == "123"
+    assert result["data"]["password"] == "[REDACTED]"
 
 
 @pytest.mark.homeassistant
