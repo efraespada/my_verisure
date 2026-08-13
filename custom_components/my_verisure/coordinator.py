@@ -22,6 +22,7 @@ from .core.dependency_injection.composition_root import (
     build_my_verisure_composition_root,
 )
 from .core.application.coordinator_authentication import CoordinatorAuthenticationPolicy
+from .core.application.coordinator_alarm_commands import COMMANDS
 from .core.application.coordinator_failure import (
     CoordinatorFailureClassifier,
     CoordinatorFailureKind,
@@ -353,207 +354,60 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         """Get information about the last saved data file."""
         return self.snapshot_store.metadata()
 
-    async def async_arm_away(self) -> ArmResult:
-        """Arm the alarm in away mode."""
+    async def _async_execute_alarm_command(self, command_name: str) -> ArmResult | DisarmResult:
+        """Execute one alarm command and apply HA-side effects."""
+        command = COMMANDS[command_name]
         tok = set_dev_mode(self._dev_mode)
         try:
-            auto_arm_perimeter_with_internal = self.config_entry.options.get(
-                CONF_AUTO_ARM_PERIMETER_WITH_INTERNAL,
-                self.config_entry.data.get(CONF_AUTO_ARM_PERIMETER_WITH_INTERNAL, False)
-            )
             panel, caps = self._panel_capabilities_from_stored_data()
-            result = await self.alarm_use_case.arm_away(
-                self.installation_id,
-                auto_arm_perimeter_with_internal,
-                panel=panel,
-                capabilities=caps,
-            )
-
-            # Check if operation was successful and send notification
+            operation = getattr(self.alarm_use_case, command.operation)
+            kwargs: dict[str, Any] = {"panel": panel, "capabilities": caps}
+            if command.auto_arm_perimeter:
+                kwargs["auto_arm_perimeter_with_internal"] = self.config_entry.options.get(
+                    CONF_AUTO_ARM_PERIMETER_WITH_INTERNAL,
+                    self.config_entry.data.get(CONF_AUTO_ARM_PERIMETER_WITH_INTERNAL, False),
+                )
+            result = await operation(self.installation_id, **kwargs)
             if result.success:
                 await self._async_refresh_alarm_only()
                 title = await self.get_translation("notifications.title.success")
-                message = await self.get_translation("notifications.alarm.arm_away.success")
-                async_create(
-                    self.hass,
-                    message,
-                    title=title,
-                    notification_id="verisure_alarm_arm_away_success"
-                )
+                message = await self.get_translation(command.success_key)
+                notification_id = f"{command.notification_id}_success"
             else:
                 title = await self.get_translation("notifications.title.error")
-                message = await self.get_translation("notifications.alarm.arm_away.error", message=result.message)
-                async_create(
-                    self.hass,
-                    message,
-                    title=title,
-                    notification_id="verisure_alarm_arm_away_error"
-                )
-
+                message = await self.get_translation(command.error_key, message=result.message)
+                notification_id = f"{command.notification_id}_error"
+            async_create(self.hass, message, title=title, notification_id=notification_id)
             return result
-        except Exception as e:
-            LOGGER.error("Failed to arm away: %s", e)
-            # Send error notification
+        except Exception as error:
+            LOGGER.error("Failed to execute alarm command %s: %s", command_name, error)
             title = await self.get_translation("notifications.title.error")
-            message = await self.get_translation("notifications.alarm.arm_away.exception", error=str(e))
+            message = await self.get_translation(command.exception_key, error=str(error))
             async_create(
                 self.hass,
                 message,
                 title=title,
-                notification_id="verisure_alarm_arm_away_exception"
+                notification_id=f"{command.notification_id}_exception",
             )
-            return ArmResult(success=False, message=f"Failed to arm away: {e}")
+            result_type = DisarmResult if command_name == "disarm" else ArmResult
+            return result_type(success=False, message=f"Failed to {command_name}: {error}")
         finally:
             reset_dev_mode(tok)
+    async def async_arm_away(self) -> ArmResult:
+        """Arm the alarm in away mode."""
+        return cast(ArmResult, await self._async_execute_alarm_command("arm_away"))
 
     async def async_arm_home(self) -> ArmResult:
         """Arm the alarm in home mode."""
-        tok = set_dev_mode(self._dev_mode)
-        try:
-            panel, caps = self._panel_capabilities_from_stored_data()
-            result = await self.alarm_use_case.arm_home(
-                self.installation_id,
-                panel=panel,
-                capabilities=caps,
-            )
-            
-            # Check if operation was successful and send notification
-            if result.success:
-                await self._async_refresh_alarm_only()
-                title = await self.get_translation("notifications.title.success")
-                message = await self.get_translation("notifications.alarm.arm_home.success")
-                async_create(
-                    self.hass,
-                    message,
-                    title=title,
-                    notification_id="verisure_alarm_arm_home_success"
-                )
-            else:
-                title = await self.get_translation("notifications.title.error")
-                message = await self.get_translation("notifications.alarm.arm_home.error", message=result.message)
-                async_create(
-                    self.hass,
-                    message,
-                    title=title,
-                    notification_id="verisure_alarm_arm_home_error"
-                )
-            
-            return result
-        except Exception as e:
-            LOGGER.error("Failed to arm home: %s", e)
-            # Send error notification
-            title = await self.get_translation("notifications.title.error")
-            message = await self.get_translation("notifications.alarm.arm_home.exception", error=str(e))
-            async_create(
-                self.hass,
-                message,
-                title=title,
-                notification_id="verisure_alarm_arm_home_exception"
-            )
-            return ArmResult(success=False, message=f"Failed to arm home: {e}")
-        finally:
-            reset_dev_mode(tok)
+        return cast(ArmResult, await self._async_execute_alarm_command("arm_home"))
 
     async def async_arm_night(self) -> ArmResult:
         """Arm the alarm in night mode."""
-        tok = set_dev_mode(self._dev_mode)
-        try:
-            auto_arm_perimeter_with_internal = self.config_entry.options.get(
-                CONF_AUTO_ARM_PERIMETER_WITH_INTERNAL,
-                self.config_entry.data.get(CONF_AUTO_ARM_PERIMETER_WITH_INTERNAL, False)
-            )
-            panel, caps = self._panel_capabilities_from_stored_data()
-            result = await self.alarm_use_case.arm_night(
-                self.installation_id,
-                auto_arm_perimeter_with_internal,
-                panel=panel,
-                capabilities=caps,
-            )
-            
-            # Check if operation was successful and send notification
-            if result.success:
-                await self._async_refresh_alarm_only()
-                title = await self.get_translation("notifications.title.success")
-                message = await self.get_translation("notifications.alarm.arm_night.success")
-                async_create(
-                    self.hass,
-                    message,
-                    title=title,
-                    notification_id="verisure_alarm_arm_night_success"
-                )
-            else:
-                title = await self.get_translation("notifications.title.error")
-                message = await self.get_translation("notifications.alarm.arm_night.error", message=result.message)
-                async_create(
-                    self.hass,
-                    message,
-                    title=title,
-                    notification_id="verisure_alarm_arm_night_error"
-                )
-            
-            return result
-        except Exception as e:
-            LOGGER.error("Failed to arm night: %s", e)
-            # Send error notification
-            title = await self.get_translation("notifications.title.error")
-            message = await self.get_translation("notifications.alarm.arm_night.exception", error=str(e))
-            async_create(
-                self.hass,
-                message,
-                title=title,
-                notification_id="verisure_alarm_arm_night_exception"
-            )
-            return ArmResult(success=False, message=f"Failed to arm night: {e}")
-        finally:
-            reset_dev_mode(tok)
+        return cast(ArmResult, await self._async_execute_alarm_command("arm_night"))
 
     async def async_disarm(self) -> DisarmResult:
         """Disarm the alarm."""
-        tok = set_dev_mode(self._dev_mode)
-        try:
-            panel, caps = self._panel_capabilities_from_stored_data()
-            result = await self.alarm_use_case.disarm(
-                self.installation_id,
-                panel=panel,
-                capabilities=caps,
-            )
-            
-            # Check if operation was successful and send notification
-            if result.success:
-                await self._async_refresh_alarm_only()
-                title = await self.get_translation("notifications.title.success")
-                message = await self.get_translation("notifications.alarm.disarm.success")
-                async_create(
-                    self.hass,
-                    message,
-                    title=title,
-                    notification_id="verisure_alarm_disarm_success"
-                )
-            else:
-                title = await self.get_translation("notifications.title.error")
-                message = await self.get_translation("notifications.alarm.disarm.error", message=result.message)
-                async_create(
-                    self.hass,
-                    message,
-                    title=title,
-                    notification_id="verisure_alarm_disarm_error"
-                )
-            
-            return result
-        except Exception as e:
-            LOGGER.error("Failed to disarm: %s", e)
-            # Send error notification
-            title = await self.get_translation("notifications.title.error")
-            message = await self.get_translation("notifications.alarm.disarm.exception", error=str(e))
-            async_create(
-                self.hass,
-                message,
-                title=title,
-                notification_id="verisure_alarm_disarm_exception"
-            )
-            return DisarmResult(success=False, message=f"Failed to disarm: {e}")
-        finally:
-            reset_dev_mode(tok)
+        return cast(DisarmResult, await self._async_execute_alarm_command("disarm"))
 
     async def async_refresh_camera_images(self) -> None:
         """Refresh camera images."""
