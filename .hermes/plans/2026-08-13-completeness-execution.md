@@ -327,3 +327,30 @@ The remaining AuthClient complexity is primarily transport/orchestration and
 post-OTP login/session persistence. A further extraction is deferred until a
 separate cohesive contract is identified; no wrapper-only split is justified by
 the current evidence.
+
+## CameraClient hotspot follow-up — 2026-08-14
+
+### Baseline
+
+- `CameraClient`: 443 physical lines; Repowise NLOC `374`, max CCN `24`, max
+  nesting `5`, score `1.0`.
+- Existing camera application boundaries: `CameraRequestPolicy` and
+  `camera_response_interpreter` cover request context, request acceptance, and
+  polling status responses.
+- Existing focused camera contracts cover request polling, missing provider
+  fields, image persistence, entry-scoped `FileManager`, and response parsing.
+- Live Verisure camera behavior remains unverified; all new contracts will use
+  deterministic provider-shaped payloads only.
+
+### Planned vertical slices
+
+1. Extract a pure typed interpreter for `xSGetThumbnail` and
+   `xSGetPhotoImages` envelopes. Keep HTTP execution, file persistence, and
+   logging in `CameraClient`.
+2. Add contract tests for valid thumbnail/photo payloads, GraphQL errors, empty
+   envelopes, missing `idSignal`, missing devices, and malformed image entries.
+3. Re-run focused camera tests, scoped mypy, critical lint, and diff checks;
+   publish the slice before considering persistence or polling extraction.
+4. Re-measure Repowise and inspect whether a second cohesive boundary exists,
+   especially around the request/poll workflow. Do not extract wrappers merely
+   to reduce `CameraClient` line count.
