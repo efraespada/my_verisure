@@ -18,6 +18,11 @@ from ..application.camera_response_interpreter import (
     interpret_request_response,
     interpret_status_response,
 )
+from ..application.camera_image_response_interpreter import (
+    CameraImageResponseError,
+    interpret_photo_response,
+    interpret_thumbnail_response,
+)
 from ..api.models.dto.camera_request_image_dto import CameraRequestImageResultDTO
 from ..log_utils import redact_headers_for_log, should_log_detailed, truncate_secret
 
@@ -332,30 +337,28 @@ class CameraClient(BaseClient):
                 headers,
             )
 
-            if not thumbnail_result or "data" not in thumbnail_result or "xSGetThumbnail" not in thumbnail_result["data"]:
-                raise MyVerisureError("Invalid response from thumbnail service")
+            try:
+                thumbnail = interpret_thumbnail_response(
+                    thumbnail_result,
+                    default_zone=zone_id,
+                )
+            except CameraImageResponseError as error:
+                raise MyVerisureError(str(error)) from error
 
-            thumbnail_data = thumbnail_result["data"]["xSGetThumbnail"]
-            
-            if not thumbnail_data.get("idSignal"):
-                error_msg = "❌ No idSignal received from thumbnail query"
-                _LOGGER.error(error_msg)
-                raise MyVerisureError(error_msg)
-
-            id_signal = thumbnail_data["idSignal"]
-            signal_type = thumbnail_data.get("signalType", "16")
-            device_alias = thumbnail_data.get("deviceAlias", zone_id)
-            timestamp = thumbnail_data.get("timestamp", "")
-            thumbnail_image = thumbnail_data.get("image", "")
+            id_signal = thumbnail.id_signal
+            signal_type = thumbnail.signal_type
+            device_alias = thumbnail.device_alias
+            timestamp = thumbnail.timestamp
+            thumbnail_image = thumbnail.image
 
             timestamp_dir = self._request_policy.image_directory(timestamp)
 
             # Save thumbnail image
+            device_dir = f"cameras/{zone_id}"
             if thumbnail_image:
-                device_dir = f"cameras/{zone_id}"
                 thumbnail_path = f"{device_dir}/{timestamp_dir}/thumbnail.jpg"
                 success = file_manager.save_base64_image(thumbnail_path, thumbnail_image)
-                
+
                 if success:
                     _LOGGER.info("💾 Thumbnail saved to: %s", thumbnail_path)
                 else:
@@ -375,12 +378,13 @@ class CameraClient(BaseClient):
                 headers,
             )
 
-            if not photo_result or "data" not in photo_result or "xSGetPhotoImages" not in photo_result["data"]:
-                raise MyVerisureError("Invalid response from photo images service")
+            try:
+                photo_set = interpret_photo_response(photo_result)
+            except CameraImageResponseError as error:
+                raise MyVerisureError(str(error)) from error
 
-            photo_data = photo_result["data"]["xSGetPhotoImages"]
-            
-            if not photo_data.get("devices") or not photo_data["devices"]:
+            images = photo_set.images
+            if not images:
                 _LOGGER.warning("⚠️ No devices found in photo images response")
                 return {
                     "success": True,
@@ -392,9 +396,6 @@ class CameraClient(BaseClient):
 
             # Process and save images
             images_saved = 0
-            device_data = photo_data["devices"][0]  # Get first device
-            images = device_data.get("images", [])
-            
             for image in images:
                 image_id = image.get("id", "unknown")
                 image_data = image.get("image", "")
