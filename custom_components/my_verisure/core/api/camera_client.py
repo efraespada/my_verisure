@@ -23,6 +23,11 @@ from ..application.camera_image_response_interpreter import (
     interpret_photo_response,
     interpret_thumbnail_response,
 )
+from ..application.camera_request_polling import (
+    PollingAction,
+    decide_initial_request,
+    decide_status,
+)
 from ..api.models.dto.camera_request_image_dto import CameraRequestImageResultDTO
 from ..log_utils import redact_headers_for_log, should_log_detailed, truncate_secret
 
@@ -186,10 +191,13 @@ class CameraClient(BaseClient):
                 try:
                     accepted = interpret_request_response(result)
                 except CameraResponseError as error:
-                    if "request_already_exists" in str(error) and attempt < max_attempts:
+                    decision = decide_initial_request(
+                        str(error), attempt, max_attempts
+                    )
+                    if decision.action is PollingAction.RETRY:
                         await asyncio.sleep(check_interval)
                         continue
-                    if "request_already_exists" in str(error):
+                    if decision.action is PollingAction.RETURN_FAILURE:
                         return CameraRequestImageResultDTO(
                             success=False,
                             successful_requests=0,
@@ -245,8 +253,9 @@ class CameraClient(BaseClient):
 
                 status = status_response.result
                 message = status_response.message
-                
-                if status == "OK" and message != "alarm-manager.photo-request.processing":
+                decision = decide_status(status, message, attempt, max_attempts)
+
+                if decision.action is PollingAction.COMPLETE:
                     _LOGGER.info(
                         "🎉 Images request completed successfully after %d attempts",
                         attempt,
@@ -254,27 +263,25 @@ class CameraClient(BaseClient):
                     return CameraRequestImageResultDTO(
                         success=True,
                         successful_requests=len(devices),
-                        reference_id=reference_id
+                        reference_id=reference_id,
                     )
-                elif status == "KO":
+                if decision.action is PollingAction.RETURN_FAILURE:
                     _LOGGER.error(
-                        "❌ Images request failed with error status after %d attempts",
+                        "❌ Images request failed after %d attempts",
                         attempt,
                     )
                     return CameraRequestImageResultDTO(
                         success=False,
                         successful_requests=0,
-                        reference_id=reference_id
+                        reference_id=reference_id,
                     )
-                else:
-                    _LOGGER.info(
-                        "⏳ Images request still in progress. Status: %s, waiting %d seconds...",
-                        status,
-                        check_interval,
-                    )
-                    
-                    if attempt < max_attempts:
-                        await asyncio.sleep(check_interval)
+
+                _LOGGER.info(
+                    "⏳ Images request still in progress. Status: %s, waiting %d seconds...",
+                    status,
+                    check_interval,
+                )
+                await asyncio.sleep(check_interval)
 
             # If we get here, we've exceeded max attempts
             _LOGGER.warning(
