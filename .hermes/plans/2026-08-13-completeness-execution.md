@@ -354,3 +354,27 @@ the current evidence.
 4. Re-measure Repowise and inspect whether a second cohesive boundary exists,
    especially around the request/poll workflow. Do not extract wrappers merely
    to reduce `CameraClient` line count.
+
+### CameraClient follow-up execution
+
+- `31038b8`: extracted typed thumbnail/photo response interpretation into
+  `camera_image_response_interpreter.py`, with malformed-envelope and provider
+  error contracts.
+- `5a68381`: extracted the initial-request and status polling decisions into
+  `camera_request_polling.py`. The first test run exposed and fixed the
+  precedence of `error_no_response_to_request` over a nominal `OK` status.
+- `76d96d3`: extracted image filename/path construction and persistence into
+  `camera_image_storage.py`, behind a small `CameraImageWriter` port. This also
+  fixed the photos-without-thumbnail path where the old implementation could
+  use an uninitialized `device_dir`.
+- Focused camera contracts after the slices: `27 passed`.
+- Scoped mypy: all five changed camera/application files passed.
+- Critical lint and diff checks passed.
+- Repowise after the slices: `CameraClient` NLOC `363`, max CCN `17`, max
+  nesting `5`, score `1.0`; repository maintainability average `9.37`.
+
+The remaining `request_image()` method is an external transport/orchestration
+boundary. A further split would currently create a wrapper around two GraphQL
+calls without a stable independent port, so it is intentionally deferred. The
+next meaningful evidence target is the full pinned HA/Core suite and final
+quality gates, not another metric-driven extraction.
