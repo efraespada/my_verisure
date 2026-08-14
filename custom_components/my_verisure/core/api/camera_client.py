@@ -28,6 +28,7 @@ from ..application.camera_request_polling import (
     decide_initial_request,
     decide_status,
 )
+from ..application.camera_image_storage import CameraImageStorage
 from ..api.models.dto.camera_request_image_dto import CameraRequestImageResultDTO
 from ..log_utils import redact_headers_for_log, should_log_detailed, truncate_secret
 
@@ -128,6 +129,7 @@ class CameraClient(BaseClient):
         super().__init__(session_manager=session_manager)
         self._file_manager = file_manager
         self._request_policy = CameraRequestPolicy()
+        self._image_storage = CameraImageStorage(file_manager)
 
     def _resolve_file_manager(self) -> FileManager:
         """Return the file manager owned by this composition root."""
@@ -316,7 +318,6 @@ class CameraClient(BaseClient):
         """Get images from a specific camera device."""
         try:
             hash_token, session_data = self._get_current_credentials()
-            file_manager = self._resolve_file_manager()
 
             # Prepare headers
             headers = (
@@ -356,20 +357,8 @@ class CameraClient(BaseClient):
             signal_type = thumbnail.signal_type
             device_alias = thumbnail.device_alias
             timestamp = thumbnail.timestamp
-            thumbnail_image = thumbnail.image
 
             timestamp_dir = self._request_policy.image_directory(timestamp)
-
-            # Save thumbnail image
-            device_dir = f"cameras/{zone_id}"
-            if thumbnail_image:
-                thumbnail_path = f"{device_dir}/{timestamp_dir}/thumbnail.jpg"
-                success = file_manager.save_base64_image(thumbnail_path, thumbnail_image)
-
-                if success:
-                    _LOGGER.info("💾 Thumbnail saved to: %s", thumbnail_path)
-                else:
-                    _LOGGER.error("❌ Failed to save thumbnail image")
 
             # Step 2: Get photo images using idSignal
             photo_variables = {
@@ -390,42 +379,22 @@ class CameraClient(BaseClient):
             except CameraImageResponseError as error:
                 raise MyVerisureError(str(error)) from error
 
-            images = photo_set.images
-            if not images:
+            storage_result = self._image_storage.save(
+                thumbnail,
+                photo_set,
+                zone_id=zone_id,
+                timestamp_directory=timestamp_dir,
+            )
+
+            if not photo_set.images:
                 _LOGGER.warning("⚠️ No devices found in photo images response")
                 return {
                     "success": True,
                     "device": device,
-                    "thumbnail_saved": bool(thumbnail_image),
+                    "thumbnail_saved": storage_result.thumbnail_saved,
                     "images_saved": 0,
                     "message": "Thumbnail saved, but no additional images found",
                 }
-
-            # Process and save images
-            images_saved = 0
-            for image in images:
-                image_id = image.get("id", "unknown")
-                image_data = image.get("image", "")
-                
-                if image_data:
-                    # Save each image with appropriate filename
-                    if image_id == "0":
-                        image_filename = "1.jpg"
-                    elif image_id == "1":
-                        image_filename = "2.jpg"
-                    elif image_id == "2":
-                        image_filename = "3.jpg"
-                    else:
-                        image_filename = f"imagen_{image_id}.jpg"
-                    
-                    image_path = f"{device_dir}/{timestamp_dir}/{image_filename}"
-                    success = file_manager.save_base64_image(image_path, image_data)
-                    
-                    if success:
-                        _LOGGER.info("💾 Image %s saved to: %s", image_id, image_path)
-                        images_saved += 1
-                    else:
-                        _LOGGER.error("❌ Failed to save image %s", image_id)
 
             return {
                 "success": True,
@@ -433,10 +402,10 @@ class CameraClient(BaseClient):
                 "device_alias": device_alias,
                 "timestamp": timestamp,
                 "id_signal": id_signal,
-                "thumbnail_saved": bool(thumbnail_image),
-                "images_saved": images_saved,
-                "total_images": len(images),
-                "message": f"Successfully processed {images_saved} images for device {device}",
+                "thumbnail_saved": storage_result.thumbnail_saved,
+                "images_saved": storage_result.images_saved,
+                "total_images": storage_result.total_images,
+                "message": f"Successfully processed {storage_result.images_saved} images for device {device}",
             }
 
         except MyVerisureAuthenticationError:
