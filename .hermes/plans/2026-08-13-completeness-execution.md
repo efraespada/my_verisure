@@ -378,3 +378,7 @@ boundary. A further split would currently create a wrapper around two GraphQL
 calls without a stable independent port, so it is intentionally deferred. The
 next meaningful evidence target is the full pinned HA/Core suite and final
 quality gates, not another metric-driven extraction.
+
+- Final pinned validation after the CameraClient slices: `531 passed`, official
+  coverage `86%` over `9,509` statements (`1,341` missed), mypy clean in `236`
+  source files, architecture/dependency/distribution/compile checks passing.
