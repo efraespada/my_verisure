@@ -26,10 +26,10 @@ jobs:
         with:
           python-version: '3.11'
       - name: Create isolated RepoWise environment
-        run: python -m venv "$ubuntu-latest_TEMP/repowise-venv"
+        run: python -m venv "$RUNNER_TEMP/repowise-venv"
       - name: Install RepoWise
         run: |
-          "$ubuntu-latest_TEMP/repowise-venv/bin/python" -m pip install \
+          "$RUNNER_TEMP/repowise-venv/bin/python" -m pip install \
             --disable-pip-version-check \
             --no-cache-dir \
             'repowise==0.42.0'
@@ -38,8 +38,8 @@ jobs:
           REPOWISE_SKIP_EDITOR_SETUP: '1'
         run: |
           set -euo pipefail
-          report_dir="$ubuntu-latest_TEMP/repowise-report"
-          repowise_bin="$ubuntu-latest_TEMP/repowise-venv/bin/repowise"
+          report_dir="$RUNNER_TEMP/repowise-report"
+          repowise_bin="$RUNNER_TEMP/repowise-venv/bin/repowise"
           mkdir -p "$report_dir"
           cleanup() {
             rm -rf .repowise .mcp.json
