@@ -329,7 +329,7 @@ E --> F[Approve]
 
 ```bash
 # Cuando haya actualizaciones en platform
-cd /Users/efrain.espada@feverup.com/Development/my_verisure
+cd /Users/efraespada/dev/my_verisure
 
 # Actualizar skills
 cp -r ../platform/.agents/skills/writing-plans .agents/skills/
