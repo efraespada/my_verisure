@@ -1,12 +1,13 @@
 """Unit tests for the current alarm use-case contract."""
 
+from dataclasses import replace
 from unittest.mock import AsyncMock, Mock
 
 import pytest
 
 from ....api.exceptions import MyVerisureError
-from ....api.models.domain.alarm import AlarmStatus, ArmResult, DisarmResult
-from ....api.models.domain.installation import DetailedInstallation, InstallationData
+from ....application.models.alarm import AlarmStatus, ArmResult, DisarmResult
+from ....application.models.installation import DetailedInstallation, InstallationData
 from ....repositories.interfaces.alarm_repository import AlarmRepository
 from ....repositories.interfaces.installation_repository import InstallationRepository
 from ....use_cases.implementations.alarm_use_case_impl import AlarmUseCaseImpl
@@ -89,6 +90,40 @@ async def test_disarm_uses_current_repository_contract(alarm_use_case, alarm_dep
 
     assert result == expected
     alarm.disarm_panel.assert_awaited_once_with("12345", "PROTOCOL", "caps")
+
+
+@pytest.mark.asyncio
+async def test_missing_installation_context_fails_closed(alarm_use_case, alarm_dependencies):
+    _, installation = alarm_dependencies
+    current = installation.get_installation_services.return_value
+    installation.get_installation_services.return_value = replace(
+        current,
+        installation=replace(current.installation, panel=None),
+    )
+
+    with pytest.raises(MyVerisureError, match="Installation context unavailable"):
+        await alarm_use_case.get_alarm_status("12345")
+
+
+@pytest.mark.parametrize(
+    ("panel", "capabilities"),
+    [("", "caps"), ("PROTOCOL", ""), (" ", "caps")],
+)
+@pytest.mark.asyncio
+async def test_empty_installation_context_fails_closed(
+    alarm_use_case, alarm_dependencies, panel, capabilities
+):
+    _, installation = alarm_dependencies
+    current = installation.get_installation_services.return_value
+    installation.get_installation_services.return_value = replace(
+        current,
+        installation=replace(
+            current.installation, panel=panel, capabilities=capabilities
+        ),
+    )
+
+    with pytest.raises(MyVerisureError, match="Installation context unavailable"):
+        await alarm_use_case.get_alarm_status("12345")
 
 
 @pytest.mark.asyncio

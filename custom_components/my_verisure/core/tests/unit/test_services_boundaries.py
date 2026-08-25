@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, Mock, patch
 import pytest
 
 from custom_components.my_verisure import services
+from custom_components.my_verisure.core.application.exceptions import MyVerisureError
 
 
 def _coordinator(installation_id: str, *, result=None, error=None):
@@ -42,9 +43,10 @@ async def test_dispatch_alarm_service_reports_failed_command() -> None:
     hass = cast(Any, SimpleNamespace())
 
     with patch.object(services, "_iter_coordinators", return_value=(coordinator,)):
-        await services._dispatch_alarm_service(
-            hass, "home-1", "async_arm_away", "arm away"
-        )
+        with pytest.raises(MyVerisureError, match="rejected"):
+            await services._dispatch_alarm_service(
+                hass, "home-1", "async_arm_away", "arm away"
+            )
 
     coordinator.async_arm_away.assert_awaited_once_with()
     coordinator.clear_alarm_transition_state.assert_called_once_with()
@@ -58,9 +60,10 @@ async def test_dispatch_alarm_service_handles_unknown_installation() -> None:
     hass = cast(Any, SimpleNamespace())
 
     with patch.object(services, "_iter_coordinators", return_value=(coordinator,)):
-        await services._dispatch_alarm_service(
-            hass, "missing", "async_arm_away", "arm away"
-        )
+        with pytest.raises(MyVerisureError, match="Installation not found"):
+            await services._dispatch_alarm_service(
+                hass, "missing", "async_arm_away", "arm away"
+            )
 
     coordinator.async_arm_away.assert_not_awaited()
     coordinator.clear_alarm_transition_state.assert_not_called()

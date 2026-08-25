@@ -1,21 +1,39 @@
 """Mappings between session transport DTOs and domain values."""
 
-from ..models.domain.session import DeviceIdentifiers, SessionData
+from ...application.models.session import DeviceIdentifiers, SessionData
 from ..models.dto.session_dto import DeviceIdentifiersDTO, SessionDTO
+
+
+def _required_string(value: str | None, field: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"session field required: {field}")
+    return value
+
+
+def _required_mapping(value: object, field: str) -> dict:
+    if not isinstance(value, dict):
+        raise ValueError(f"session field required: {field}")
+    return value
+
+
+def _required_time(value: int | None) -> int:
+    if not isinstance(value, int) or value <= 0:
+        raise ValueError("session field required: saved_time")
+    return value
 
 
 def device_identifiers_from_dto(dto: DeviceIdentifiersDTO) -> DeviceIdentifiers:
     return DeviceIdentifiers(
-        id_device=dto.id_device or "",
-        uuid=dto.uuid or "",
-        id_device_indigitall=dto.id_device_indigitall or "",
-        device_name=dto.device_name or "",
-        device_brand=dto.device_brand or "",
-        device_os_version=dto.device_os_version or "",
-        device_version=dto.device_version or "",
-        device_type=dto.device_type or "",
-        device_resolution=dto.device_resolution or "",
-        generated_time=dto.generated_time or 0,
+        id_device=_required_string(dto.id_device, "id_device"),
+        uuid=_required_string(dto.uuid, "uuid"),
+        id_device_indigitall=_required_string(dto.id_device_indigitall, "id_device_indigitall"),
+        device_name=_required_string(dto.device_name, "device_name"),
+        device_brand=_required_string(dto.device_brand, "device_brand"),
+        device_os_version=_required_string(dto.device_os_version, "device_os_version"),
+        device_version=_required_string(dto.device_version, "device_version"),
+        device_type=dto.device_type,
+        device_resolution=dto.device_resolution,
+        generated_time=dto.generated_time,
     )
 
 
@@ -36,16 +54,16 @@ def device_identifiers_to_dto(value: DeviceIdentifiers) -> DeviceIdentifiersDTO:
 
 def session_data_from_dto(dto: SessionDTO) -> SessionData:
     return SessionData(
-        cookies=dto.cookies,
-        session_data=dto.session_data or {},
+        cookies=_required_mapping(dto.cookies, "cookies"),
+        session_data=_required_mapping(dto.session_data, "session_data"),
         hash=dto.hash,
-        user=dto.user or "",
+        user=_required_string(dto.user, "user"),
         device_identifiers=(
             device_identifiers_from_dto(dto.device_identifiers)
             if dto.device_identifiers
             else None
         ),
-        saved_time=dto.saved_time or 0,
+        saved_time=_required_time(dto.saved_time),
     )
 
 

@@ -50,8 +50,8 @@ class TestLogManager:
             logs = call_args[0][1]
             assert len(logs) == 1
             assert logs[0]["event_type"] == "test"
-            assert logs[0]["message"] == "Test message"
-            assert logs[0]["data"] == {"key": "value"}
+            assert logs[0]["message"] == "test event"
+            assert logs[0]["data"] == {}
             assert "timestamp" in logs[0]
 
     def test_log_event_failure(self):
@@ -134,10 +134,8 @@ class TestLogManager:
             call_args = self.mock_file_manager.save_json.call_args
             logs = call_args[0][1]
             assert logs[0]["event_type"] == "auth"
-            assert logs[0]["message"] == "Authentication login: user123"
-            assert logs[0]["data"]["user"] == "user123"
-            assert logs[0]["data"]["success"] is True
-            assert logs[0]["data"]["details"] == "Success"
+            assert logs[0]["message"] == "auth event"
+            assert logs[0]["data"] == {"success": True}
 
     def test_log_alarm_event(self):
         """Test alarm event logging."""
@@ -153,10 +151,8 @@ class TestLogManager:
             call_args = self.mock_file_manager.save_json.call_args
             logs = call_args[0][1]
             assert logs[0]["event_type"] == "alarm"
-            assert logs[0]["message"] == "Alarm arm: ARMED"
-            assert logs[0]["data"]["installation_id"] == "inst123"
-            assert logs[0]["data"]["status"] == "ARMED"
-            assert logs[0]["data"]["details"] == "Away mode"
+            assert logs[0]["message"] == "alarm event"
+            assert logs[0]["data"] == {"status": "ARMED"}
 
     def test_log_error(self):
         """Test error event logging."""
@@ -173,9 +169,8 @@ class TestLogManager:
             call_args = self.mock_file_manager.save_json.call_args
             logs = call_args[0][1]
             assert logs[0]["event_type"] == "error"
-            assert logs[0]["message"] == "Error: Test error message"
-            assert logs[0]["data"]["error_type"] == "validation"
-            assert logs[0]["data"]["exception"] == "Test error"
+            assert logs[0]["message"] == "error event"
+            assert logs[0]["data"] == {"error_type": "validation"}
 
     def test_log_api_call(self):
         """Test API call logging."""
@@ -191,11 +186,12 @@ class TestLogManager:
             call_args = self.mock_file_manager.save_json.call_args
             logs = call_args[0][1]
             assert logs[0]["event_type"] == "api"
-            assert logs[0]["message"] == "API call: GET /api/test"
-            assert logs[0]["data"]["endpoint"] == "/api/test"
-            assert logs[0]["data"]["method"] == "GET"
-            assert logs[0]["data"]["success"] is True
-            assert logs[0]["data"]["response_time"] == 1.5
+            assert logs[0]["message"] == "api event"
+            assert logs[0]["data"] == {
+                "method": "GET",
+                "success": True,
+                "response_time": 1.5,
+            }
 
     def test_get_logs_all(self):
         """Test getting all logs."""

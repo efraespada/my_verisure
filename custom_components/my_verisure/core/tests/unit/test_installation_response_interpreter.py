@@ -2,7 +2,7 @@
 
 import pytest
 
-from custom_components.my_verisure.core.application.installation_response_interpreter import (
+from custom_components.my_verisure.core.api.installation_response_interpreter import (
     InstallationResponseError,
     interpret_devices,
     interpret_installations,
@@ -14,6 +14,15 @@ def test_interprets_installations() -> None:
     assert interpret_installations(
         {"data": {"xSInstallations": {"installations": [{"numinst": "1"}]}}}
     ) == [{"numinst": "1"}]
+
+
+
+
+def test_rejects_non_mapping_installation_records() -> None:
+    with pytest.raises(InstallationResponseError, match="Invalid installations data"):
+        interpret_installations(
+            {"data": {"xSInstallations": {"installations": [None]}}}
+        )
 
 
 def test_interprets_services() -> None:
@@ -36,10 +45,23 @@ def test_interprets_devices() -> None:
     ) == [{"id": 1}]
 
 
+def test_rejects_non_mapping_device_records() -> None:
+    with pytest.raises(InstallationResponseError, match="Invalid devices data"):
+        interpret_devices(
+            {"data": {"xSDeviceList": {"res": "OK", "devices": [None]}}}
+        )
+
+
 @pytest.mark.parametrize("interpreter", [interpret_installations, interpret_services, interpret_devices])
 def test_rejects_graphql_errors(interpreter) -> None:
-    with pytest.raises(InstallationResponseError, match="provider failed"):
+    with pytest.raises(InstallationResponseError, match="service request failed"):
         interpreter({"errors": [{"message": "provider failed"}]})
+
+
+@pytest.mark.parametrize("interpreter", [interpret_installations, interpret_services, interpret_devices])
+def test_rejects_empty_graphql_errors(interpreter) -> None:
+    with pytest.raises(InstallationResponseError, match="service request failed"):
+        interpreter({"errors": []})
 
 
 @pytest.mark.parametrize("interpreter", [interpret_installations, interpret_services, interpret_devices])

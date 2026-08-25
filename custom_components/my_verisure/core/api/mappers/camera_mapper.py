@@ -1,6 +1,6 @@
 """Mappings between camera image DTOs and domain values."""
 
-from ..models.domain.camera_request_image import (
+from ...application.models.camera_request_image import (
     CameraRequestImage,
     CameraRequestImageResult,
     CameraRequestImageStatus,

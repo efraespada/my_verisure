@@ -42,14 +42,14 @@ class AlarmStatusService:
 
     @staticmethod
     def default_status() -> AlarmStatus:
-        """Return a status with every alarm category inactive."""
+        """Return a status with every alarm category unknown."""
         return {
             "internal": {
-                "day": {"status": False},
-                "night": {"status": False},
-                "total": {"status": False},
+                "day": {"status": None},
+                "night": {"status": None},
+                "total": {"status": None},
             },
-            "external": {"status": False},
+            "external": {"status": None},
         }
 
     async def _load_config(self) -> AlarmStatusConfig:

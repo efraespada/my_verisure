@@ -53,8 +53,8 @@ class RefreshCameraImagesButton(CoordinatorEntity, ButtonEntity):
                 {"installation_id": self._installation_id},
             )
             _LOGGER.debug("Camera images refresh service called successfully")
-        except Exception as error:
-            _LOGGER.error("Failed to refresh camera images: %s", error)
+        except Exception:
+            _LOGGER.error("Failed to refresh camera images")
         finally:
             self._is_executing = False
             self.async_write_ha_state()
@@ -69,7 +69,6 @@ class RefreshCameraImagesButton(CoordinatorEntity, ButtonEntity):
     def extra_state_attributes(self):
         """Return additional state attributes."""
         return {
-            "installation_id": self._installation_id,
             "action": "refresh_camera_images",
             "description": "Refresh images from all Verisure cameras",
             "is_executing": self._is_executing,
@@ -113,7 +112,7 @@ async def async_setup_entry(
             coordinator, installation_id, config_entry
         )
         buttons.append(refresh_button)
-        _LOGGER.info("Created refresh camera images button for installation %s", installation_id)
+        _LOGGER.info("Created refresh camera images button")
 
     if buttons:
         async_add_entities(buttons, update_before_add=True)

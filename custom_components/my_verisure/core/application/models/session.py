@@ -13,9 +13,9 @@ class DeviceIdentifiers:
     device_brand: str
     device_os_version: str
     device_version: str
-    device_type: str = ""
-    device_resolution: str = ""
-    generated_time: int = 0
+    device_type: Optional[str] = None
+    device_resolution: Optional[str] = None
+    generated_time: Optional[int] = None
 
     def dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -25,10 +25,10 @@ class DeviceIdentifiers:
 class SessionData:
     cookies: Dict[str, str]
     session_data: Dict[str, Any]
+    user: str
+    saved_time: int
     hash: Optional[str] = None
-    user: str = ""
     device_identifiers: Optional[DeviceIdentifiers] = None
-    saved_time: int = 0
 
     def dict(self) -> Dict[str, Any]:
         return asdict(self)

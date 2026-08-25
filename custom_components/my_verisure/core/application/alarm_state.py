@@ -13,6 +13,7 @@ from typing import Any
 class AlarmState(StrEnum):
     """Normalized alarm states understood by the application layer."""
 
+    UNKNOWN = "unknown"
     DISARMED = "disarmed"
     ARMED_AWAY = "armed_away"
     ARMED_NIGHT = "armed_night"
@@ -24,10 +25,10 @@ class AlarmStateSnapshot:
     """Normalized alarm state and its detailed active modes."""
 
     state: AlarmState
-    internal_day: bool = False
-    internal_night: bool = False
-    internal_total: bool = False
-    external: bool = False
+    internal_day: bool | None = None
+    internal_night: bool | None = None
+    internal_total: bool | None = None
+    external: bool | None = None
 
     @property
     def active_alarms(self) -> tuple[str, ...]:
@@ -46,21 +47,40 @@ class AlarmStateSnapshot:
 
 def analyze_alarm_state(alarm_data: dict[str, Any] | None) -> AlarmStateSnapshot:
     """Normalize a Verisure alarm payload into an application snapshot."""
-    raw_data = (alarm_data or {}).get("data", {})
+    if not isinstance(alarm_data, dict):
+        return AlarmStateSnapshot(AlarmState.UNKNOWN)
+    raw_data = alarm_data.get("data")
     if not isinstance(raw_data, dict):
-        return AlarmStateSnapshot(AlarmState.DISARMED)
+        return AlarmStateSnapshot(AlarmState.UNKNOWN)
 
-    internal = raw_data.get("internal", {})
-    external = raw_data.get("external", {})
+    internal = raw_data.get("internal")
+    external = raw_data.get("external")
+    if internal is None:
+        internal = {}
+    if external is None:
+        external = {}
     if not isinstance(internal, dict) or not isinstance(external, dict):
-        return AlarmStateSnapshot(AlarmState.DISARMED)
+        return AlarmStateSnapshot(AlarmState.UNKNOWN)
 
-    internal_day = bool(_status(internal, "day"))
-    internal_night = bool(_status(internal, "night"))
-    internal_total = bool(_status(internal, "total"))
-    external_status = bool(external.get("status", False))
+    internal_day = _status(internal, "day")
+    internal_night = _status(internal, "night")
+    internal_total = _status(internal, "total")
+    external_status = external.get("status")
+    if not isinstance(external_status, bool) and external_status is not None:
+        return AlarmStateSnapshot(AlarmState.UNKNOWN)
+    if any(
+        value is None
+        for value in (internal_day, internal_night, internal_total, external_status)
+    ):
+        return AlarmStateSnapshot(
+            AlarmState.UNKNOWN,
+            internal_day=internal_day,
+            internal_night=internal_night,
+            internal_total=internal_total,
+            external=external_status,
+        )
 
-    if internal_total:
+    if internal_total is True:
         state = AlarmState.ARMED_AWAY
     elif internal_night:
         state = AlarmState.ARMED_NIGHT
@@ -78,7 +98,9 @@ def analyze_alarm_state(alarm_data: dict[str, Any] | None) -> AlarmStateSnapshot
     )
 
 
-def _status(section: dict[str, Any], mode: str) -> bool:
-    """Read one mode status defensively from an upstream payload."""
-    value = section.get(mode, {})
-    return value.get("status", False) if isinstance(value, dict) else False
+def _status(section: dict[str, Any], mode: str) -> bool | None:
+    """Read one mode status and preserve missing provider data as unknown."""
+    value = section.get(mode)
+    if not isinstance(value, dict) or not isinstance(value.get("status"), bool):
+        return None
+    return value["status"]

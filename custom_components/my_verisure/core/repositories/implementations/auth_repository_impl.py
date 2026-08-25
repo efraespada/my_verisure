@@ -1,12 +1,19 @@
 """Authentication repository implementation."""
 
+import asyncio
 import logging
 
-from ...api.models.domain.auth import Auth, AuthResult
+import aiohttp
+
+from ...application.models.auth import Auth, AuthResult
+from ...api.models.dto.auth_dto import AuthDTO
 from ..interfaces.auth_repository import AuthRepository
 from ...api.exceptions import (
     MyVerisureAuthenticationError,
+    MyVerisureConnectionError,
+    MyVerisureDeviceAuthorizationError,
     MyVerisureOTPError,
+    MyVerisureTimeoutError,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -24,63 +31,65 @@ class AuthRepositoryImpl(AuthRepository):
     ) -> AuthResult:
         """Login with username and password."""
         try:
-            _LOGGER.info("Attempting login for user: %s", auth.username)
+            _LOGGER.info("Login started")
 
             result = await self.client.login(auth.username, auth.password)
 
             _LOGGER.info(
-                "Login result: success=%s message=%s",
+                "Login result: success=%s",
                 getattr(result, "success", False),
-                getattr(result, "message", ""),
             )
 
-            if result and self.client._hash:
+            if (
+                isinstance(result, AuthDTO)
+                and result.res == "OK"
+                and result.need_device_authorization is False
+                and isinstance(result.hash, str)
+                and bool(result.hash.strip())
+            ):
                 return AuthResult(
                     success=True,
                     message="Login successful",
-                    hash=self.client._hash,
-                    refresh_token=self.client._refresh_token,
-                    lang=self.client._session_data.get("lang"),
-                    legals=self.client._session_data.get("legals"),
-                    change_password=self.client._session_data.get(
-                        "changePassword"
-                    ),
-                    need_device_authorization=self.client._session_data.get(
-                        "needDeviceAuthorization"
-                    ),
+                    hash=result.hash,
+                    refresh_token=result.refresh_token,
+                    lang=result.lang,
+                    legals=result.legals,
+                    change_password=result.change_password,
+                    need_device_authorization=result.need_device_authorization,
                 )
-            else:
-                _LOGGER.error(
-                    "Login failed — hash present: %s",
-                    "Yes" if self.client._hash else "No",
-                )
-                return AuthResult(success=False, message="Login failed")
 
-        except MyVerisureOTPError as e:
-            _LOGGER.info("OTP authentication required: %s", e)
-            # Re-raise the OTP error so it can be handled by the use case
+            _LOGGER.error("Login failed — provider returned no valid session")
+            return AuthResult(success=False, message="Login failed")
+
+        except MyVerisureConnectionError:
             raise
-        except MyVerisureAuthenticationError as e:
-            _LOGGER.error("Authentication failed: %s", e)
+        except aiohttp.ClientError:
+            raise MyVerisureConnectionError("Authentication transport failed") from None
+        except TimeoutError:
+            raise MyVerisureTimeoutError("Authentication request timed out") from None
+        except asyncio.CancelledError:
+            raise
+        except OSError:
+            raise MyVerisureConnectionError("Authentication transport failed") from None
+        except MyVerisureOTPError:
+            _LOGGER.info("OTP authentication required")
+            raise
+        except MyVerisureAuthenticationError:
+            _LOGGER.error("Authentication failed")
             return AuthResult(
                 success=False,
-                message=f"Authentication failed: {e}",
+                message="invalid credentials",
                 hash=None,
                 refresh_token=None,
             )
-        except Exception as e:
-            _LOGGER.error("Unexpected error during login: %s", e)
-            return AuthResult(
-                success=False,
-                message=f"Login failed: {e}",
-                hash=None,
-                refresh_token=None,
-            )
+        except Exception:
+            _LOGGER.error("Login transport failed")
+            raise MyVerisureConnectionError("Authentication transport failed") from None
 
     async def send_otp(self, record_id: int, otp_hash: str) -> bool:
         """Send OTP to the selected phone number."""
         try:
-            _LOGGER.info("Sending OTP for record_id: %s", record_id)
+            _LOGGER.info("OTP send started")
 
             result = await self.client.send_otp(record_id, otp_hash)
 
@@ -91,9 +100,23 @@ class AuthRepositoryImpl(AuthRepository):
                 _LOGGER.error("Failed to send OTP")
                 return False
 
-        except Exception as e:
-            _LOGGER.error("Error sending OTP: %s", e)
-            raise MyVerisureOTPError(f"Failed to send OTP: {e}") from e
+        except MyVerisureConnectionError:
+            raise
+        except aiohttp.ClientError:
+            raise MyVerisureConnectionError("Authentication transport failed") from None
+        except TimeoutError:
+            raise MyVerisureTimeoutError("Authentication request timed out") from None
+        except asyncio.CancelledError:
+            raise
+        except OSError:
+            raise MyVerisureConnectionError("Authentication transport failed") from None
+        except MyVerisureOTPError:
+            raise
+        except MyVerisureAuthenticationError:
+            raise
+        except Exception:
+            _LOGGER.error("OTP send transport failed")
+            raise MyVerisureConnectionError("Authentication transport failed") from None
 
     async def verify_otp(self, otp_code: str) -> AuthResult:
         """Verify OTP code."""
@@ -102,32 +125,52 @@ class AuthRepositoryImpl(AuthRepository):
 
             result = await self.client.verify_otp(otp_code)
 
-            if result:
+            if (
+                isinstance(result, AuthDTO)
+                and result.res == "OK"
+                and result.need_device_authorization is False
+                and isinstance(result.hash, str)
+                and bool(result.hash.strip())
+            ):
                 return AuthResult(
                     success=True,
                     message="OTP verification successful",
-                    hash=self.client._hash,
-                    refresh_token=self.client._refresh_token,
-                    lang=self.client._session_data.get("lang"),
-                    legals=self.client._session_data.get("legals"),
-                    change_password=self.client._session_data.get(
-                        "changePassword"
-                    ),
-                    need_device_authorization=self.client._session_data.get(
-                        "needDeviceAuthorization"
-                    ),
-                )
-            else:
-                return AuthResult(
-                    success=False, message="OTP verification failed"
+                    hash=result.hash,
+                    refresh_token=result.refresh_token,
+                    lang=result.lang,
+                    legals=result.legals,
+                    change_password=result.change_password,
+                    need_device_authorization=result.need_device_authorization,
                 )
 
-        except MyVerisureOTPError as e:
-            _LOGGER.error("OTP verification failed: %s", e)
+            return AuthResult(
+                success=False,
+                message="OTP verification failed",
+            )
+
+        except MyVerisureConnectionError:
             raise
-        except Exception as e:
-            _LOGGER.error("Unexpected error during OTP verification: %s", e)
-            raise MyVerisureOTPError(f"OTP verification failed: {e}") from e
+        except aiohttp.ClientError:
+            raise MyVerisureConnectionError("Authentication transport failed") from None
+        except TimeoutError:
+            raise MyVerisureTimeoutError("Authentication request timed out") from None
+        except asyncio.CancelledError:
+            raise
+        except OSError:
+            raise MyVerisureConnectionError("Authentication transport failed") from None
+        except MyVerisureOTPError:
+            raise
+        except MyVerisureDeviceAuthorizationError:
+            raise
+        except MyVerisureAuthenticationError:
+            raise
+        except Exception:
+            _LOGGER.error("OTP verification transport failed")
+            raise MyVerisureConnectionError("Authentication transport failed") from None
+
+    def invalidate_otp_challenge(self) -> None:
+        """Invalidate provider-client OTP state without network access."""
+        self.client.invalidate_otp_challenge()
 
     def get_available_phones(self) -> list[dict[str, object]]:
         """Get available phone numbers for OTP."""
@@ -144,6 +187,8 @@ class AuthRepositoryImpl(AuthRepository):
                 _LOGGER.warning("No available phones found")
                 return []
 
-        except Exception as e:
-            _LOGGER.error("Error getting available phones: %s", e)
-            return []
+        except MyVerisureConnectionError:
+            raise
+        except Exception:
+            _LOGGER.error("OTP phone lookup failed")
+            raise MyVerisureConnectionError("OTP phone lookup failed") from None

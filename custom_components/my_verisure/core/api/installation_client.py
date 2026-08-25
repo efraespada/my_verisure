@@ -11,7 +11,7 @@ from .models.dto.installation_dto import (
     DetailedInstallationDTO,
 )
 from .models.dto.device_dto import DeviceListDTO
-from ..application.installation_response_interpreter import (
+from .installation_response_interpreter import (
     InstallationResponseError,
     interpret_devices,
     interpret_installations,
@@ -147,11 +147,7 @@ class InstallationClient(BaseClient):
 
         try:
             # Execute the installations query
-            headers = (
-                self._get_session_headers(session_data or {}, hash_token)
-                if session_data
-                else None
-            )
+            headers = self._get_session_headers(session_data or {}, hash_token)
 
             result = await self._execute_query_direct(
                 INSTALLATIONS_QUERY, headers=headers
@@ -159,8 +155,8 @@ class InstallationClient(BaseClient):
 
             try:
                 installation_records = interpret_installations(result)
-            except InstallationResponseError as error:
-                raise MyVerisureError(str(error)) from error
+            except InstallationResponseError:
+                raise MyVerisureError("Installation response failed") from None
 
             _LOGGER.info("✅ Found %d installations", len(installation_records))
             return [
@@ -169,9 +165,9 @@ class InstallationClient(BaseClient):
 
         except MyVerisureError:
             raise
-        except Exception as e:
-            _LOGGER.error("Unexpected error getting installations: %s", e)
-            raise MyVerisureError(f"Failed to get installations: {e}") from e
+        except Exception:
+            _LOGGER.error("Unexpected error getting installations")
+            raise MyVerisureError("Failed to get installations") from None
 
     async def get_installation_services(
         self,
@@ -191,8 +187,7 @@ class InstallationClient(BaseClient):
             raise MyVerisureError("Installation ID is required")
 
         _LOGGER.info(
-            "🔧 Getting services for installation %s (force_refresh=%s)",
-            installation_id,
+            "🔧 Getting services for installation (force_refresh=%s)",
             force_refresh,
         )
 
@@ -201,11 +196,7 @@ class InstallationClient(BaseClient):
             variables = {"numinst": installation_id}
 
             # Execute the services query
-            headers = (
-                self._get_session_headers(session_data or {}, hash_token)
-                if session_data
-                else None
-            )
+            headers = self._get_session_headers(session_data or {}, hash_token)
 
             result = await self._execute_query_direct(
                 INSTALLATION_SERVICES_QUERY, variables, headers
@@ -213,30 +204,31 @@ class InstallationClient(BaseClient):
 
             try:
                 response_data = interpret_services(result)
-            except InstallationResponseError as error:
-                raise MyVerisureError(str(error)) from error
+            except InstallationResponseError:
+                raise MyVerisureError("Installation response failed") from None
 
             installation = response_data["installation"]
 
+            panel = installation.get("panel")
+            capabilities = installation.get("capabilities")
+            if not panel or not capabilities:
+                raise MyVerisureError("Installation context unavailable")
+
             device_list = await self.get_installation_devices(
                 installation_id,
-                installation.get("panel", "Unknown"),
-                installation.get("capabilities", "Unknown"),
+                panel,
+                capabilities,
             )
 
             installations_dto = await self.get_installations()
-            _LOGGER.info(
-                "✅ Found %d devices for installation %s",
-                len(device_list.devices),
-                installation_id,
-            )
+            _LOGGER.info("✅ Found %d devices for installation", len(device_list.devices))
 
             installation_dto = next(
                 (item for item in installations_dto if item.numinst == installation_id),
                 None,
             )
             if installation_dto is None:
-                raise MyVerisureError(f"Installation {installation_id} not found")
+                raise MyVerisureError("Installation not found")
 
             installation["devices"] = [
                 device.dict() for device in device_list.devices
@@ -263,13 +255,9 @@ class InstallationClient(BaseClient):
 
         except MyVerisureError:
             raise
-        except Exception as e:
-            _LOGGER.error(
-                "Unexpected error getting installation services: %s", e
-            )
-            raise MyVerisureError(
-                f"Failed to get installation services: {e}"
-            ) from e
+        except Exception:
+            _LOGGER.error("Unexpected error getting installation services")
+            raise MyVerisureError("Failed to get installation services") from None
 
     async def get_installation_devices(
         self,
@@ -292,6 +280,9 @@ class InstallationClient(BaseClient):
         if not panel:
             raise MyVerisureError("Panel is required")
 
+        if not capabilities:
+            raise MyVerisureError("Capabilities are required")
+
         try:
             # Prepare variables
             variables = {
@@ -300,11 +291,7 @@ class InstallationClient(BaseClient):
             }
 
             # Execute the devices query
-            headers = (
-                self._get_session_headers(session_data or {}, hash_token)
-                if session_data
-                else None
-            )
+            headers = self._get_session_headers(session_data or {}, hash_token)
             
             # Add capabilities header if provided
             if capabilities and headers:
@@ -316,8 +303,8 @@ class InstallationClient(BaseClient):
 
             try:
                 device_records = interpret_devices(result)
-            except InstallationResponseError as error:
-                raise MyVerisureError(str(error)) from error
+            except InstallationResponseError:
+                raise MyVerisureError("Installation response failed") from None
 
             return DeviceListDTO.from_dict(
                 {"res": "OK", "devices": device_records}
@@ -325,10 +312,6 @@ class InstallationClient(BaseClient):
 
         except MyVerisureError:
             raise
-        except Exception as e:
-            _LOGGER.error(
-                "Unexpected error getting installation devices: %s", e
-            )
-            raise MyVerisureError(
-                f"Failed to get installation devices: {e}"
-            ) from e
+        except Exception:
+            _LOGGER.error("Unexpected error getting installation devices")
+            raise MyVerisureError("Failed to get installation devices") from None

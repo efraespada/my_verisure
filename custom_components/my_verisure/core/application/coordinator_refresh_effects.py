@@ -6,6 +6,7 @@ import logging
 from typing import Any, Protocol
 
 from .coordinator_snapshot_store import CoordinatorSnapshotStore
+from .exceptions import MyVerisureError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -47,8 +48,8 @@ class CoordinatorRefreshEffects:
         """Publish and persist a snapshot, then optionally create placeholders."""
         try:
             self._publisher(snapshot)
-        except Exception as error:  # HA publisher boundary must not hide data
-            _LOGGER.error("Failed to publish coordinator data: %s", error)
+        except Exception:  # HA publisher boundary must not hide data
+            _LOGGER.error("Failed to publish coordinator data")
 
         saved = await self._snapshot_store.save(snapshot)
         if not saved:
@@ -59,5 +60,7 @@ class CoordinatorRefreshEffects:
                 await self._dummy_camera_creator.create_dummy_camera_images(
                     installation_id
                 )
-            except Exception as error:
-                _LOGGER.error("Failed to create dummy camera images: %s", error)
+            except MyVerisureError:
+                raise
+            except Exception:
+                _LOGGER.error("Failed to create dummy camera images")

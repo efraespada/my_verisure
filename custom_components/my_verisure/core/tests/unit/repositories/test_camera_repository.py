@@ -8,8 +8,8 @@ from unittest.mock import Mock, AsyncMock, patch
 
 from ....repositories.implementations import camera_repository_impl
 from ....repositories.interfaces.camera_repository import CameraRepository
-from ....api.models.domain.camera_request_image import CameraRequestImageResult
-from ....api.exceptions import MyVerisureError
+from ....application.models.camera_request_image import CameraRequestImageResult
+from my_verisure.core.application.exceptions import MyVerisureError
 
 
 class TestCameraRepository:
@@ -113,16 +113,10 @@ class TestCameraRepository:
         capabilities = "test_capabilities"
         
         mock_client.request_image.side_effect = MyVerisureError("API error")
-        
-        # Act
-        result = await camera_repository.request_image(
-            installation_id, panel, devices, capabilities
-        )
-        
-        # Assert
-        assert result.success is False
-        assert result.successful_requests == 0
-        assert result.reference_id is None
+        with pytest.raises(MyVerisureError, match="API error"):
+            await camera_repository.request_image(
+                installation_id, panel, devices, capabilities
+            )
 
     @pytest.mark.asyncio
     async def test_get_images_success(self, camera_repository, mock_client):
@@ -180,7 +174,7 @@ class TestCameraRepository:
         # Assert
         assert result["success"] is False
         assert "error" in result
-        assert "Connection failed" in result["error"]
+        assert "Camera images retrieval failed" in result["error"]
         assert "Camera images retrieval failed" in result["message"]
         mock_client.get_images.assert_called_once_with(
             installation_id=installation_id,
@@ -201,17 +195,10 @@ class TestCameraRepository:
         capabilities = "test_capabilities"
         
         mock_client.get_images.side_effect = MyVerisureError("API error")
-        
-        # Act
-        result = await camera_repository.get_images(
-            installation_id, panel, device, zone_id, capabilities
-        )
-        
-        # Assert
-        assert result["success"] is False
-        assert "error" in result
-        assert "API error" in result["error"]
-        assert "Camera images retrieval failed" in result["message"]
+        with pytest.raises(MyVerisureError, match="API error"):
+            await camera_repository.get_images(
+                installation_id, panel, device, zone_id, capabilities
+            )
 
     @pytest.mark.asyncio
     async def test_request_image_with_empty_devices(self, camera_repository, mock_client):

@@ -4,7 +4,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from custom_components.my_verisure.core.application.realtime_alarm_status_workflow import (
+from custom_components.my_verisure.core.api.exceptions import MyVerisureError
+from custom_components.my_verisure.core.api.realtime_alarm_status_workflow import (
     RealtimeAlarmStatusWorkflow,
 )
 
@@ -43,24 +44,32 @@ async def test_workflow_retries_wait_then_returns_success():
 
 
 @pytest.mark.asyncio
-async def test_workflow_returns_empty_after_wait_exhaustion():
+async def test_workflow_fails_closed_after_wait_exhaustion():
     transport = AsyncMock(
         return_value={"data": {"xSCheckAlarmStatus": {"res": "WAIT", "msg": "pending"}}}
     )
     sleep = AsyncMock()
 
-    result = await RealtimeAlarmStatusWorkflow(max_retries=3, sleep=sleep).run(transport)
-
-    assert result == ""
+    with pytest.raises(MyVerisureError, match="retries exhausted"):
+        await RealtimeAlarmStatusWorkflow(max_retries=3, sleep=sleep).run(transport)
     assert transport.await_count == 3
     assert sleep.await_count == 2
 
 
 @pytest.mark.asyncio
-async def test_workflow_converts_transport_failure_to_empty_message():
+async def test_workflow_propagates_provider_error() -> None:
+    transport = AsyncMock(side_effect=MyVerisureError("provider failure"))
+
+    with pytest.raises(MyVerisureError, match="provider failure"):
+        await RealtimeAlarmStatusWorkflow().run(transport)
+
+
+@pytest.mark.asyncio
+async def test_workflow_rejects_unknown_transport_failure():
     transport = AsyncMock(side_effect=RuntimeError("offline"))
 
-    assert await RealtimeAlarmStatusWorkflow().run(transport) == ""
+    with pytest.raises(MyVerisureError, match="realtime alarm status transport failed"):
+        await RealtimeAlarmStatusWorkflow().run(transport)
 
 
 @pytest.mark.parametrize(

@@ -4,7 +4,7 @@ from collections.abc import Mapping
 
 import pytest
 
-from custom_components.my_verisure.core.application.alarm_command_poller import (
+from custom_components.my_verisure.core.api.alarm_command_poller import (
     AlarmCommandPoller,
 )
 
@@ -25,7 +25,7 @@ async def test_poll_arm_waits_then_returns_success() -> None:
     )
 
     assert result.success is True
-    assert result.message == "armed"
+    assert result.message == "Alarm command accepted"
     assert result.reference_id == "ref-1"
 
 
@@ -40,8 +40,21 @@ async def test_poll_disarm_returns_graphql_error() -> None:
     )
 
     assert result.success is False
-    assert result.message == "upstream failure"
+    assert result.message == "Alarm service request failed"
     assert result.reference_id == "ref-2"
+
+
+@pytest.mark.asyncio
+async def test_poll_arm_rejects_empty_graphql_errors() -> None:
+    async def transport(_: int) -> Mapping[str, object]:
+        return {"errors": []}
+
+    result = await AlarmCommandPoller(max_retries=1, retry_delay=0).poll_arm(
+        transport, reference_id="ref-empty"
+    )
+
+    assert result.success is False
+    assert result.message == "Alarm service request failed"
 
 
 @pytest.mark.asyncio
@@ -69,4 +82,4 @@ async def test_poll_disarm_returns_unknown_response_as_failure() -> None:
     )
 
     assert result.success is False
-    assert result.message == "unexpected"
+    assert result.message == "Disarm command rejected"

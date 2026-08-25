@@ -91,15 +91,18 @@ class TestDisplayFunctions:
                 self.city = "Test City"
                 self.postcode = "12345"
                 self.phone = "123456789"
-                self.email = "test@example.com"
+                self.email = "EMAIL_SENTINEL"
                 self.role = "OWNER"
 
         installation = MockInstallation()
         print_installation_info(installation, 1)
         output = mock_stdout.getvalue()
-        assert "1. 🏠 Instalación: Test Installation" in output
-        assert "🆔 Número: 12345" in output
-        assert "👤 Propietario: John Doe" in output
+        assert "1. 🏠 Instalación: Instalación 1" in output
+        assert "Test Installation" not in output
+        assert "🆔 Número: [REDACTED]" in output
+        assert "👤 Propietario: [REDACTED]" in output
+        assert "123 Test St" not in output
+        assert "EMAIL_SENTINEL" not in output
 
     @patch("sys.stdout", new_callable=StringIO)
     def test_print_alarm_status(self, mock_stdout):
@@ -120,7 +123,7 @@ class TestDisplayFunctions:
         output = mock_stdout.getvalue()
         assert "🚀 ESTADO DE LA ALARMA" in output
         assert "🛡️  Estado: OK" in output
-        assert "📋 Mensaje: No alarm" in output
+        assert "📋 Mensaje: Estado de alarma recibido" in output
 
     @patch("sys.stdout", new_callable=StringIO)
     def test_print_services_info_success(self, mock_stdout):
@@ -166,7 +169,17 @@ class TestDisplayFunctions:
         output = mock_stdout.getvalue()
         assert "✅ Se encontraron 3 servicios" in output
         assert "📊 Estado: OP" in output
-        assert "🛡️  Panel: SDVFAST" in output
+        assert "🛡️  Panel:" not in output
+        assert "SDVFAST" not in output
+        assert "📱 SIM:" not in output
+        assert "123456789" not in output
+        assert "🔧 IBS:" not in output
+        assert "12345" not in output
+        assert "🔐 Capacidades:" not in output
+        assert "11" not in output
+        assert "EST" not in output
+        assert "31" not in output
+        assert "ARM" not in output
 
     @patch("sys.stdout", new_callable=StringIO)
     def test_print_services_info_failure(self, mock_stdout):
@@ -180,9 +193,7 @@ class TestDisplayFunctions:
         services_data = MockServicesData()
         print_services_info(services_data)
         output = mock_stdout.getvalue()
-        assert (
-            "❌ Error obteniendo servicios: Error getting services" in output
-        )
+        assert "❌ Error obteniendo servicios" in output
 
     @patch("sys.stdout", new_callable=StringIO)
     def test_print_separator(self, mock_stdout):

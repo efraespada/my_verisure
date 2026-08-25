@@ -98,7 +98,7 @@ async def test_request_image_returns_failure_on_provider_no_response(
 
 @pytest.mark.asyncio
 async def test_request_image_rejects_missing_panel(camera_client: CameraClient) -> None:
-    with pytest.raises(MyVerisureError, match="Panel information required"):
+    with pytest.raises(MyVerisureError, match="Camera request context required"):
         await camera_client.request_image("installation", "", [1], "caps")
 
 
@@ -179,6 +179,76 @@ async def test_get_images_saves_thumbnail_and_photo(
     assert result["images_saved"] == 1
     assert result["thumbnail_saved"] is True
     assert save_image.call_count == 2
+
+
+
+
+@pytest.mark.asyncio
+async def test_get_images_reports_failure_when_storage_writes_nothing(
+    camera_client: CameraClient,
+) -> None:
+    file_manager = camera_client._resolve_file_manager()
+    setattr(file_manager, "save_base64_image", Mock(return_value=False))
+    _set_query_results(
+        camera_client,
+        [
+            {
+                "data": {
+                    "xSGetThumbnail": {
+                        "idSignal": "signal-1",
+                        "signalType": "16",
+                        "deviceAlias": "Front",
+                        "timestamp": "2026/08/13 10:20:00",
+                        "image": "thumb-data",
+                    }
+                }
+            },
+            {
+                "data": {
+                    "xSGetPhotoImages": {
+                        "devices": [{"images": [{"id": "0", "image": "photo-data"}]}]
+                    }
+                }
+            },
+        ],
+    )
+
+    result = await camera_client.get_images("installation", "panel", "camera", "zone", "caps")
+
+    assert result["success"] is False
+    assert result["thumbnail_saved"] is False
+    assert result["images_saved"] == 0
+
+
+@pytest.mark.asyncio
+async def test_get_images_reports_failure_when_no_photo_images_are_returned(
+    camera_client: CameraClient,
+) -> None:
+    file_manager = camera_client._resolve_file_manager()
+    setattr(file_manager, "save_base64_image", Mock(return_value=True))
+    _set_query_results(
+        camera_client,
+        [
+            {
+                "data": {
+                    "xSGetThumbnail": {
+                        "idSignal": "signal-1",
+                        "signalType": "16",
+                        "deviceAlias": "Front",
+                        "timestamp": "2026/08/13 10:20:00",
+                        "image": "thumb-data",
+                    }
+                }
+            },
+            {"data": {"xSGetPhotoImages": {"devices": []}}},
+        ],
+    )
+
+    result = await camera_client.get_images("installation", "panel", "camera", "zone", "caps")
+
+    assert result["success"] is False
+    assert result["thumbnail_saved"] is True
+    assert result["images_saved"] == 0
 
 
 @pytest.mark.asyncio

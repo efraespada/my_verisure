@@ -15,7 +15,7 @@ def test_module_requires_explicit_entry_scoped_managers():
 def test_module_returns_the_supplied_managers(tmp_path):
     file_manager = FileManager(tmp_path)
     session_manager = SessionManager(
-        tmp_path / "session.json", file_manager=file_manager
+        tmp_path / "data" / "session.json", file_manager=file_manager
     )
     module = MyVerisureModule(
         session_manager=session_manager,

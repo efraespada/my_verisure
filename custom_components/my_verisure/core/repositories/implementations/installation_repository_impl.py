@@ -9,7 +9,7 @@ from ...api.mappers.installation_mapper import (
     detailed_installation_from_dto,
     installation_from_dto,
 )
-from ...api.models.domain.installation import Installation, DetailedInstallation
+from ...application.models.installation import Installation, DetailedInstallation
 from ...api.models.dto.installation_dto import DetailedInstallationDTO
 from ...file_manager import FileManager
 from ..interfaces.installation_repository import InstallationRepository
@@ -35,54 +35,15 @@ class InstallationRepositoryImpl(InstallationRepository):
     async def _async_save_detailed_installation_cache(
         self, installation_id: str, detailed_installation: DetailedInstallation
     ) -> None:
-        """Save detailed installation cache to disk using file_manager."""
-        try:
-            filename = self._get_cache_filename(installation_id)
-            data = detailed_installation.dict()
-
-            if await self._file_manager.async_save_json(filename, data):
-                _LOGGER.info(
-                    "💾 Detailed installation cache saved for installation %s",
-                    installation_id,
-                )
-            else:
-                _LOGGER.error(
-                    "💥 Failed to save detailed installation cache for installation %s",
-                    installation_id,
-                )
-        except Exception as e:
-            _LOGGER.error("💥 Error saving detailed installation cache: %s", e)
+        """Save no provider payload; sensitive installation data stays in memory only."""
+        await self._async_clear_detailed_installation_cache(installation_id)
 
     async def _async_load_detailed_installation_cache(
         self, installation_id: str
     ) -> Optional[DetailedInstallation]:
-        """Load detailed installation cache from disk using file_manager."""
-        try:
-            filename = self._get_cache_filename(installation_id)
-            data = await self._file_manager.async_load_json(filename)
-
-            if data is None:
-                _LOGGER.warning(
-                    "No detailed installation cache found for installation %s",
-                    installation_id,
-                )
-                return None
-
-            if not isinstance(data, dict):
-                _LOGGER.warning("Ignoring invalid detailed installation cache payload")
-                return None
-
-            detailed_installation = detailed_installation_from_dto(
-                DetailedInstallationDTO.from_dict(data)
-            )
-            _LOGGER.info(
-                "💾 Loaded detailed installation cache for installation %s",
-                installation_id,
-            )
-            return detailed_installation
-        except Exception as e:
-            _LOGGER.error("💥 Error loading detailed installation cache: %s", e)
-            return None
+        """Remove legacy provider cache and never load it into memory."""
+        await self._async_clear_detailed_installation_cache(installation_id)
+        return None
 
     async def _async_clear_detailed_installation_cache(
         self, installation_id: str
@@ -91,17 +52,11 @@ class InstallationRepositoryImpl(InstallationRepository):
         try:
             filename = self._get_cache_filename(installation_id)
             if await self._file_manager.async_delete_file(filename):
-                _LOGGER.info(
-                    "🧹 Cleared detailed installation cache for installation %s",
-                    installation_id,
-                )
+                _LOGGER.info("🧹 Cleared detailed installation cache")
             else:
-                _LOGGER.info(
-                    "No detailed installation cache file to clear for installation %s",
-                    installation_id,
-                )
-        except Exception as e:
-            _LOGGER.error("💥 Error clearing detailed installation cache: %s", e)
+                _LOGGER.info("No detailed installation cache file to clear")
+        except Exception:
+            _LOGGER.error("Error clearing detailed installation cache")
 
     async def get_installations(self) -> List[Installation]:
         """Get user installations."""
@@ -116,8 +71,8 @@ class InstallationRepositoryImpl(InstallationRepository):
             _LOGGER.info("✅ Found %d installations", len(installations))
             return installations
 
-        except Exception as e:
-            _LOGGER.error("💥 Error getting installations: %s", e)
+        except Exception:
+            _LOGGER.error("Error getting installations")
             raise
 
     async def get_installation_services(
@@ -135,24 +90,15 @@ class InstallationRepositoryImpl(InstallationRepository):
                     )
 
                     if capabilities and is_jwt_expired(capabilities):
-                        _LOGGER.info(
-                            "🔄 Capabilities JWT expired for installation %s, refreshing data",
-                            installation_id,
-                        )
+                        _LOGGER.info("🔄 Capabilities JWT expired, refreshing data")
                         await self._async_clear_detailed_installation_cache(
                             installation_id
                         )
                     else:
-                        _LOGGER.info(
-                            "💾 Using cached detailed installation for installation %s",
-                            installation_id,
-                        )
+                        _LOGGER.info("💾 Using cached detailed installation")
                         return cached_detailed_installation
 
-            _LOGGER.info(
-                "🔄 Fetching fresh detailed installation data for installation %s",
-                installation_id,
-            )
+            _LOGGER.info("🔄 Fetching fresh detailed installation data")
             detailed_installation_dto = await self.client.get_installation_services(
                 installation_id,
                 force_refresh,
@@ -168,8 +114,8 @@ class InstallationRepositoryImpl(InstallationRepository):
 
             return detailed_installation
 
-        except Exception as e:
-            _LOGGER.error("💥 Error getting detailed installation: %s", e)
+        except Exception:
+            _LOGGER.error("Error getting detailed installation")
             raise
 
     async def clear_cache(self, installation_id: Optional[str] = None) -> None:
@@ -185,5 +131,5 @@ class InstallationRepositoryImpl(InstallationRepository):
             else:
                 await self._async_clear_detailed_installation_cache(installation_id)
 
-        except Exception as e:
-            _LOGGER.error("💥 Error clearing detailed installation cache: %s", e)
+        except Exception:
+            _LOGGER.error("Error clearing detailed installation cache")

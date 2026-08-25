@@ -14,7 +14,8 @@ def test_auth_client_prefers_entry_scoped_session_manager(tmp_path):
     device_manager = DeviceManager(FileManager(tmp_path))
 
     client = AuthClient(
-        session_manager=session_manager, device_manager=device_manager
+        session_manager=session_manager,
+        device_manager=device_manager,
     )
 
     assert client._resolve_session_manager() is session_manager

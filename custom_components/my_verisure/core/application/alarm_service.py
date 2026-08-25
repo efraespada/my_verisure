@@ -6,7 +6,8 @@ from collections.abc import Awaitable, Callable, Iterable, Mapping
 from dataclasses import dataclass
 from typing import Protocol, TypeAlias
 
-from ..api.models.domain.alarm import ArmResult, DisarmResult
+from .exceptions import MyVerisureError
+from .models.alarm import ArmResult, DisarmResult
 
 
 AlarmCommandResult: TypeAlias = ArmResult | DisarmResult
@@ -53,7 +54,7 @@ class AlarmServiceDispatcher:
         """Dispatch one command to the coordinator for an installation."""
         operation = self._operation(command)
         if operation is None:
-            return ArmResult(success=False, message=f"Command {command} not supported")
+            return ArmResult(success=False, message="Alarm command not supported")
 
         for coordinator in self.coordinators:
             data = getattr(coordinator.config_entry, "data", {})
@@ -63,12 +64,14 @@ class AlarmServiceDispatcher:
                 continue
             try:
                 return await operation(coordinator)
-            except Exception as error:
-                return ArmResult(success=False, message=str(error))
+            except MyVerisureError:
+                raise
+            except Exception:
+                return ArmResult(success=False, message="Alarm command failed")
 
         return ArmResult(
             success=False,
-            message=f"Installation {installation_id} not found",
+            message="Installation not found",
         )
 
     @staticmethod

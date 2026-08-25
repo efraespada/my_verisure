@@ -41,12 +41,19 @@
   "error": {
     "invalid_auth": "Invalid authentication",
     "cannot_connect": "Failed to connect",
+    "cannot_persist": "Could not persist the authenticated session",
     "unknown": "Unexpected error",
     "cannot_get_installations": "Could not get installations from My Verisure",
+    "installation_not_found": "The selected installation is no longer available",
     "otp_required": "Two-factor authentication required",
     "otp_invalid": "Invalid OTP code",
+    "otp_invalid_phone": "The selected phone number is not available for this OTP challenge",
+    "otp_no_phone_destinations": "My Verisure requires OTP verification, but no phone destination is available",
+    "otp_data_missing": "The OTP challenge data is incomplete. Please restart authentication",
+    "authentication_required": "Authentication must be completed before selecting an installation",
     "otp_failed": "Failed to send OTP code",
-    "device_not_authorized": "Device not authorized. This device is not authorized and will require OTP verification on every login. Please contact My Verisure support to authorize this device permanently."
+    "otp_reauth_required": "Two-factor authentication is required again. Please reconfigure the integration with a new OTP code.",
+    "session_expired": "Your session has expired. Please reconfigure the integration to authenticate again."
   },
   "abort": {
     "already_configured": "Account is already configured",

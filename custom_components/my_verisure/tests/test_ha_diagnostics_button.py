@@ -19,7 +19,7 @@ def _entry() -> MockConfigEntry:
         entry_id="entry-1",
         data={
             "installation_id": "home-1",
-            "user": "user@example.invalid",
+            "user": "[REDACTED]",
             "password": "[REDACTED]",
         },
     )
@@ -48,11 +48,37 @@ async def test_diagnostics_redacts_credentials_and_returns_safe_summary() -> Non
 
     assert result["entry"]["data"]["user"] == "**REDACTED**"
     assert result["entry"]["data"]["password"] == "**REDACTED**"
+    assert result["entry"]["data"]["installation_id"] == "**REDACTED**"
     assert result["coordinator"]["data_summary"]["has_alarm_status"] is True
+    assert "installation_id" not in result["coordinator"]["data_summary"]
     assert result["coordinator"]["session"] == {
         "is_authenticated": True,
         "session_valid": True,
     }
+
+
+@pytest.mark.asyncio
+async def test_diagnostics_sanitizes_session_collection_failure() -> None:
+    entry = _entry()
+    class BrokenSession:
+        @property
+        def is_authenticated(self):
+            raise RuntimeError("SECRET")
+
+        def is_session_valid(self):
+            return True
+
+    coordinator = SimpleNamespace(
+        data={},
+        session_manager=BrokenSession(),
+        last_update_success=False,
+        update_interval=None,
+    )
+    entry.runtime_data = coordinator
+
+    result = await async_get_config_entry_diagnostics(MagicMock(), entry)
+
+    assert result["coordinator"]["session"] == {"error": "Unable to collect session diagnostics"}
 
 
 @pytest.mark.asyncio
@@ -70,6 +96,7 @@ async def test_button_clears_executing_state_after_success() -> None:
     await button.async_press()
 
     assert button.extra_state_attributes["is_executing"] is False
+    assert "installation_id" not in button.extra_state_attributes
     hass.services.async_call.assert_awaited_once_with(
         DOMAIN,
         "refresh_camera_images",

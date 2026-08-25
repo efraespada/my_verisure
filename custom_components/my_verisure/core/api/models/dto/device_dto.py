@@ -4,6 +4,20 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
 
+def _required_string(data: Dict[str, Any], key: str) -> str:
+    """Read a required device field without an empty fallback."""
+    value = data.get(key)
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"device field required: {key}")
+    return value
+
+
+def _required_bool(data: Dict[str, Any], key: str) -> bool:
+    """Read a required device boolean without a false fallback."""
+    value = data.get(key)
+    if not isinstance(value, bool):
+        raise ValueError(f"device field required: {key}")
+    return value
 @dataclass
 class DeviceConfigFlagsDTO:
     """Device configuration flags DTO."""
@@ -36,8 +50,10 @@ class DeviceConfigDTO:
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "DeviceConfigDTO":
         """Create from dictionary."""
-        flags_data = data.get("flags", {})
-        flags = DeviceConfigFlagsDTO.from_dict(flags_data) if flags_data else None
+        flags_data = data.get("flags")
+        if flags_data is not None and not isinstance(flags_data, dict):
+            raise ValueError("device flags invalid")
+        flags = DeviceConfigFlagsDTO.from_dict(flags_data) if flags_data is not None else None
         
         return cls(flags=flags)
     
@@ -66,18 +82,20 @@ class DeviceDTO:
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "DeviceDTO":
         """Create from dictionary."""
-        config_data = data.get("config", {})
+        config_data = data.get("config")
+        if config_data is not None and not isinstance(config_data, dict):
+            raise ValueError("device config invalid")
         config = DeviceConfigDTO.from_dict(config_data) if config_data else None
-        
+
         return cls(
-            id=data.get("id", ""),
-            code=data.get("code", ""),
-            name=data.get("name", ""),
-            type=data.get("type", ""),
-            subtype=data.get("subtype", ""),
-            remote_use=data.get("remoteUse", False),
-            id_service=data.get("idService", ""),
-            is_active=data.get("isActive", False),
+            id=_required_string(data, "id"),
+            code=_required_string(data, "code"),
+            name=_required_string(data, "name"),
+            type=_required_string(data, "type"),
+            subtype=_required_string(data, "subtype"),
+            remote_use=_required_bool(data, "remoteUse"),
+            id_service=_required_string(data, "idService"),
+            is_active=_required_bool(data, "isActive"),
             serial_number=data.get("serialNumber"),
             config=config,
         )
@@ -108,13 +126,15 @@ class DeviceListDTO:
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "DeviceListDTO":
         """Create from dictionary."""
-        devices_data = data.get("devices", [])
+        devices_data = data.get("devices")
+        if not isinstance(devices_data, list):
+            raise ValueError("device list required")
+        if any(not isinstance(device, dict) for device in devices_data):
+            raise ValueError("device list invalid")
         devices = [DeviceDTO.from_dict(device) for device in devices_data]
-        
-        return cls(
-            res=data.get("res", ""),
-            devices=devices,
-        )
+
+        res = _required_string(data, "res")
+        return cls(res=res, devices=devices)
     
     def dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""

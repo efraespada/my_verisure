@@ -1,6 +1,6 @@
 """Contract tests for camera request polling decisions."""
 
-from custom_components.my_verisure.core.application.camera_request_polling import (
+from custom_components.my_verisure.core.api.camera_request_polling import (
     NO_RESPONSE_TO_REQUEST,
     PROCESSING_MESSAGE,
     PollingAction,

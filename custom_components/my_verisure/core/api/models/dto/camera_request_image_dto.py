@@ -4,6 +4,20 @@ from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
 
+def _required_bool(data: Dict[str, Any], key: str) -> bool:
+    value = data.get(key)
+    if not isinstance(value, bool):
+        raise ValueError(f"camera {key} required")
+    return value
+
+
+def _required_count(data: Dict[str, Any]) -> int:
+    value = data.get("successful_requests")
+    if not isinstance(value, int) or value < 0:
+        raise ValueError("camera successful_requests required")
+    return value
+
+
 @dataclass
 class CameraRequestImageDTO:
     """DTO for camera image request."""
@@ -17,7 +31,7 @@ class CameraRequestImageDTO:
     def from_dict(cls, data: Dict[str, Any]) -> "CameraRequestImageDTO":
         """Create DTO from dictionary."""
         return cls(
-            success=data.get("success", False),
+            success=_required_bool(data, "success"),
             reference_id=data.get("reference_id"),
             message=data.get("message"),
             error=data.get("error"),
@@ -48,7 +62,7 @@ class CameraRequestImageStatusDTO:
     def from_dict(cls, data: Dict[str, Any]) -> "CameraRequestImageStatusDTO":
         """Create DTO from dictionary."""
         return cls(
-            success=data.get("success", False),
+            success=_required_bool(data, "success"),
             status=data.get("status"),
             counter=data.get("counter"),
             message=data.get("message"),
@@ -80,8 +94,8 @@ class CameraRequestImageResultDTO:
     def from_dict(cls, data: Dict[str, Any]) -> "CameraRequestImageResultDTO":
         """Create DTO from dictionary."""
         return cls(
-            success=data.get("success", False),
-            successful_requests=data.get("successful_requests", 0),
+            success=_required_bool(data, "success"),
+            successful_requests=_required_count(data),
             reference_id=data.get("reference_id"),
         )
 

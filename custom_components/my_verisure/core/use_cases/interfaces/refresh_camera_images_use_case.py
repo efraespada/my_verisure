@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 
-from ...api.models.domain.camera_refresh import CameraRefresh
+from ...application.models.camera_refresh import CameraRefresh
 
 
 class RefreshCameraImagesUseCase(ABC):

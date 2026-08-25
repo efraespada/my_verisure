@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 
-from ..api.models.domain.device import Device
+from .models.device import Device
 
 CAMERA_DEVICE_TYPES = frozenset({"YR", "YP"})
 

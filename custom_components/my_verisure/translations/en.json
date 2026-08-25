@@ -43,11 +43,19 @@
     "error": {
       "invalid_auth": "Invalid authentication",
       "cannot_connect": "Failed to connect",
+      "cannot_persist": "Could not persist the authenticated session",
       "unknown": "Unexpected error",
       "cannot_get_installations": "Could not get installations from My Verisure",
+      "installation_not_found": "The selected installation is no longer available",
       "otp_required": "Two-factor authentication required",
       "otp_invalid": "Invalid OTP code",
-      "otp_failed": "Failed to send OTP code"
+      "otp_invalid_phone": "The selected phone number is not available for this OTP challenge",
+      "otp_no_phone_destinations": "My Verisure requires OTP verification, but no phone destination is available",
+      "otp_data_missing": "The OTP challenge data is incomplete. Please restart authentication",
+      "authentication_required": "Authentication must be completed before selecting an installation",
+      "otp_failed": "Failed to send OTP code",
+      "otp_reauth_required": "Two-factor authentication required again. Please reconfigure the integration to provide a new OTP code.",
+      "session_expired": "Your session has expired. Please reconfigure the integration to authenticate again."
     },
     "abort": {
       "already_configured": "Account is already configured",
@@ -60,7 +68,9 @@
         "title": "My Verisure Options",
         "description": "Configure additional options for My Verisure integration.",
         "data": {
-          "scan_interval": "Scan interval (minutes)"
+          "scan_interval": "Scan interval (minutes)",
+          "auto_arm_perimeter_with_internal": "Arm perimeter alarm when any internal alarm is triggered",
+          "dev_mode": "Developer mode (verbose redacted logs)"
         }
       }
     }
@@ -88,6 +98,28 @@
       "success": "My Verisure",
       "error": "My Verisure - Error",
       "warning": "My Verisure - Warning"
+    },
+    "alarm": {
+      "arm_away": {
+        "success": "Alarm activated successfully in Total mode.",
+        "error": "Error activating alarm in Total mode: {message}",
+        "exception": "Error activating alarm in Total mode: {error}"
+      },
+      "arm_home": {
+        "success": "Alarm activated successfully in Perimeter mode.",
+        "error": "Error activating alarm in Perimeter mode: {message}",
+        "exception": "Error activating alarm in Perimeter mode: {error}"
+      },
+      "arm_night": {
+        "success": "Alarm activated successfully in Night mode.",
+        "error": "Error activating alarm in Night mode: {message}",
+        "exception": "Error activating alarm in Night mode: {error}"
+      },
+      "disarm": {
+        "success": "Alarm deactivated successfully.",
+        "error": "Error deactivating alarm: {message}",
+        "exception": "Error deactivating alarm: {error}"
+      }
     },
     "service": {
       "blocked": {

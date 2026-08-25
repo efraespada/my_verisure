@@ -7,6 +7,7 @@ import pytest
 from custom_components.my_verisure.core.application.coordinator_refresh_effects import (
     CoordinatorRefreshEffects,
 )
+from custom_components.my_verisure.core.application.exceptions import MyVerisureError
 
 
 @pytest.mark.asyncio
@@ -55,3 +56,17 @@ async def test_apply_keeps_dummy_image_failure_non_fatal() -> None:
     await effects.apply({"value": 1}, "home-1", create_dummy_images=True)
 
     store.save.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_apply_propagates_terminal_dummy_image_failure() -> None:
+    store = Mock()
+    store.save = AsyncMock(return_value=True)
+    creator = Mock()
+    creator.create_dummy_camera_images = AsyncMock(
+        side_effect=MyVerisureError("camera unavailable")
+    )
+    effects = CoordinatorRefreshEffects(store, Mock(), creator)
+
+    with pytest.raises(MyVerisureError):
+        await effects.apply({"value": 1}, "home-1", create_dummy_images=True)

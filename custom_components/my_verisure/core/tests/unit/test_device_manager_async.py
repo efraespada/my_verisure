@@ -23,8 +23,6 @@ async def test_async_device_identifiers_load_from_entry_scoped_storage(
         "deviceBrand": "brand",
         "deviceOsVersion": "os",
         "deviceVersion": "version",
-        "deviceType": "",
-        "deviceResolution": "",
     }
 
     with patch.object(
@@ -37,6 +35,17 @@ async def test_async_device_identifiers_load_from_entry_scoped_storage(
 
     assert manager.get_device_identifiers() == expected
     cast(Any, load_mock).assert_awaited_once_with()
+
+
+
+
+def test_device_info_omits_missing_values_instead_of_fabricating_defaults(
+    tmp_path: Path,
+) -> None:
+    manager = DeviceManager(FileManager(tmp_path))
+    manager._device_identifiers = {"uuid": "uuid-1"}
+
+    assert manager.get_device_info() == {"uuid": "uuid-1"}
 
 
 @pytest.mark.asyncio
@@ -68,8 +77,6 @@ async def test_partial_persisted_identifiers_are_regenerated(
                 "deviceBrand": "brand",
                 "deviceOsVersion": "os",
                 "deviceVersion": "version",
-                "deviceType": "",
-                "deviceResolution": "",
             },
         ),
     ):

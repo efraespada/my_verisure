@@ -5,15 +5,15 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 from ..session_manager import SessionManager
-from ..application.alarm_command_poller import AlarmCommandPoller
-from ..application.alarm_command_response import AlarmCommandResponseInterpreter
-from ..application.alarm_command_workflow import AlarmCommandWorkflow
-from ..application.alarm_graphql_requests import AlarmGraphQLRequestPolicy
+from .alarm_command_poller import AlarmCommandPoller
+from .alarm_command_response import AlarmCommandResponseInterpreter
+from .alarm_command_workflow import AlarmCommandWorkflow
+from .alarm_graphql_requests import AlarmGraphQLRequestPolicy
 from ..application.alarm_status_service import AlarmStatusService
-from ..application.realtime_alarm_status_workflow import (
+from .realtime_alarm_status_workflow import (
     RealtimeAlarmStatusWorkflow,
 )
-from ..api.models.domain.alarm import ArmResult, DisarmResult
+from ..application.models.alarm import ArmResult, DisarmResult
 from .base_client import BaseClient
 from .exceptions import (
     MyVerisureAuthenticationError,
@@ -80,11 +80,7 @@ class AlarmClient(BaseClient):
     ) -> Dict[str, Any]:
         """Execute an alarm GraphQL operation with entry-scoped credentials."""
         try:
-            headers = (
-                self._get_session_headers(session_data or {}, hash_token)
-                if session_data
-                else None
-            )
+            headers = self._get_session_headers(session_data or {}, hash_token)
             if headers:
                 headers["numinst"] = installation_id
                 headers["panel"] = panel
@@ -94,9 +90,11 @@ class AlarmClient(BaseClient):
             result = await self._execute_query_direct(query, variables, headers)
             self._log_graphql_result(operation, result)
             return result
-        except Exception as e:
-            _LOGGER.error("Direct %s failed: %s", operation, e)
-            return {"errors": [{"message": str(e), "data": {}}]}
+        except MyVerisureError:
+            raise
+        except Exception:
+            _LOGGER.error("Direct alarm request failed")
+            return {"errors": [{"message": "Alarm request failed", "data": {}}]}
 
     async def _load_alarm_status_config(self) -> dict[str, Any]:
         """Load alarm status configuration through the application service."""
@@ -140,34 +138,18 @@ class AlarmClient(BaseClient):
 
                 # Check for errors in the CheckAlarm response
                 if "errors" in check_alarm_result:
-                    error = (
-                        check_alarm_result["errors"][0]
-                        if check_alarm_result["errors"]
-                        else {}
-                    )
-                    error_msg = error.get("message", "Unknown error")
-                    _LOGGER.error("Failed to get referenceId: %s", error_msg)
-                    return self._get_default_alarm_status()
+                    raise MyVerisureError("Failed to get alarm status") from None
 
                 # Check for successful response
                 data = check_alarm_result.get("data", {})
                 check_alarm_data = data.get("xSCheckAlarm", {})
 
-                if check_alarm_data.get("res") != "OK":
-                    error_msg = check_alarm_data.get("msg", "Unknown error")
-                    _LOGGER.warning(
-                        "Could not get referenceId for real-time alarm status "
-                        "check: %s",
-                        error_msg,
-                    )
-                    return self._get_default_alarm_status()
+                if not isinstance(check_alarm_data, dict) or check_alarm_data.get("res") != "OK":
+                    raise MyVerisureError("Failed to get alarm status") from None
 
                 reference_id = check_alarm_data.get("referenceId")
                 if not reference_id:
-                    _LOGGER.warning(
-                        "No referenceId received from CheckAlarm query"
-                    )
-                    return self._get_default_alarm_status()
+                    raise MyVerisureError("Failed to get alarm status") from None
 
                 alarm_message = await self._get_real_time_alarm_status(
                     numinst=installation_id,
@@ -180,28 +162,23 @@ class AlarmClient(BaseClient):
                 )
 
                 if should_log_detailed():
-                    _LOGGER.debug("Alarm message from API: %s", alarm_message)
+                    _LOGGER.debug("Alarm status response received")
 
                 # Process the alarm message and return the structured response
                 if alarm_message:
                     return await self._process_alarm_message(alarm_message)
-                else:
-                    _LOGGER.debug("No alarm message received")
-                    return self._get_default_alarm_status()
+                raise MyVerisureError("Failed to get alarm status") from None
 
-            except Exception as e:
-                _LOGGER.warning(
-                    "Error getting real-time alarm status: %s, using "
-                    "service-based status",
-                    e,
-                )
-                return self._get_default_alarm_status()
+            except MyVerisureError:
+                raise
+            except Exception:
+                raise MyVerisureError("Failed to get alarm status") from None
 
         except MyVerisureError:
             raise
-        except Exception as e:
-            _LOGGER.error("Unexpected error getting alarm status: %s", e)
-            raise MyVerisureError(f"Failed to get alarm status: {e}") from e
+        except Exception:
+            _LOGGER.error("Unexpected error getting alarm status")
+            raise MyVerisureError("Failed to get alarm status") from None
 
     async def _get_real_time_alarm_status(
         self,
@@ -270,9 +247,11 @@ class AlarmClient(BaseClient):
                 status_transport_factory,
             )
 
-        except Exception as e:
-            _LOGGER.error("Unexpected error sending alarm command: %s", e)
-            return ArmResult(success=False, message=f"Unexpected error: {e}")
+        except MyVerisureError:
+            raise
+        except Exception:
+            _LOGGER.error("Unexpected error sending alarm command")
+            return ArmResult(success=False, message="Alarm command failed")
 
     async def disarm_alarm(
         self,
@@ -314,9 +293,11 @@ class AlarmClient(BaseClient):
                 status_transport_factory,
             )
 
-        except Exception as e:
-            _LOGGER.error("Unexpected error disarming alarm: %s", e)
-            return DisarmResult(success=False, message=f"Unexpected error: {e}")
+        except MyVerisureError:
+            raise
+        except Exception:
+            _LOGGER.error("Unexpected error disarming alarm")
+            return DisarmResult(success=False, message="Alarm disarm failed")
 
     async def arm_alarm_away(
         self,

@@ -272,7 +272,8 @@ class TestCLIErrorHandling:
 
         assert result == 1
         output = mock_stdout.getvalue()
-        assert "Test error" in output
+        assert "Error inesperado" in output
+        assert "Test error" not in output
 
     @pytest.mark.asyncio
     async def test_invalid_arguments_handling(self):

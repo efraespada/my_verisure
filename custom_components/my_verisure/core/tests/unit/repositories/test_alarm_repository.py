@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, Mock
 import pytest
 
 from ....api.exceptions import MyVerisureError
-from ....api.models.domain.alarm import ArmResult, DisarmResult
+from ....application.models.alarm import ArmResult, DisarmResult
 from ....repositories.implementations.alarm_repository_impl import AlarmRepositoryImpl
 from ....repositories.interfaces.alarm_repository import AlarmRepository
 
@@ -33,13 +33,29 @@ def test_implements_interface(repository):
 @pytest.mark.asyncio
 async def test_status_maps_processed_response(repository, client):
     client.get_alarm_status.return_value = {
-        "internal": {"day": {"status": True}}, "external": {}
+        "internal": {
+            "day": {"status": True},
+            "night": {"status": False},
+            "total": {"status": False},
+        },
+        "external": {"status": False},
     }
     result = await repository.get_alarm_status("1", "panel", "caps")
     assert result.success is True
     assert result.status == "ALARM"
     assert result.message == "Internal day alarm active"
     client.get_alarm_status.assert_awaited_once_with("1", "panel", "caps")
+
+
+@pytest.mark.asyncio
+async def test_unknown_status_does_not_report_no_alarm(repository, client):
+    client.get_alarm_status.return_value = {"internal": {}, "external": {}}
+
+    result = await repository.get_alarm_status("1", "panel", "caps")
+
+    assert result.success is False
+    assert result.status is None
+    assert result.message == "Alarm status unknown"
 
 
 @pytest.mark.asyncio

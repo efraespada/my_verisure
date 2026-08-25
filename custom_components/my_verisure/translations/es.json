@@ -43,11 +43,19 @@
     "error": {
       "invalid_auth": "Autenticación inválida",
       "cannot_connect": "Error al conectar",
+      "cannot_persist": "No se pudo guardar la sesión autenticada",
       "unknown": "Error inesperado",
       "cannot_get_installations": "No se pudieron obtener las instalaciones de My Verisure",
+      "installation_not_found": "La instalación seleccionada ya no está disponible",
       "otp_required": "Se requiere autenticación de dos factores",
       "otp_invalid": "Código OTP inválido",
-      "otp_failed": "Error al enviar el código OTP"
+      "otp_invalid_phone": "El número de teléfono seleccionado no está disponible para este desafío OTP",
+      "otp_no_phone_destinations": "My Verisure requiere verificación OTP, pero no hay ningún teléfono disponible",
+      "otp_data_missing": "Los datos del desafío OTP están incompletos. Reinicia la autenticación",
+      "authentication_required": "Debes completar la autenticación antes de seleccionar una instalación",
+      "otp_failed": "Error al enviar el código OTP",
+      "otp_reauth_required": "Se requiere de nuevo la autenticación de dos factores. Reconfigura la integración para proporcionar un código OTP nuevo.",
+      "session_expired": "Tu sesión ha expirado. Reconfigura la integración para autenticarte de nuevo."
     },
     "abort": {
       "already_configured": "La cuenta ya está configurada",
@@ -61,7 +69,8 @@
         "description": "Configurar opciones adicionales para la integración My Verisure.",
         "data": {
           "scan_interval": "Intervalo de escaneo (minutos)",
-          "auto_arm_perimeter_with_internal": "Armar alarma perimetral al activar cualquier alarma interna"
+          "auto_arm_perimeter_with_internal": "Armar alarma perimetral al activar cualquier alarma interna",
+          "dev_mode": "Modo desarrollador (registros detallados redactados)"
         }
       }
     }

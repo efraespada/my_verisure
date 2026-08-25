@@ -8,7 +8,7 @@ from homeassistant.exceptions import ConfigEntryAuthFailed
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.my_verisure.core.const import DOMAIN
-from custom_components.my_verisure.core.api.models.domain.auth import AuthResult
+from custom_components.my_verisure.core.application.models.auth import AuthResult
 from custom_components.my_verisure.tests.test_ha_lifecycle import _FakeAuthUseCase, _FakeRoot
 
 
@@ -22,7 +22,7 @@ async def test_setup_auth_failure_starts_real_reauth_flow(
         title="Auth failure",
         data={
             "installation_id": "home-1",
-            "user": "user@example.invalid",
+            "user": "[REDACTED]",
             "password": "[REDACTED]",
         },
     )

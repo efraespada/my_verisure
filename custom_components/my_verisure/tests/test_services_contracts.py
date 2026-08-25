@@ -7,7 +7,8 @@ import pytest
 import voluptuous as vol
 
 from custom_components.my_verisure import services
-from custom_components.my_verisure.core.api.models.domain.alarm import ArmResult, DisarmResult
+from custom_components.my_verisure.core.application.exceptions import MyVerisureError
+from custom_components.my_verisure.core.application.models.alarm import ArmResult, DisarmResult
 
 
 def _coordinator(installation_id: str) -> MagicMock:
@@ -92,7 +93,7 @@ async def test_refresh_camera_images_clears_button_state_on_failure() -> None:
 
 
 @pytest.mark.asyncio
-async def test_dispatcher_failure_is_reported_without_raising() -> None:
+async def test_dispatcher_failure_is_propagated_to_service_caller() -> None:
     hass = MagicMock()
     coordinator = _coordinator("installation-1")
     coordinator.async_arm_away.side_effect = RuntimeError("provider unavailable")
@@ -106,7 +107,8 @@ async def test_dispatcher_failure_is_reported_without_raising() -> None:
             call.args[1]: call.args[2]
             for call in hass.services.async_register.call_args_list
         }
-        await handlers["arm_away"](SimpleNamespace(data={"installation_id": "installation-1"}))
+        with pytest.raises(MyVerisureError, match="Alarm command failed"):
+            await handlers["arm_away"](SimpleNamespace(data={"installation_id": "installation-1"}))
 
     coordinator.clear_alarm_transition_state.assert_called_once_with()
 

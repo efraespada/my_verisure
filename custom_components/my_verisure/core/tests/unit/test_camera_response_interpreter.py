@@ -2,7 +2,7 @@
 
 import pytest
 
-from custom_components.my_verisure.core.application.camera_response_interpreter import (
+from custom_components.my_verisure.core.api.camera_response_interpreter import (
     CameraResponseError,
     interpret_request_response,
     interpret_status_response,
@@ -22,7 +22,8 @@ def test_interprets_request_reference() -> None:
     [
         ({}, "Empty response"),
         ({"data": {"xSRequestImages": {"res": "OK"}}}, "No reference ID"),
-        ({"errors": [{"message": "provider failed"}]}, "provider failed"),
+        ({"errors": [{"message": "provider failed"}]}, "Camera request failed"),
+        ({"errors": [{"message": None}]}, "Camera request failed"),
     ],
 )
 def test_rejects_invalid_request_payload(payload: object, message: str) -> None:
@@ -44,6 +45,12 @@ def test_interprets_processing_status() -> None:
 
     assert result.result == "OK"
     assert result.message.endswith("processing")
+
+
+
+def test_rejects_malformed_status_error_message() -> None:
+    with pytest.raises(CameraResponseError, match="Failed to check"):
+        interpret_status_response({"errors": [{"message": None}]})
 
 
 def test_rejects_invalid_status_payload() -> None:

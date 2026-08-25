@@ -4,8 +4,9 @@ import logging
 from typing import Any, Dict, List
 
 from ...api.camera_client import CameraClient
+from ...api.exceptions import MyVerisureError
 from ...api.mappers.camera_mapper import request_image_result_from_dto
-from ...api.models.domain.camera_request_image import CameraRequestImageResult
+from ...application.models.camera_request_image import CameraRequestImageResult
 from ..interfaces.camera_repository import CameraRepository
 
 
@@ -41,8 +42,9 @@ class CameraRepositoryImpl(CameraRepository):
 
             return domain_model
 
-        except Exception as e:
-            _LOGGER.error("💥 Failed to request camera images: %s", e)
+        except MyVerisureError:
+            raise
+        except Exception:
             # Return error result
             return CameraRequestImageResult(
                 success=False,
@@ -71,11 +73,13 @@ class CameraRepositoryImpl(CameraRepository):
 
             return result
 
-        except Exception as e:
-            _LOGGER.error("💥 Failed to get camera images: %s", e)
+        except MyVerisureError:
+            raise
+        except Exception:
+            _LOGGER.error("Failed to get camera images")
             # Return error result
             return {
                 "success": False,
-                "error": str(e),
-                "message": f"Camera images retrieval failed: {str(e)}",
+                "error": "Camera images retrieval failed",
+                "message": "Camera images retrieval failed",
             }

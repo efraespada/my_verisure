@@ -13,9 +13,20 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from .core.application.alarm_state import AlarmState, analyze_alarm_state
 from .core.const import LOGGER, ENTITY_NAMES
 from .coordinator import MyVerisureDataUpdateCoordinator
 from .device import get_device_info
+
+
+def _alarm_snapshot(coordinator: MyVerisureDataUpdateCoordinator):
+    """Analyze coordinator alarm data without inventing an inactive state."""
+    if not coordinator.data:
+        return None
+    alarm_status = coordinator.data.get("alarm_status")
+    if not isinstance(alarm_status, dict):
+        return None
+    return analyze_alarm_state(alarm_status)
 
 
 async def async_setup_entry(
@@ -90,65 +101,32 @@ class MyVerisureAlarmStatusSensor(SensorEntity):
     @property
     def native_value(self) -> str | None:
         """Return the state of the sensor."""
-        if not self.coordinator.data:
+        snapshot = _alarm_snapshot(self.coordinator)
+        if snapshot is None or snapshot.state is AlarmState.UNKNOWN:
             return None
-
-        alarm_status = self.coordinator.data.get("alarm_status", {})
-        if not alarm_status:
-            return "Desconocido"
-
-        # Analizar el estado de la alarma
-        # Los datos están en alarm_status.data
-        alarm_data = alarm_status.get("data", {})
-        internal = alarm_data.get("internal", {})
-        external = alarm_data.get("external", {})
-        
-        # Determinar el estado general
-        internal_day = internal.get("day", {}).get("status", False)
-        internal_night = internal.get("night", {}).get("status", False)
-        internal_total = internal.get("total", {}).get("status", False)
-        external_status = external.get("status", False)
-        
-        if internal_total and external_status:
-            return "Total and Perimeter Active"
-        elif internal_total:
-            return "Total Internal Active"
-        elif internal_day and external_status:
-            return "Internal Day and Perimeter Active"
-        elif internal_day:
-            return "Internal Day Active"
-        elif internal_night and external_status:
-            return "Internal Night and Perimeter Active"
-        elif internal_night:
-            return "Internal Night Active"
-        elif external_status:
-            return "Perimeter Active"
-        else:
-            return "Alarm Disarmed"
+        labels = {
+            AlarmState.ARMED_AWAY: "Total Internal Active",
+            AlarmState.ARMED_NIGHT: "Internal Night Active",
+            AlarmState.ARMED_HOME: "Internal Day Active",
+            AlarmState.DISARMED: "Alarm Disarmed",
+        }
+        active = snapshot.active_alarms
+        if len(active) > 1 and snapshot.external:
+            return "Total and Perimeter Active" if snapshot.internal_total else f"{active[0]} and Perimeter Active"
+        return labels[snapshot.state]
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
-        if not self.coordinator.data:
+        snapshot = _alarm_snapshot(self.coordinator)
+        if snapshot is None or snapshot.state is AlarmState.UNKNOWN:
             return {}
-
-        alarm_status = self.coordinator.data.get("alarm_status", {})
-        if not alarm_status:
-            return {}
-
-        # Los datos están en alarm_status.data
-        alarm_data = alarm_status.get("data", {})
-        internal = alarm_data.get("internal", {})
-        external = alarm_data.get("external", {})
-        
         return {
-            "internal_day_status": internal.get("day", {}).get("status", False),
-            "internal_night_status": internal.get("night", {}).get("status", False),
-            "internal_total_status": internal.get("total", {}).get("status", False),
-            "external_status": external.get("status", False),
-            "installation_id": self.config_entry.data.get("installation_id", "Unknown"),
+            "internal_day_status": snapshot.internal_day,
+            "internal_night_status": snapshot.internal_night,
+            "internal_total_status": snapshot.internal_total,
+            "external_status": snapshot.external,
         }
-
     @property
     def available(self) -> bool:
         """Return True if entity is available."""
@@ -189,42 +167,15 @@ class MyVerisureActiveAlarmsSensor(SensorEntity):
     @property
     def native_value(self) -> str | None:
         """Return the state of the sensor."""
-        if not self.coordinator.data:
-            return "Sin datos"
-
-        alarm_status = self.coordinator.data.get("alarm_status", {})
-        if not alarm_status:
-            return "Desconectado"
-
-        # Analizar el estado de la alarma
-        # Los datos están en alarm_status.data
-        alarm_data = alarm_status.get("data", {})
-        internal = alarm_data.get("internal", {})
-        external = alarm_data.get("external", {})
-        
-        # Determinar qué alarmas están activas
-        active_alarms = []
-        
-        internal_day = internal.get("day", {}).get("status", False)
-        internal_night = internal.get("night", {}).get("status", False)
-        internal_total = internal.get("total", {}).get("status", False)
-        external_status = external.get("status", False)
-        
-        if internal_total:
-            active_alarms.append("Internal Total")
-        if internal_day:
-            active_alarms.append("Internal Day")
-        if internal_night:
-            active_alarms.append("Internal Night")
-        if external_status:
-            active_alarms.append("External")
-        
+        snapshot = _alarm_snapshot(self.coordinator)
+        if snapshot is None or snapshot.state is AlarmState.UNKNOWN:
+            return None
+        active_alarms = list(snapshot.active_alarms)
         if not active_alarms:
             return "Disarmed"
-        elif len(active_alarms) == 1:
+        if len(active_alarms) == 1:
             return active_alarms[0]
-        else:
-            return f"Multiple ({len(active_alarms)})"
+        return f"Multiple ({len(active_alarms)})"
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -236,28 +187,15 @@ class MyVerisureActiveAlarmsSensor(SensorEntity):
         if not alarm_status:
             return {}
 
-        # Analyze alarm state
-        # Los datos están en alarm_status.data
-        alarm_data = alarm_status.get("data", {})
-        internal = alarm_data.get("internal", {})
-        external = alarm_data.get("external", {})
-        
-        # Determine which alarms are active
-        active_alarms = []
-        
-        internal_day = internal.get("day", {}).get("status", False)
-        internal_night = internal.get("night", {}).get("status", False)
-        internal_total = internal.get("total", {}).get("status", False)
-        external_status = external.get("status", False)
-        
-        if internal_total:
-            active_alarms.append("Internal Total")
-        if internal_day:
-            active_alarms.append("Internal Day")
-        if internal_night:
-            active_alarms.append("Internal Night")
-        if external_status:
-            active_alarms.append("External")
+        snapshot = _alarm_snapshot(self.coordinator)
+        if snapshot is None or snapshot.state is AlarmState.UNKNOWN:
+            return {}
+
+        active_alarms = list(snapshot.active_alarms)
+        internal_day = snapshot.internal_day
+        internal_night = snapshot.internal_night
+        internal_total = snapshot.internal_total
+        external_status = snapshot.external
         
         return {
             "active_alarms": active_alarms,
@@ -266,7 +204,6 @@ class MyVerisureActiveAlarmsSensor(SensorEntity):
             "internal_night_active": internal_night,
             "internal_total_active": internal_total,
             "external_active": external_status,
-            "installation_id": self.config_entry.data.get("installation_id", "Unknown"),
         }
 
     @property
@@ -320,8 +257,8 @@ class MyVerisureLastUpdatedSensor(SensorEntity):
             # Convertir timestamp a datetime
             result = datetime.fromtimestamp(last_updated, timezone.utc)
             return result
-        except (ValueError, TypeError) as e:
-            LOGGER.error("LastUpdatedSensor: Error converting timestamp %s: %s", last_updated, e)
+        except (ValueError, TypeError):
+            LOGGER.error("LastUpdatedSensor: Error converting timestamp")
             return None
 
     @property
@@ -334,7 +271,6 @@ class MyVerisureLastUpdatedSensor(SensorEntity):
         
         return {
             "timestamp": last_updated,
-            "installation_id": self.config_entry.data.get("installation_id", "Unknown"),
         }
 
     @property
@@ -377,62 +313,23 @@ class MyVerisurePanelStateSensor(SensorEntity):
     @property
     def native_value(self) -> str | None:
         """Return the state of the sensor."""
-        if not self.coordinator.data:
-            return "unavailable"
-
-        alarm_status = self.coordinator.data.get("alarm_status", {})
-        if not alarm_status:
-            return "disarmed"
-
-        # Misma estructura que alarm_control_panel: datos bajo "data"
-        raw_data = alarm_status.get("data", {})
-        if not raw_data:
-            return "disarmed"
-
-        internal = raw_data.get("internal", {})
-        external = raw_data.get("external", {})
-        
-        # Determinar el estado principal basado en prioridad
-        internal_day = internal.get("day", {}).get("status", False)
-        internal_night = internal.get("night", {}).get("status", False)
-        internal_total = internal.get("total", {}).get("status", False)
-        external_status = external.get("status", False)
-        
-        # Prioridad: Total > Night > Day > External > Disarmed
-        if internal_total:
-            return "armed_away"
-        elif internal_night:
-            return "armed_night"
-        elif internal_day:
-            return "armed_home"
-        elif external_status:
-            return "armed_home"  # Map external to home
-        else:
-            return "disarmed"
+        snapshot = _alarm_snapshot(self.coordinator)
+        if snapshot is None or snapshot.state is AlarmState.UNKNOWN:
+            return None
+        return snapshot.state.value
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
-        if not self.coordinator.data:
+        snapshot = _alarm_snapshot(self.coordinator)
+        if snapshot is None or snapshot.state is AlarmState.UNKNOWN:
             return {}
-
-        alarm_status = self.coordinator.data.get("alarm_status", {})
-        if not alarm_status:
-            return {}
-
-        # Los datos están en alarm_status.data
-        alarm_data = alarm_status.get("data", {})
-        internal = alarm_data.get("internal", {})
-        external = alarm_data.get("external", {})
-        
         return {
-            "internal_day_status": internal.get("day", {}).get("status", False),
-            "internal_night_status": internal.get("night", {}).get("status", False),
-            "internal_total_status": internal.get("total", {}).get("status", False),
-            "external_status": external.get("status", False),
-            "installation_id": self.config_entry.data.get("installation_id", "Unknown"),
+            "internal_day_status": snapshot.internal_day,
+            "internal_night_status": snapshot.internal_night,
+            "internal_total_status": snapshot.internal_total,
+            "external_status": snapshot.external,
         }
-
     @property
     def available(self) -> bool:
         """Return True if entity is available."""

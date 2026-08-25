@@ -1,6 +1,6 @@
 """Tests for alarm GraphQL request definitions."""
 
-from custom_components.my_verisure.core.application.alarm_graphql_requests import (
+from custom_components.my_verisure.core.api.alarm_graphql_requests import (
     AlarmGraphQLRequestPolicy,
 )
 

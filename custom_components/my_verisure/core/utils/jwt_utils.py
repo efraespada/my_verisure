@@ -59,8 +59,8 @@ def is_jwt_expired(token: str, leeway: int = 30) -> bool:
             
         return is_expired
         
-    except Exception as e:
-        _LOGGER.warning("Invalid JWT token: %s", e)
+    except Exception:
+        _LOGGER.warning("Invalid JWT token")
         return True
 
 
@@ -79,6 +79,6 @@ def get_jwt_payload(token: str) -> Optional[Dict[str, Any]]:
         
     try:
         return jwt.decode(token, options={"verify_signature": False})
-    except Exception as e:
-        _LOGGER.debug("Error decoding JWT payload: %s", e)
+    except Exception:
+        _LOGGER.debug("Error decoding JWT payload")
         return None

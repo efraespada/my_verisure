@@ -64,8 +64,11 @@ class SessionDTO:
             if raw_device is not None
             else None
         )
+        cookies = data.get("cookies")
+        if not isinstance(cookies, dict):
+            raise ValueError("session cookies required")
         return cls(
-            cookies=data.get("cookies", {}),
+            cookies=cookies,
             session_data=data.get("session_data"),
             hash=data.get("hash"),
             user=data.get("user"),

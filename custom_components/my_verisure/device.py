@@ -12,11 +12,11 @@ from .core.const import DOMAIN, DEVICE_INFO
 
 def get_device_info(config_entry: ConfigEntry) -> DeviceInfo:
     """Get device info for My Verisure."""
-    installation_id = config_entry.data.get("installation_id", "Unknown")
-    
+    entry_id = config_entry.entry_id
+
     return DeviceInfo(
-        identifiers={(DOMAIN, installation_id)},
-        name=f"My Verisure Alarm ({installation_id})",
+        identifiers={(DOMAIN, entry_id)},
+        name="My Verisure Alarm",
         manufacturer=DEVICE_INFO["manufacturer"],
         model=DEVICE_INFO["model"],
         sw_version=DEVICE_INFO["sw_version"],
@@ -28,13 +28,13 @@ async def async_setup_device(hass: HomeAssistant, config_entry: ConfigEntry) -> 
     """Set up the My Verisure device."""
     device_registry = dr.async_get(hass)
     
-    installation_id = config_entry.data.get("installation_id", "Unknown")
-    
+    entry_id = config_entry.entry_id
+
     # Create or update the device
     device_registry.async_get_or_create(
-        config_entry_id=config_entry.entry_id,
-        identifiers={(DOMAIN, installation_id)},
-        name=f"My Verisure Alarm ({installation_id})",
+        config_entry_id=entry_id,
+        identifiers={(DOMAIN, entry_id)},
+        name="My Verisure Alarm",
         manufacturer=DEVICE_INFO["manufacturer"],
         model=DEVICE_INFO["model"],
         sw_version=DEVICE_INFO["sw_version"],

@@ -1,4 +1,4 @@
-"""Application workflow for polling realtime alarm status."""
+"""Provider workflow for polling realtime alarm status."""
 
 from __future__ import annotations
 
@@ -6,6 +6,7 @@ import asyncio
 from collections.abc import Awaitable, Callable, Mapping
 from typing import Any
 
+from ..application.exceptions import MyVerisureError
 from .realtime_alarm_status import (
     RealtimeAlarmStatusInterpreter,
     RealtimeStatusAction,
@@ -39,18 +40,25 @@ class RealtimeAlarmStatusWorkflow:
         for attempt in range(self._max_retries):
             try:
                 result = await transport(attempt)
+            except MyVerisureError:
+                raise
             except Exception:
-                return ""
+                raise MyVerisureError("realtime alarm status transport failed") from None
 
-            decision = self._interpreter.interpret(result)
+            try:
+                decision = self._interpreter.interpret(result)
+            except MyVerisureError:
+                raise
+            except Exception:
+                raise MyVerisureError("Invalid realtime alarm status response") from None
             if decision.action is RealtimeStatusAction.SUCCESS:
                 return decision.message
             if decision.action is RealtimeStatusAction.FAILURE:
                 return decision.message
             if decision.action is RealtimeStatusAction.EMPTY:
-                return ""
+                raise MyVerisureError("Invalid realtime alarm status response") from None
 
             if attempt + 1 < self._max_retries:
                 await self._sleep(self._retry_delay_seconds)
 
-        return ""
+        raise MyVerisureError("realtime alarm status retries exhausted") from None

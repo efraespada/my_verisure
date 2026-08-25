@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable, Mapping
 from typing import Any
 
-from ..api.models.domain.alarm import ArmResult, DisarmResult
+from ..application.models.alarm import ArmResult, DisarmResult
 from .alarm_command_poller import AlarmCommandPoller, StatusTransport
 from .alarm_command_response import AlarmCommandResponseInterpreter
 

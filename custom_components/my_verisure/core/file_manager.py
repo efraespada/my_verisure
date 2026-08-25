@@ -5,6 +5,9 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
+import shutil
+import tempfile
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional, TypeVar, Union
 
@@ -21,52 +24,54 @@ async def _to_thread(func: Callable[..., T], /, *args: Any, **kwargs: Any) -> T:
 class FileManager:
     """Manager for file operations within the My Verisure project."""
     
-    def __init__(self, project_root: Path | None = None):
-        """Initialize the file manager."""
-        self._project_root = project_root or self._detect_project_root()
+    def __init__(self, project_root: Path):
+        """Initialize an entry-scoped file manager.
+
+        The caller must supply the lifecycle-owned root; filesystem discovery is
+        deliberately forbidden so one entry cannot leak into another.
+        """
+        if not isinstance(project_root, Path):
+            raise TypeError("project_root must be an explicit Path")
+        self._project_root = project_root
         self._data_dir = self._project_root / "data"
-        self._ensure_data_directory()
-    
+
+    def _safe_data_path(self, filename: str) -> Path:
+        """Resolve a relative data path and reject traversal or symlink escapes."""
+        if not isinstance(filename, str) or not filename.strip():
+            raise ValueError("data filename required")
+        data_root = self._data_dir.resolve()
+        candidate = (self._data_dir / filename).resolve()
+        try:
+            candidate.relative_to(data_root)
+        except ValueError as exc:
+            raise ValueError("data path escapes entry directory") from exc
+        return candidate
+
     def _detect_project_root(self) -> Path:
-        """Detect the project root directory based on execution context."""
-        current_dir = Path.cwd()
-        
-        # Check if we're in a Home Assistant environment
-        if "homeassistant" in str(current_dir).lower():
-            # Running from Home Assistant
-            _LOGGER.info("Detected Home Assistant environment")
-            return current_dir / "custom_components" / "my_verisure"
-        
-        # Check if we're in the CLI project directory
-        if (current_dir / "custom_components" / "my_verisure").exists():
-            # Running from CLI project root
-            _LOGGER.info("Detected CLI project environment")
-            return current_dir / "custom_components" / "my_verisure"
-        
-        # Fallback: assume we're in the project root and look for custom_components
-        project_root = current_dir
-        while project_root != project_root.parent:
-            if (project_root / "custom_components" / "my_verisure").exists():
-                _LOGGER.info("Found project root: %s", project_root)
-                return project_root / "custom_components" / "my_verisure"
-            project_root = project_root.parent
-        
-        # Last resort: use current directory
-        _LOGGER.warning("Could not detect project root, using current directory: %s", current_dir)
-        return current_dir
+        """Retained only as a fail-closed compatibility guard."""
+        raise RuntimeError("project_root must be injected explicitly")
     
     def _ensure_data_directory(self) -> None:
         """Ensure the data directory exists."""
         try:
             self._data_dir.mkdir(parents=True, exist_ok=True)
-            _LOGGER.info("Data directory ensured: %s", self._data_dir)
-        except Exception as e:
-            _LOGGER.error("Failed to create data directory: %s", e)
+            _LOGGER.info("Data directory ensured")
+        except Exception:
+            _LOGGER.error("Failed to create data directory")
             raise
     
     def get_project_root(self) -> Path:
         """Get the project root directory."""
         return self._project_root
+
+    def _cleanup_project_root_sync(self) -> bool:
+        """Remove an owned temporary project root idempotently."""
+        shutil.rmtree(self._project_root, ignore_errors=True)
+        return not self._project_root.exists()
+
+    async def async_cleanup_project_root(self) -> bool:
+        """Remove an owned project root without blocking the event loop."""
+        return await _to_thread(self._cleanup_project_root_sync)
     
     def get_data_directory(self) -> Path:
         """Get the data directory path."""
@@ -75,77 +80,82 @@ class FileManager:
     def save_text(self, filename: str, content: str) -> bool:
         """Save text content to a file (blocking I/O; prefer async_save_text from async code)."""
         try:
-            file_path = self._data_dir / filename
+            self._ensure_data_directory()
+            file_path = self._safe_data_path(filename)
             with open(file_path, 'w', encoding='utf-8') as f:
                 f.write(content)
-            _LOGGER.info("Text saved to: %s", file_path)
+            _LOGGER.info("Text saved")
             return True
-        except Exception as e:
-            _LOGGER.error("Failed to save text to %s: %s", filename, e)
+        except Exception:
+            _LOGGER.error("Failed to save text")
             return False
     
     def load_text(self, filename: str) -> Optional[str]:
         """Load text content from a file (blocking I/O; prefer async_load_text from async code)."""
         try:
-            file_path = self._data_dir / filename
+            self._ensure_data_directory()
+            file_path = self._safe_data_path(filename)
             if not file_path.exists():
-                _LOGGER.warning("File not found: %s", file_path)
+                _LOGGER.warning("File not found")
                 return None
             
             with open(file_path, 'r', encoding='utf-8') as f:
                 content = f.read()
-            _LOGGER.info("Text loaded from: %s", file_path)
+            _LOGGER.info("Text loaded")
             return content
-        except Exception as e:
-            _LOGGER.error("Failed to load text from %s: %s", filename, e)
+        except Exception:
+            _LOGGER.error("Failed to load text")
             return None
     
     def save_json(self, filename: str, data: Union[Dict[str, Any], list]) -> bool:
         """Save JSON data to a file (blocking I/O; prefer async_save_json from async code)."""
         try:
-            file_path = self._data_dir / filename
+            self._ensure_data_directory()
+            file_path = self._safe_data_path(filename)
             with open(file_path, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
-            _LOGGER.info("JSON saved to: %s", file_path)
+            _LOGGER.info("JSON saved")
             return True
-        except Exception as e:
-            _LOGGER.error("Failed to save JSON to %s: %s", filename, e)
+        except Exception:
+            _LOGGER.error("Failed to save JSON")
             return False
     
     def load_json(self, filename: str) -> Optional[Union[Dict[str, Any], list]]:
         """Load JSON data from a file (blocking I/O; prefer async_load_json from async code)."""
         try:
-            file_path = self._data_dir / filename
+            self._ensure_data_directory()
+            file_path = self._safe_data_path(filename)
             if not file_path.exists():
-                _LOGGER.warning("File not found: %s", file_path)
+                _LOGGER.warning("File not found")
                 return None
             
             with open(file_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-            _LOGGER.info("JSON loaded from: %s", file_path)
+            _LOGGER.info("JSON loaded")
             return data
-        except Exception as e:
-            _LOGGER.error("Failed to load JSON from %s: %s", filename, e)
+        except Exception:
+            _LOGGER.error("Failed to load JSON")
             return None
     
     def file_exists(self, filename: str) -> bool:
         """Check if a file exists."""
-        file_path = self._data_dir / filename
+        file_path = self._safe_data_path(filename)
         return file_path.exists()
     
     def delete_file(self, filename: str) -> bool:
         """Delete a file (blocking I/O; prefer async_delete_file from async code)."""
         try:
-            file_path = self._data_dir / filename
+            self._ensure_data_directory()
+            file_path = self._safe_data_path(filename)
             if file_path.exists():
                 file_path.unlink()
-                _LOGGER.info("File deleted: %s", file_path)
+                _LOGGER.info("File deleted")
                 return True
             else:
-                _LOGGER.warning("File not found for deletion: %s", file_path)
+                _LOGGER.warning("File not found for deletion")
                 return False
-        except Exception as e:
-            _LOGGER.error("Failed to delete file %s: %s", filename, e)
+        except Exception:
+            _LOGGER.error("Failed to delete file")
             return False
     
     def delete_files_by_prefix(self, prefix: str) -> int:
@@ -153,7 +163,7 @@ class FileManager:
         deleted_count = 0
         try:
             if not self._data_dir.exists():
-                _LOGGER.warning("Data directory does not exist: %s", self._data_dir)
+                _LOGGER.warning("Data directory does not exist")
                 return 0
             
             # Find all files that start with the prefix
@@ -161,10 +171,10 @@ class FileManager:
                 if file_path.is_file() and file_path.name.startswith(prefix):
                     try:
                         file_path.unlink()
-                        _LOGGER.info("File deleted: %s", file_path)
+                        _LOGGER.info("File deleted")
                         deleted_count += 1
-                    except Exception as e:
-                        _LOGGER.error("Failed to delete file %s: %s", file_path, e)
+                    except Exception:
+                        _LOGGER.error("Failed to delete file")
             
             if deleted_count > 0:
                 _LOGGER.info("Deleted %d files with prefix '%s'", deleted_count, prefix)
@@ -173,24 +183,38 @@ class FileManager:
                 
             return deleted_count
             
-        except Exception as e:
-            _LOGGER.error("Failed to delete files with prefix '%s': %s", prefix, e)
+        except Exception:
+            _LOGGER.error("Failed to delete files with prefix")
             return deleted_count
     
     def save_binary(self, filepath: str, content: bytes) -> bool:
-        """Save binary content to a file (blocking I/O; prefer async_save_binary from async code)."""
+        """Atomically save binary content (blocking I/O)."""
+        temporary_path: Optional[Path] = None
         try:
-            # Create full path including subdirectories
-            full_path = self._data_dir / filepath
-            # Ensure parent directories exist
+            full_path = self._safe_data_path(filepath)
             full_path.parent.mkdir(parents=True, exist_ok=True)
-            
-            with open(full_path, 'wb') as f:
-                f.write(content)
-            _LOGGER.info("Binary data saved to: %s", full_path)
+            with tempfile.NamedTemporaryFile(
+                mode="wb",
+                dir=full_path.parent,
+                prefix=f".{full_path.name}.",
+                suffix=".tmp",
+                delete=False,
+            ) as temporary_file:
+                temporary_path = Path(temporary_file.name)
+                temporary_file.write(content)
+                temporary_file.flush()
+                os.fsync(temporary_file.fileno())
+            os.replace(temporary_path, full_path)
+            temporary_path = None
+            _LOGGER.info("Binary data saved")
             return True
-        except Exception as e:
-            _LOGGER.error("Failed to save binary data to %s: %s", filepath, e)
+        except Exception:
+            if temporary_path is not None:
+                try:
+                    temporary_path.unlink(missing_ok=True)
+                except OSError:
+                    pass
+            _LOGGER.error("Failed to save binary data")
             return False
     
     def save_base64_image(self, filepath: str, base64_content: str) -> bool:
@@ -200,10 +224,18 @@ class FileManager:
             # Decode base64 content
             image_data = base64.b64decode(base64_content)
             return self.save_binary(filepath, image_data)
-        except Exception as e:
-            _LOGGER.error("Failed to save base64 image to %s: %s", filepath, e)
+        except Exception:
+            _LOGGER.error("Failed to save base64 image")
             return False
     
+    def mark_camera_directory_complete(self, directory: str) -> bool:
+        """Commit a camera directory after all expected images are present."""
+        try:
+            return self.save_binary(f"{directory}/.complete", b"complete")
+        except Exception:
+            _LOGGER.error("Failed to commit camera directory")
+            return False
+
     def list_files(self, pattern: str = "*") -> list[str]:
         """List files in the data directory matching a pattern (blocking I/O; prefer async_list_files)."""
         try:
@@ -211,61 +243,63 @@ class FileManager:
             for file_path in self._data_dir.glob(pattern):
                 if file_path.is_file():
                     files.append(file_path.name)
-            _LOGGER.info("Found %d files matching pattern '%s'", len(files), pattern)
+            _LOGGER.info("Found files matching requested pattern")
             return files
-        except Exception as e:
-            _LOGGER.error("Failed to list files with pattern '%s': %s", pattern, e)
+        except Exception:
+            _LOGGER.error("Failed to list files")
             return []
     
     def get_file_path(self, filename: str) -> Path:
         """Get the full path to a file."""
-        return self._data_dir / filename
+        return self._safe_data_path(filename)
     
     def get_file_size(self, filename: str) -> Optional[int]:
         """Get the size of a file in bytes (blocking I/O; prefer async_get_file_size from async code)."""
         try:
-            file_path = self._data_dir / filename
+            self._ensure_data_directory()
+            file_path = self._safe_data_path(filename)
             if file_path.exists():
                 return file_path.stat().st_size
             return None
-        except Exception as e:
-            _LOGGER.error("Failed to get file size for %s: %s", filename, e)
+        except Exception:
+            _LOGGER.error("Failed to get file size")
             return None
 
+    def _device_identifiers_path(self) -> Path:
+        """Return the entry-scoped device identifier path."""
+        return self._safe_data_path("device_identifiers.json")
+
     def save_device_identifiers(self, data: Dict[str, Any]) -> bool:
-        """Save device identifiers to the execution directory (blocking I/O; prefer async_save_device_identifiers)."""
+        """Save device identifiers in this entry's data directory."""
         try:
-            # Save to the execution directory (not in /data)
-            file_path = Path.cwd() / "device_identifiers.json"
-            with open(file_path, 'w', encoding='utf-8') as f:
+            self._ensure_data_directory()
+            file_path = self._device_identifiers_path()
+            with open(file_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
-            _LOGGER.info("Device identifiers saved to: %s", file_path)
+            _LOGGER.info("Device identifiers saved")
             return True
-        except Exception as e:
-            _LOGGER.error("Failed to save device identifiers: %s", e)
+        except Exception:
+            _LOGGER.error("Failed to save device identifiers")
             return False
 
     def load_device_identifiers(self) -> Optional[Dict[str, Any]]:
-        """Load device identifiers from the execution directory (blocking I/O; prefer async_load_device_identifiers)."""
+        """Load device identifiers from this entry's data directory."""
         try:
-            # Load from the execution directory (not from /data)
-            file_path = Path.cwd() / "device_identifiers.json"
+            self._ensure_data_directory()
+            file_path = self._device_identifiers_path()
             if not file_path.exists():
-                _LOGGER.warning("Device identifiers file not found: %s", file_path)
                 return None
-            
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, encoding="utf-8") as f:
                 data = json.load(f)
-            _LOGGER.info("Device identifiers loaded from: %s", file_path)
+            _LOGGER.info("Device identifiers loaded")
             return data
-        except Exception as e:
-            _LOGGER.error("Failed to load device identifiers: %s", e)
+        except Exception:
+            _LOGGER.error("Failed to load device identifiers")
             return None
 
     def device_identifiers_exists(self) -> bool:
-        """Check if device identifiers file exists in the execution directory."""
-        file_path = Path.cwd() / "device_identifiers.json"
-        return file_path.exists()
+        """Check whether this entry has device identifiers."""
+        return self._device_identifiers_path().exists()
 
     async def async_save_text(self, filename: str, content: str) -> bool:
         """Save text content to a file without blocking the event loop."""

@@ -4,9 +4,17 @@ import json
 import os
 import tempfile
 from pathlib import Path
+import pytest
 from unittest.mock import patch
 
 from ...file_manager import FileManager
+
+
+def test_file_manager_logs_do_not_include_owned_paths(tmp_path, caplog):
+    manager = FileManager(tmp_path / "PRIVATE_ROOT")
+    with caplog.at_level("INFO"):
+        assert manager.save_text("file.txt", "content") is True
+    assert str(tmp_path / "PRIVATE_ROOT") not in caplog.text
 
 
 class TestFileManager:
@@ -18,6 +26,7 @@ class TestFileManager:
         self.temp_dir = tempfile.mkdtemp()
         self.original_cwd = os.getcwd()
         os.chdir(self.temp_dir)
+        (Path(self.temp_dir) / "data").mkdir(parents=True, exist_ok=True)
 
     def teardown_method(self):
         """Clean up after each test."""
@@ -29,57 +38,24 @@ class TestFileManager:
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     def test_file_manager_initialization(self):
-        """Test FileManager initialization."""
-        with patch.object(FileManager, '_detect_project_root') as mock_detect:
-            mock_detect.return_value = Path(self.temp_dir)
-            
-            file_manager = FileManager()
-            
-            assert file_manager._project_root == Path(self.temp_dir)
-            assert file_manager._data_dir == Path(self.temp_dir) / "data"
-            mock_detect.assert_called_once()
+        """Test explicit entry-scoped initialization."""
+        file_manager = FileManager(Path(self.temp_dir))
 
-    def test_detect_project_root_home_assistant_env(self):
-        """Test project root detection in Home Assistant environment."""
-        with patch('pathlib.Path.cwd') as mock_cwd:
-            mock_cwd.return_value = Path("/config/custom_components/my_verisure")
-            
-            file_manager = FileManager.__new__(FileManager)
-            result = file_manager._detect_project_root()
-            
-            assert result == Path("/config/custom_components/my_verisure")
+        assert file_manager._project_root == Path(self.temp_dir)
+        assert file_manager._data_dir == Path(self.temp_dir) / "data"
 
-    def test_detect_project_root_cli_project(self):
-        """Test project root detection in CLI project."""
-        with patch('pathlib.Path.cwd') as mock_cwd:
-            mock_cwd.return_value = Path(self.temp_dir)
-            
-            # Create custom_components/my_verisure structure
-            custom_components_dir = Path(self.temp_dir) / "custom_components" / "my_verisure"
-            custom_components_dir.mkdir(parents=True, exist_ok=True)
-            
-            file_manager = FileManager()
-            result = file_manager._detect_project_root()
-            
-            assert result == custom_components_dir
-
-    def test_detect_project_root_fallback(self):
-        """Test project root detection fallback."""
-        with patch('pathlib.Path.cwd') as mock_cwd:
-            mock_cwd.return_value = Path(self.temp_dir)
-            
-            file_manager = FileManager()
-            result = file_manager._detect_project_root()
-            
-            # Should fallback to current directory
-            assert result == Path(self.temp_dir)
+    def test_detect_project_root_is_forbidden(self):
+        """Project discovery is not allowed outside an injected root."""
+        file_manager = FileManager(Path(self.temp_dir))
+        with pytest.raises(RuntimeError):
+            file_manager._detect_project_root()
 
     def test_get_project_root(self):
         """Test getting project root."""
         with patch.object(FileManager, '_detect_project_root') as mock_detect:
             mock_detect.return_value = Path(self.temp_dir)
             
-            file_manager = FileManager()
+            file_manager = FileManager(Path(self.temp_dir))
             result = file_manager.get_project_root()
             
             assert result == Path(self.temp_dir)
@@ -89,7 +65,7 @@ class TestFileManager:
         with patch.object(FileManager, '_detect_project_root') as mock_detect:
             mock_detect.return_value = Path(self.temp_dir)
             
-            file_manager = FileManager()
+            file_manager = FileManager(Path(self.temp_dir))
             result = file_manager.get_data_directory()
             
             assert result == Path(self.temp_dir) / "data"
@@ -99,7 +75,7 @@ class TestFileManager:
         with patch.object(FileManager, '_detect_project_root') as mock_detect:
             mock_detect.return_value = Path(self.temp_dir)
             
-            file_manager = FileManager()
+            file_manager = FileManager(Path(self.temp_dir))
             result = file_manager.save_text("test.txt", "Hello World")
             
             assert result is True
@@ -115,7 +91,7 @@ class TestFileManager:
         with patch.object(FileManager, '_detect_project_root') as mock_detect:
             mock_detect.return_value = Path(self.temp_dir)
             
-            file_manager = FileManager()
+            file_manager = FileManager(Path(self.temp_dir))
             
             # Mock open to raise an exception
             with patch('builtins.open', side_effect=IOError("Permission denied")):
@@ -128,7 +104,7 @@ class TestFileManager:
         with patch.object(FileManager, '_detect_project_root') as mock_detect:
             mock_detect.return_value = Path(self.temp_dir)
             
-            file_manager = FileManager()
+            file_manager = FileManager(Path(self.temp_dir))
             
             # Create test file
             test_file = Path(self.temp_dir) / "data" / "test.txt"
@@ -144,7 +120,7 @@ class TestFileManager:
         with patch.object(FileManager, '_detect_project_root') as mock_detect:
             mock_detect.return_value = Path(self.temp_dir)
             
-            file_manager = FileManager()
+            file_manager = FileManager(Path(self.temp_dir))
             result = file_manager.load_text("nonexistent.txt")
             
             assert result is None
@@ -154,7 +130,7 @@ class TestFileManager:
         with patch.object(FileManager, '_detect_project_root') as mock_detect:
             mock_detect.return_value = Path(self.temp_dir)
             
-            file_manager = FileManager()
+            file_manager = FileManager(Path(self.temp_dir))
             
             # Create test file
             test_file = Path(self.temp_dir) / "data" / "test.txt"
@@ -172,7 +148,7 @@ class TestFileManager:
         with patch.object(FileManager, '_detect_project_root') as mock_detect:
             mock_detect.return_value = Path(self.temp_dir)
             
-            file_manager = FileManager()
+            file_manager = FileManager(Path(self.temp_dir))
             test_data = {"key": "value", "number": 123}
             result = file_manager.save_json("test.json", test_data)
             
@@ -189,7 +165,7 @@ class TestFileManager:
         with patch.object(FileManager, '_detect_project_root') as mock_detect:
             mock_detect.return_value = Path(self.temp_dir)
             
-            file_manager = FileManager()
+            file_manager = FileManager(Path(self.temp_dir))
             
             # Mock open to raise an exception
             with patch('builtins.open', side_effect=IOError("Permission denied")):
@@ -202,7 +178,7 @@ class TestFileManager:
         with patch.object(FileManager, '_detect_project_root') as mock_detect:
             mock_detect.return_value = Path(self.temp_dir)
             
-            file_manager = FileManager()
+            file_manager = FileManager(Path(self.temp_dir))
             
             # Create test file
             test_file = Path(self.temp_dir) / "data" / "test.json"
@@ -219,7 +195,7 @@ class TestFileManager:
         with patch.object(FileManager, '_detect_project_root') as mock_detect:
             mock_detect.return_value = Path(self.temp_dir)
             
-            file_manager = FileManager()
+            file_manager = FileManager(Path(self.temp_dir))
             result = file_manager.load_json("nonexistent.json")
             
             assert result is None
@@ -229,7 +205,7 @@ class TestFileManager:
         with patch.object(FileManager, '_detect_project_root') as mock_detect:
             mock_detect.return_value = Path(self.temp_dir)
             
-            file_manager = FileManager()
+            file_manager = FileManager(Path(self.temp_dir))
             
             # Create test file with invalid JSON
             test_file = Path(self.temp_dir) / "data" / "test.json"
@@ -245,7 +221,7 @@ class TestFileManager:
         with patch.object(FileManager, '_detect_project_root') as mock_detect:
             mock_detect.return_value = Path(self.temp_dir)
             
-            file_manager = FileManager()
+            file_manager = FileManager(Path(self.temp_dir))
             
             # Test with existing file
             test_file = Path(self.temp_dir) / "data" / "test.txt"
@@ -260,7 +236,7 @@ class TestFileManager:
         with patch.object(FileManager, '_detect_project_root') as mock_detect:
             mock_detect.return_value = Path(self.temp_dir)
             
-            file_manager = FileManager()
+            file_manager = FileManager(Path(self.temp_dir))
             
             # Create test file
             test_file = Path(self.temp_dir) / "data" / "test.txt"
@@ -277,7 +253,7 @@ class TestFileManager:
         with patch.object(FileManager, '_detect_project_root') as mock_detect:
             mock_detect.return_value = Path(self.temp_dir)
             
-            file_manager = FileManager()
+            file_manager = FileManager(Path(self.temp_dir))
             result = file_manager.delete_file("nonexistent.txt")
             
             assert result is False
@@ -287,7 +263,7 @@ class TestFileManager:
         with patch.object(FileManager, '_detect_project_root') as mock_detect:
             mock_detect.return_value = Path(self.temp_dir)
             
-            file_manager = FileManager()
+            file_manager = FileManager(Path(self.temp_dir))
             
             # Create test files
             data_dir = Path(self.temp_dir) / "data"
@@ -304,12 +280,18 @@ class TestFileManager:
             assert not (data_dir / "test2.txt").exists()
             assert (data_dir / "other.txt").exists()
 
+    def test_rejects_path_traversal_for_binary_content(self):
+        file_manager = FileManager(Path(self.temp_dir))
+
+        assert file_manager.save_binary("../escape.bin", b"secret") is False
+        assert not (Path(self.temp_dir).parent / "escape.bin").exists()
+
     def test_save_binary_success(self):
         """Test successful binary saving."""
         with patch.object(FileManager, '_detect_project_root') as mock_detect:
             mock_detect.return_value = Path(self.temp_dir)
             
-            file_manager = FileManager()
+            file_manager = FileManager(Path(self.temp_dir))
             test_data = b"binary content"
             result = file_manager.save_binary("test.bin", test_data)
             
@@ -321,12 +303,27 @@ class TestFileManager:
                 content = f.read()
             assert content == test_data
 
+    def test_save_binary_replace_failure_preserves_previous_file(self):
+        """Atomic replacement must not expose partial content on commit failure."""
+        file_manager = FileManager(Path(self.temp_dir))
+        target = Path(self.temp_dir) / "data" / "test.bin"
+        target.write_bytes(b"previous")
+
+        with patch(
+            "custom_components.my_verisure.core.file_manager.os.replace",
+            side_effect=OSError,
+        ):
+            assert file_manager.save_binary("test.bin", b"replacement") is False
+
+        assert target.read_bytes() == b"previous"
+        assert list(target.parent.glob(".test.bin.*.tmp")) == []
+
     def test_save_base64_image_success(self):
         """Test successful base64 image saving."""
         with patch.object(FileManager, '_detect_project_root') as mock_detect:
             mock_detect.return_value = Path(self.temp_dir)
             
-            file_manager = FileManager()
+            file_manager = FileManager(Path(self.temp_dir))
             
             # Create base64 encoded data
             import base64
@@ -348,7 +345,7 @@ class TestFileManager:
         with patch.object(FileManager, '_detect_project_root') as mock_detect:
             mock_detect.return_value = Path(self.temp_dir)
             
-            file_manager = FileManager()
+            file_manager = FileManager(Path(self.temp_dir))
             
             # Create test files
             data_dir = Path(self.temp_dir) / "data"
@@ -376,7 +373,7 @@ class TestFileManager:
         with patch.object(FileManager, '_detect_project_root') as mock_detect:
             mock_detect.return_value = Path(self.temp_dir)
             
-            file_manager = FileManager()
+            file_manager = FileManager(Path(self.temp_dir))
             result = file_manager.get_file_path("test.txt")
             
             assert result == Path(self.temp_dir) / "data" / "test.txt"
@@ -386,7 +383,7 @@ class TestFileManager:
         with patch.object(FileManager, '_detect_project_root') as mock_detect:
             mock_detect.return_value = Path(self.temp_dir)
             
-            file_manager = FileManager()
+            file_manager = FileManager(Path(self.temp_dir))
             
             # Create test file
             test_file = Path(self.temp_dir) / "data" / "test.txt"
@@ -406,15 +403,16 @@ class TestFileManager:
         with patch.object(FileManager, '_detect_project_root') as mock_detect:
             mock_detect.return_value = Path(self.temp_dir)
             
-            file_manager = FileManager()
+            file_manager = FileManager(Path(self.temp_dir))
             test_data = {"idDevice": "device_123", "uuid": "uuid_456"}
             result = file_manager.save_device_identifiers(test_data)
             
             assert result is True
-            assert (Path.cwd() / "device_identifiers.json").exists()
+            identifier_path = file_manager.get_file_path("device_identifiers.json")
+            assert identifier_path.exists()
             
             # Verify content
-            with open(Path.cwd() / "device_identifiers.json", 'r') as f:
+            with open(identifier_path, encoding="utf-8") as f:
                 content = json.load(f)
             assert content == test_data
 
@@ -423,11 +421,11 @@ class TestFileManager:
         with patch.object(FileManager, '_detect_project_root') as mock_detect:
             mock_detect.return_value = Path(self.temp_dir)
             
-            file_manager = FileManager()
+            file_manager = FileManager(Path(self.temp_dir))
             
             # Create test file
             test_data = {"idDevice": "device_123", "uuid": "uuid_456"}
-            test_file = Path.cwd() / "device_identifiers.json"
+            test_file = file_manager.get_file_path("device_identifiers.json")
             test_file.write_text(json.dumps(test_data))
             
             result = file_manager.load_device_identifiers()
@@ -439,13 +437,35 @@ class TestFileManager:
         with patch.object(FileManager, '_detect_project_root') as mock_detect:
             mock_detect.return_value = Path(self.temp_dir)
             
-            file_manager = FileManager()
+            file_manager = FileManager(Path(self.temp_dir))
             
             # Test with non-existent file
             assert file_manager.device_identifiers_exists() is False
             
             # Create test file
-            test_file = Path.cwd() / "device_identifiers.json"
+            test_file = file_manager.get_file_path("device_identifiers.json")
             test_file.write_text("{}")
-            
             assert file_manager.device_identifiers_exists() is True
+
+    @pytest.mark.asyncio
+    async def test_async_cleanup_project_root_is_idempotent(self):
+        file_manager = FileManager(Path(self.temp_dir) / "flow")
+        nested = file_manager.get_data_directory() / "nested" / "artifact.json"
+        nested.parent.mkdir(parents=True)
+        nested.write_text("temporary")
+
+        assert await file_manager.async_cleanup_project_root() is True
+        assert await file_manager.async_cleanup_project_root() is True
+        assert not file_manager.get_project_root().exists()
+
+    def test_device_identifiers_are_isolated_by_project_root(self):
+        first = FileManager(Path(self.temp_dir) / "first")
+        second = FileManager(Path(self.temp_dir) / "second")
+
+        assert first.save_device_identifiers({"id": "first"}) is True
+        assert second.save_device_identifiers({"id": "second"}) is True
+        assert first.load_device_identifiers() == {"id": "first"}
+        assert second.load_device_identifiers() == {"id": "second"}
+        assert first.get_file_path("device_identifiers.json") != second.get_file_path(
+            "device_identifiers.json"
+        )

@@ -4,10 +4,10 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from custom_components.my_verisure.core.application.alarm_command_workflow import (
+from custom_components.my_verisure.core.api.alarm_command_workflow import (
     AlarmCommandWorkflow,
 )
-from custom_components.my_verisure.core.application.alarm_command_poller import (
+from custom_components.my_verisure.core.api.alarm_command_poller import (
     AlarmCommandPoller,
 )
 
@@ -28,7 +28,7 @@ async def test_arm_workflow_accepts_reference_and_polls():
     ).arm(command, lambda _: status)
 
     assert result.success is True
-    assert result.message == "armed"
+    assert result.message == "Alarm command accepted"
     command.assert_awaited_once()
     status.assert_awaited_once_with(1)
 
@@ -43,7 +43,7 @@ async def test_disarm_workflow_rejects_initial_response():
     result = await AlarmCommandWorkflow().disarm(command, status)
 
     assert result.success is False
-    assert result.message == "rejected"
+    assert result.message == "Alarm command rejected"
     status.assert_not_awaited()
 
 

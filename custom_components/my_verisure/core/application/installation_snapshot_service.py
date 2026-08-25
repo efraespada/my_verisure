@@ -6,14 +6,15 @@ import time
 from collections.abc import Callable
 from typing import Any, Protocol
 
-from ..api.models.dto.installation_dto import DetailedInstallationDTO
+from ..application.models.installation import DetailedInstallation
 from .coordinator_snapshot import build_coordinator_snapshot
+from .exceptions import MyVerisureError
 
 
 class InstallationSnapshotReader(Protocol):
     """Port for reading the detailed installation."""
 
-    async def get_installation_services(self, installation_id: str) -> DetailedInstallationDTO:
+    async def get_installation_services(self, installation_id: str) -> DetailedInstallation:
         """Return the detailed installation."""
         ...
 
@@ -49,10 +50,10 @@ class InstallationSnapshotService:
         detailed_installation = await self._installation_reader.get_installation_services(
             installation_id
         )
-        panel = detailed_installation.installation.panel or "PROTOCOL"
-        capabilities = (
-            detailed_installation.installation.capabilities or "default_capabilities"
-        )
+        panel = detailed_installation.installation.panel
+        capabilities = detailed_installation.installation.capabilities
+        if not panel or not capabilities:
+            raise MyVerisureError("Installation context unavailable")
         alarm_status = await self._alarm_reader.get_alarm_status(
             installation_id,
             panel=panel,
@@ -61,6 +62,6 @@ class InstallationSnapshotService:
         return build_coordinator_snapshot(
             installation_id=installation_id,
             alarm_status=alarm_status.dict(),
-            detailed_installation=detailed_installation.to_dict(),
+            detailed_installation=detailed_installation.dict(),
             timestamp=self._clock(),
         )

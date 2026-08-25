@@ -1,6 +1,6 @@
 """Mappings between device transport DTOs and domain values."""
 
-from ..models.domain.device import Device, DeviceConfig, DeviceConfigFlags, DeviceList
+from ...application.models.device import Device, DeviceConfig, DeviceConfigFlags, DeviceList
 from ..models.dto.device_dto import (
     DeviceConfigDTO,
     DeviceConfigFlagsDTO,

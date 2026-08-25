@@ -27,13 +27,14 @@ class VerisureCamera(CoordinatorEntity, Camera):
         coordinator: MyVerisureDataUpdateCoordinator,
         device: dict,
         config_entry: ConfigEntry,
+        camera_index: int = 0,
     ) -> None:
         """Initialize the camera entity."""
         super().__init__(coordinator)
         self._my_coordinator = coordinator
         self._device = device
-        self._attr_name = f"Verisure {device['name']}"
-        self._attr_unique_id = f"{config_entry.entry_id}_camera_{device['code']}"
+        self._attr_name = "Verisure Camera"
+        self._attr_unique_id = f"{config_entry.entry_id}_camera_{camera_index}"
         self._attr_device_info = get_device_info(config_entry)
         self._latest_image_path: str | None = None
         self._latest_image_timestamp: str | None = None
@@ -55,18 +56,18 @@ class VerisureCamera(CoordinatorEntity, Camera):
             camera_dir = self._my_coordinator.file_manager.get_data_directory()
             device_path = os.path.join(camera_dir, "cameras", f"{self._device['type']}{int(self._device['code']):02d}")
             
-            _LOGGER.debug("Looking for camera images in: %s", device_path)
+            _LOGGER.debug("Looking for camera images")
         
             if not os.path.exists(device_path):
-                _LOGGER.warning("Camera directory not found: %s", device_path)
+                _LOGGER.warning("Camera directory not found")
                 return None
 
             # List all items in the camera directory
             try:
                 items = os.listdir(device_path)
-                _LOGGER.debug("Found %d items in camera directory: %s", len(items), items)
-            except Exception as e:
-                _LOGGER.error("Error listing camera directory %s: %s", device_path, e)
+                _LOGGER.debug("Found %d items in camera directory", len(items))
+            except Exception:
+                _LOGGER.error("Failed to list camera directory")
                 return None
 
             # Find the most recent timestamp directory
@@ -85,16 +86,26 @@ class VerisureCamera(CoordinatorEntity, Camera):
                         if latest_timestamp is None or timestamp > latest_timestamp:
                             latest_timestamp = timestamp
                             latest_timestamp_dir = item_path
-                            _LOGGER.debug("Found newer timestamp directory: %s (parsed as %s)", item, timestamp)
-                    except ValueError as e:
-                        _LOGGER.debug("Could not parse timestamp from directory '%s': %s", item, e)
+                            _LOGGER.debug("Found newer timestamp directory")
+                    except ValueError:
+                        _LOGGER.debug("Could not parse camera timestamp directory")
                         continue
 
             if latest_timestamp_dir is None or latest_timestamp is None:
-                _LOGGER.warning("No valid timestamp directories found for camera %s in %s", self._device['code'], device_path)
+                _LOGGER.warning("No valid timestamp directories found for camera")
                 return None
 
-            _LOGGER.debug("Using latest timestamp directory: %s", latest_timestamp_dir)
+            _LOGGER.debug("Using latest timestamp directory")
+
+            marker_path = os.path.join(latest_timestamp_dir, ".complete")
+            try:
+                with open(marker_path, "rb") as marker_file:
+                    if marker_file.read() != b"complete":
+                        _LOGGER.warning("Latest camera directory commit marker is invalid")
+                        return None
+            except OSError:
+                _LOGGER.warning("Latest camera directory is not committed")
+                return None
 
             # Look for thumbnail.jpg in the latest directory
             thumbnail_path = os.path.join(latest_timestamp_dir, "thumbnail.jpg")
@@ -103,14 +114,13 @@ class VerisureCamera(CoordinatorEntity, Camera):
                     image_data = f.read()
                     self._latest_image_path = thumbnail_path
                     self._latest_image_timestamp = latest_timestamp.isoformat()
-                    _LOGGER.info("✅ Loaded latest image for camera %s from %s (size: %d bytes)", 
-                               self._device['code'], thumbnail_path, len(image_data))
+                    _LOGGER.info("✅ Loaded latest camera image (size: %d bytes)", len(image_data))
                     return image_data
             else:
                 # Try to find any image file in the directory
                 try:
                     files = os.listdir(latest_timestamp_dir)
-                    _LOGGER.debug("Files in latest directory: %s", files)
+                    _LOGGER.debug("Files in latest camera directory: %d", len(files))
                     
                     # Look for any image file
                     for file in files:
@@ -120,27 +130,22 @@ class VerisureCamera(CoordinatorEntity, Camera):
                                 image_data = f.read()
                                 self._latest_image_path = image_path
                                 self._latest_image_timestamp = latest_timestamp.isoformat()
-                                _LOGGER.info("✅ Loaded image for camera %s from %s (size: %d bytes)", 
-                                           self._device['code'], image_path, len(image_data))
+                                _LOGGER.info("✅ Loaded camera image (size: %d bytes)", len(image_data))
                                 return image_data
-                except Exception as e:
-                    _LOGGER.error("Error reading files from directory %s: %s", latest_timestamp_dir, e)
+                except Exception:
+                    _LOGGER.error("Failed to read camera image files")
                 
-                _LOGGER.warning("No thumbnail.jpg or other images found in latest directory: %s", latest_timestamp_dir)
+                _LOGGER.warning("No camera images found")
                 return None
                 
-        except Exception as e:
-            _LOGGER.error("Error getting latest image for camera %s: %s", self._device['code'], e)
+        except Exception:
+            _LOGGER.error("Failed to get latest camera image")
             return None
 
     @property
     def extra_state_attributes(self):
         """Return additional state attributes."""
         return {
-            "device_type": self._device['type'],
-            "device_code": self._device['code'],
-            "device_name": self._device['name'],
-            "latest_image_path": self._latest_image_path,
             "latest_image_timestamp": self._latest_image_timestamp,
             "is_active": self._device.get('is_active'),
             "remote_use": self._device.get('remote_use'),
@@ -190,10 +195,10 @@ async def async_setup_entry(
         if device.get('type') in ["YP", "YR"]
     ]
     
-    for device in camera_devices:
-        camera = VerisureCamera(coordinator, device, config_entry)
+    for camera_index, device in enumerate(camera_devices):
+        camera = VerisureCamera(coordinator, device, config_entry, camera_index)
         cameras.append(camera)
-        _LOGGER.info("Created camera entity for %s (%s)", device['name'], f"{device['type']}{int(device['code']):02d}")
+        _LOGGER.info("Created camera entity")
 
     if cameras:
         async_add_entities(cameras, update_before_add=True)

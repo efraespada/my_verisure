@@ -11,7 +11,7 @@ from custom_components.my_verisure.core.api.models.dto.auth_dto import (
     OTPDataDTO,
     PhoneDTO,
 )
-from custom_components.my_verisure.core.api.models.domain.auth import (
+from custom_components.my_verisure.core.application.models.auth import (
     AuthResult,
     OTPData,
     Phone,
@@ -21,8 +21,10 @@ from custom_components.my_verisure.core.api.models.domain.auth import (
 def test_auth_result_mapping_is_explicit_and_reversible() -> None:
     dto = AuthDTO(res="OK", msg="ok", hash="h", refresh_token="r")
     value = auth_result_from_dto(dto)
-    assert value == AuthResult(True, "ok", "h", "r")
-    assert auth_result_to_dto(value) == dto
+    assert value == AuthResult(True, "Login successful", "h", "r")
+    assert auth_result_to_dto(value) == AuthDTO(
+        res="OK", msg="Login successful", hash="h", refresh_token="r"
+    )
 
 
 def test_otp_mapping_is_explicit_and_reversible() -> None:

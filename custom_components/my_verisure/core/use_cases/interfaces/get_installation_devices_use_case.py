@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 
-from ...api.models.domain.device import DeviceList
+from ...application.models.device import DeviceList
 
 
 class GetInstallationDevicesUseCase(ABC):

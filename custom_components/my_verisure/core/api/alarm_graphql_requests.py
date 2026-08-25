@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from ..api.graphql_alarm_queries import (
+from .graphql_alarm_queries import (
     ARM_PANEL_MUTATION,
     ARM_STATUS_QUERY,
     CHECK_ALARM_QUERY,

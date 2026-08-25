@@ -2,33 +2,20 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Any
+
+from ..application.models.camera_images import CameraPhotoSet, CameraThumbnail
 
 
 class CameraImageResponseError(ValueError):
     """Provider response cannot be interpreted under the image contract."""
 
-
-@dataclass(frozen=True)
-class CameraThumbnail:
-    """Thumbnail metadata and encoded image returned by the provider."""
-
-    id_signal: str
-    signal_type: str
-    device_alias: str
-    timestamp: str
-    image: str
+    def __init__(self, safe_message: str) -> None:
+        self.safe_message = safe_message
+        super().__init__(safe_message)
 
 
-@dataclass(frozen=True)
-class CameraPhotoSet:
-    """Photo images returned for one camera device."""
-
-    images: list[dict[str, str]]
-
-
-def interpret_thumbnail_response(result: object, *, default_zone: str) -> CameraThumbnail:
+def interpret_thumbnail_response(result: object) -> CameraThumbnail:
     """Interpret the xSGetThumbnail GraphQL envelope."""
     data = _require_data(result, "thumbnail")
     response = data.get("xSGetThumbnail")
@@ -41,11 +28,18 @@ def interpret_thumbnail_response(result: object, *, default_zone: str) -> Camera
 
     return CameraThumbnail(
         id_signal=id_signal,
-        signal_type=_optional_string(response.get("signalType"), "16"),
-        device_alias=_optional_string(response.get("deviceAlias"), default_zone),
-        timestamp=_optional_string(response.get("timestamp"), ""),
-        image=_optional_string(response.get("image"), ""),
+        signal_type=_required_string(response, "signalType"),
+        device_alias=_required_string(response, "deviceAlias"),
+        timestamp=_required_string(response, "timestamp"),
+        image=_required_string(response, "image"),
     )
+
+
+def _required_string(response: dict[str, Any], key: str) -> str:
+    value = response.get(key)
+    if not isinstance(value, str) or not value.strip():
+        raise CameraImageResponseError("Missing required thumbnail field")
+    return value
 
 
 def interpret_photo_response(result: object) -> CameraPhotoSet:
@@ -70,11 +64,17 @@ def interpret_photo_response(result: object) -> CameraPhotoSet:
     images: list[dict[str, str]] = []
     for raw_image in raw_images:
         if not isinstance(raw_image, dict):
-            continue
-        image_id = raw_image.get("id", "unknown")
-        image_data = raw_image.get("image", "")
-        if isinstance(image_id, str) and isinstance(image_data, str):
-            images.append({"id": image_id, "image": image_data})
+            raise CameraImageResponseError("Invalid camera image")
+        image_id = raw_image.get("id")
+        image_data = raw_image.get("image")
+        if (
+            not isinstance(image_id, str)
+            or not image_id.strip()
+            or not isinstance(image_data, str)
+            or not image_data.strip()
+        ):
+            raise CameraImageResponseError("Invalid camera image")
+        images.append({"id": image_id, "image": image_data})
 
     return CameraPhotoSet(images=images)
 
@@ -83,21 +83,10 @@ def _require_data(result: object, resource: str) -> dict[str, Any]:
     if not isinstance(result, dict):
         raise CameraImageResponseError(f"Invalid response from {resource} service")
 
-    errors = result.get("errors")
-    if isinstance(errors, list) and errors:
-        first = errors[0]
-        message = (
-            first.get("message", "Unknown GraphQL error")
-            if isinstance(first, dict)
-            else "Unknown GraphQL error"
-        )
-        raise CameraImageResponseError(str(message))
+    if "errors" in result:
+        raise CameraImageResponseError("Image service request failed")
 
     data = result.get("data")
     if not isinstance(data, dict):
         raise CameraImageResponseError(f"Invalid response from {resource} service")
     return data
-
-
-def _optional_string(value: object, default: str) -> str:
-    return value if isinstance(value, str) else default

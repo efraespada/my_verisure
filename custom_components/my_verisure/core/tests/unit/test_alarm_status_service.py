@@ -22,7 +22,7 @@ async def test_process_message_maps_internal_and_external_categories(tmp_path: P
     external_status = await service.process_message("external-alarm")
 
     assert day_status["internal"]["day"]["status"] is True
-    assert day_status["external"]["status"] is False
+    assert day_status["external"]["status"] is None
     assert external_status["external"]["status"] is True
 
 
@@ -31,6 +31,20 @@ async def test_empty_message_returns_default_status(tmp_path: Path):
     service = AlarmStatusService(tmp_path / "status.json")
 
     assert await service.process_message("") == service.default_status()
+
+
+@pytest.mark.asyncio
+async def test_unknown_message_preserves_unknown_status(tmp_path: Path):
+    service = AlarmStatusService(
+        tmp_path / "status.json",
+        read_config=lambda _: {"internal": {}, "external": {}},
+    )
+
+    result = await service.process_message("unrecognized")
+
+    assert result == service.default_status()
+    assert result["internal"]["total"]["status"] is None
+    assert result["external"]["status"] is None
 
 
 @pytest.mark.asyncio

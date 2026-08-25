@@ -1,6 +1,6 @@
 """Tests for authentication response classification."""
 
-from custom_components.my_verisure.core.application.auth_response_classifier import (
+from custom_components.my_verisure.core.api.auth_response_classifier import (
     LoginResponse,
     classify_login_response,
 )
@@ -23,7 +23,8 @@ def test_classify_invalid_credentials_error() -> None:
     )
 
 
-def test_classify_malformed_and_failed_responses() -> None:
-    assert classify_login_response(None) == "No response data"
-    assert classify_login_response({"data": {"xSLoginToken": {"res": "ERROR", "msg": "bad"}}}) == "Login failed: bad"
-    assert classify_login_response({"data": {}}) == "Login failed: No response data"
+def test_classify_empty_errors_as_failed_response() -> None:
+    assert classify_login_response({"errors": []}) == "Authentication response failed"
+    assert classify_login_response(None) == "Authentication response unavailable"
+    assert classify_login_response({"data": {"xSLoginToken": {"res": "ERROR", "msg": "bad"}}}) == "Authentication response failed"
+    assert classify_login_response({"data": {}}) == "Authentication response unavailable"

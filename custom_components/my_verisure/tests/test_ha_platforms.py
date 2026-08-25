@@ -19,7 +19,7 @@ def _entry() -> MockConfigEntry:
         domain=DOMAIN,
         entry_id="platform-entry",
         title="Platform test",
-        data={"installation_id": "123", "user": "test@example.invalid", "password": "[REDACTED]"},
+        data={"installation_id": "123", "user": "[REDACTED]", "password": "[REDACTED]"},
     )
 
 
@@ -60,6 +60,7 @@ def test_camera_image_prefers_thumbnail(tmp_path):
     entity = _camera_entity(tmp_path, _entry())
     timestamp_path = tmp_path / "cameras" / "YP01" / "2026-08-13_12-00-00"
     timestamp_path.mkdir(parents=True)
+    (timestamp_path / ".complete").write_bytes(b"complete")
     (timestamp_path / "thumbnail.jpg").write_bytes(b"thumbnail")
     (timestamp_path / "other.png").write_bytes(b"other")
 
@@ -72,9 +73,29 @@ def test_camera_image_falls_back_to_supported_image(tmp_path):
     entity = _camera_entity(tmp_path, _entry())
     timestamp_path = tmp_path / "cameras" / "YP01" / "2026-08-13_12-00-00"
     timestamp_path.mkdir(parents=True)
+    (timestamp_path / ".complete").write_bytes(b"complete")
     (timestamp_path / "snapshot.png").write_bytes(b"snapshot")
 
     assert entity._get_latest_image() == b"snapshot"
+
+
+def test_camera_image_hides_uncommitted_directory(tmp_path):
+    entity = _camera_entity(tmp_path, _entry())
+    timestamp_path = tmp_path / "cameras" / "YP01" / "2026-08-13_12-00-00"
+    timestamp_path.mkdir(parents=True)
+    (timestamp_path / "thumbnail.jpg").write_bytes(b"partial")
+
+    assert entity._get_latest_image() is None
+
+
+def test_camera_image_hides_directory_with_partial_commit_marker(tmp_path):
+    entity = _camera_entity(tmp_path, _entry())
+    timestamp_path = tmp_path / "cameras" / "YP01" / "2026-08-13_12-00-00"
+    timestamp_path.mkdir(parents=True)
+    (timestamp_path / ".complete").write_bytes(b"incomplete")
+    (timestamp_path / "thumbnail.jpg").write_bytes(b"partial")
+
+    assert entity._get_latest_image() is None
 
 @pytest.mark.asyncio
 async def test_sensor_platform_creates_four_entry_scoped_entities():
@@ -91,7 +112,20 @@ async def test_sensor_platform_creates_four_entry_scoped_entities():
         "platform-entry_panel_state",
         "platform-entry_last_updated",
     }
-    assert all(entity.device_info["identifiers"] == {(DOMAIN, "123")} for entity in added)
+    assert all(entity.device_info["identifiers"] == {(DOMAIN, entry.entry_id)} for entity in added)
+
+
+@pytest.mark.asyncio
+async def test_active_alarm_sensor_hides_attributes_for_incomplete_alarm_data():
+    entry = _entry()
+    entry.runtime_data = _coordinator({"alarm_status": {"data": {}}})
+    added = []
+
+    await sensor.async_setup_entry(None, entry, added.extend)
+
+    active_sensor = next(entity for entity in added if entity.sensor_id == "active_alarms")
+    assert active_sensor.native_value is None
+    assert active_sensor.extra_state_attributes == {}
 
 
 @pytest.mark.asyncio
@@ -112,6 +146,33 @@ async def test_binary_sensor_platform_creates_safety_entities():
     assert all(entity.device_class.value == "safety" for entity in added)
 
 
+
+
+@pytest.mark.asyncio
+async def test_binary_sensor_reports_active_alarm_as_on():
+    entry = _entry()
+    entry.runtime_data = _coordinator(
+        {
+            "alarm_status": {
+                "data": {
+                    "internal": {
+                        "day": {"status": True},
+                        "night": {"status": False},
+                        "total": {"status": False},
+                    },
+                    "external": {"status": False},
+                }
+            }
+        }
+    )
+    added = []
+
+    await binary_sensor.async_setup_entry(None, entry, added.extend)
+
+    day_sensor = next(entity for entity in added if entity.sensor_id == "internal_day")
+    assert day_sensor.is_on is True
+
+
 @pytest.mark.asyncio
 async def test_alarm_control_panel_exposes_expected_features_and_identity():
     entry = _entry()
@@ -122,11 +183,39 @@ async def test_alarm_control_panel_exposes_expected_features_and_identity():
 
     assert len(added) == 1
     entity = added[0]
-    assert entity.unique_id == "my_verisure"
+    assert entity.unique_id == "my_verisure-platform-entry"
     assert entity.code_format is None
     assert entity.code_arm_required is False
     assert entity._attr_code_disarm_required is False
     assert entity.supported_features
+
+
+@pytest.mark.asyncio
+async def test_alarm_control_panel_hides_attributes_for_unknown_alarm_data():
+    entry = _entry()
+    entry.runtime_data = _coordinator({"alarm_status": {"data": {}}})
+    added = []
+
+    await alarm_control_panel.async_setup_entry(None, entry, added.extend)
+
+    entity = added[0]
+    assert entity.alarm_state is None
+    assert entity.extra_state_attributes == {}
+
+
+@pytest.mark.asyncio
+async def test_alarm_control_panel_hides_attributes_for_partial_alarm_data():
+    entry = _entry()
+    entry.runtime_data = _coordinator(
+        {"alarm_status": {"data": {"internal": {"total": {"status": True}}}}}
+    )
+    added = []
+
+    await alarm_control_panel.async_setup_entry(None, entry, added.extend)
+
+    entity = added[0]
+    assert entity.alarm_state is None
+    assert entity.extra_state_attributes == {}
 
 
 @pytest.mark.asyncio
@@ -141,7 +230,7 @@ async def test_button_platform_creates_refresh_entity_from_installation_data():
 
     assert len(added) == 1
     assert added[0].unique_id == "platform-entry_refresh_camera_images"
-    assert added[0].extra_state_attributes["installation_id"] == "123"
+    assert "installation_id" not in added[0].extra_state_attributes
 
 
 @pytest.mark.asyncio
@@ -167,7 +256,7 @@ async def test_camera_platform_creates_only_camera_devices():
     await camera.async_setup_entry(None, entry, add_entities)
 
     assert {entity.unique_id for entity in added} == {
+        "platform-entry_camera_0",
         "platform-entry_camera_1",
-        "platform-entry_camera_2",
     }
     assert all(entity.content_type == "image/jpeg" for entity in added)

@@ -1,5 +1,6 @@
 """Base command class for the CLI."""
 
+import asyncio
 import logging
 from abc import ABC, abstractmethod
 from typing import Optional
@@ -60,8 +61,8 @@ class BaseCommand(ABC):
             self.create_dummy_camera_images_use_case = self.composition_root.get(CreateDummyCameraImagesUseCase)
             return True
 
-        except Exception as e:
-            print_error(f"Error setting up command: {e}")
+        except Exception:
+            print_error("Error setting up command")
             return False
 
     @abstractmethod
@@ -105,20 +106,18 @@ class BaseCommand(ABC):
 
             if len(installations) == 1:
                 installation = installations[0]
-                print_info(
-                    f"Usando única instalación disponible: {installation.alias}"
-                )
+                print_info("Usando única instalación disponible")
                 self.session_manager.current_installation = installation.numinst
                 return installation.numinst
 
             # Multiple installations, let user select
-            selected_id = select_installation(installations)
+            selected_id = await asyncio.to_thread(select_installation, installations)
             if selected_id:
                 self.session_manager.current_installation = selected_id
                 return selected_id
 
             return None
 
-        except Exception as e:
-            print_error(f"Error obteniendo instalaciones: {e}")
+        except Exception:
+            print_error("Error obteniendo instalaciones")
             return None

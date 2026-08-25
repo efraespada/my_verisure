@@ -6,12 +6,12 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 from homeassistant.exceptions import ConfigEntryAuthFailed
-from homeassistant.helpers.update_coordinator import UpdateFailed
 
 from custom_components.my_verisure.coordinator import MyVerisureDataUpdateCoordinator
 from custom_components.my_verisure.core.application.coordinator_authentication import (
     CoordinatorAuthenticationDecision,
 )
+from custom_components.my_verisure.core.application.exceptions import MyVerisureError
 from custom_components.my_verisure.core.application.coordinator_failure import (
     CoordinatorFailureClassifier,
 )
@@ -91,7 +91,7 @@ async def test_update_data_uses_cache_when_login_fails(coordinator) -> None:
     "error, expected",
     [
         (MyVerisureAuthenticationError("bad auth"), ConfigEntryAuthFailed),
-        (MyVerisureConnectionError("offline"), UpdateFailed),
+        (MyVerisureConnectionError("offline"), MyVerisureError),
     ],
 )
 async def test_update_data_maps_provider_errors(coordinator, error, expected) -> None:
@@ -119,3 +119,14 @@ async def test_update_data_uses_cache_when_service_is_blocked(coordinator) -> No
         notification_id="verisure_service_blocked",
     )
     notify.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_refresh_camera_images_propagates_terminal_failure(coordinator) -> None:
+    coordinator.coordinator_camera_refresh = Mock()
+    coordinator.coordinator_camera_refresh.run = AsyncMock(
+        side_effect=MyVerisureError("camera unavailable")
+    )
+
+    with pytest.raises(MyVerisureError):
+        await coordinator.async_refresh_camera_images()

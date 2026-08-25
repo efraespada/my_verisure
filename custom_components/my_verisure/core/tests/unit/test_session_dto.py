@@ -1,7 +1,16 @@
 """Unit tests for SessionDTO and related DTOs."""
 
 
+import pytest
+
 from ...api.models.dto.session_dto import SessionDTO, DeviceIdentifiersDTO
+
+
+
+
+def test_session_dto_rejects_missing_cookies() -> None:
+    with pytest.raises(ValueError, match="session cookies required"):
+        SessionDTO.from_dict({"session_data": {}})
 
 
 class TestDeviceIdentifiersDTO:

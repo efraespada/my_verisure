@@ -34,6 +34,7 @@ from ..log_manager import LogManager
 from ..api.device_manager import DeviceManager
 from ..file_manager import FileManager
 from ..session_manager import SessionManager
+from ..application.auth_session_persistence import AuthSessionPersistence
 
 logger = logging.getLogger(__name__)
 
@@ -82,12 +83,23 @@ class MyVerisureModule(Module):
 
     @singleton
     @provider
+    def provide_auth_session_persistence(
+        self, session_manager: SessionManager
+    ) -> AuthSessionPersistence:
+        """Provide the graph-owned authenticated-session persistence policy."""
+        return AuthSessionPersistence(session_manager)
+
+    @singleton
+    @provider
     def provide_auth_client(
-        self, session_manager: SessionManager, device_manager: DeviceManager
+        self,
+        session_manager: SessionManager,
+        device_manager: DeviceManager,
     ) -> AuthClient:
         """Provide AuthClient with graph-owned managers."""
         return AuthClient(
-            session_manager=session_manager, device_manager=device_manager
+            session_manager=session_manager,
+            device_manager=device_manager,
         )
 
 
@@ -145,9 +157,16 @@ class MyVerisureModule(Module):
 
     @singleton
     @provider
-    def provide_auth_use_case(self, auth_repository: AuthRepository) -> AuthUseCase:
-        """Provide AuthUseCase instance."""
-        return AuthUseCaseImpl(auth_repository)
+    def provide_auth_use_case(
+        self,
+        auth_repository: AuthRepository,
+        session_persistence: AuthSessionPersistence,
+    ) -> AuthUseCase:
+        """Provide AuthUseCase with explicit session persistence policy."""
+        return AuthUseCaseImpl(
+            auth_repository,
+            session_persistence,
+        )
 
     @singleton
     @provider

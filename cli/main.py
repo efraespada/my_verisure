@@ -278,8 +278,8 @@ async def main():
         await session_manager.cleanup()
         return 1
 
-    except Exception as e:
-        print_error(f"Error inesperado: {e}")
+    except Exception:
+        print_error("Error inesperado")
         await session_manager.cleanup()
         return 1
 

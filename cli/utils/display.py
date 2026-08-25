@@ -43,14 +43,14 @@ def print_command_header(command: str, description: str) -> None:
 def print_installation_info(installation, index: Optional[int] = None) -> None:
     """Imprime información de una instalación."""
     prefix = f"{index}. " if index is not None else ""
-    print(f"{prefix}🏠 Instalación: {installation.alias}")
-    print(f"   🆔 Número: {installation.numinst}")
+    print(f"{prefix}🏠 Instalación: Instalación {index or 1}")
+    print("   🆔 Número: [REDACTED]")
     print(f"   🏠 Tipo: {installation.type}")
-    print(f"   👤 Propietario: {installation.name} {installation.surname}")
-    print(f"   📍 Dirección: {installation.address}")
-    print(f"   🏙️  Ciudad: {installation.city} ({installation.postcode})")
-    print(f"   📞 Teléfono: {installation.phone}")
-    print(f"   📧 Email: {installation.email}")
+    print("   👤 Propietario: [REDACTED]")
+    print("   📍 Dirección: [REDACTED]")
+    print("   🏙️  Ciudad: [REDACTED]")
+    print("   📞 Teléfono: [REDACTED]")
+    print("   📧 Email: [REDACTED]")
     print(f"   🎭 Rol: {installation.role}")
     print()
 
@@ -59,9 +59,9 @@ def print_alarm_status(status) -> None:
     """Imprime el estado de la alarma."""
     print_header("ESTADO DE LA ALARMA")
     print(f"🛡️  Estado: {status.status or 'N/A'}")
-    print(f"📋 Mensaje: {status.message}")
-    print(f"🏠 Instalación: {status.numinst or 'N/A'}")
-    print(f"🔧 Respuesta Protom: {status.protom_response or 'N/A'}")
+    print("📋 Mensaje: Estado de alarma recibido")
+    print("🏠 Instalación: [REDACTED]")
+    print("🔧 Respuesta Protom: Respuesta recibida")
     if status.protom_response_date:
         print(f"⏰ Fecha Respuesta: {status.protom_response_date}")
     if status.forced_armed is not None:
@@ -72,10 +72,7 @@ def print_alarm_status(status) -> None:
 def print_services_info(services_data) -> None:
     """Imprime información de servicios de una instalación."""
     if not getattr(services_data, "success", True):
-        print_error(
-            f"Error obteniendo servicios: "
-            f"{getattr(services_data, 'message', 'Unknown error')}"
-        )
+        print_error("Error obteniendo servicios")
         return
 
     installation = getattr(services_data, "installation", None)
@@ -92,10 +89,7 @@ def print_services_info(services_data) -> None:
             )
 
     if installation is None:
-        print_error(
-            f"Error obteniendo servicios: "
-            f"{getattr(services_data, 'message', 'No se encontraron servicios')}"
-        )
+        print_error("Error obteniendo servicios")
         return
 
     services = getattr(installation, "services", None) or []
@@ -108,10 +102,7 @@ def print_services_info(services_data) -> None:
     # Mostrar información básica de la instalación
     installation_info = installation
     print(f"   📊 Estado: {installation_info.status}")
-    print(f"   🛡️  Panel: {installation_info.panel}")
-    print(f"   📱 SIM: {installation_info.sim}")
     print(f"   🎭 Rol: {installation_info.role}")
-    print(f"   🔧 IBS: {installation_info.instIbs}")
     print()
 
     # Mostrar servicios activos
@@ -120,16 +111,6 @@ def print_services_info(services_data) -> None:
         if isinstance(service, dict):
             return service.get('active', False)
         return service.active
-    
-    def get_service_id(service):
-        if isinstance(service, dict):
-            return service.get('idService', service.get('id_service', 'N/A'))
-        return service.id_service
-    
-    def get_service_request(service):
-        if isinstance(service, dict):
-            return service.get('request', 'N/A')
-        return service.request or "N/A"
     
     def get_service_visible(service):
         if isinstance(service, dict):
@@ -149,30 +130,18 @@ def print_services_info(services_data) -> None:
     active_services = [s for s in services if get_service_active(s)]
     print(f"   ✅ Servicios activos ({len(active_services)}):")
     for service in active_services:
-        service_id = get_service_id(service)
-        service_request = get_service_request(service)
         service_visible = "👁️" if get_service_visible(service) else "🙈"
         service_premium = "⭐" if get_service_premium(service) else ""
         service_bde = "💰" if get_service_bde(service) else ""
-        print(
-            f"      {service_visible} {service_id}: {service_request} {service_premium}{service_bde}"
-        )
+        print(f"      {service_visible} Servicio activo {service_premium}{service_bde}")
 
-    # Mostrar servicios inactivos (solo si hay pocos)
     inactive_services = [s for s in services if not get_service_active(s)]
     if inactive_services and len(inactive_services) <= 5:
         print(f"   ❌ Servicios inactivos ({len(inactive_services)}):")
-        for service in inactive_services:
-            service_id = get_service_id(service)
-            service_request = get_service_request(service)
-            print(f"      ❌ {service_id}: {service_request}")
+        for _service in inactive_services:
+            print("      ❌ Servicio inactivo")
 
-    # Capacidades
-    capabilities = getattr(installation_info, "capabilities", None)
-    if capabilities:
-        print(
-            f"   🔐 Capacidades: {capabilities[:30] + '...' if capabilities else 'None'}"
-        )
+    # Capabilities are provider secrets and are intentionally not displayed.
 
 
 def print_separator() -> None:

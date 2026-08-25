@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import StrEnum
 
-from ..api.exceptions import (
+from .exceptions import (
     MyVerisureAuthenticationError,
     MyVerisureConnectionError,
     MyVerisureError,
@@ -46,4 +46,15 @@ class CoordinatorFailureClassifier:
             kind = CoordinatorFailureKind.PROVIDER
         else:
             kind = CoordinatorFailureKind.UNEXPECTED
-        return CoordinatorFailure(kind=kind, message=str(error), original=error)
+        messages = {
+            CoordinatorFailureKind.SERVICE_BLOCKED: "Service temporarily blocked",
+            CoordinatorFailureKind.AUTHENTICATION: "Authentication required",
+            CoordinatorFailureKind.CONNECTION: "Connection failed",
+            CoordinatorFailureKind.PROVIDER: "Provider operation failed",
+            CoordinatorFailureKind.UNEXPECTED: "Operation failed",
+        }
+        return CoordinatorFailure(
+            kind=kind,
+            message=messages[kind],
+            original=error,
+        )

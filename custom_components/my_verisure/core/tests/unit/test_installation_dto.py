@@ -1,11 +1,65 @@
 """Unit tests for InstallationDTO and related DTOs."""
 
 
+import pytest
+
+from ...api.models.dto.device_dto import DeviceDTO
 from ...api.models.dto.installation_dto import (
     InstallationDTO,
     DetailedInstallationDTO,
+    InstallationDataDTO,
     ServiceDTO,
+    InstallationsListDTO,
 )
+
+
+
+
+def test_installation_dto_rejects_missing_devices_collection() -> None:
+    with pytest.raises(ValueError, match="installation devices required"):
+        InstallationDataDTO.from_dict(
+            {
+                "numinst": "1",
+                "role": "owner",
+                "alias": "Home",
+                "status": "OK",
+                "panel": "P",
+                "sim": "S",
+                "instIbs": "I",
+                "services": [],
+            }
+        )
+
+
+def test_installations_list_rejects_missing_collection() -> None:
+    with pytest.raises(ValueError, match="installations required"):
+        InstallationsListDTO.from_dict({})
+
+
+def test_service_dto_rejects_missing_required_values() -> None:
+    with pytest.raises(ValueError, match="service field required"):
+        ServiceDTO.from_dict({})
+
+
+def test_installation_dto_rejects_malformed_collection_items() -> None:
+    with pytest.raises(ValueError, match="installation services invalid"):
+        InstallationDataDTO.from_dict(
+            {
+                "numinst": "1",
+                "role": "owner",
+                "alias": "Home",
+                "status": "OK",
+                "panel": "P",
+                "sim": "S",
+                "instIbs": "I",
+                "services": [None],
+                "devices": [],
+            }
+        )
+
+
+    with pytest.raises(ValueError, match="device field required"):
+        DeviceDTO.from_dict({"id": "device-1"})
 
 
 class TestInstallationDTO:
@@ -24,7 +78,7 @@ class TestInstallationDTO:
             "city": "Madrid",
             "postcode": "28001",
             "province": "Madrid",
-            "email": "john@example.com",
+            "email": "EMAIL_SENTINEL",
             "phone": "+34600000000",
             "due": "2024-12-31",
             "role": "OWNER",
@@ -42,7 +96,7 @@ class TestInstallationDTO:
         assert dto.city == "Madrid"
         assert dto.postcode == "28001"
         assert dto.province == "Madrid"
-        assert dto.email == "john@example.com"
+        assert dto.email == "EMAIL_SENTINEL"
         assert dto.phone == "+34600000000"
         assert dto.due == "2024-12-31"
         assert dto.role == "OWNER"
@@ -60,7 +114,7 @@ class TestInstallationDTO:
             city="Madrid",
             postcode="28001",
             province="Madrid",
-            email="john@example.com",
+            email="EMAIL_SENTINEL",
             phone="+34600000000",
             due="2024-12-31",
             role="OWNER",
@@ -78,7 +132,7 @@ class TestInstallationDTO:
         assert result["city"] == "Madrid"
         assert result["postcode"] == "28001"
         assert result["province"] == "Madrid"
-        assert result["email"] == "john@example.com"
+        assert result["email"] == "EMAIL_SENTINEL"
         assert result["phone"] == "+34600000000"
         assert result["due"] == "2024-12-31"
         assert result["role"] == "OWNER"
@@ -90,14 +144,8 @@ class TestInstallationDTO:
             "alias": "Home",
         }
 
-        dto = InstallationDTO.from_dict(data)
-
-        assert dto.numinst == "12345"
-        assert dto.alias == "Home"
-        assert dto.panel is None
-        assert dto.type is None
-        assert dto.name is None
-        assert dto.surname is None
+        with pytest.raises(ValueError, match="installation field required"):
+            InstallationDTO.from_dict(data)
 
 
 class TestServiceDTO:
@@ -190,6 +238,7 @@ class TestDetailedInstallationDTO:
                 "services": [
                     {"idService": "EST", "active": True, "visible": True}
                 ],
+                "devices": [],
                 "configRepoUser": None,
                 "capabilities": "test_capabilities"
             },
@@ -223,7 +272,7 @@ class TestDetailedInstallationDTO:
                 "sim": "123456789",
                 "instIbs": "16824809",
                 "services": [],
-                "configRepoUser": None,
+                "devices": [],
                 "capabilities": None
             },
         }

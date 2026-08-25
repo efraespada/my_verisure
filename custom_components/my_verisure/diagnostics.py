@@ -8,12 +8,13 @@ from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from .core.const import CONF_PASSWORD, CONF_USER
+from .core.const import CONF_INSTALLATION_ID, CONF_PASSWORD, CONF_USER
 from .coordinator import MyVerisureDataUpdateCoordinator
 
 REDACT_KEYS = {
     CONF_PASSWORD,
     CONF_USER,
+    CONF_INSTALLATION_ID,
     "password",
     "hash",
     "refresh_token",
@@ -38,7 +39,6 @@ async def async_get_config_entry_diagnostics(
             "has_detailed_installation": "detailed_installation"
             in coordinator.data,
             "last_updated": coordinator.data.get("last_updated"),
-            "installation_id": coordinator.data.get("installation_id"),
         }
 
     session_info: dict[str, Any] = {}
@@ -47,8 +47,8 @@ async def async_get_config_entry_diagnostics(
             "is_authenticated": coordinator.session_manager.is_authenticated,
             "session_valid": coordinator.session_manager.is_session_valid(),
         }
-    except (AttributeError, TypeError, ValueError) as err:
-        session_info = {"error": str(err)}
+    except Exception:
+        session_info = {"error": "Unable to collect session diagnostics"}
 
     return {
         "entry": redacted_entry,

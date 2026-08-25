@@ -6,7 +6,7 @@ import logging
 from dataclasses import dataclass
 from typing import Protocol
 
-from ..api.models.domain.camera_refresh import CameraRefresh
+from .models.camera_refresh import CameraRefresh
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -45,7 +45,7 @@ class CoordinatorCameraRefresh:
 
     async def run(self, installation_id: str) -> CameraRefresh:
         """Run the configured camera refresh and log its result."""
-        _LOGGER.info("Refreshing camera images for installation %s", installation_id)
+        _LOGGER.info("Refreshing camera images")
         result = await self._executor.refresh_camera_images(
             installation_id=installation_id,
             max_attempts=self._policy.max_attempts,
