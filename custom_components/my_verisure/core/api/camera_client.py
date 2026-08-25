@@ -12,25 +12,25 @@ from .exceptions import (
 )
 from ..session_manager import SessionManager
 from ..file_manager import FileManager
-from ..application.camera_request_policy import CameraRequestPolicy
-from ..application.camera_response_interpreter import (
+from .camera_request_policy import CameraRequestPolicy
+from .camera_response_interpreter import (
     CameraResponseError,
     interpret_request_response,
     interpret_status_response,
 )
-from ..application.camera_image_response_interpreter import (
+from .camera_image_response_interpreter import (
     CameraImageResponseError,
     interpret_photo_response,
     interpret_thumbnail_response,
 )
-from ..application.camera_request_polling import (
+from .camera_request_polling import (
     PollingAction,
     decide_initial_request,
     decide_status,
 )
 from ..application.camera_image_storage import CameraImageStorage
 from ..api.models.dto.camera_request_image_dto import CameraRequestImageResultDTO
-from ..log_utils import redact_headers_for_log, should_log_detailed, truncate_secret
+from ..log_utils import redact_headers_for_log, should_log_detailed
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -147,15 +147,18 @@ class CameraClient(BaseClient):
     ) -> CameraRequestImageResultDTO:
         """Request images from cameras with automatic status checking."""
         try:
+            if (
+                not isinstance(installation_id, str)
+                or not installation_id.strip()
+                or not isinstance(panel, str)
+                or not panel.strip()
+                or not isinstance(capabilities, str)
+                or not capabilities.strip()
+                or not devices
+            ):
+                raise MyVerisureError("Camera request context required")
             hash_token, session_data = self._get_current_credentials()
             
-            if not panel:
-                _LOGGER.error(
-                    "No panel information found for installation %s",
-                    installation_id,
-                )
-                raise MyVerisureError("Panel information required for camera operations")
-
             context = self._request_policy.build_context(
                 installation_id=installation_id,
                 panel=panel,
@@ -194,7 +197,7 @@ class CameraClient(BaseClient):
                     accepted = interpret_request_response(result)
                 except CameraResponseError as error:
                     decision = decide_initial_request(
-                        str(error), attempt, max_attempts
+                        error.code, attempt, max_attempts
                     )
                     if decision.action is PollingAction.RETRY:
                         await asyncio.sleep(check_interval)
@@ -205,13 +208,10 @@ class CameraClient(BaseClient):
                             successful_requests=0,
                             reference_id="existing_request",
                         )
-                    raise MyVerisureError(str(error)) from error
+                    raise MyVerisureError(error.safe_message) from None
 
                 reference_id = accepted.reference_id
-                _LOGGER.info(
-                    "Camera images request submitted (reference %s)",
-                    truncate_secret(reference_id),
-                )
+                _LOGGER.info("Camera images request submitted")
                 break
 
             if not reference_id:
@@ -245,13 +245,13 @@ class CameraClient(BaseClient):
                 try:
                     status_response = interpret_status_response(status_result)
                 except CameraResponseError as error:
-                    if "alarm-manager.error_no_response_to_request" in str(error):
+                    if error.code == "alarm-manager.error_no_response_to_request":
                         return CameraRequestImageResultDTO(
                             success=False,
                             successful_requests=0,
                             reference_id=reference_id,
                         )
-                    raise MyVerisureError(str(error)) from error
+                    raise MyVerisureError(error.safe_message) from None
 
                 status = status_response.result
                 message = status_response.message
@@ -279,8 +279,7 @@ class CameraClient(BaseClient):
                     )
 
                 _LOGGER.info(
-                    "⏳ Images request still in progress. Status: %s, waiting %d seconds...",
-                    status,
+                    "Images request still in progress; waiting %d seconds",
                     check_interval,
                 )
                 await asyncio.sleep(check_interval)
@@ -303,9 +302,11 @@ class CameraClient(BaseClient):
         except MyVerisureConnectionError:
             _LOGGER.error("Connection failed during camera request")
             raise
-        except Exception as e:
-            _LOGGER.error("Unexpected error during camera request: %s", e)
-            raise MyVerisureError(f"Camera request failed: {str(e)}")
+        except MyVerisureError:
+            raise
+        except Exception:
+            _LOGGER.error("Unexpected error during camera request")
+            raise MyVerisureError("Camera request failed") from None
 
     async def get_images(
         self,
@@ -317,14 +318,21 @@ class CameraClient(BaseClient):
     ) -> Dict[str, Any]:
         """Get images from a specific camera device."""
         try:
+            if (
+                not isinstance(installation_id, str)
+                or not installation_id.strip()
+                or not isinstance(panel, str)
+                or not panel.strip()
+                or not isinstance(capabilities, str)
+                or not capabilities.strip()
+                or not isinstance(device, str)
+                or not device.strip()
+                or not isinstance(zone_id, str)
+                or not zone_id.strip()
+            ):
+                raise MyVerisureError("Camera request context required")
             hash_token, session_data = self._get_current_credentials()
-
-            # Prepare headers
-            headers = (
-                self._get_session_headers(session_data or {}, hash_token)
-                if session_data
-                else None
-            )
+            headers = self._get_session_headers(session_data or {}, hash_token)
 
             if headers:
                 headers["numinst"] = installation_id
@@ -348,10 +356,9 @@ class CameraClient(BaseClient):
             try:
                 thumbnail = interpret_thumbnail_response(
                     thumbnail_result,
-                    default_zone=zone_id,
                 )
             except CameraImageResponseError as error:
-                raise MyVerisureError(str(error)) from error
+                raise MyVerisureError(error.safe_message) from None
 
             id_signal = thumbnail.id_signal
             signal_type = thumbnail.signal_type
@@ -377,35 +384,32 @@ class CameraClient(BaseClient):
             try:
                 photo_set = interpret_photo_response(photo_result)
             except CameraImageResponseError as error:
-                raise MyVerisureError(str(error)) from error
+                raise MyVerisureError(error.safe_message) from None
 
-            storage_result = self._image_storage.save(
+            storage_result = await asyncio.to_thread(
+                self._image_storage.save,
                 thumbnail,
                 photo_set,
                 zone_id=zone_id,
                 timestamp_directory=timestamp_dir,
             )
 
+            saved_all_images = storage_result.complete
             if not photo_set.images:
                 _LOGGER.warning("⚠️ No devices found in photo images response")
                 return {
-                    "success": True,
-                    "device": device,
+                    "success": saved_all_images,
                     "thumbnail_saved": storage_result.thumbnail_saved,
                     "images_saved": 0,
                     "message": "Thumbnail saved, but no additional images found",
                 }
 
             return {
-                "success": True,
-                "device": device,
-                "device_alias": device_alias,
-                "timestamp": timestamp,
-                "id_signal": id_signal,
+                "success": saved_all_images,
                 "thumbnail_saved": storage_result.thumbnail_saved,
                 "images_saved": storage_result.images_saved,
                 "total_images": storage_result.total_images,
-                "message": f"Successfully processed {storage_result.images_saved} images for device {device}",
+                "message": "Camera images processed successfully",
             }
 
         except MyVerisureAuthenticationError:
@@ -414,7 +418,9 @@ class CameraClient(BaseClient):
         except MyVerisureConnectionError:
             _LOGGER.error("Connection failed during image retrieval")
             raise
-        except Exception as e:
-            _LOGGER.error("Unexpected error during image retrieval: %s", e)
-            raise MyVerisureError(f"Image retrieval failed: {str(e)}")
+        except MyVerisureError:
+            raise
+        except Exception:
+            _LOGGER.error("Unexpected error during image retrieval")
+            raise MyVerisureError("Image retrieval failed") from None
 

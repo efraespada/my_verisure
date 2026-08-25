@@ -1,16 +1,20 @@
 """Real Home Assistant lifecycle tests for the My Verisure integration."""
 
+from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.my_verisure.core.const import DOMAIN
+from custom_components.my_verisure.core.file_manager import FileManager
 from custom_components.my_verisure.core.api.exceptions import (
     MyVerisureConnectionError,
 )
-from custom_components.my_verisure.core.api.models.domain.auth import AuthResult
+from custom_components.my_verisure.core.application.models.auth import AuthResult
+from custom_components.my_verisure.core.application.models.camera_refresh import CameraRefresh
+from custom_components.my_verisure.core.application.models.camera_refresh_data import CameraRefreshData
 from custom_components.my_verisure.core.use_cases.interfaces.auth_use_case import AuthUseCase
 from custom_components.my_verisure.core.use_cases.interfaces.installation_use_case import InstallationUseCase
 from custom_components.my_verisure.core.use_cases.interfaces.create_dummy_camera_images_use_case import CreateDummyCameraImagesUseCase
@@ -26,6 +30,21 @@ class _FakeAuthUseCase:
             raise self.error
         return self.result
 
+    def get_available_phones(self):
+        return []
+
+    def select_phone(self, phone_id):
+        return False
+
+    async def send_otp(self, record_id, otp_hash=None):
+        return False
+
+    async def verify_otp(self, otp_code):
+        return AuthResult(False, "invalid")
+
+    def invalidate_otp_challenge(self):
+        return None
+
 
 class _FakeInstallationUseCase:
     def __init__(self, installations):
@@ -36,22 +55,50 @@ class _FakeInstallationUseCase:
 
 
 class _FakeDummyCameraUseCase:
+    def __init__(self, result=None):
+        self.result = result or CameraRefresh.create(
+            [
+                CameraRefreshData.create(
+                    timestamp="2026-08-13T12:00:00",
+                    num_images=1,
+                    camera_identifier="camera",
+                )
+            ]
+        )
+
     async def create_dummy_camera_images(self, installation_id):
-        return SimpleNamespace(success=True)
+        return self.result
 
 
 class _FakeRoot:
     def __init__(self, auth, installations):
+        session = SimpleNamespace(
+            update_credentials=Mock(),
+            async_clear_session_file=AsyncMock(return_value=True),
+            async_clear_credentials=AsyncMock(return_value=True),
+            async_session_file_exists=AsyncMock(return_value=False),
+            async_load_session_from_disk=AsyncMock(),
+            async_capture_transaction_state=AsyncMock(return_value=({}, None)),
+            async_restore_transaction_state=AsyncMock(),
+            is_authenticated=bool(
+                getattr(getattr(auth, "result", None), "success", False)
+            ),
+            get_current_hash_token=lambda: "valid-session"
+            if session.is_authenticated
+            else None,
+            username="[REDACTED]",
+        )
+        session.is_session_valid = lambda: session.is_authenticated
+        file_manager = SimpleNamespace(
+            async_cleanup_project_root=AsyncMock(),
+            async_device_identifiers_exists=AsyncMock(return_value=False),
+        )
         self.values = {
             AuthUseCase: auth,
             InstallationUseCase: _FakeInstallationUseCase(installations),
             CreateDummyCameraImagesUseCase: _FakeDummyCameraUseCase(),
-            "session": SimpleNamespace(
-                update_credentials=lambda *args, **kwargs: None,
-                is_authenticated=False,
-                get_current_hash_token=lambda: None,
-                username="user@example.invalid",
-            ),
+            FileManager: file_manager,
+            "session": session,
         }
 
     def get(self, dependency):
@@ -89,7 +136,7 @@ async def test_config_flow_reports_invalid_auth_from_application_port(
         )
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
-            {"user": "user@example.invalid", "password": "[REDACTED]"},
+            {"user": "[REDACTED]", "password": "[REDACTED]"},
         )
 
     assert result["type"] == "form"
@@ -115,7 +162,7 @@ async def test_config_flow_maps_connection_failure(
         )
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
-            {"user": "user@example.invalid", "password": "[REDACTED]"},
+            {"user": "[REDACTED]", "password": "[REDACTED]"},
         )
 
     assert result["type"] == "form"
@@ -147,7 +194,7 @@ async def test_config_flow_creates_entry_after_installation_selection(
         )
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
-            {"user": "user@example.invalid", "password": "[REDACTED]"},
+            {"user": "[REDACTED]", "password": "[REDACTED]"},
         )
         assert result["step_id"] == "installation"
         result = await hass.config_entries.flow.async_configure(
@@ -157,6 +204,48 @@ async def test_config_flow_creates_entry_after_installation_selection(
     assert result["type"] == "create_entry"
     assert result["data"]["installation_id"] == "123"
     assert result["data"]["password"] == "[REDACTED]"
+    root.values[FileManager].async_cleanup_project_root.assert_awaited_once()
+
+
+@pytest.mark.homeassistant
+@pytest.mark.asyncio
+async def test_config_flow_rejects_incomplete_initial_camera_persistence(
+    hass, enable_custom_integrations
+):
+    """Initial setup must not create an entry after a partial camera refresh."""
+    installation = SimpleNamespace(numinst="123", alias="Home", type="alarm")
+    failed_refresh = CameraRefresh.create(
+        [
+            CameraRefreshData.create(
+                timestamp="2026-08-13T12:00:00",
+                num_images=0,
+                camera_identifier="camera",
+            )
+        ]
+    )
+    root = _FakeRoot(_FakeAuthUseCase(AuthResult(True, "ok")), [installation])
+    root.values[CreateDummyCameraImagesUseCase] = _FakeDummyCameraUseCase(
+        failed_refresh
+    )
+
+    with patch(
+        "custom_components.my_verisure.config_flow.build_my_verisure_composition_root",
+        return_value=root,
+    ):
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": "user"}
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"user": "[REDACTED]", "password": "[REDACTED]"}
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"installation_id": "123"}
+        )
+
+    assert result["type"] == "form"
+    assert result["step_id"] == "user"
+    assert result["errors"] == {}
+    root.values[FileManager].async_cleanup_project_root.assert_awaited_once()
 
 
 @pytest.mark.homeassistant
@@ -170,7 +259,7 @@ async def test_config_entry_setup_and_unload_are_isolated(
         title="Test My Verisure",
         data={
             "installation_id": "123",
-            "user": "test@example.invalid",
+            "user": "[REDACTED]",
             "password": "not-a-real-password",
         },
     )
@@ -229,7 +318,7 @@ async def test_two_config_entries_keep_runtime_data_separate(
             entry_id=f"entry-{index}",
             data={
                 "installation_id": str(index),
-                "user": f"test-{index}@example.invalid",
+                "user": f"USER_{index}_SENTINEL",
                 "password": "not-a-real-password",
             },
         )
@@ -284,11 +373,18 @@ async def test_two_config_entries_keep_runtime_data_separate(
         assert first_runtime.session_manager is not second_runtime.session_manager
         assert first_runtime.file_manager is not second_runtime.file_manager
         assert first_runtime.session_file != second_runtime.session_file
+        assert Path(first_runtime.session_file).name == "session.json"
+        assert Path(second_runtime.session_file).name == "session.json"
+        assert Path(first_runtime.session_file).parent.name == "data"
+        assert Path(second_runtime.session_file).parent.name == "data"
+        assert "USER_" not in str(first_runtime.session_file)
+        assert "USER_" not in str(second_runtime.session_file)
         assert first_runtime.file_manager.get_project_root() != (
             second_runtime.file_manager.get_project_root()
         )
-        assert first_runtime.session_manager.username == "test-1@example.invalid"
-        assert second_runtime.session_manager.username == "test-2@example.invalid"
+        assert first_runtime.session_manager.username == "USER_1_SENTINEL"
+        assert second_runtime.session_manager.username == "USER_2_SENTINEL"
+        assert first_runtime.session_manager is not second_runtime.session_manager
 
         assert await hass.config_entries.async_unload(entries[0].entry_id)
         assert entries[1].state.name == "LOADED"

@@ -4,8 +4,8 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 
-from ...api.models.domain.device import Device, DeviceList
-from ...api.models.domain.installation import DetailedInstallation, InstallationData
+from ...application.models.device import Device, DeviceList
+from ...application.models.installation import DetailedInstallation, InstallationData
 from ...repositories.interfaces.installation_repository import InstallationRepository
 from ...use_cases.implementations.get_installation_devices_use_case_impl import (
     GetInstallationDevicesUseCaseImpl,

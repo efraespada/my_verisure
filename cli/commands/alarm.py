@@ -1,5 +1,6 @@
 """Alarm control command for the CLI."""
 
+import asyncio
 import logging
 from typing import Optional
 
@@ -14,7 +15,7 @@ from ..utils.display import (
 )
 from ..utils.input_helpers import confirm_action
 
-from custom_components.my_verisure.core.api.models.domain.alarm import ArmResult, DisarmResult
+from custom_components.my_verisure.core.application.models.alarm import ArmResult, DisarmResult
 
 
 logger = logging.getLogger(__name__)
@@ -56,9 +57,7 @@ class AlarmCommand(BaseCommand):
             if not selected_installation_id:
                 return False
 
-            print_info(
-                f"Getting alarm status for installation: {selected_installation_id}"
-            )
+            print_info("Getting alarm status for the selected installation")
 
             alarm_status = await self.alarm_use_case.get_alarm_status(
                 selected_installation_id
@@ -67,8 +66,8 @@ class AlarmCommand(BaseCommand):
 
             return True
 
-        except Exception as e:
-            print_error(f"Error getting alarm status: {e}")
+        except Exception:
+            print_error("Error getting alarm status")
             return False
 
     async def _arm(
@@ -108,13 +107,13 @@ class AlarmCommand(BaseCommand):
 
             # Confirm action if requested
             if confirm:
-                if not confirm_action(f"arm the alarm in mode {mode}"):
+                if not await asyncio.to_thread(
+                    confirm_action, f"arm the alarm in mode {mode}"
+                ):
                     print_info("Action cancelled")
                     return ArmResult(success=False, message="Action cancelled")
 
-            print_info(
-                f"Arming alarm in mode {mode} for installation: {installation_id}"
-            )
+            print_info("Arming alarm in the selected installation")
 
             # Arm the alarm
             if mode.lower() == "away":
@@ -134,9 +133,9 @@ class AlarmCommand(BaseCommand):
                 print_error(f"Error arming the alarm in mode {mode}")
                 return ArmResult(success=False, message=f"Error arming the alarm in mode {mode}")
 
-        except Exception as e:
-            print_error(f"Error arming the alarm: {e}")
-            return ArmResult(success=False, message=f"Error arming the alarm: {e}")
+        except Exception:
+            print_error("Error arming the alarm")
+            return ArmResult(success=False, message="Error arming the alarm")
 
     async def _disarm(
         self, installation_id: Optional[str] = None, confirm: bool = True, interactive: bool = True
@@ -157,12 +156,10 @@ class AlarmCommand(BaseCommand):
 
             # Confirm action if requested and interactive
             if confirm and interactive:
-                if not confirm_action("disarm the alarm"):
+                if not await asyncio.to_thread(confirm_action, "disarm the alarm"):
                     return DisarmResult(success=False, message="Action cancelled")
 
-            print_info(
-                f"Disarming alarm for installation: {installation_id}"
-            )
+            print_info("Disarming alarm for the selected installation")
 
             # Disarm the alarm
             result = await self.alarm_use_case.disarm(installation_id)
@@ -174,6 +171,6 @@ class AlarmCommand(BaseCommand):
                 print_error("Error disarming the alarm")
                 return result
 
-        except Exception as e:
-            print_error(f"Error disarming the alarm: {e}")
-            return DisarmResult(success=False, message=f"Error disarming the alarm: {e}")
+        except Exception:
+            print_error("Error disarming the alarm")
+            return DisarmResult(success=False, message="Error disarming the alarm")

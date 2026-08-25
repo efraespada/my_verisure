@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, Mock
 import pytest
 
 from ....api.exceptions import MyVerisureError
-from ....api.models.domain.installation import DetailedInstallation, Installation, InstallationData
+from ....application.models.installation import DetailedInstallation, Installation, InstallationData
 from ....repositories.interfaces.installation_repository import InstallationRepository
 from ....use_cases.implementations.installation_use_case_impl import InstallationUseCaseImpl
 from ....use_cases.interfaces.installation_use_case import InstallationUseCase

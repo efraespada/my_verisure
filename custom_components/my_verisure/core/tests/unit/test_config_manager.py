@@ -310,4 +310,4 @@ class TestConfigManager:
             result = config_manager.get_config_info()
             
             assert "error" in result
-            assert "File error" in result["error"]
+            assert result["error"] == "Configuration information unavailable"

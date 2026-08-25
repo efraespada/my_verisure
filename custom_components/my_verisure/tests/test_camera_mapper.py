@@ -8,7 +8,7 @@ from custom_components.my_verisure.core.api.mappers.camera_mapper import (
     request_image_status_to_dto,
     request_image_to_dto,
 )
-from custom_components.my_verisure.core.api.models.domain.camera_request_image import (
+from custom_components.my_verisure.core.application.models.camera_request_image import (
     CameraRequestImage,
     CameraRequestImageResult,
     CameraRequestImageStatus,

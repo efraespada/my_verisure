@@ -11,7 +11,7 @@ import asyncio
 from collections.abc import Awaitable, Callable, Mapping
 from typing import Any
 
-from ..api.models.domain.alarm import ArmResult, DisarmResult
+from ..application.models.alarm import ArmResult, DisarmResult
 
 StatusTransport = Callable[[int], Awaitable[Mapping[str, Any]]]
 
@@ -36,18 +36,19 @@ class AlarmCommandPoller:
         """Poll arm status until completion or exhaustion."""
         for attempt in range(1, self._max_retries + 1):
             result = await transport(attempt)
-            error = self._graphql_error(result)
-            if error is not None:
-                return ArmResult(success=False, message=error, reference_id=reference_id)
+            if self._has_graphql_error(result):
+                return ArmResult(
+                    success=False,
+                    message="Alarm service request failed",
+                    reference_id=reference_id,
+                )
 
             payload = self._payload(result, "xSArmStatus")
-            response = self._response_fields(payload)
-            response_code = response["res"]
-            message = response["msg"]
+            response_code = self._response_code(payload)
             if response_code == "OK":
-                return ArmResult(True, message, reference_id)
+                return ArmResult(True, "Alarm command accepted", reference_id)
             if response_code != "WAIT":
-                return ArmResult(False, message, reference_id)
+                return ArmResult(False, "Alarm command rejected", reference_id)
             if attempt < self._max_retries:
                 await asyncio.sleep(self._retry_delay)
 
@@ -62,32 +63,30 @@ class AlarmCommandPoller:
         """Poll disarm status until completion or exhaustion."""
         for attempt in range(1, self._max_retries + 1):
             result = await transport(attempt)
-            error = self._graphql_error(result)
-            if error is not None:
-                return DisarmResult(success=False, message=error, reference_id=reference_id)
+            if self._has_graphql_error(result):
+                return DisarmResult(
+                    success=False,
+                    message="Alarm service request failed",
+                    reference_id=reference_id,
+                )
 
             payload = self._payload(result, "xSDisarmStatus")
-            response = self._response_fields(payload)
-            response_code = response["res"]
-            message = response["msg"]
+            response_code = self._response_code(payload)
             if response_code == "OK":
-                return DisarmResult(True, message, reference_id)
+                return DisarmResult(True, "Disarm command accepted", reference_id)
             if response_code != "WAIT":
-                return DisarmResult(False, message, reference_id)
+                return DisarmResult(False, "Disarm command rejected", reference_id)
             if attempt < self._max_retries:
                 await asyncio.sleep(self._retry_delay)
 
         return DisarmResult(False, "Disarm command polling exhausted", reference_id)
 
     @staticmethod
-    def _graphql_error(result: Mapping[str, Any]) -> str | None:
-        errors = result.get("errors")
-        if not errors:
-            return None
-        first_error = errors[0] if isinstance(errors, list) else {}
-        if isinstance(first_error, Mapping):
-            return str(first_error.get("message", "Unknown error"))
-        return "Unknown error"
+    def _has_graphql_error(result: Mapping[str, Any]) -> bool:
+        """Return whether the response contains a non-empty or malformed errors field."""
+        if "errors" not in result:
+            return False
+        return "errors" in result
 
     @staticmethod
     def _payload(result: Mapping[str, Any], key: str) -> Mapping[str, Any]:
@@ -98,8 +97,7 @@ class AlarmCommandPoller:
         return payload if isinstance(payload, Mapping) else {}
 
     @staticmethod
-    def _response_fields(payload: Mapping[str, Any]) -> dict[str, str]:
-        return {
-            "res": str(payload.get("res", "Unknown")),
-            "msg": str(payload.get("msg", "Unknown")),
-        }
+    def _response_code(payload: Mapping[str, Any]) -> str:
+        """Read only the bounded response code used by the state machine."""
+        value = payload.get("res")
+        return value if isinstance(value, str) else "UNKNOWN"

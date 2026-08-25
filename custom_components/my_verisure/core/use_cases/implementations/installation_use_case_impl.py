@@ -3,7 +3,7 @@
 import logging
 from typing import List
 
-from ...api.models.domain.installation import Installation, DetailedInstallation
+from ...application.models.installation import Installation, DetailedInstallation
 from ...repositories.interfaces.installation_repository import InstallationRepository
 from ..interfaces.installation_use_case import InstallationUseCase
 

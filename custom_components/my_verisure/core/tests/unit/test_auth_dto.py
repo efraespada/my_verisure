@@ -1,7 +1,26 @@
 """Unit tests for AuthDTO and related DTOs."""
 
 
+import pytest
+
 from ...api.models.dto.auth_dto import AuthDTO, OTPDataDTO, PhoneDTO
+
+
+
+
+def test_auth_dto_rejects_missing_result_and_message() -> None:
+    with pytest.raises(ValueError, match="auth field required"):
+        AuthDTO.from_dict({"res": "OK"})
+
+
+def test_phone_dto_rejects_missing_identity() -> None:
+    with pytest.raises(ValueError, match="phone field required"):
+        PhoneDTO.from_dict({})
+
+
+def test_otp_data_dto_rejects_missing_phones_and_hash() -> None:
+    with pytest.raises(ValueError, match="otp phones required"):
+        OTPDataDTO.from_dict({"otpHash": "hash"})
 
 
 class TestAuthDTO:

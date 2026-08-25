@@ -2,7 +2,8 @@
 
 import logging
 
-from ...api.models.domain.alarm import AlarmStatus, ArmResult, DisarmResult
+from ...application.exceptions import MyVerisureError
+from ...application.models.alarm import AlarmStatus, ArmResult, DisarmResult
 from ...repositories.interfaces.alarm_repository import AlarmRepository
 from ...repositories.interfaces.installation_repository import (
     InstallationRepository,
@@ -32,20 +33,16 @@ class AlarmUseCaseImpl(AlarmUseCase):
             services_data = await self.installation_repository.get_installation_services(
                 installation_id
             )
-            panel = services_data.installation.panel or "PROTOCOL"
-            capabilities = (
-                services_data.installation.capabilities or "default_capabilities"
-            )
+            panel = services_data.installation.panel
+            capabilities = services_data.installation.capabilities
+            if not panel or not capabilities:
+                raise MyVerisureError("Installation context unavailable") from None
 
             return panel, capabilities
 
-        except Exception as e:
-            _LOGGER.warning(
-                "Failed to get installation info for %s, using defaults: %s",
-                installation_id,
-                e,
-            )
-            return "PROTOCOL", "default_capabilities"
+        except Exception:
+            _LOGGER.warning("Failed to get installation info")
+            raise MyVerisureError("Installation context unavailable") from None
 
     async def _resolve_panel_capabilities(
         self,
@@ -54,8 +51,18 @@ class AlarmUseCaseImpl(AlarmUseCase):
         capabilities: str | None,
     ) -> tuple[str, str]:
         if panel is not None and capabilities is not None:
+            if (
+                not isinstance(panel, str)
+                or not panel.strip()
+                or not isinstance(capabilities, str)
+                or not capabilities.strip()
+            ):
+                raise MyVerisureError("Installation context unavailable")
             return panel, capabilities
-        return await self._get_installation_info(installation_id)
+        resolved_panel, resolved_capabilities = await self._get_installation_info(installation_id)
+        if not resolved_panel.strip() or not resolved_capabilities.strip():
+            raise MyVerisureError("Installation context unavailable")
+        return resolved_panel, resolved_capabilities
 
     async def get_alarm_status(
         self,
@@ -73,8 +80,8 @@ class AlarmUseCaseImpl(AlarmUseCase):
                 installation_id, panel_resolved, caps_resolved
             )
 
-        except Exception as e:
-            _LOGGER.error("Error getting alarm status: %s", e)
+        except Exception:
+            _LOGGER.error("Error getting alarm status")
             raise
 
     async def arm_away(
@@ -100,14 +107,12 @@ class AlarmUseCaseImpl(AlarmUseCase):
             if result.success:
                 _LOGGER.warning("Alarm armed in away mode successfully")
             else:
-                _LOGGER.error(
-                    "Failed to arm alarm in away mode: %s", result.message
-                )
+                _LOGGER.error("Failed to arm alarm in away mode")
 
             return result
 
-        except Exception as e:
-            _LOGGER.error("Error arming alarm in away mode: %s", e)
+        except Exception:
+            _LOGGER.error("Error arming alarm in away mode")
             raise
 
     async def arm_home(
@@ -131,14 +136,12 @@ class AlarmUseCaseImpl(AlarmUseCase):
             if result.success:
                 _LOGGER.warning("Alarm armed in home mode successfully")
             else:
-                _LOGGER.error(
-                    "Failed to arm alarm in home mode: %s", result.message
-                )
+                _LOGGER.error("Failed to arm alarm in home mode")
 
             return result
 
-        except Exception as e:
-            _LOGGER.error("Error arming alarm in home mode: %s", e)
+        except Exception:
+            _LOGGER.error("Error arming alarm in home mode")
             raise
 
     async def arm_night(
@@ -164,14 +167,12 @@ class AlarmUseCaseImpl(AlarmUseCase):
             if result.success:
                 _LOGGER.warning("Alarm armed in night mode successfully")
             else:
-                _LOGGER.error(
-                    "Failed to arm alarm in night mode: %s", result.message
-                )
+                _LOGGER.error("Failed to arm alarm in night mode")
 
             return result
 
-        except Exception as e:
-            _LOGGER.error("Error arming alarm in night mode: %s", e)
+        except Exception:
+            _LOGGER.error("Error arming alarm in night mode")
             raise
 
     async def disarm(
@@ -193,10 +194,10 @@ class AlarmUseCaseImpl(AlarmUseCase):
             if result.success:
                 _LOGGER.warning("Alarm disarmed successfully")
             else:
-                _LOGGER.error("Failed to disarm alarm: %s", result.message)
+                _LOGGER.error("Failed to disarm alarm")
 
             return result
 
-        except Exception as e:
-            _LOGGER.error("Error disarming alarm: %s", e)
+        except Exception:
+            _LOGGER.error("Error disarming alarm")
             raise

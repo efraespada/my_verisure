@@ -16,14 +16,8 @@ from custom_components.my_verisure.core.session_manager import SessionManager
 
 @pytest.mark.asyncio
 async def test_concurrent_entries_keep_sessions_and_files_isolated(tmp_path: Path) -> None:
-    first_root = build_my_verisure_composition_root(
-        session_file=tmp_path / "first" / "session.json",
-        project_root=tmp_path / "first",
-    )
-    second_root = build_my_verisure_composition_root(
-        session_file=tmp_path / "second" / "session.json",
-        project_root=tmp_path / "second",
-    )
+    first_root = build_my_verisure_composition_root(project_root=tmp_path / "first")
+    second_root = build_my_verisure_composition_root(project_root=tmp_path / "second")
 
     first_session = first_root.get(SessionManager)
     second_session = second_root.get(SessionManager)
@@ -66,5 +60,5 @@ async def test_concurrent_entries_keep_sessions_and_files_isolated(tmp_path: Pat
     assert first_config_data["config"]["marker"] == "first"
     assert second_config_data["config"]["marker"] == "second"
 
-    assert first_logs.get_logs()[0]["message"] == "first-entry"
-    assert second_logs.get_logs()[0]["message"] == "second-entry"
+    assert first_logs.get_logs()[0]["message"] == "test event"
+    assert second_logs.get_logs()[0]["message"] == "test event"

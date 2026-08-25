@@ -2,7 +2,7 @@
 
 import pytest
 
-from ...api.models.domain.auth import Auth, AuthResult
+from ...application.models.auth import Auth, AuthResult
 from ...api.mappers.auth_mapper import auth_result_from_dto, auth_result_to_dto
 
 

@@ -22,14 +22,8 @@ from custom_components.my_verisure.core.use_cases.implementations.create_dummy_c
 
 
 def test_composition_root_owns_isolated_session_and_file_managers(tmp_path: Path):
-    first_root = build_my_verisure_composition_root(
-        session_file=tmp_path / "first-session.json",
-        project_root=tmp_path / "first-project",
-    )
-    second_root = build_my_verisure_composition_root(
-        session_file=tmp_path / "second-session.json",
-        project_root=tmp_path / "second-project",
-    )
+    first_root = build_my_verisure_composition_root(project_root=tmp_path / "first-project")
+    second_root = build_my_verisure_composition_root(project_root=tmp_path / "second-project")
 
     first_session = first_root.get(SessionManager)
     second_session = second_root.get(SessionManager)

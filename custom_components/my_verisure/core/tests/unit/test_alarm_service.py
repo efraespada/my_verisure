@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+from custom_components.my_verisure.core.api.exceptions import MyVerisureError
 from custom_components.my_verisure.core.application.alarm_service import (
     AlarmServiceDispatcher,
 )
@@ -38,7 +39,7 @@ async def test_returns_failure_for_unknown_installation(coordinator):
     result = await dispatcher.dispatch("missing", "async_arm_away")
 
     assert result.success is False
-    assert result.message == "Installation missing not found"
+    assert result.message == "Installation not found"
 
 
 @pytest.mark.asyncio
@@ -48,7 +49,16 @@ async def test_rejects_non_allowlisted_command(coordinator):
     result = await dispatcher.dispatch("home-1", "delete_configuration")
 
     assert result.success is False
-    assert result.message == "Command delete_configuration not supported"
+    assert result.message == "Alarm command not supported"
+
+
+@pytest.mark.asyncio
+async def test_propagates_domain_error_from_command(coordinator):
+    coordinator.async_arm_away.side_effect = MyVerisureError("domain failure")
+    dispatcher = AlarmServiceDispatcher([coordinator])
+
+    with pytest.raises(MyVerisureError, match="domain failure"):
+        await dispatcher.dispatch("home-1", "async_arm_away")
 
 
 @pytest.mark.asyncio
@@ -59,4 +69,4 @@ async def test_returns_failure_when_command_raises(coordinator):
     result = await dispatcher.dispatch("home-1", "async_arm_away")
 
     assert result.success is False
-    assert result.message == "network down"
+    assert result.message == "Alarm command failed"

@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List
 
-from ...api.models.domain.camera_request_image import CameraRequestImageResult
+from ...application.models.camera_request_image import CameraRequestImageResult
 
 
 class CameraRepository(ABC):

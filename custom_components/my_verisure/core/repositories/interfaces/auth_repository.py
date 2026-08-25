@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 
-from ...api.models.domain.auth import Auth, AuthResult
+from ...application.models.auth import Auth, AuthResult
 
 class AuthRepository(ABC):
     """Interface for authentication repository."""
@@ -25,6 +25,11 @@ class AuthRepository(ABC):
         otp_code: str
     ) -> AuthResult:
         """Verify OTP code."""
+        pass
+
+    @abstractmethod
+    def invalidate_otp_challenge(self) -> None:
+        """Invalidate all provider-client OTP state for this flow."""
         pass
 
     @abstractmethod

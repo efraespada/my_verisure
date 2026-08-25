@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from typing import List
 
-from ...api.models.domain.auth import AuthResult
+from ...application.models.auth import AuthResult
 
 
 class AuthUseCase(ABC):
@@ -15,13 +15,18 @@ class AuthUseCase(ABC):
         pass
 
     @abstractmethod
-    async def send_otp(self, record_id: int, otp_hash: str) -> bool:
+    async def send_otp(self, record_id: int, otp_hash: str | None = None) -> bool:
         """Send OTP to the selected phone number."""
         pass
 
     @abstractmethod
     async def verify_otp(self, otp_code: str) -> AuthResult:
         """Verify OTP code and return the authentication result."""
+        pass
+
+    @abstractmethod
+    def invalidate_otp_challenge(self) -> None:
+        """Invalidate all OTP state for this authentication flow."""
         pass
 
     @abstractmethod

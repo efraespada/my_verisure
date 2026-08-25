@@ -23,7 +23,7 @@ async def test_options_flow_persists_scan_and_runtime_options(
         title="Existing",
         data={
             CONF_INSTALLATION_ID: "home-1",
-            CONF_USER: "user@example.invalid",
+            CONF_USER: "[REDACTED]",
             "password": "[REDACTED]",
             CONF_SCAN_INTERVAL: 15,
         },

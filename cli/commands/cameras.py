@@ -37,9 +37,9 @@ class CameraCommand(BaseCommand):
                 print_error(f"Unknown camera action: {action}")
                 return False
 
-        except Exception as e:
-            _LOGGER.error("Failed to execute camera command: %s", e)
-            print_error(f"Camera command failed: {e}")
+        except Exception:
+            _LOGGER.error("Camera command failed")
+            print_error("Camera command failed")
             return False
 
     async def _show_cameras_info(
@@ -55,7 +55,7 @@ class CameraCommand(BaseCommand):
                 print_error("No installation selected")
                 return False
 
-            print_info(f"Getting camera devices for installation: {installation_id}")
+            print_info("Getting camera devices for the selected installation")
         
             # Get installation devices
             devices = (await self.get_installation_devices_use_case.get_installation_devices(
@@ -78,21 +78,21 @@ class CameraCommand(BaseCommand):
 
             for i, device in enumerate(camera_devices, 1):
                 print_info(f"Camera {i}:")
-                print(f"  Name: {device.name}")
+                print(f"  Name: Camera {i}")
                 print(f"  Type: {device.type}")
-                print(f"  Code: {device.code}")
-                print(f"  Device ID: {device.type + device.code}")
+                print("  Code: [REDACTED]")
+                print("  Device ID: [REDACTED]")
                 print(f"  Remote Use: {device.remote_use}")
                 print(f"  Active: {device.is_active}")
                 if device.serial_number:
-                    print(f"  Serial Number: {device.serial_number}")
+                    print("  Serial Number: [REDACTED]")
                 print()
 
             return True
 
-        except Exception as e:
-            _LOGGER.error("Failed to show camera devices info: %s", e)
-            print_error(f"Failed to get camera devices info: {e}")
+        except Exception:
+            _LOGGER.error("Camera device lookup failed")
+            print_error("Failed to get camera devices info")
             return False
 
     async def _refresh_camera_images(
@@ -108,7 +108,7 @@ class CameraCommand(BaseCommand):
                 print_error("No installation selected")
                 return False
 
-            print_info(f"Refreshing camera images for installation: {installation_id}")
+            print_info("Refreshing camera images for the selected installation")
 
             # Execute the refresh camera images use case
             result = await self.refresh_camera_images_use_case.refresh_camera_images(
@@ -127,14 +127,17 @@ class CameraCommand(BaseCommand):
             if result.refresh_data:
                 print_info("Camera refresh details:")
                 for i, camera_data in enumerate(result.refresh_data, 1):
-                    camera_id = camera_data.camera_identifier
                     num_images = camera_data.num_images
                     timestamp = camera_data.timestamp
                     
                     if num_images > 0:
-                        print_success(f"  {i}. {camera_id}: {num_images} images saved at {timestamp}")
+                        print_success(
+                            f"  Camera {i}: {num_images} images saved at {timestamp}"
+                        )
                     else:
-                        print_error(f"  {i}. {camera_id}: No images saved at {timestamp}")
+                        print_error(
+                            f"  Camera {i}: No images saved at {timestamp}"
+                        )
             else:
                 print_info("No camera refresh data available")
 
@@ -146,9 +149,9 @@ class CameraCommand(BaseCommand):
 
             return True
 
-        except Exception as e:
-            _LOGGER.error("Failed to refresh camera images: %s", e)
-            print_error(f"Failed to refresh camera images: {e}")
+        except Exception:
+            _LOGGER.error("Camera image refresh failed")
+            print_error("Failed to refresh camera images")
             return False
 
     async def _create_dummy_camera_images(
@@ -164,7 +167,7 @@ class CameraCommand(BaseCommand):
                 print_error("No installation selected")
                 return False
 
-            print_info(f"Creating dummy camera images for installation: {installation_id}")
+            print_info("Creating dummy camera images for the selected installation")
 
             # Execute the create dummy camera images use case
             result = await self.create_dummy_camera_images_use_case.create_dummy_camera_images(
@@ -181,14 +184,17 @@ class CameraCommand(BaseCommand):
             if result.refresh_data:
                 print_info("Camera dummy creation details:")
                 for i, camera_data in enumerate(result.refresh_data, 1):
-                    camera_id = camera_data.camera_identifier
                     num_images = camera_data.num_images
                     timestamp = camera_data.timestamp
                     
                     if num_images > 0:
-                        print_success(f"  {i}. {camera_id}: {num_images} dummy images created at {timestamp}")
+                        print_success(
+                            f"  Camera {i}: {num_images} dummy images created at {timestamp}"
+                        )
                     else:
-                        print_error(f"  {i}. {camera_id}: No dummy images created at {timestamp}")
+                        print_error(
+                            f"  Camera {i}: No dummy images created at {timestamp}"
+                        )
             else:
                 print_info("No camera dummy creation data available")
 
@@ -200,7 +206,7 @@ class CameraCommand(BaseCommand):
 
             return True
 
-        except Exception as e:
-            _LOGGER.error("Failed to create dummy camera images: %s", e)
-            print_error(f"Failed to create dummy camera images: {e}")
+        except Exception:
+            _LOGGER.error("Dummy camera image creation failed")
+            print_error("Failed to create dummy camera images")
             return False

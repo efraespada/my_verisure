@@ -1,6 +1,6 @@
 """Mappings between authentication transport DTOs and domain values."""
 
-from ..models.domain.auth import AuthResult, OTPData, Phone
+from ...application.models.auth import AuthResult, OTPData, Phone
 from ..models.dto.auth_dto import AuthDTO, OTPDataDTO, PhoneDTO
 
 
@@ -33,7 +33,7 @@ def otp_data_to_dto(value: OTPData) -> OTPDataDTO:
 def auth_result_from_dto(dto: AuthDTO) -> AuthResult:
     return AuthResult(
         success=dto.res == "OK",
-        message=dto.msg,
+        message="Login successful" if dto.res == "OK" else "Login failed",
         hash=dto.hash,
         refresh_token=dto.refresh_token,
         lang=dto.lang,

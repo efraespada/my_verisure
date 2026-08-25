@@ -4,6 +4,10 @@ import getpass
 import logging
 from typing import Optional, List, Dict
 
+from custom_components.my_verisure.core.application.otp_code_policy import (
+    is_valid_otp_code,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -42,10 +46,8 @@ def select_phone(phones: List[Dict]) -> Optional[int]:
     print("📱 Teléfonos disponibles para recibir el código OTP:")
     print()
 
-    for i, phone in enumerate(phones):
-        phone_id = phone.get("id", i)
-        phone_number = phone.get("phone", "Desconocido")
-        print(f"  {i+1}. ID {phone_id}: {phone_number}")
+    for i, _phone in enumerate(phones):
+        print(f"  {i+1}. ID [REDACTED]: [REDACTED]")
 
     print()
 
@@ -59,11 +61,8 @@ def select_phone(phones: List[Dict]) -> Optional[int]:
             if 1 <= choice_num <= len(phones):
                 selected_phone = phones[choice_num - 1]
                 phone_id = selected_phone.get("id")
-                phone_number = selected_phone.get("phone")
 
-                print_success(
-                    f"Teléfono seleccionado: ID {phone_id} - {phone_number}"
-                )
+                print_success("Teléfono seleccionado: [REDACTED]")
                 return phone_id
             else:
                 print_error(
@@ -91,12 +90,10 @@ def get_otp_code() -> Optional[str]:
         try:
             otp_code = input("🔢 Código OTP: ").strip()
             if otp_code:
-                # Validar que sea numérico
-                if otp_code.isdigit():
-                    print_success(f"Código OTP ingresado: {otp_code}")
+                if is_valid_otp_code(otp_code):
+                    print_success("Código OTP ingresado: [REDACTED]")
                     return otp_code
-                else:
-                    print_error("El código OTP debe contener solo números")
+                print_error("El código OTP debe contener exactamente seis dígitos ASCII")
             else:
                 print_error("El código OTP es obligatorio")
 
@@ -120,9 +117,7 @@ def select_installation(installations: List) -> Optional[str]:
 
     if len(installations) == 1:
         installation = installations[0]
-        print_success(
-            f"Usando única instalación disponible: {installation.alias}"
-        )
+        print_success("Usando única instalación disponible")
         return installation.numinst
 
     print_header("SELECCIÓN DE INSTALACIÓN")
@@ -142,9 +137,7 @@ def select_installation(installations: List) -> Optional[str]:
 
             if 1 <= choice_num <= len(installations):
                 selected_installation = installations[choice_num - 1]
-                print_success(
-                    f"Instalación seleccionada: {selected_installation.alias}"
-                )
+                print_success("Instalación seleccionada")
                 return selected_installation.numinst
             else:
                 print_error(

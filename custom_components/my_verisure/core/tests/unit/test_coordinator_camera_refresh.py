@@ -5,7 +5,7 @@ from datetime import datetime
 
 import pytest
 
-from custom_components.my_verisure.core.api.models.domain.camera_refresh import CameraRefresh
+from custom_components.my_verisure.core.application.models.camera_refresh import CameraRefresh
 from custom_components.my_verisure.core.application.coordinator_camera_refresh import (
     CameraRefreshPolicy,
     CoordinatorCameraRefresh,

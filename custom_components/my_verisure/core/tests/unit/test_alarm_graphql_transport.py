@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, Mock
 import pytest
 
 from custom_components.my_verisure.core.api.alarm_client import AlarmClient
+from custom_components.my_verisure.core.api.exceptions import MyVerisureTimeoutError
 from custom_components.my_verisure.core.file_manager import FileManager
 from custom_components.my_verisure.core.session_manager import SessionManager
 
@@ -29,7 +30,7 @@ async def test_alarm_graphql_transport_adds_entry_scoped_headers(tmp_path):
         "panel-1",
         "capability-1",
         "hash-1",
-        {"user": "user@example.invalid"},
+        {"user": "USER_SENTINEL"},
     )
 
     assert result == {"data": {"ok": True}}
@@ -46,17 +47,20 @@ async def test_alarm_graphql_transport_adds_entry_scoped_headers(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_alarm_graphql_transport_returns_redacted_error_payload(tmp_path):
+async def test_alarm_graphql_transport_propagates_timeout(tmp_path):
     client = _client(tmp_path)
-    client._execute_query_direct = AsyncMock(side_effect=TimeoutError("offline"))
-
-    result = await client._execute_alarm_graphql(
-        "AlarmOperation",
-        "query AlarmOperation { ok }",
-        {},
-        "home-1",
-        "panel-1",
-        "capability-1",
+    client._execute_query_direct = AsyncMock(
+        side_effect=MyVerisureTimeoutError("timeout")
     )
 
-    assert result == {"errors": [{"message": "offline", "data": {}}]}
+    with pytest.raises(MyVerisureTimeoutError, match="timeout"):
+        await client._execute_alarm_graphql(
+            "AlarmOperation",
+            "query AlarmOperation { ok }",
+            {},
+            "home-1",
+            "panel-1",
+            "capability-1",
+            "hash-1",
+            {"user": "USER_SENTINEL"},
+        )

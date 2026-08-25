@@ -28,9 +28,19 @@ class CameraRequestPolicy:
         hash_token: str | None,
         header_factory,
     ) -> CameraRequestContext:
-        headers = (
-            header_factory(session_data, hash_token) if session_data else None
-        )
+        if not session_data or not isinstance(hash_token, str) or not hash_token.strip():
+            raise ValueError("authenticated session required")
+        if (
+            not isinstance(installation_id, str)
+            or not installation_id.strip()
+            or not isinstance(panel, str)
+            or not panel.strip()
+            or not isinstance(capabilities, str)
+            or not capabilities.strip()
+            or not devices
+        ):
+            raise ValueError("camera request context required")
+        headers = header_factory(session_data, hash_token)
         if headers is not None:
             headers.update(
                 {
@@ -47,6 +57,6 @@ class CameraRequestPolicy:
     @staticmethod
     def image_directory(timestamp: str, now: datetime | None = None) -> str:
         normalized = timestamp.replace(" ", "_").replace(":", "-").replace("/", "-")
-        if normalized:
-            return normalized
-        return (now or datetime.now()).strftime("%Y-%m-%d_%H-%M-%S")
+        if not normalized:
+            raise ValueError("camera timestamp required")
+        return normalized

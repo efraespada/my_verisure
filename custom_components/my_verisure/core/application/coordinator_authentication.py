@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
+from inspect import isawaitable
 from typing import Any
 
 
@@ -21,7 +22,9 @@ class CoordinatorAuthenticationPolicy:
     def __init__(
         self,
         login: Callable[[], Awaitable[bool]],
-        load_cache: Callable[[], dict[str, Any]],
+        load_cache: Callable[
+            [], dict[str, Any] | Awaitable[dict[str, Any]]
+        ],
     ) -> None:
         self._login = login
         self._load_cache = load_cache
@@ -32,6 +35,8 @@ class CoordinatorAuthenticationPolicy:
             return CoordinatorAuthenticationDecision(authenticated=True)
 
         cached_data = self._load_cache()
+        if isawaitable(cached_data):
+            cached_data = await cached_data
         if cached_data:
             return CoordinatorAuthenticationDecision(
                 authenticated=False,

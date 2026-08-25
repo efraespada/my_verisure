@@ -23,69 +23,51 @@ class LogManager:
         return self._file_manager
     
     def log_event(self, event_type: str, message: str, data: Optional[Dict[str, Any]] = None) -> bool:
-        """Log an event to the log file."""
+        """Log a bounded, non-sensitive event projection."""
         try:
+            safe_data = {
+                key: value
+                for key, value in (data or {}).items()
+                if key in {"success", "status", "response_time", "error_type", "method"}
+                and isinstance(value, (bool, int, float, str))
+            }
             log_entry = {
                 "timestamp": datetime.now().isoformat(),
                 "event_type": event_type,
-                "message": message,
-                "data": data or {}
+                "message": f"{event_type} event",
+                "data": safe_data,
             }
-            
-            # Load existing logs
             logs = self._load_logs()
-            
-            # Add new log entry
             logs.append(log_entry)
-            
-            # Keep only the last max_logs entries
             if len(logs) > self._max_logs:
                 logs = logs[-self._max_logs:]
-            
-            # Save logs
             success = self._resolve_file_manager().save_json(self._log_file, logs)
             if success:
-                _LOGGER.debug("Event logged: %s - %s", event_type, message)
+                _LOGGER.debug("Event logged: %s", event_type)
             return success
-        except Exception as e:
-            _LOGGER.error("Failed to log event: %s", e)
+        except Exception:
+            _LOGGER.error("Failed to log event")
             return False
     
     def log_auth_event(self, event: str, user: str, success: bool, details: Optional[str] = None) -> bool:
         """Log authentication events."""
-        data = {
-            "user": user,
-            "success": success,
-            "details": details
-        }
-        return self.log_event("auth", f"Authentication {event}: {user}", data)
+        data = {"success": success}
+        return self.log_event("auth", "Authentication event", data)
     
     def log_alarm_event(self, event: str, installation_id: str, status: str, details: Optional[str] = None) -> bool:
         """Log alarm events."""
-        data = {
-            "installation_id": installation_id,
-            "status": status,
-            "details": details
-        }
-        return self.log_event("alarm", f"Alarm {event}: {status}", data)
+        data = {"status": status}
+        return self.log_event("alarm", "Alarm event", data)
     
     def log_error(self, error_type: str, message: str, exception: Optional[Exception] = None) -> bool:
         """Log error events."""
-        data = {
-            "error_type": error_type,
-            "exception": str(exception) if exception else None
-        }
-        return self.log_event("error", f"Error: {message}", data)
+        data = {"error_type": error_type}
+        return self.log_event("error", "Error event", data)
     
     def log_api_call(self, endpoint: str, method: str, success: bool, response_time: Optional[float] = None) -> bool:
         """Log API calls."""
-        data = {
-            "endpoint": endpoint,
-            "method": method,
-            "success": success,
-            "response_time": response_time
-        }
-        return self.log_event("api", f"API call: {method} {endpoint}", data)
+        data = {"method": method, "success": success, "response_time": response_time}
+        return self.log_event("api", "API event", data)
     
     def get_logs(self, event_type: Optional[str] = None, limit: Optional[int] = None) -> List[Dict[str, Any]]:
         """Get logs, optionally filtered by event type."""
@@ -101,8 +83,8 @@ class LogManager:
                 logs = logs[-limit:]
             
             return logs
-        except Exception as e:
-            _LOGGER.error("Failed to get logs: %s", e)
+        except Exception:
+            _LOGGER.error("Failed to get logs")
             return []
     
     def get_recent_logs(self, hours: int = 24) -> List[Dict[str, Any]]:
@@ -124,8 +106,8 @@ class LogManager:
                     continue
             
             return recent_logs
-        except Exception as e:
-            _LOGGER.error("Failed to get recent logs: %s", e)
+        except Exception:
+            _LOGGER.error("Failed to get recent logs")
             return []
     
     def clear_logs(self) -> bool:
@@ -135,8 +117,8 @@ class LogManager:
             if success:
                 _LOGGER.info("All logs cleared")
             return success
-        except Exception as e:
-            _LOGGER.error("Failed to clear logs: %s", e)
+        except Exception:
+            _LOGGER.error("Failed to clear logs")
             return False
     
     def export_logs(self, filename: str, event_type: Optional[str] = None) -> bool:
@@ -144,8 +126,8 @@ class LogManager:
         try:
             logs = self.get_logs(event_type)
             return self._resolve_file_manager().save_json(filename, logs)
-        except Exception as e:
-            _LOGGER.error("Failed to export logs: %s", e)
+        except Exception:
+            _LOGGER.error("Failed to export logs")
             return False
     
     def get_log_stats(self) -> Dict[str, Any]:
@@ -168,18 +150,18 @@ class LogManager:
                 "event_counts": event_counts,
                 "file_size": self._resolve_file_manager().get_file_size(self._log_file)
             }
-        except Exception as e:
-            _LOGGER.error("Failed to get log stats: %s", e)
-            return {"error": str(e)}
+        except Exception:
+            _LOGGER.error("Failed to get log stats")
+            return {"error": "Log statistics unavailable"}
     
     def _load_logs(self) -> List[Dict[str, Any]]:
         """Load logs from file."""
         try:
             logs = self._resolve_file_manager().load_json(self._log_file)
             if not isinstance(logs, list):
-                _LOGGER.error("Log file has invalid format: %s", self._log_file)
+                _LOGGER.error("Log file has invalid format")
                 return []
             return [entry for entry in logs if isinstance(entry, dict)]
-        except Exception as e:
-            _LOGGER.error("Failed to load logs: %s", e)
+        except Exception:
+            _LOGGER.error("Failed to load logs")
             return []

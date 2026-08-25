@@ -1,6 +1,6 @@
 """Contract tests for device-authorization response interpretation."""
 
-from custom_components.my_verisure.core.application.device_authorization_response import (
+from custom_components.my_verisure.core.api.device_authorization_response import (
     DeviceAuthorizationFailure,
     DeviceAuthorizationOTPChallenge,
     DeviceAuthorizationSuccess,
@@ -56,7 +56,7 @@ def test_classifies_unknown_provider_error() -> None:
     )
 
     assert isinstance(result, DeviceAuthorizationFailure)
-    assert result.message == "Device validation failed: provider failure (auth-code: 999)"
+    assert result.message == "Device validation failed"
 
 
 def test_classifies_empty_payload() -> None:
@@ -72,3 +72,44 @@ def test_accepts_legacy_direct_device_envelope() -> None:
     )
 
     assert isinstance(result, DeviceAuthorizationSuccess)
+
+
+def test_rejects_conflicting_authorization_aliases() -> None:
+    result = classify_device_authorization_response(
+        {
+            "errors": [
+                {
+                    "data": {"auth-code": "10001", "authCode": "10010"}
+                }
+            ]
+        }
+    )
+
+    assert isinstance(result, DeviceAuthorizationFailure)
+    assert result.message == "Device validation failed"
+
+
+def test_rejects_conflicting_device_envelopes() -> None:
+    result = classify_device_authorization_response(
+        {
+            "data": {"xSValidateDevice": {"res": "OK"}},
+            "xSValidateDevice": {"res": "ERROR"},
+        }
+    )
+
+    assert isinstance(result, DeviceAuthorizationFailure)
+    assert result.message == "Device validation failed"
+
+
+def test_rejects_multiple_graphql_errors_as_ambiguous() -> None:
+    result = classify_device_authorization_response(
+        {
+            "errors": [
+                {"data": {"auth-code": "10001", "auth-type": "OTP"}},
+                {"data": {"auth-code": "10010"}},
+            ]
+        }
+    )
+
+    assert isinstance(result, DeviceAuthorizationFailure)
+    assert result.message == "Device validation failed"

@@ -26,7 +26,7 @@ from custom_components.my_verisure.core.api.models.dto.installation_dto import (
 def test_installation_mapping_round_trip() -> None:
     dto = InstallationDTO(
         "123", "alias", "panel", "type", "Name", "Surname", "Address",
-        "City", "00000", "Province", "mail@example.invalid", "000",
+        "City", "00000", "Province", "[REDACTED]", "000",
     )
     value = installation_from_dto(dto)
     assert installation_to_dto(value) == dto

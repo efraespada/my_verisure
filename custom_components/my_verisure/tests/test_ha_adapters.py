@@ -11,7 +11,7 @@ from homeassistant.config_entries import ConfigEntry
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.my_verisure import integration, services
-from custom_components.my_verisure.core.api.models.domain.alarm import ArmResult
+from custom_components.my_verisure.core.application.models.alarm import ArmResult
 from custom_components.my_verisure.sensor import (
     MyVerisureActiveAlarmsSensor,
     MyVerisureAlarmStatusSensor,
@@ -60,6 +60,7 @@ def test_alarm_status_sensor_maps_alarm_state_and_attributes(config_entry):
 
     assert sensor.native_value == "Total and Perimeter Active"
     assert sensor.extra_state_attributes["internal_total_status"] is True
+    assert "installation_id" not in sensor.extra_state_attributes
     assert sensor.available is True
 
 
@@ -82,11 +83,24 @@ def test_sensors_handle_missing_data(config_entry):
     panel = MyVerisurePanelStateSensor(coordinator, config_entry, "panel", "Panel")
 
     assert alarm.native_value is None
-    assert active.native_value == "Sin datos"
+    assert active.native_value is None
     assert last.native_value is None
-    assert panel.native_value == "unavailable"
+    assert panel.native_value is None
     assert alarm.available is False
     assert active.available is False
+
+
+def test_alarm_sensors_hide_partial_alarm_state(config_entry):
+    coordinator = _coordinator(
+        {"alarm_status": {"data": {"internal": {"total": {"status": True}}}}}
+    )
+    alarm = MyVerisureAlarmStatusSensor(coordinator, config_entry, "alarm", "Alarm")
+    active = MyVerisureActiveAlarmsSensor(coordinator, config_entry, "active", "Active")
+
+    assert alarm.native_value is None
+    assert alarm.extra_state_attributes == {}
+    assert active.native_value is None
+    assert active.extra_state_attributes == {}
 
 
 def test_disarm_schema_rejects_unsupported_code(config_entry):
@@ -94,6 +108,14 @@ def test_disarm_schema_rejects_unsupported_code(config_entry):
         services.SERVICE_DISARM_SCHEMA(
             {"installation_id": "123", "code": "2468"}
         )
+
+
+def test_sensors_do_not_expose_installation_identifier(config_entry):
+    coordinator = _coordinator({"last_updated": 123.0})
+    sensor = MyVerisureLastUpdatedSensor(coordinator, config_entry, "last", "Last")
+
+    assert "installation_id" not in sensor.extra_state_attributes
+
 
 
 def test_last_updated_sensor_reads_timestamp(config_entry):
@@ -165,7 +187,8 @@ async def test_arm_service_does_not_execute_for_unknown_installation():
             call.args[1]: call.args[2]
             for call in hass.services.async_register.call_args_list
         }
-        await handlers["arm_away"](SimpleNamespace(data={"installation_id": "missing"}))
+        with pytest.raises(services.MyVerisureError, match="Installation not found"):
+            await handlers["arm_away"](SimpleNamespace(data={"installation_id": "missing"}))
 
     coordinator.async_arm_away.assert_not_awaited()
 

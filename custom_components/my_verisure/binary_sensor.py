@@ -12,6 +12,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from .core.application.alarm_state import AlarmState, analyze_alarm_state
 from .core.const import ENTITY_NAMES
 from .coordinator import MyVerisureDataUpdateCoordinator
 from .device import get_device_info
@@ -95,31 +96,20 @@ class MyVerisureAlarmBinarySensor(BinarySensorEntity):
         """Return true if the binary sensor is on."""
         if not self.coordinator.data:
             return None
-
-        alarm_status = self.coordinator.data.get("alarm_status", {})
-        if not alarm_status:
+        alarm_status = self.coordinator.data.get("alarm_status")
+        if not isinstance(alarm_status, dict):
             return None
-
-        # Los datos están en alarm_status.data
-        alarm_data = alarm_status.get("data", {})
-        
-        # Obtener el estado específico según el sensor_id e invertir la lógica
-        if self.sensor_id == "internal_day":
-            return not alarm_data.get("internal", {}).get("day", {}).get(
-                "status", False
-            )
-        elif self.sensor_id == "internal_night":
-            return not alarm_data.get("internal", {}).get("night", {}).get(
-                "status", False
-            )
-        elif self.sensor_id == "internal_total":
-            return not alarm_data.get("internal", {}).get("total", {}).get(
-                "status", False
-            )
-        elif self.sensor_id == "external":
-            return not alarm_data.get("external", {}).get("status", False)
-
-        return None
+        snapshot = analyze_alarm_state(alarm_status)
+        if snapshot.state is AlarmState.UNKNOWN:
+            return None
+        statuses = {
+            "internal_day": snapshot.internal_day,
+            "internal_night": snapshot.internal_night,
+            "internal_total": snapshot.internal_total,
+            "external": snapshot.external,
+        }
+        status = statuses.get(self.sensor_id)
+        return None if status is None else status
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -133,7 +123,6 @@ class MyVerisureAlarmBinarySensor(BinarySensorEntity):
 
         return {
             "sensor_type": self.sensor_id,
-            "installation_id": self.config_entry.data.get("installation_id", "Unknown"),
             "last_updated": self.coordinator.data.get("last_updated"),
         }
 

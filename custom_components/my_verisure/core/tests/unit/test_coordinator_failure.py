@@ -28,5 +28,5 @@ def test_classifier_preserves_error_and_assigns_kind(error, kind):
     failure = CoordinatorFailureClassifier().classify(error)
 
     assert failure.kind is kind
-    assert failure.message == str(error)
+    assert failure.message != str(error)
     assert failure.original is error

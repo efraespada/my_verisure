@@ -10,11 +10,8 @@ class InstallationResponseError(ValueError):
 
 
 def _raise_graphql_error(result: dict[str, Any], operation: str) -> None:
-    errors = result.get("errors")
-    if isinstance(errors, list) and errors:
-        first = errors[0]
-        message = first.get("message", "Unknown error") if isinstance(first, dict) else "Unknown error"
-        raise InstallationResponseError(f"Failed to get {operation}: {message}")
+    if "errors" in result:
+        raise InstallationResponseError(f"Failed to get {operation}: service request failed")
 
 
 def interpret_installations(result: object) -> list[dict[str, Any]]:
@@ -29,7 +26,11 @@ def interpret_installations(result: object) -> list[dict[str, Any]]:
         raise InstallationResponseError("Failed to get installations: No response data")
     if not isinstance(records, list):
         raise InstallationResponseError("Failed to get installations: Invalid installations data")
-    return [record for record in records if isinstance(record, dict)]
+    if any(not isinstance(record, dict) for record in records):
+        raise InstallationResponseError(
+            "Failed to get installations: Invalid installations data"
+        )
+    return records
 
 
 def interpret_services(result: object) -> dict[str, Any]:
@@ -40,8 +41,9 @@ def interpret_services(result: object) -> dict[str, Any]:
     data = result.get("data")
     services = data.get("xSSrv") if isinstance(data, dict) else None
     if not isinstance(services, dict) or services.get("res") != "OK":
-        message = services.get("msg", "No response data") if isinstance(services, dict) else "No response data"
-        raise InstallationResponseError(f"Failed to get installation services: {message}")
+        raise InstallationResponseError(
+            "Failed to get installation services: service request failed"
+        )
     installation = services.get("installation")
     if not isinstance(installation, dict):
         raise InstallationResponseError("Failed to get installation services: No installation data")
@@ -56,9 +58,14 @@ def interpret_devices(result: object) -> list[dict[str, Any]]:
     data = result.get("data")
     devices_data = data.get("xSDeviceList") if isinstance(data, dict) else None
     if not isinstance(devices_data, dict) or devices_data.get("res") != "OK":
-        message = devices_data.get("msg", "No response data") if isinstance(devices_data, dict) else "No response data"
-        raise InstallationResponseError(f"Failed to get installation devices: {message}")
+        raise InstallationResponseError(
+            "Failed to get installation devices: service request failed"
+        )
     devices = devices_data.get("devices", [])
     if not isinstance(devices, list):
         raise InstallationResponseError("Failed to get installation devices: Invalid devices data")
-    return [device for device in devices if isinstance(device, dict)]
+    if any(not isinstance(device, dict) for device in devices):
+        raise InstallationResponseError(
+            "Failed to get installation devices: Invalid devices data"
+        )
+    return devices

@@ -1,5 +1,6 @@
 """Information command for the CLI."""
 
+import asyncio
 import logging
 from typing import Any, Optional
 
@@ -65,8 +66,8 @@ class InfoCommand(BaseCommand):
 
             return True
 
-        except Exception as e:
-            print_error(f"Error obteniendo instalaciones: {e}")
+        except Exception:
+            print_error("Error obteniendo instalaciones")
             return False
 
     async def _show_services(
@@ -86,9 +87,7 @@ class InfoCommand(BaseCommand):
             if not installation_id:
                 return False
 
-            print_info(
-                f"Obteniendo servicios para instalación: {installation_id}"
-            )
+            print_info("Obteniendo servicios para la instalación seleccionada")
 
             services_data = await self.installation_use_case.get_installation_services(
                 installation_id
@@ -101,8 +100,8 @@ class InfoCommand(BaseCommand):
                 print_error("No se encontraron servicios para esta instalación")
                 return False
 
-        except Exception as e:
-            print_error(f"Error obteniendo servicios: {e}")
+        except Exception:
+            print_error("Error obteniendo servicios")
             return False
 
     async def _show_status(
@@ -122,9 +121,7 @@ class InfoCommand(BaseCommand):
             if not installation_id:
                 return False
 
-            print_info(
-                f"Obteniendo estado para instalación: {installation_id}"
-            )
+            print_info("Obteniendo el estado de la instalación seleccionada")
 
             # Get alarm status
             alarm_status = await self.alarm_use_case.get_alarm_status(
@@ -135,8 +132,8 @@ class InfoCommand(BaseCommand):
 
             return True
 
-        except Exception as e:
-            print_error(f"Error obteniendo estado: {e}")
+        except Exception:
+            print_error("Error obteniendo estado")
             return False
 
     async def _show_devices(self, installation_id: Optional[str] = None, interactive: bool = True) -> bool:
@@ -156,18 +153,23 @@ class InfoCommand(BaseCommand):
                 
                 if len(installations) == 1:
                     installation_id = installations[0].numinst
-                    print_info(f"Usando instalación: {installations[0].alias or installation_id}")
+                    print_info("Usando una única instalación disponible")
                 else:
                     print_info("Múltiples instalaciones encontradas:")
                     for i, installation in enumerate(installations):
-                        print(f"  {i + 1}. {installation.alias or installation.numinst} ({installation.numinst})")
+                        print(f"  {i + 1}. Instalación [REDACTED]")
                     
                     if interactive:
                         try:
-                            choice = int(input("\nSelecciona una instalación (número): ")) - 1
+                            choice = int(
+                                await asyncio.to_thread(
+                                    input,
+                                    "\nSelecciona una instalación (número): ",
+                                )
+                            ) - 1
                             if 0 <= choice < len(installations):
                                 installation_id = installations[choice].numinst
-                                print_info(f"Seleccionada: {installations[choice].alias or installation_id}")
+                                print_info("Instalación seleccionada")
                             else:
                                 print_error("Selección inválida")
                                 return False
@@ -181,7 +183,7 @@ class InfoCommand(BaseCommand):
             # Get installation services to get panel info
             devices = (await self.get_installation_devices_use_case.get_installation_devices(installation_id)).devices
             
-            print_info(f"Obteniendo dispositivos para instalación {installation_id}...")
+            print_info("Obteniendo dispositivos para la instalación seleccionada...")
             
             # Get devices
             if len(devices) > 0:
@@ -201,14 +203,14 @@ class InfoCommand(BaseCommand):
                     print_header(f"{device_type.upper()} ({len(type_devices)} dispositivos)")
                     
                     for i, device in enumerate(type_devices):
-                        print(f"  {i + 1}. {device.display_name}")
-                        print(f"     ID: {device.id}")
-                        print(f"     Código: {device.code}")
+                        print(f"  {i + 1}. Dispositivo {i + 1}")
+                        print("     ID: [REDACTED]")
+                        print("     Código: [REDACTED]")
                         print(f"     Subtipo: {device.subtype}")
                         print(f"     Activo: {'Sí' if device.is_active else 'No'}")
                         print(f"     Remoto: {'Sí' if device.remote_use else 'No'}")
                         if device.serial_number:
-                            print(f"     Serial: {device.serial_number}")
+                            print("     Serial: [REDACTED]")
                         if device.config and device.config.flags:
                             flags = []
                             if device.config.flags.pin_code:
@@ -233,6 +235,6 @@ class InfoCommand(BaseCommand):
 
             return True
 
-        except Exception as e:
-            print_error(f"Error obteniendo dispositivos: {e}")
+        except Exception:
+            print_error("Error obteniendo dispositivos")
             return False

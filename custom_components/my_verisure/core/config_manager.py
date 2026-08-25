@@ -50,8 +50,8 @@ class ConfigManager:
             merged_config = self._default_config.copy()
             merged_config.update(config)
             return merged_config
-        except Exception as e:
-            _LOGGER.error("Failed to load config: %s", e)
+        except Exception:
+            _LOGGER.error("Failed to load config")
             return self._default_config.copy()
     
     def save_config(self, config: Dict[str, Any]) -> bool:
@@ -70,8 +70,8 @@ class ConfigManager:
             if success:
                 _LOGGER.info("Configuration saved successfully")
             return success
-        except Exception as e:
-            _LOGGER.error("Failed to save config: %s", e)
+        except Exception:
+            _LOGGER.error("Failed to save config")
             return False
     
     def update_config(self, updates: Dict[str, Any]) -> bool:
@@ -80,8 +80,8 @@ class ConfigManager:
             current_config = self.get_config()
             current_config.update(updates)
             return self.save_config(current_config)
-        except Exception as e:
-            _LOGGER.error("Failed to update config: %s", e)
+        except Exception:
+            _LOGGER.error("Failed to update config")
             return False
     
     def get_setting(self, key: str, default: Any = None) -> Any:
@@ -97,8 +97,8 @@ class ConfigManager:
         """Reset configuration to defaults."""
         try:
             return self.save_config(self._default_config)
-        except Exception as e:
-            _LOGGER.error("Failed to reset config to defaults: %s", e)
+        except Exception:
+            _LOGGER.error("Failed to reset config to defaults")
             return False
     
     def export_config(self, filename: str) -> bool:
@@ -106,8 +106,8 @@ class ConfigManager:
         try:
             config = self.get_config()
             return self._resolve_file_manager().save_json(filename, config)
-        except Exception as e:
-            _LOGGER.error("Failed to export config: %s", e)
+        except Exception:
+            _LOGGER.error("Failed to export config")
             return False
     
     def import_config(self, filename: str) -> bool:
@@ -115,15 +115,15 @@ class ConfigManager:
         try:
             config = self._resolve_file_manager().load_json(filename)
             if config is None:
-                _LOGGER.error("Config file not found: %s", filename)
+                _LOGGER.error("Config file not found")
                 return False
             
             if not isinstance(config, dict):
-                _LOGGER.error("Config file has invalid format: %s", filename)
+                _LOGGER.error("Config file has invalid format")
                 return False
             return self.save_config(config)
-        except Exception as e:
-            _LOGGER.error("Failed to import config: %s", e)
+        except Exception:
+            _LOGGER.error("Failed to import config")
             return False
     
     def _get_timestamp(self) -> str:
@@ -159,6 +159,6 @@ class ConfigManager:
                 "version": metadata.get("version"),
                 "file_size": self._resolve_file_manager().get_file_size(self._config_file)
             }
-        except Exception as e:
-            _LOGGER.error("Failed to get config info: %s", e)
-            return {"error": str(e)}
+        except Exception:
+            _LOGGER.error("Failed to get config info")
+            return {"error": "Configuration information unavailable"}

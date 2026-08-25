@@ -2,7 +2,7 @@
 
 import logging
 
-from ...api.models.domain.alarm import AlarmStatus, ArmResult, DisarmResult
+from ...application.models.alarm import AlarmStatus, ArmResult, DisarmResult
 from ..interfaces.alarm_repository import AlarmRepository
 
 _LOGGER = logging.getLogger(__name__)
@@ -20,9 +20,7 @@ class AlarmRepositoryImpl(AlarmRepository):
     ) -> AlarmStatus:
         """Get alarm status."""
         try:
-            _LOGGER.warning(
-                "Getting alarm status for installation %s", installation_id
-            )
+            _LOGGER.warning("Getting alarm status")
 
             alarm_status_data = await self.client.get_alarm_status(
                 installation_id, 
@@ -38,15 +36,36 @@ class AlarmRepositoryImpl(AlarmRepository):
             # Check if there are any active alarms in the processed data
             internal = alarm_status_data.get("internal", {})
             external = alarm_status_data.get("external", {})
+            statuses = (
+                internal.get("day", {}).get("status")
+                if isinstance(internal, dict)
+                else None,
+                internal.get("night", {}).get("status")
+                if isinstance(internal, dict)
+                else None,
+                internal.get("total", {}).get("status")
+                if isinstance(internal, dict)
+                else None,
+                external.get("status") if isinstance(external, dict) else None,
+            )
+            if not all(isinstance(status, bool) for status in statuses):
+                return AlarmStatus(
+                    success=False,
+                    message="Alarm status unknown",
+                    status=None,
+                    numinst=installation_id,
+                    forced_armed=None,
+                    data=alarm_status_data,
+                )
 
             # Look for active alarms
-            if internal.get("day", {}).get("status", False):
+            if internal.get("day", {}).get("status"):
                 alarm_message = "Internal day alarm active"
-            elif internal.get("night", {}).get("status", False):
+            elif internal.get("night", {}).get("status"):
                 alarm_message = "Internal night alarm active"
-            elif internal.get("total", {}).get("status", False):
+            elif internal.get("total", {}).get("status"):
                 alarm_message = "Internal total alarm active"
-            elif external.get("status", False):
+            elif external.get("status"):
                 alarm_message = "External alarm active"
 
             # Create AlarmStatus domain model
@@ -63,8 +82,8 @@ class AlarmRepositoryImpl(AlarmRepository):
 
             return alarm_status
 
-        except Exception as e:
-            _LOGGER.error("Error getting alarm status: %s", e)
+        except Exception:
+            _LOGGER.error("Error getting alarm status")
             raise
 
     async def arm_panel(
@@ -77,11 +96,7 @@ class AlarmRepositoryImpl(AlarmRepository):
     ) -> ArmResult:
         """Arm the alarm panel."""
         try:
-            _LOGGER.warning(
-                "Arming panel for installation %s with request %s",
-                installation_id,
-                request,
-            )
+            _LOGGER.info("Arming panel")
 
             # Call the appropriate arm method based on request
             if request == "ARM1":
@@ -111,12 +126,12 @@ class AlarmRepositoryImpl(AlarmRepository):
                     current_status=current_status
                 )
 
-            _LOGGER.warning("Arm result: %s", result)
+            _LOGGER.info("Arm command completed: success=%s", result.success)
 
             return result
 
-        except Exception as e:
-            _LOGGER.error("Error arming panel: %s", e)
+        except Exception:
+            _LOGGER.error("Error arming panel")
             raise
 
     async def disarm_panel(
@@ -124,10 +139,7 @@ class AlarmRepositoryImpl(AlarmRepository):
     ) -> DisarmResult:
         """Disarm the alarm panel."""
         try:
-            _LOGGER.info(
-                "Disarming panel for installation %s",
-                installation_id,
-            )
+            _LOGGER.info("Disarming panel")
 
             result = await self.client.disarm_alarm(
                 installation_id,
@@ -137,16 +149,14 @@ class AlarmRepositoryImpl(AlarmRepository):
 
             return result
 
-        except Exception as e:
-            _LOGGER.error("Error disarming panel: %s", e)
+        except Exception:
+            _LOGGER.error("Error disarming panel")
             raise
 
     async def arm_away(self, installation_id: str, panel: str, capabilities: str, auto_arm_perimeter_with_internal: bool = False) -> ArmResult:
         """Arm the alarm in away mode."""
         try:
-            _LOGGER.info(
-                "Arming alarm away for installation %s", installation_id
-            )
+            _LOGGER.info("Arming alarm away")
             result = await self.client.arm_alarm_away(
                 installation_id,
                 panel,
@@ -164,16 +174,14 @@ class AlarmRepositoryImpl(AlarmRepository):
                 )
 
             return result
-        except Exception as e:
-            _LOGGER.error("Error arming alarm away: %s", e)
+        except Exception:
+            _LOGGER.error("Error arming alarm away")
             raise
 
     async def arm_home(self, installation_id: str, panel: str, capabilities: str) -> ArmResult:
         """Arm the alarm in home mode."""
         try:
-            _LOGGER.info(
-                "Arming alarm home for installation %s", installation_id
-            )
+            _LOGGER.info("Arming alarm home")
             result = await self.client.arm_alarm_home(
                 installation_id,
                 panel,
@@ -181,16 +189,14 @@ class AlarmRepositoryImpl(AlarmRepository):
             )
 
             return result
-        except Exception as e:
-            _LOGGER.error("Error arming alarm home: %s", e)
+        except Exception:
+            _LOGGER.error("Error arming alarm home")
             raise
 
     async def arm_night(self, installation_id: str, panel: str, capabilities: str, auto_arm_perimeter_with_internal: bool = False) -> ArmResult:
         """Arm the alarm in night mode."""
         try:
-            _LOGGER.info(
-                "Arming alarm night for installation %s", installation_id
-            )
+            _LOGGER.info("Arming alarm night")
             result = await self.client.arm_alarm_night(
                 installation_id,
                 panel,
@@ -208,22 +214,20 @@ class AlarmRepositoryImpl(AlarmRepository):
                 )
 
             return result
-        except Exception as e:
-            _LOGGER.error("Error arming alarm night: %s", e)
+        except Exception:
+            _LOGGER.error("Error arming alarm night")
             raise
 
     async def disarm_alarm(self, installation_id: str, panel: str, capabilities: str) -> bool:
         """Disarm the alarm."""
         try:
-            _LOGGER.info(
-                "Disarming alarm for installation %s", installation_id
-            )
+            _LOGGER.info("Disarming alarm")
             result = await self.client.disarm_alarm(
                 installation_id,
                 panel,
                 capabilities
             )
             return result
-        except Exception as e:
-            _LOGGER.error("Error disarming alarm: %s", e)
+        except Exception:
+            _LOGGER.error("Error disarming alarm")
             raise

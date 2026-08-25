@@ -1,17 +1,20 @@
-"""Pure authentication domain models for My Verisure."""
+"""Application authentication models independent of provider DTOs."""
+
+from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 @dataclass(frozen=True)
 class Phone:
-    """A phone number available for an authentication challenge."""
+    """A phone destination available for an authentication challenge."""
 
     id: int
     phone: str
+    record_id: int | None = None
 
-    def dict(self) -> Dict[str, Any]:
+    def dict(self) -> dict[str, Any]:
         return asdict(self)
 
 
@@ -19,12 +22,12 @@ class Phone:
 class OTPData:
     """Authentication challenge data held by the application."""
 
-    phones: List[Phone]
+    phones: list[Phone]
     otp_hash: str
-    auth_code: Optional[str] = None
-    auth_type: Optional[str] = None
+    auth_code: str | None = None
+    auth_type: str | None = None
 
-    def dict(self) -> Dict[str, Any]:
+    def dict(self) -> dict[str, Any]:
         return asdict(self)
 
 
@@ -34,14 +37,14 @@ class AuthResult:
 
     success: bool
     message: str
-    hash: Optional[str] = None
-    refresh_token: Optional[str] = None
-    lang: Optional[str] = None
-    legals: Optional[bool] = None
-    change_password: Optional[bool] = None
-    need_device_authorization: Optional[bool] = None
+    hash: str | None = None
+    refresh_token: str | None = None
+    lang: str | None = None
+    legals: bool | None = None
+    change_password: bool | None = None
+    need_device_authorization: bool | None = None
 
-    def dict(self) -> Dict[str, Any]:
+    def dict(self) -> dict[str, Any]:
         return asdict(self)
 
 
@@ -58,5 +61,5 @@ class Auth:
         if not self.password:
             raise ValueError("Password is required")
 
-    def dict(self) -> Dict[str, Any]:
+    def dict(self) -> dict[str, Any]:
         return asdict(self)

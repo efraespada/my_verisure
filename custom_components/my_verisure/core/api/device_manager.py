@@ -12,6 +12,7 @@ import time
 from typing import Any, Dict, Optional, TypeGuard
 
 from ..file_manager import FileManager
+from ..log_utils import redact_sensitive_data
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -27,8 +28,6 @@ class DeviceManager:
             "deviceBrand",
             "deviceOsVersion",
             "deviceVersion",
-            "deviceType",
-            "deviceResolution",
         }
     )
 
@@ -140,8 +139,6 @@ class DeviceManager:
             "deviceBrand": "HomeAssistant",
             "deviceOsVersion": f"{system_info['system']} {platform.release()}",
             "deviceVersion": "10.154.0",
-            "deviceType": "",
-            "deviceResolution": "",
             "generated_time": int(time.time()),
         }
 
@@ -150,7 +147,14 @@ class DeviceManager:
         cls, device_data: object
     ) -> TypeGuard[Dict[str, Any]]:
         """Return whether persisted identifiers satisfy API construction needs."""
-        return isinstance(device_data, dict) and cls.REQUIRED_IDENTIFIER_KEYS <= device_data.keys()
+        return (
+            isinstance(device_data, dict)
+            and cls.REQUIRED_IDENTIFIER_KEYS <= device_data.keys()
+            and all(
+                isinstance(device_data[key], str) and device_data[key].strip()
+                for key in cls.REQUIRED_IDENTIFIER_KEYS
+            )
+        )
 
     def _load_device_identifiers(self) -> bool:
         """Load device identifiers from file (blocking I/O)."""
@@ -160,8 +164,13 @@ class DeviceManager:
                 self._device_identifiers = device_data
                 _LOGGER.warning("Device identifiers loaded from device_identifiers.json")
                 _LOGGER.warning(
-                    "Device UUID: %s",
-                    self._device_identifiers.get("uuid", "Unknown"),
+                    "Device context loaded (redacted): %s",
+                    redact_sensitive_data(
+                        {
+                            "uuid": self._device_identifiers.get("uuid"),
+                            "deviceName": self._device_identifiers.get("deviceName"),
+                        }
+                    ),
                 )
                 return True
             _LOGGER.warning(
@@ -169,8 +178,8 @@ class DeviceManager:
             )
             return False
 
-        except Exception as e:
-            _LOGGER.error("Failed to load device identifiers: %s", e)
+        except Exception:
+            _LOGGER.error("Failed to load device identifiers")
             return False
 
     async def _async_load_device_identifiers(self) -> bool:
@@ -181,16 +190,21 @@ class DeviceManager:
                 self._device_identifiers = device_data
                 _LOGGER.warning("Device identifiers loaded from device_identifiers.json")
                 _LOGGER.warning(
-                    "Device UUID: %s",
-                    self._device_identifiers.get("uuid", "Unknown"),
+                    "Device context loaded (redacted): %s",
+                    redact_sensitive_data(
+                        {
+                            "uuid": self._device_identifiers.get("uuid"),
+                            "deviceName": self._device_identifiers.get("deviceName"),
+                        }
+                    ),
                 )
                 return True
             _LOGGER.warning(
                 "No device identifiers file found, will generate new ones"
             )
             return False
-        except Exception as e:
-            _LOGGER.error("Failed to load device identifiers: %s", e)
+        except Exception:
+            _LOGGER.error("Failed to load device identifiers")
             return False
 
     def _save_device_identifiers(self) -> None:
@@ -208,8 +222,8 @@ class DeviceManager:
             else:
                 _LOGGER.error("Failed to save device identifiers to JSON file")
 
-        except Exception as e:
-            _LOGGER.error("Failed to save device identifiers: %s", e)
+        except Exception:
+            _LOGGER.error("Failed to save device identifiers")
 
     async def _async_save_device_identifiers(self) -> None:
         """Save device identifiers without blocking the event loop."""
@@ -224,8 +238,8 @@ class DeviceManager:
                 _LOGGER.warning("Device identifiers saved to device_identifiers.json")
             else:
                 _LOGGER.error("Failed to save device identifiers to JSON file")
-        except Exception as e:
-            _LOGGER.error("Failed to save device identifiers: %s", e)
+        except Exception:
+            _LOGGER.error("Failed to save device identifiers")
 
     def ensure_device_identifiers(self) -> None:
         """Ensure device identifiers are loaded or generated (blocking I/O)."""
@@ -254,24 +268,22 @@ class DeviceManager:
             self.ensure_device_identifiers()
 
         identifiers = self._device_identifiers or {}
-        return {
-            "uuid": identifiers.get("uuid", "Unknown"),
-            "device_name": identifiers.get(
-                "deviceName", "Unknown"
-            ),
-            "device_brand": identifiers.get(
-                "deviceBrand", "Unknown"
-            ),
-            "device_os": identifiers.get(
-                "deviceOsVersion", "Unknown"
-            ),
-            "device_version": identifiers.get(
-                "deviceVersion", "Unknown"
-            ),
-            "generated_time": identifiers.get(
-                "generated_time", 0
-            ),
+        info: Dict[str, Any] = {}
+        fields = {
+            "uuid": "uuid",
+            "device_name": "deviceName",
+            "device_brand": "deviceBrand",
+            "device_os": "deviceOsVersion",
+            "device_version": "deviceVersion",
         }
+        for public_key, provider_key in fields.items():
+            value = identifiers.get(provider_key)
+            if isinstance(value, str) and value.strip():
+                info[public_key] = value
+        generated_time = identifiers.get("generated_time")
+        if isinstance(generated_time, int) and generated_time > 0:
+            info["generated_time"] = generated_time
+        return info
 
     def get_device_identifiers(self) -> Dict[str, str]:
         """Get device identifiers for API calls."""
@@ -289,23 +301,24 @@ class DeviceManager:
             self.ensure_device_identifiers()
 
         identifiers = self._device_identifiers or {}
-        return {
+        variables: Dict[str, str] = {
             "id": session_id,
             "country": "ES",
-            "callby": "OWI_10",  # Native app identifier
+            "callby": "OWI_10",
             "lang": lang,
             "idDevice": identifiers["idDevice"],
-            "idDeviceIndigitall": identifiers[
-                "idDeviceIndigitall"
-            ],
-            "deviceType": identifiers["deviceType"],
+            "idDeviceIndigitall": identifiers["idDeviceIndigitall"],
             "deviceVersion": identifiers["deviceVersion"],
-            "deviceResolution": identifiers["deviceResolution"],
             "uuid": identifiers["uuid"],
             "deviceName": identifiers["deviceName"],
             "deviceBrand": identifiers["deviceBrand"],
             "deviceOsVersion": identifiers["deviceOsVersion"],
         }
+        for key in ("deviceType", "deviceResolution"):
+            value = identifiers.get(key)
+            if isinstance(value, str) and value.strip():
+                variables[key] = value
+        return variables
 
     def get_validation_variables(self) -> Dict[str, str]:
         """Get device identifiers for device validation."""

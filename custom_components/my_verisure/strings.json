@@ -1,4 +1,5 @@
 {
+  "title": "My Verisure",
   "config": {
     "step": {
       "user": {
@@ -42,10 +43,16 @@
     "error": {
       "invalid_auth": "[%key:common::config_flow::error::invalid_auth%]",
       "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
+      "cannot_persist": "Could not persist the authenticated session",
       "unknown": "[%key:common::config_flow::error::unknown%]",
       "cannot_get_installations": "Could not get installations from My Verisure",
+      "installation_not_found": "The selected installation is no longer available",
       "otp_required": "Two-factor authentication required",
       "otp_invalid": "Invalid OTP code",
+      "otp_invalid_phone": "The selected phone number is not available for this OTP challenge",
+      "otp_no_phone_destinations": "My Verisure requires OTP verification, but no phone destination is available",
+      "otp_data_missing": "The OTP challenge data is incomplete. Please restart authentication",
+      "authentication_required": "Authentication must be completed before selecting an installation",
       "otp_failed": "Failed to send OTP code",
       "otp_reauth_required": "Two-factor authentication required again. Please reconfigure the integration to provide a new OTP code.",
       "session_expired": "Your session has expired. Please reconfigure the integration to authenticate again."
@@ -89,7 +96,8 @@
   "notifications": {
     "title": {
       "success": "My Verisure",
-      "error": "My Verisure - Error"
+      "error": "My Verisure - Error",
+      "warning": "My Verisure - Warning"
     },
     "alarm": {
       "arm_away": {
@@ -111,6 +119,12 @@
         "success": "Alarm deactivated successfully.",
         "error": "Error deactivating alarm: {message}",
         "exception": "Error deactivating alarm: {error}"
+      }
+    },
+    "service": {
+      "blocked": {
+        "title": "Service temporarily blocked",
+        "message": "Too many requests were made, and the service has temporarily blocked further calls. Please wait about 10 minutes before trying again."
       }
     }
   }

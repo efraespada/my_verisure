@@ -1,5 +1,6 @@
 """Lifecycle contracts for the alarm control panel entity."""
 
+import asyncio
 from typing import Any, cast
 from unittest.mock import AsyncMock, MagicMock
 
@@ -7,6 +8,7 @@ import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.my_verisure.alarm_control_panel import MyVerisureAlarmControlPanel
+from custom_components.my_verisure.core.application.exceptions import MyVerisureError
 
 
 def _entity(installation_id: str | None = "installation-1") -> MyVerisureAlarmControlPanel:
@@ -57,10 +59,45 @@ async def test_command_failure_clears_transition_state() -> None:
     entity = _entity()
     object.__setattr__(entity.hass.services, "async_call", AsyncMock(side_effect=RuntimeError("service failed")))
 
-    await entity.async_alarm_arm_home()
+    with pytest.raises(MyVerisureError, match="Alarm command failed"):
+        await entity.async_alarm_arm_home()
 
     assert entity._transition_state is None
     assert cast(Any, entity)._state_writer.call_count >= 2
+
+
+
+
+@pytest.mark.asyncio
+async def test_domain_command_failure_is_propagated() -> None:
+    entity = _entity()
+    object.__setattr__(
+        entity.hass.services,
+        "async_call",
+        AsyncMock(side_effect=MyVerisureError("Alarm command failed")),
+    )
+
+    with pytest.raises(MyVerisureError, match="Alarm command failed"):
+        await entity.async_alarm_arm_home()
+
+    assert entity._transition_state is None
+
+
+
+
+@pytest.mark.asyncio
+async def test_cancelled_command_clears_transition_state_and_propagates() -> None:
+    entity = _entity()
+    object.__setattr__(
+        entity.hass.services,
+        "async_call",
+        AsyncMock(side_effect=asyncio.CancelledError),
+    )
+
+    with pytest.raises(asyncio.CancelledError):
+        await entity.async_alarm_arm_home()
+
+    assert entity._transition_state is None
 
 
 @pytest.mark.asyncio
@@ -69,7 +106,8 @@ async def test_missing_installation_id_does_not_leave_entity_arming() -> None:
     service_call = AsyncMock()
     object.__setattr__(entity.hass.services, "async_call", service_call)
 
-    await entity.async_alarm_arm_night()
+    with pytest.raises(MyVerisureError, match="Installation not found"):
+        await entity.async_alarm_arm_night()
 
     service_call.assert_not_awaited()
     assert entity._transition_state is None

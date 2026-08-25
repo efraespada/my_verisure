@@ -1,7 +1,7 @@
 """Get installation devices use case implementation."""
 
 import logging
-from ...api.models.domain.device import DeviceList
+from ...application.models.device import DeviceList
 from ...repositories.interfaces.installation_repository import InstallationRepository
 from ..interfaces.get_installation_devices_use_case import GetInstallationDevicesUseCase
 
@@ -22,11 +22,7 @@ class GetInstallationDevicesUseCaseImpl(GetInstallationDevicesUseCase):
     ) -> DeviceList:
         """Get devices for an installation."""
         try:
-            _LOGGER.info(
-                "Getting devices for installation %s (force_refresh=%s)",
-                installation_id,
-                force_refresh
-            )
+            _LOGGER.info("Getting installation devices (force_refresh=%s)", force_refresh)
 
             # Validate inputs
             if not installation_id:
@@ -39,9 +35,8 @@ class GetInstallationDevicesUseCaseImpl(GetInstallationDevicesUseCase):
             )
 
             _LOGGER.info(
-                "Successfully retrieved %d devices for installation %s",
+                "Successfully retrieved %d installation devices",
                 len(detailed_installation.installation.devices),
-                installation_id
             )
 
             # Log device summary
@@ -68,9 +63,9 @@ class GetInstallationDevicesUseCaseImpl(GetInstallationDevicesUseCase):
 
             return DeviceList(result="OK", devices=devices)
 
-        except ValueError as e:
-            _LOGGER.error("Validation error getting installation devices: %s", e)
+        except ValueError:
+            _LOGGER.error("Validation error getting installation devices")
             raise
-        except Exception as e:
-            _LOGGER.error("Unexpected error getting installation devices: %s", e)
+        except Exception:
+            _LOGGER.error("Unexpected error getting installation devices")
             raise

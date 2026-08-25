@@ -30,14 +30,14 @@ class CompositionRoot:
 
 def build_my_verisure_composition_root(
     *,
-    session_file: str | Path | None = None,
-    project_root: Path | None = None,
+    project_root: Path,
 ) -> CompositionRoot:
-    """Build the production graph for one integration entry."""
+    """Build the production graph for one entry-scoped root."""
     from .module import MyVerisureModule
 
     file_manager = FileManager(project_root)
-    session_manager = SessionManager(session_file, file_manager=file_manager)
+    scoped_session_file = file_manager.get_file_path("session.json")
+    session_manager = SessionManager(scoped_session_file, file_manager=file_manager)
     root = CompositionRoot(
         MyVerisureModule(
             session_manager=session_manager,

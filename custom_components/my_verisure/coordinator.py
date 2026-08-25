@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import time
 from typing import Any, Dict, cast
 from datetime import timedelta
@@ -15,6 +16,7 @@ from homeassistant.helpers.storage import STORAGE_DIR
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.components.persistent_notification import async_create
 
+from .core.application.exceptions import MyVerisureError
 from .core.api.exceptions import MyVerisureServiceBlockedError
 from .core.dependency_injection.composition_root import (
     CompositionRoot,
@@ -56,7 +58,7 @@ from .core.const import (
     CONF_DEV_MODE,
 )
 from .core.log_utils import redact_sensitive_data, reset_dev_mode, set_dev_mode, should_log_detailed
-from .core.api.models.domain.alarm import ArmResult, DisarmResult
+from .core.application.models.alarm import ArmResult, DisarmResult
 
 
 class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
@@ -75,14 +77,11 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         self.config_entry = entry
         self.installation_id: str = cast(str, entry.data[CONF_INSTALLATION_ID])
         
-        session_file = hass.config.path(
-            STORAGE_DIR, f"my_verisure_{entry.data[CONF_USER]}.json"
-        )
+        project_root = Path(hass.config.path(STORAGE_DIR)) / f"my_verisure_{entry.entry_id}"
+        session_file = project_root / "data" / "session.json"
 
         self.composition_root = composition_root or build_my_verisure_composition_root(
-            session_file=session_file,
-            project_root=Path(hass.config.path(STORAGE_DIR))
-            / f"my_verisure_{entry.entry_id}",
+            project_root=project_root,
         )
 
         self.auth_use_case = self.composition_root.get(cast(type[Any], AuthUseCase))
@@ -106,6 +105,10 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         )
 
         self.session_manager = self.composition_root.get(SessionManager)
+        username = self.config_entry.data.get(CONF_USER)
+        password = self.config_entry.data.get(CONF_PASSWORD)
+        if isinstance(username, str) and isinstance(password, str):
+            self.session_manager.set_login_credentials(username, password)
         self.file_manager = self.composition_root.get(FileManager)
         self.snapshot_store = CoordinatorSnapshotStore(self.file_manager)
         self.refresh_effects = CoordinatorRefreshEffects(
@@ -115,7 +118,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         )
         self.authentication_policy = CoordinatorAuthenticationPolicy(
             login=self.async_login,
-            load_cache=self.load_alarm_info,
+            load_cache=self.async_load_alarm_info,
         )
         
         # Reference to alarm control panel for state updates
@@ -133,16 +136,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             ),
         )
         self.session_policy = CoordinatorSessionPolicy()
-        
-        # Set credentials in session manager (memory only; persist after login)
-        self.session_manager.update_credentials(
-            entry.data[CONF_USER],
-            entry.data[CONF_PASSWORD],
-            "",
-            "",
-            persist=False,
-        )
-        
+
         # Store session file path for later loading
         self.session_file = session_file
 
@@ -184,7 +178,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
                 decision.authenticated,
                 decision.valid,
                 decision.blocked,
-                bool(self.load_alarm_info()),
+                bool(await self.async_load_alarm_info()),
             )
             if decision.action is SessionAction.SKIP_BLOCKED:
                 LOGGER.warning(
@@ -209,8 +203,8 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             LOGGER.info("Session invalid, attempting automatic refresh...")
             return await self.async_refresh_session()
 
-        except MyVerisureServiceBlockedError as ex:
-            LOGGER.error("Service temporarily blocked during login: %s", ex)
+        except MyVerisureServiceBlockedError:
+            LOGGER.error("Service temporarily blocked during login")
             # Send service blocked notification
             await self.notifications.notify(
                 title_key="notifications.service.blocked.title",
@@ -218,8 +212,12 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
                 notification_id="verisure_service_blocked",
             )
             return False
-        except Exception as e:
-            LOGGER.error("Login failed: %s", e)
+        except asyncio.CancelledError:
+            raise
+        except MyVerisureError:
+            raise
+        except Exception:
+            LOGGER.error("Login failed")
             return False
 
     async def async_refresh_session(self) -> bool:
@@ -236,9 +234,13 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
                 LOGGER.info("No session file found or failed to load")
                 return False
                 
-        except Exception as e:
-            LOGGER.error("Session refresh failed: %s", e)
-            return False
+        except asyncio.CancelledError:
+            raise
+        except MyVerisureError:
+            raise
+        except Exception:
+            LOGGER.error("Session refresh failed")
+            raise MyVerisureError("Session refresh failed") from None
 
     def _panel_capabilities_from_stored_data(
         self,
@@ -266,9 +268,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             if not panel or not caps:
                 return await self._async_update_data()
 
-            LOGGER.info(
-                "Refreshing alarm state for installation %s", self.installation_id
-            )
+            LOGGER.info("Refreshing alarm state")
             alarm_status = await self.alarm_use_case.get_alarm_status(
                 self.installation_id,
                 panel=panel,
@@ -289,7 +289,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
                 self.installation_id,
                 create_dummy_images=False,
             )
-            LOGGER.info("Alarm state refreshed for installation %s", self.installation_id)
+            LOGGER.info("Alarm state refreshed")
             return result
         finally:
             reset_dev_mode(tok)
@@ -299,10 +299,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         tok = set_dev_mode(self._dev_mode)
         try:
             try:
-                LOGGER.debug(
-                    "AUTH_FLOW[update_data]: starting update cycle, installation=%s",
-                    self.installation_id,
-                )
+                LOGGER.debug("AUTH_FLOW[update_data]: starting update cycle")
                 authentication = await self.authentication_policy.authenticate()
                 if not authentication.authenticated:
                     if authentication.cached_data:
@@ -310,10 +307,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
                         return authentication.cached_data
                     raise UpdateFailed("Failed to login to My Verisure")
 
-                LOGGER.info(
-                    "Updating alarm and installation data for installation %s",
-                    self.installation_id,
-                )
+                LOGGER.info("Updating alarm and installation data")
                 result = await self.snapshot_service.refresh(self.installation_id)
                 if should_log_detailed():
                     LOGGER.debug(
@@ -326,39 +320,40 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
                     self.installation_id,
                     create_dummy_images=True,
                 )
-                LOGGER.info(
-                    "Alarm and installation data updated for installation %s",
-                    self.installation_id,
-                )
+                LOGGER.info("Alarm and installation data updated")
                 return result
 
+            except asyncio.CancelledError:
+                raise
             except Exception as ex:
                 failure = self._failure_classifier.classify(ex)
-                LOGGER.error("Coordinator update failed (%s): %s", failure.kind, failure.message)
+                LOGGER.error("Coordinator update failed (%s)", failure.kind)
                 if failure.kind is CoordinatorFailureKind.SERVICE_BLOCKED:
                     await self.notifications.notify(
                         title_key="notifications.service.blocked.title",
                         message_key="notifications.service.blocked.message",
                         notification_id="verisure_service_blocked",
                     )
-                    cached_data = self.load_alarm_info()
+                    cached_data = await self.async_load_alarm_info()
                     if cached_data:
                         LOGGER.warning("Service blocked but using cached coordinator data")
                         return cached_data
-                    raise UpdateFailed(
-                        f"Service temporarily blocked: {failure.message}"
-                    ) from ex
+                    raise UpdateFailed("Service temporarily blocked") from None
                 if failure.kind is CoordinatorFailureKind.AUTHENTICATION:
-                    raise ConfigEntryAuthFailed from ex
-                raise UpdateFailed(
-                    f"{failure.kind.replace('_', ' ').capitalize()}: {failure.message}"
-                ) from ex
+                    raise ConfigEntryAuthFailed from None
+                if isinstance(ex, MyVerisureError):
+                    raise
+                raise UpdateFailed(failure.message) from None
         finally:
             reset_dev_mode(tok)
 
     def load_alarm_info(self) -> Dict[str, Any]:
         """Load the last saved data from coordinator data file."""
         return self.snapshot_store.load()
+
+    async def async_load_alarm_info(self) -> Dict[str, Any]:
+        """Load the last saved data without blocking the event loop."""
+        return await asyncio.to_thread(self.load_alarm_info)
 
     def get_alarm_info_info(self) -> Dict[str, Any]:
         """Get information about the last saved data file."""
@@ -390,19 +385,21 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
                     title_key="notifications.title.error",
                     message_key=command.error_key,
                     notification_id=f"{command.notification_id}_error",
-                    message_args={"message": result.message},
+                    message_args={"message": "Alarm operation was rejected"},
                 )
             return result
+        except MyVerisureError:
+            raise
         except Exception as error:
-            LOGGER.error("Failed to execute alarm command %s: %s", command_name, error)
+            LOGGER.error("Failed to execute alarm command %s", command_name)
             await self.notifications.notify(
                 title_key="notifications.title.error",
                 message_key=command.exception_key,
                 notification_id=f"{command.notification_id}_exception",
-                message_args={"error": str(error)},
+                message_args={"error": "Alarm operation failed"},
             )
             result_type = DisarmResult if command_name == "disarm" else ArmResult
-            return result_type(success=False, message=f"Failed to {command_name}: {error}")
+            return result_type(success=False, message="Alarm operation failed")
         finally:
             reset_dev_mode(tok)
     async def async_arm_away(self) -> ArmResult:
@@ -426,8 +423,13 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         tok = set_dev_mode(self._dev_mode)
         try:
             await self.coordinator_camera_refresh.run(self.installation_id)
-        except Exception as e:
-            LOGGER.error("Failed to refresh camera images: %s", e)
+        except asyncio.CancelledError:
+            raise
+        except MyVerisureError:
+            raise
+        except Exception:
+            LOGGER.error("Failed to refresh camera images")
+            raise MyVerisureError("Camera image refresh failed") from None
         finally:
             reset_dev_mode(tok)
 
@@ -466,8 +468,8 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
                 self.session_manager.is_session_valid()
                 or self.session_manager.can_attempt_refresh()
             )
-        except Exception as e:
-            LOGGER.error("Error loading session: %s", e)
+        except Exception:
+            LOGGER.error("Error loading session")
             return False
         finally:
             reset_dev_mode(tok)
@@ -500,6 +502,6 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             await self.async_shutdown()
             self._alarm_control_panel = None
             self._button = None
-            LOGGER.debug("Coordinator cleanup completed for %s", self.installation_id)
-        except Exception as error:
-            LOGGER.error("Error during coordinator cleanup: %s", error)
+            LOGGER.debug("Coordinator cleanup completed")
+        except Exception:
+            LOGGER.error("Error during coordinator cleanup")

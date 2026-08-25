@@ -2,7 +2,7 @@
 
 import pytest
 
-from custom_components.my_verisure.core.application.alarm_command_response import (
+from custom_components.my_verisure.core.api.alarm_command_response import (
     AlarmCommandResponseInterpreter,
 )
 
@@ -12,17 +12,18 @@ from custom_components.my_verisure.core.application.alarm_command_response impor
     [
         (
             {"data": {"xSArmPanel": {"res": "OK", "msg": "armed", "referenceId": 7}}},
-            (True, "armed", "7"),
+            (True, "Alarm command accepted", "7"),
         ),
         (
             {"data": {"xSDisarmPanel": {"res": "KO", "msg": "rejected", "referenceId": "ref"}}},
-            (False, "rejected", None),
+            (False, "Alarm command rejected", None),
         ),
         (
             {"errors": [{"message": "upstream failure"}]},
-            (False, "upstream failure", None),
+            (False, "Alarm service request failed", None),
         ),
-        ({}, (False, "Unknown", None)),
+        ({}, (False, "Alarm command rejected", None)),
+        ({"errors": []}, (False, "Alarm service request failed", None)),
     ],
 )
 def test_interpret_command_response(result, expected):

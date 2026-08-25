@@ -1,6 +1,6 @@
 """Tests for camera device selection rules."""
 
-from custom_components.my_verisure.core.api.models.domain.device import Device
+from custom_components.my_verisure.core.application.models.device import Device
 from custom_components.my_verisure.core.application.camera_devices import (
     camera_devices,
     camera_identifier,

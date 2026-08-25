@@ -4,6 +4,20 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
 
+def _required_string(data: Dict[str, Any], key: str, scope: str) -> str:
+    value = data.get(key)
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"{scope} field required: {key}")
+    return value
+
+
+def _required_int(data: Dict[str, Any], key: str, scope: str) -> int:
+    value = data.get(key)
+    if not isinstance(value, int) or value <= 0:
+        raise ValueError(f"{scope} field required: {key}")
+    return value
+
+
 @dataclass
 class PhoneDTO:
     id: int
@@ -13,7 +27,12 @@ class PhoneDTO:
 
     @classmethod
     def from_dict(cls, data: dict) -> "PhoneDTO":
-        return cls(data.get("id", 0), data.get("phone", ""), data.get("record_id"), data.get("otp_hash"))
+        return cls(
+            _required_int(data, "id", "phone"),
+            _required_string(data, "phone", "phone"),
+            data.get("record_id"),
+            data.get("otp_hash"),
+        )
 
     def to_dict(self) -> Dict[str, Any]:
         return {"id": self.id, "phone": self.phone, "record_id": self.record_id, "otp_hash": self.otp_hash}
@@ -28,9 +47,14 @@ class OTPDataDTO:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "OTPDataDTO":
+        phones_data = data.get("phones")
+        if not isinstance(phones_data, list):
+            raise ValueError("otp phones required")
+        if any(not isinstance(phone, dict) for phone in phones_data):
+            raise ValueError("otp phones invalid")
         return cls(
-            phones=[PhoneDTO.from_dict(phone) for phone in data.get("phones", [])],
-            otp_hash=data.get("otpHash", ""),
+            phones=[PhoneDTO.from_dict(phone) for phone in phones_data],
+            otp_hash=_required_string(data, "otpHash", "otp"),
             auth_code=data.get("authCode"),
             auth_type=data.get("authType"),
         )
@@ -58,8 +82,8 @@ class AuthDTO:
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "AuthDTO":
         return cls(
-            res=data.get("res", ""),
-            msg=data.get("msg", ""),
+            res=_required_string(data, "res", "auth"),
+            msg=_required_string(data, "msg", "auth"),
             hash=data.get("hash"),
             refresh_token=data.get("refreshToken"),
             lang=data.get("lang"),

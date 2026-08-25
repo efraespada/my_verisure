@@ -1,10 +1,19 @@
 """Unit tests for AlarmDTO and related DTOs."""
 
+import pytest
+
 from ...api.models.dto.alarm_dto import (
     AlarmStatusDTO,
     ArmResultDTO,
     DisarmResultDTO,
 )
+
+
+
+
+def test_alarm_dto_rejects_missing_result_code() -> None:
+    with pytest.raises(ValueError, match="alarm result field required"):
+        AlarmStatusDTO.from_dict({"msg": "status"})
 
 
 class TestAlarmStatusDTO:

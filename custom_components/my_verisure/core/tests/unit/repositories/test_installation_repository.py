@@ -27,7 +27,7 @@ class TestInstallationRepository:
         mock_client.get_installations = AsyncMock()
         mock_client.get_installation_services = AsyncMock()
         # Mock the hash token
-        mock_client._hash = "test_hash_token_12345"
+        mock_client._hash = "HASH_TOKEN_SENTINEL"
         return mock_client
 
     @pytest.fixture
@@ -81,7 +81,7 @@ class TestInstallationRepository:
                 city="Madrid",
                 postcode="28001",
                 province="Madrid",
-                email="john@example.com",
+                email="EMAIL_SENTINEL",
                 phone="+34600000000",
                 due="2024-12-31",
                 role="owner",
@@ -97,7 +97,7 @@ class TestInstallationRepository:
                 city="Barcelona",
                 postcode="08001",
                 province="Barcelona",
-                email="jane@example.com",
+                email="EMAIL_SENTINEL",
                 phone="+34600000001",
                 due="2024-12-31",
                 role="user",
@@ -221,6 +221,7 @@ class TestInstallationRepository:
         assert result.installation.services[1].active is True
         assert result.installation.status == "active"
         assert result.installation.panel == "panel1"
+        installation_repository._file_manager.async_save_json.assert_not_called()
         mock_client.get_installation_services.assert_called_once_with(
             installation_id,
             False,

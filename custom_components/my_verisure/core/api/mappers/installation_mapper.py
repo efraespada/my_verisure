@@ -1,6 +1,6 @@
 """Mappings between installation transport DTOs and domain values."""
 
-from ..models.domain.installation import (
+from ...application.models.installation import (
     DetailedInstallation,
     Installation,
     InstallationData,

@@ -1,9 +1,17 @@
 """Installation DTOs for My Verisure API."""
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, Dict, List, Optional
 
 from .device_dto import DeviceDTO
+
+
+def _required_string(data: Dict[str, Any], key: str) -> str:
+    """Read one required provider string without fabricating a default."""
+    value = data.get(key)
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"installation field required: {key}")
+    return value
 
 
 @dataclass
@@ -24,7 +32,28 @@ class ServiceDTO:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "ServiceDTO":
-        return cls(data.get("idService", ""), data.get("active", False), data.get("visible", False), data.get("bde"), data.get("isPremium"), data.get("codOper"), data.get("request"), data.get("minWrapperVersion"), data.get("unprotectActive"), data.get("unprotectDeviceStatus"), data.get("instDate"), data.get("genericConfig"), data.get("attributes"))
+        id_service = data.get("idService")
+        active = data.get("active")
+        visible = data.get("visible")
+        if not isinstance(id_service, str) or not id_service.strip():
+            raise ValueError("service field required: idService")
+        if not isinstance(active, bool) or not isinstance(visible, bool):
+            raise ValueError("service field required: active/visible")
+        return cls(
+            id_service,
+            active,
+            visible,
+            data.get("bde"),
+            data.get("isPremium"),
+            data.get("codOper"),
+            data.get("request"),
+            data.get("minWrapperVersion"),
+            data.get("unprotectActive"),
+            data.get("unprotectDeviceStatus"),
+            data.get("instDate"),
+            data.get("genericConfig"),
+            data.get("attributes"),
+        )
 
     def to_dict(self) -> Dict[str, Any]:
         return {"idService": self.id_service, "active": self.active, "visible": self.visible, "bde": self.bde, "isPremium": self.is_premium, "codOper": self.cod_oper, "request": self.request, "minWrapperVersion": self.min_wrapper_version, "unprotectActive": self.unprotect_active, "unprotectDeviceStatus": self.unprotect_device_status, "instDate": self.inst_date, "genericConfig": self.generic_config, "attributes": self.attributes}
@@ -50,18 +79,18 @@ class InstallationDTO:
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "InstallationDTO":
         return cls(
-            cast(str, data.get("numinst")),
-            cast(str, data.get("alias")),
-            cast(str, data.get("panel")),
-            cast(str, data.get("type")),
-            cast(str, data.get("name")),
-            cast(str, data.get("surname")),
-            cast(str, data.get("address")),
-            cast(str, data.get("city")),
-            cast(str, data.get("postcode")),
-            cast(str, data.get("province")),
-            cast(str, data.get("email")),
-            cast(str, data.get("phone")),
+            _required_string(data, "numinst"),
+            _required_string(data, "alias"),
+            _required_string(data, "panel"),
+            _required_string(data, "type"),
+            _required_string(data, "name"),
+            _required_string(data, "surname"),
+            _required_string(data, "address"),
+            _required_string(data, "city"),
+            _required_string(data, "postcode"),
+            _required_string(data, "province"),
+            _required_string(data, "email"),
+            _required_string(data, "phone"),
             data.get("due"),
             data.get("role"),
         )
@@ -86,7 +115,29 @@ class InstallationDataDTO:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "InstallationDataDTO":
-        return cls(data.get("numinst", ""), data.get("role", ""), data.get("alias", ""), data.get("status", ""), data.get("panel", ""), data.get("sim", ""), data.get("instIbs", ""), [ServiceDTO.from_dict(s) for s in data.get("services", [])], [DeviceDTO.from_dict(d) for d in data.get("devices", [])], data.get("configRepoUser"), data.get("capabilities"))
+        services_data = data.get("services")
+        if not isinstance(services_data, list):
+            raise ValueError("installation services required")
+        devices_data = data.get("devices")
+        if not isinstance(devices_data, list):
+            raise ValueError("installation devices required")
+        if any(not isinstance(service, dict) for service in services_data):
+            raise ValueError("installation services invalid")
+        if any(not isinstance(device, dict) for device in devices_data):
+            raise ValueError("installation devices invalid")
+        return cls(
+            _required_string(data, "numinst"),
+            _required_string(data, "role"),
+            _required_string(data, "alias"),
+            _required_string(data, "status"),
+            _required_string(data, "panel"),
+            _required_string(data, "sim"),
+            _required_string(data, "instIbs"),
+            [ServiceDTO.from_dict(s) for s in services_data],
+            [DeviceDTO.from_dict(d) for d in devices_data],
+            data.get("configRepoUser"),
+            data.get("capabilities"),
+        )
 
     def to_dict(self) -> Dict[str, Any]:
         return {"numinst": self.numinst, "role": self.role, "alias": self.alias, "status": self.status, "panel": self.panel, "sim": self.sim, "instIbs": self.instIbs, "services": [service.to_dict() for service in self.services], "devices": [device.dict() for device in self.devices], "configRepoUser": self.configRepoUser, "capabilities": self.capabilities}
@@ -99,7 +150,11 @@ class DetailedInstallationDTO:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "DetailedInstallationDTO":
-        return cls(InstallationDataDTO.from_dict(data.get("installation", {})), data.get("language", ""))
+        language = _required_string(data, "language")
+        installation_data = data.get("installation")
+        if not isinstance(installation_data, dict):
+            raise ValueError("installation data required")
+        return cls(InstallationDataDTO.from_dict(installation_data), language)
 
     def to_dict(self) -> Dict[str, Any]:
         return {"installation": self.installation.to_dict(), "language": self.language}
@@ -111,7 +166,12 @@ class InstallationsListDTO:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "InstallationsListDTO":
-        return cls([InstallationDTO.from_dict(i) for i in data.get("installations", [])])
+        installations = data.get("installations")
+        if not isinstance(installations, list):
+            raise ValueError("installations required")
+        if any(not isinstance(item, dict) for item in installations):
+            raise ValueError("installations invalid")
+        return cls([InstallationDTO.from_dict(i) for i in installations])
 
     def to_dict(self) -> Dict[str, Any]:
         return {"installations": [installation.to_dict() for installation in self.installations]}

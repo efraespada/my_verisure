@@ -64,22 +64,36 @@ def main() -> int:
                 f"{path.relative_to(ROOT)}"
             )
 
-    pure_domain_models = (
-        "auth.py",
-        "alarm.py",
-        "camera_request_image.py",
-        "session.py",
-        "device.py",
-        "installation.py",
+    pure_domain_models = tuple(
+        ROOT / "custom_components" / "my_verisure" / "core" / "application" / "models" / name
+        for name in (
+            "alarm.py",
+            "auth.py",
+            "camera_refresh.py",
+            "camera_refresh_data.py",
+            "camera_request_image.py",
+            "device.py",
+            "installation.py",
+            "service.py",
+            "session.py",
+        )
     )
-    domain_root = (
-        ROOT / "custom_components" / "my_verisure" / "core" / "api" / "models" / "domain"
-    )
-    for filename in pure_domain_models:
-        path = domain_root / filename
+    for path in pure_domain_models:
         source = path.read_text(encoding="utf-8")
         if "models.dto" in source or "..dto" in source:
             errors.append(f"pure domain model imports DTOs: {path.relative_to(ROOT)}")
+
+    application_roots = (
+        ROOT / "custom_components" / "my_verisure" / "core" / "application",
+        ROOT / "custom_components" / "my_verisure" / "core" / "use_cases",
+    )
+    for application_root in application_roots:
+        for path in application_root.rglob("*.py"):
+            source = path.read_text(encoding="utf-8")
+            if "api." in source or "..api" in source:
+                errors.append(
+                    f"application code depends on API adapters: {path.relative_to(ROOT)}"
+                )
 
     if errors:
         print("ARCHITECTURE_GUARD_FAILED")

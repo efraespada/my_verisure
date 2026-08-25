@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+import asyncio
+from functools import partial
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
 
 from .core.const import DOMAIN, LOGGER
+from .core.application.exceptions import MyVerisureError
 from .coordinator import MyVerisureDataUpdateCoordinator
 from .device import async_setup_device
 from .services import async_setup_services, async_unload_services
@@ -25,7 +29,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up My Verisure from a config entry."""
     LOGGER.info("Setting up My Verisure integration")
 
-    coordinator = MyVerisureDataUpdateCoordinator(hass, entry=entry)
+    coordinator = await hass.async_add_executor_job(
+        partial(MyVerisureDataUpdateCoordinator, hass, entry)
+    )
 
     # Load session asynchronously
     await coordinator.async_load_session()
@@ -39,27 +45,26 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         LOGGER.info("Valid session found — integration ready")
 
     # Try to load cached data before attempting first refresh
-    cached_data = coordinator.load_alarm_info()
+    cached_data = await coordinator.async_load_alarm_info()
     
     try:
         await coordinator.async_config_entry_first_refresh()
+    except asyncio.CancelledError:
+        raise
     except ConfigEntryAuthFailed:
         LOGGER.error("Authentication failed - invalid credentials")
         raise
-    except Exception as ex:
+    except MyVerisureError:
+        raise
+    except Exception:
         # If first refresh fails but we have cached data, use it and continue
         if cached_data:
             LOGGER.warning(
-                "First refresh failed (%s) but using cached data - integration will continue "
-                "and retry on next update cycle",
-                str(ex),
+                "First refresh failed; using cached data and retrying later"
             )
             coordinator.data = cached_data
         else:
-            LOGGER.error(
-                "First refresh failed and no cached data available: %s",
-                ex,
-            )
+            LOGGER.error("First refresh failed and no cached data is available")
             raise
 
     entry.runtime_data = coordinator

@@ -6,9 +6,57 @@ import logging
 from typing import Any
 
 from ..file_manager import FileManager
+from .alarm_state import analyze_alarm_state
 
 _LOGGER = logging.getLogger(__name__)
 _SNAPSHOT_FILE = "coordinator_data.json"
+
+
+def _persistable_snapshot(payload: dict[str, Any]) -> dict[str, Any]:
+    """Project runtime data to a secret-free, provider-agnostic snapshot."""
+    alarm_payload = payload.get("alarm_status")
+    if not isinstance(alarm_payload, dict):
+        raise ValueError("invalid alarm snapshot")
+    alarm_data = alarm_payload.get("data")
+    if alarm_data is not None and not isinstance(alarm_data, dict):
+        raise ValueError("invalid alarm snapshot data")
+    alarm = analyze_alarm_state(alarm_payload)
+    installation = payload.get("detailed_installation", {})
+    raw_installation = (
+        installation.get("installation", {})
+        if isinstance(installation, dict)
+        else {}
+    )
+    safe_installation: dict[str, Any] = {}
+    services = raw_installation.get("services", [])
+    if not isinstance(services, list):
+        raise ValueError("invalid installation services")
+    safe_services: list[dict[str, bool]] = []
+    for service in services:
+        if (
+            not isinstance(service, dict)
+            or not isinstance(service.get("active"), bool)
+            or not isinstance(service.get("visible"), bool)
+        ):
+            raise ValueError("invalid installation service")
+        safe_services.append(
+            {"active": service["active"], "visible": service["visible"]}
+        )
+    safe_installation["services"] = safe_services
+    return {
+        "last_updated": payload.get("last_updated"),
+        "alarm_status": {
+            "data": {
+                "internal": {
+                    "day": {"status": alarm.internal_day},
+                    "night": {"status": alarm.internal_night},
+                    "total": {"status": alarm.internal_total},
+                },
+                "external": {"status": alarm.external},
+            }
+        },
+        "detailed_installation": {"installation": safe_installation},
+    }
 
 
 class CoordinatorSnapshotStore:
@@ -22,20 +70,26 @@ class CoordinatorSnapshotStore:
         """Load a non-empty mapping or return an empty mapping."""
         try:
             payload = self._file_manager.load_json(_SNAPSHOT_FILE)
-        except Exception as error:
-            _LOGGER.error("Failed to load coordinator snapshot: %s", error)
+        except Exception:
+            _LOGGER.error("Failed to load coordinator snapshot")
             return {}
         if isinstance(payload, dict) and payload:
-            return payload
+            try:
+                return _persistable_snapshot(payload)
+            except Exception:
+                _LOGGER.error("Invalid coordinator snapshot")
+                return {}
         _LOGGER.warning("No coordinator snapshot found in %s", _SNAPSHOT_FILE)
         return {}
 
     async def save(self, payload: dict[str, Any]) -> bool:
         """Persist a snapshot without blocking the event loop."""
         try:
-            return await self._file_manager.async_save_json(_SNAPSHOT_FILE, payload)
-        except Exception as error:
-            _LOGGER.error("Failed to save coordinator snapshot: %s", error)
+            return await self._file_manager.async_save_json(
+                _SNAPSHOT_FILE, _persistable_snapshot(payload)
+            )
+        except Exception:
+            _LOGGER.error("Failed to save coordinator snapshot")
             return False
 
     def metadata(self) -> dict[str, Any]:
@@ -44,11 +98,10 @@ class CoordinatorSnapshotStore:
             file_path = self._file_manager.get_file_path(_SNAPSHOT_FILE)
             exists = self._file_manager.file_exists(_SNAPSHOT_FILE)
             return {
-                "file_path": str(file_path),
                 "exists": exists,
                 "file_size": self._file_manager.get_file_size(_SNAPSHOT_FILE),
                 "last_modified": file_path.stat().st_mtime if exists else None,
             }
-        except Exception as error:
-            _LOGGER.error("Failed to inspect coordinator snapshot: %s", error)
-            return {"error": str(error)}
+        except Exception:
+            _LOGGER.error("Failed to inspect coordinator snapshot")
+            return {"error": "Coordinator snapshot unavailable"}

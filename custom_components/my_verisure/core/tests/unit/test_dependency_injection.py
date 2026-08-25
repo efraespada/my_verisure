@@ -30,9 +30,7 @@ from ...use_cases.interfaces.refresh_camera_images_use_case import (
 
 def test_composition_root_resolves_entry_scoped_graph(tmp_path: Path) -> None:
     """All application ports resolve from one explicit root."""
-    root = build_my_verisure_composition_root(
-        session_file=tmp_path / "session.json", project_root=tmp_path
-    )
+    root = build_my_verisure_composition_root(project_root=tmp_path)
 
     assert isinstance(root.get(SessionManager), SessionManager)
     assert isinstance(root.get(FileManager), FileManager)
@@ -53,9 +51,7 @@ def test_composition_root_resolves_entry_scoped_graph(tmp_path: Path) -> None:
 
 def test_composition_root_reuses_owned_singletons(tmp_path: Path) -> None:
     """One root shares its owned session and file managers consistently."""
-    root = build_my_verisure_composition_root(
-        session_file=tmp_path / "session.json", project_root=tmp_path
-    )
+    root = build_my_verisure_composition_root(project_root=tmp_path)
 
     session_manager = root.get(SessionManager)
     file_manager = root.get(FileManager)
@@ -72,14 +68,8 @@ def test_composition_root_reuses_owned_singletons(tmp_path: Path) -> None:
 
 def test_composition_roots_are_isolated(tmp_path: Path) -> None:
     """Two entry roots never share sessions, files, clients, or repositories."""
-    first_root = build_my_verisure_composition_root(
-        session_file=tmp_path / "first" / "session.json",
-        project_root=tmp_path / "first",
-    )
-    second_root = build_my_verisure_composition_root(
-        session_file=tmp_path / "second" / "session.json",
-        project_root=tmp_path / "second",
-    )
+    first_root = build_my_verisure_composition_root(project_root=tmp_path / "first")
+    second_root = build_my_verisure_composition_root(project_root=tmp_path / "second")
 
     assert first_root.get(SessionManager) is not second_root.get(SessionManager)
     assert first_root.get(FileManager) is not second_root.get(FileManager)

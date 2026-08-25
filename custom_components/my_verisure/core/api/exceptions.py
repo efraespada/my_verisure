@@ -1,33 +1,31 @@
-"""Custom exceptions for My Verisure API."""
+"""Compatibility exports for provider-facing imports.
 
+Canonical exception ownership lives in the application boundary so use cases do
+not depend on the API adapter package.
+"""
 
-class MyVerisureError(Exception):
-    """Base exception for My Verisure API errors."""
+from ..application.exceptions import (
+    MyVerisureAuthenticationError,
+    MyVerisureConnectionError,
+    MyVerisureDeviceAuthorizationError,
+    MyVerisureError,
+    MyVerisureMFAError,
+    MyVerisureOTPError,
+    MyVerisurePersistenceError,
+    MyVerisureResponseError,
+    MyVerisureServiceBlockedError,
+    MyVerisureTimeoutError,
+)
 
-
-class MyVerisureAuthenticationError(MyVerisureError):
-    """Authentication failed."""
-
-
-class MyVerisureConnectionError(MyVerisureError):
-    """Connection to My Verisure API failed."""
-
-
-class MyVerisureResponseError(MyVerisureError):
-    """Invalid response from My Verisure API."""
-
-
-class MyVerisureMFAError(MyVerisureError):
-    """MFA authentication error."""
-
-
-class MyVerisureOTPError(MyVerisureError):
-    """OTP authentication error."""
-
-
-class MyVerisureDeviceAuthorizationError(MyVerisureError):
-    """Device authorization error - device needs to be authorized."""
-
-
-class MyVerisureServiceBlockedError(MyVerisureError):
-    """Service temporarily blocked due to too many requests."""
+__all__ = [
+    "MyVerisureError",
+    "MyVerisureAuthenticationError",
+    "MyVerisureConnectionError",
+    "MyVerisureTimeoutError",
+    "MyVerisurePersistenceError",
+    "MyVerisureResponseError",
+    "MyVerisureMFAError",
+    "MyVerisureOTPError",
+    "MyVerisureDeviceAuthorizationError",
+    "MyVerisureServiceBlockedError",
+]

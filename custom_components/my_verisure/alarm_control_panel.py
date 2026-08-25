@@ -17,6 +17,7 @@ from .core.const import DOMAIN, LOGGER, ENTITY_NAMES
 from .coordinator import MyVerisureDataUpdateCoordinator
 from .device import get_device_info
 from .core.application.alarm_state import AlarmState, analyze_alarm_state
+from .core.application.exceptions import MyVerisureError
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -41,7 +42,7 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
         self.config_entry = config_entry
         # Use a simple name and unique_id
         self._attr_name = ENTITY_NAMES["alarm_control_panel"]
-        self._attr_unique_id = "my_verisure"
+        self._attr_unique_id = f"my_verisure-{config_entry.entry_id}"
         self._attr_code_format = None  # No code required
         self._attr_code_arm_required = False  # No code required for arming
         self._attr_code_disarm_required = False  # No code required for disarming
@@ -63,7 +64,7 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
 
     def _analyze_alarm_states(
         self, alarm_data: dict
-    ) -> tuple[AlarmControlPanelState, dict]:
+    ) -> tuple[AlarmControlPanelState | None, dict[str, Any]]:
         """
         Analyze alarm data and return the primary state and detailed state information.
 
@@ -84,7 +85,7 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
             "external": snapshot.external,
             "active_alarms": list(snapshot.active_alarms),
         }
-        return state_map[snapshot.state], detailed_states
+        return state_map.get(snapshot.state), detailed_states
 
     @property
     def alarm_state(self) -> AlarmControlPanelState | None:
@@ -116,32 +117,29 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
         alarm_data = self.coordinator.data.get("alarm_status", {})
 
         # Get detailed state analysis
-        _, detailed_states = self._analyze_alarm_states(alarm_data)
+        primary_state, detailed_states = self._analyze_alarm_states(alarm_data)
+        if primary_state is None:
+            return {}
 
         # Get installation info from services
         detailed_installation = self.coordinator.data.get("detailed_installation", {})
 
         installation_info = detailed_installation.get("installation", {})
 
-        attributes = {
-            "installation_id": installation_info.get("numinst", "Unknown"),
-            "installation_alias": installation_info.get("alias", "Unknown"),
-            "installation_status": installation_info.get("status", "Unknown"),
-            "installation_panel": installation_info.get("panel", "Unknown"),
-            "installation_role": installation_info.get("role", "Unknown"),
-            "installation_sim": installation_info.get("sim", "Unknown"),
-            "installation_instIbs": installation_info.get("instIbs", "Unknown"),
-            "installation_capabilities": installation_info.get("capabilities", "Unknown"),
-        }
+        attributes: dict[str, Any] = {}
+        for key in ("status", "role"):
+            value = installation_info.get(key)
+            if isinstance(value, str) and value.strip():
+                attributes[f"installation_{key}"] = value
 
         # Add detailed alarm state information
         attributes.update({
-            "internal_day_status": detailed_states.get("internal_day", False),
-            "internal_night_status": detailed_states.get("internal_night", False),
-            "internal_total_status": detailed_states.get("internal_total", False),
-            "external_status": detailed_states.get("external", False),
-            "active_alarms": detailed_states.get("active_alarms", []),
-            "alarm_count": len(detailed_states.get("active_alarms", [])),
+            "internal_day_status": detailed_states["internal_day"],
+            "internal_night_status": detailed_states["internal_night"],
+            "internal_total_status": detailed_states["internal_total"],
+            "external_status": detailed_states["external"],
+            "active_alarms": detailed_states["active_alarms"],
+            "alarm_count": len(detailed_states["active_alarms"]),
         })
 
         # Add services information
@@ -153,7 +151,6 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
             "total_services": len(services_list),
             "active_services": len(active_services),
             "visible_services": len(visible_services),
-            "services_available": [s.get("request", "Unknown") for s in active_services],
         })
 
         return attributes
@@ -177,14 +174,19 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
                     {"installation_id": installation_id}
                 )
             else:
-                LOGGER.error("No installation ID available")
+                raise MyVerisureError("Installation not found")
 
             self._transition_state = None
             self.async_write_ha_state()
 
-        except Exception as e:
-            LOGGER.error("Failed to disarm alarm: %s", e)
-            # Clear transition state on error
+        except MyVerisureError:
+            self._transition_state = None
+            self.async_write_ha_state()
+            raise
+        except Exception:
+            LOGGER.error("Failed to disarm alarm")
+            raise MyVerisureError("Alarm command failed") from None
+        finally:
             self._transition_state = None
             self.async_write_ha_state()
 
@@ -207,13 +209,18 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
                 )
                 LOGGER.warning("Alarm armed away successfully")
             else:
-                LOGGER.error("No installation ID available")
+                raise MyVerisureError("Installation not found")
 
             self._transition_state = None
             self.async_write_ha_state()
-        except Exception as e:
-            LOGGER.error("Failed to arm alarm away: %s", e)
-            # Clear transition state on error
+        except MyVerisureError:
+            self._transition_state = None
+            self.async_write_ha_state()
+            raise
+        except Exception:
+            LOGGER.error("Failed to arm alarm away")
+            raise MyVerisureError("Alarm command failed") from None
+        finally:
             self._transition_state = None
             self.async_write_ha_state()
 
@@ -236,14 +243,19 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
                 )
                 LOGGER.warning("Alarm armed home successfully")
             else:
-                LOGGER.error("No installation ID available")
+                raise MyVerisureError("Installation not found")
 
             self._transition_state = None
             self.async_write_ha_state()
 
-        except Exception as e:
-            LOGGER.error("Failed to arm alarm home: %s", e)
-            # Clear transition state on error
+        except MyVerisureError:
+            self._transition_state = None
+            self.async_write_ha_state()
+            raise
+        except Exception:
+            LOGGER.error("Failed to arm alarm home")
+            raise MyVerisureError("Alarm command failed") from None
+        finally:
             self._transition_state = None
             self.async_write_ha_state()
 
@@ -266,13 +278,18 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
                 )
                 LOGGER.warning("Alarm armed night successfully")
             else:
-                LOGGER.error("No installation ID available")
+                raise MyVerisureError("Installation not found")
 
             self._transition_state = None
             self.async_write_ha_state()
-        except Exception as e:
-            LOGGER.error("Failed to arm alarm night: %s", e)
-            # Clear transition state on error
+        except MyVerisureError:
+            self._transition_state = None
+            self.async_write_ha_state()
+            raise
+        except Exception:
+            LOGGER.error("Failed to arm alarm night")
+            raise MyVerisureError("Alarm command failed") from None
+        finally:
             self._transition_state = None
             self.async_write_ha_state()
 
