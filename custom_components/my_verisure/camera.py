@@ -2,6 +2,7 @@
 
 import logging
 import os
+import hashlib
 
 from datetime import datetime
 from typing import Optional
@@ -15,8 +16,15 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .coordinator import MyVerisureDataUpdateCoordinator
 from .device import get_device_info
+from .entity_registry_migration import async_migrate_camera_entities
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def camera_unique_id(entry_id: str, device: dict) -> str:
+    """Keep an opaque camera identity stable across provider list reordering."""
+    identity = f"{entry_id}:{device['type']}:{device['code']}".encode()
+    return f"{entry_id}_camera_{hashlib.sha256(identity).hexdigest()[:32]}"
 
 
 class VerisureCamera(CoordinatorEntity, Camera):
@@ -31,10 +39,12 @@ class VerisureCamera(CoordinatorEntity, Camera):
     ) -> None:
         """Initialize the camera entity."""
         super().__init__(coordinator)
+        Camera.__init__(self)
         self._my_coordinator = coordinator
         self._device = device
-        self._attr_name = "Verisure Camera"
-        self._attr_unique_id = f"{config_entry.entry_id}_camera_{camera_index}"
+        alias = device.get("name")
+        self._attr_name = f"Verisure {alias.strip()}" if isinstance(alias, str) and alias.strip() else "Verisure Camera"
+        self._attr_unique_id = camera_unique_id(config_entry.entry_id, device)
         self._attr_device_info = get_device_info(config_entry)
         self._latest_image_path: str | None = None
         self._latest_image_timestamp: str | None = None
@@ -194,6 +204,12 @@ async def async_setup_entry(
         device for device in devices 
         if device.get('type') in ["YP", "YR"]
     ]
+
+    if hass is not None:
+        async_migrate_camera_entities(
+            hass, config_entry,
+            [(device, camera_unique_id(config_entry.entry_id, device)) for device in camera_devices],
+        )
     
     for camera_index, device in enumerate(camera_devices):
         camera = VerisureCamera(coordinator, device, config_entry, camera_index)
@@ -201,7 +217,9 @@ async def async_setup_entry(
         _LOGGER.info("Created camera entity")
 
     if cameras:
-        async_add_entities(cameras, update_before_add=True)
+        # The coordinator already fetched the installation before platform setup.
+        # Updating each camera here triggers redundant complete panel refreshes.
+        async_add_entities(cameras)
         _LOGGER.info("Added %d Verisure camera entities", len(cameras))
     else:
         _LOGGER.info("No camera devices found to create entities")

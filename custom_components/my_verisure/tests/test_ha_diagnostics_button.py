@@ -1,6 +1,7 @@
 """Focused tests for diagnostics and camera refresh button lifecycle."""
 
 from types import SimpleNamespace
+import asyncio
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -101,6 +102,7 @@ async def test_button_clears_executing_state_after_success() -> None:
         DOMAIN,
         "refresh_camera_images",
         {"installation_id": "home-1"},
+        blocking=True,
     )
 
 
@@ -118,7 +120,36 @@ async def test_button_clears_executing_state_after_failure() -> None:
     state_writer = MagicMock()
     object.__setattr__(button, "async_write_ha_state", state_writer)
 
-    await button.async_press()
+    with pytest.raises(RuntimeError, match="service failed"):
+        await button.async_press()
 
     assert button.extra_state_attributes["is_executing"] is False
     assert button.available is True
+
+
+@pytest.mark.asyncio
+async def test_button_remains_busy_until_the_photo_service_finishes():
+    started, release = asyncio.Event(), asyncio.Event()
+
+    async def call(*args, blocking=False, **kwargs):
+        started.set()
+        if blocking:
+            await release.wait()
+
+    services = SimpleNamespace(async_call=AsyncMock(side_effect=call))
+    coordinator = MagicMock(spec=MyVerisureDataUpdateCoordinator)
+    coordinator.last_update_success = True
+    button = RefreshCameraImagesButton(coordinator, "home-1", _entry())
+    object.__setattr__(button, "hass", SimpleNamespace(services=services))
+    object.__setattr__(button, "async_write_ha_state", MagicMock())
+    task = asyncio.create_task(button.async_press())
+    await started.wait()
+    try:
+        assert button.extra_state_attributes["is_executing"] is True
+        assert button.available is False
+        await button.async_press()
+        assert services.async_call.await_count == 1
+    finally:
+        release.set()
+        await task
+    assert button.extra_state_attributes["is_executing"] is False

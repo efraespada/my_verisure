@@ -1,19 +1,24 @@
 {
   "domain": "my_verisure",
   "name": "My Verisure",
-  "codeowners": ["@efraespada"],
+  "codeowners": [
+    "@efraespada"
+  ],
   "config_flow": true,
   "documentation": "https://github.com/efraespada/my_verisure",
   "issue_tracker": "https://github.com/efraespada/my_verisure/issues",
   "integration_type": "hub",
   "iot_class": "cloud_polling",
-  "loggers": ["my_verisure"],
+  "loggers": [
+    "my_verisure"
+  ],
   "requirements": [
     "aiohttp>=3.8.0",
     "voluptuous>=0.13.0",
     "injector>=0.21.0",
     "PyJWT>=2.8.0",
-    "Pillow>=10.0.0"
+    "Pillow>=10.0.0",
+    "firebase-messaging==0.4.5"
   ],
   "version": "1.0.0"
 }

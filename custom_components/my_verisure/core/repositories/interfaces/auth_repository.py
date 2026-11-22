@@ -36,3 +36,8 @@ class AuthRepository(ABC):
     def get_available_phones(self) -> list[dict[str, object]]:
         """Return phone numbers available for OTP verification."""
         pass
+
+    @abstractmethod
+    def select_phone(self, phone_id: int) -> bool:
+        """Bind the explicitly selected phone to the provider challenge."""
+        pass

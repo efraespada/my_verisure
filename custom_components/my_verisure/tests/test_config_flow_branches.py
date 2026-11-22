@@ -51,13 +51,13 @@ async def test_config_flow_routes_otp_to_phone_selection(hass, enable_custom_int
 
 @pytest.mark.homeassistant
 @pytest.mark.asyncio
-async def test_config_flow_rejects_non_positive_otp_record_id(
+async def test_config_flow_rejects_negative_otp_record_id(
     hass, enable_custom_integrations
 ):
     auth = _FakeAuthUseCase(error=MyVerisureOTPError("OTP required"))
     root = _FakeRoot(auth, [])
     auth.get_available_phones = lambda: [
-        {"id": 1, "phone": "[REDACTED]", "record_id": 0}
+        {"id": 1, "phone": "[REDACTED]", "record_id": -1}
     ]
     auth.select_phone = Mock(return_value=True)
     auth.send_otp = AsyncMock(return_value=True)
@@ -80,6 +80,39 @@ async def test_config_flow_rejects_non_positive_otp_record_id(
     assert result["type"] == "form"
     assert result["step_id"] == "phone_selection"
     auth.send_otp.assert_not_awaited()
+
+
+@pytest.mark.homeassistant
+@pytest.mark.asyncio
+async def test_config_flow_accepts_zero_indexed_otp_record_id(
+    hass, enable_custom_integrations
+):
+    auth = _FakeAuthUseCase(error=MyVerisureOTPError("OTP required"))
+    root = _FakeRoot(auth, [])
+    auth.get_available_phones = lambda: [
+        {"id": 0, "phone": "[REDACTED]", "record_id": 0}
+    ]
+    auth.select_phone = Mock(return_value=True)
+    auth.send_otp = AsyncMock(return_value=True)
+
+    with patch(
+        "custom_components.my_verisure.config_flow.build_my_verisure_composition_root",
+        return_value=root,
+    ):
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": "user"}
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {"user": "[REDACTED]", "password": "[REDACTED]"},
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"phone_id": "0"}
+        )
+
+    assert result["type"] == "form"
+    assert result["step_id"] == "otp_verification"
+    auth.send_otp.assert_awaited_once_with(0)
 
 
 @pytest.mark.homeassistant

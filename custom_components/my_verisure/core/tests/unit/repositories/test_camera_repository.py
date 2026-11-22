@@ -73,6 +73,8 @@ class TestCameraRepository:
                 panel=panel,
                 devices=devices,
                 capabilities=capabilities,
+                max_attempts=30,
+                check_interval=20,
             )
             mock_from_dto.assert_called_once_with(mock_dto)
 
@@ -101,6 +103,8 @@ class TestCameraRepository:
             panel=panel,
             devices=devices,
             capabilities=capabilities,
+            max_attempts=30,
+            check_interval=20,
         )
 
     @pytest.mark.asyncio
@@ -239,6 +243,8 @@ class TestCameraRepository:
                 panel=panel,
                 devices=devices,
                 capabilities=capabilities,
+                max_attempts=30,
+                check_interval=20,
             )
 
     @pytest.mark.asyncio

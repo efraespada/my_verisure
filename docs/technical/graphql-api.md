@@ -1,6 +1,6 @@
 # GraphQL API
 
-**Endpoint:** `https://customers.securitasdirect.es/owa-api/graphql` (`VERISURE_GRAPHQL_URL`).
+**Endpoint:** `https://customers.verisure.es/owa-api/graphql` (`VERISURE_GRAPHQL_URL`).
 
 ## Transport
 
@@ -8,7 +8,10 @@
 
 ## Headers
 
-Includes synthetic native-app headers (`App`, `Extension`) plus serialized **`auth`** JSON (`loginTimestamp`, user id, country `ES`, hash token, …).
+Native authentication uses `App`/`Extension` metadata; embedded-web data calls
+use their observed transport headers and serialized `auth` context. The selected
+entry-owned profile supplies consistent OWI/OWA identifiers for login, refresh,
+SMS and data calls. Account/session values stay private.
 
 ## Queries / mutations
 

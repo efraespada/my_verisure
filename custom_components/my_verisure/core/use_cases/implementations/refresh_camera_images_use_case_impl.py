@@ -8,7 +8,7 @@ from ...application.models.camera_refresh import CameraRefresh
 from ...application.models.camera_refresh_data import CameraRefreshData
 from ...application.camera_devices import (
     camera_devices as select_camera_devices,
-    camera_identifier,
+    camera_identifier as camera_identifier_for_device,
 )
 from ...application.exceptions import MyVerisureError
 from ...repositories.interfaces.camera_repository import CameraRepository
@@ -36,7 +36,8 @@ class RefreshCameraImagesUseCaseImpl(RefreshCameraImagesUseCase):
         self,
         installation_id: str,
         max_attempts: int = 30,
-        check_interval: int = 4,
+        check_interval: int = 20,
+        camera_identifier: str | None = None,
     ) -> CameraRefresh:
         """Refresh images from cameras."""
         start_time = time.time()
@@ -55,6 +56,13 @@ class RefreshCameraImagesUseCaseImpl(RefreshCameraImagesUseCase):
             
             # Filter devices to get only cameras (type "YR" or "YP")
             camera_devices_list = select_camera_devices(devices)
+            if camera_identifier is not None:
+                camera_devices_list = [
+                    device for device in camera_devices_list
+                    if camera_identifier == camera_identifier_for_device(device)
+                ]
+                if not camera_devices_list:
+                    raise MyVerisureError("Selected camera unavailable")
             
             if not camera_devices_list:
                 _LOGGER.warning("⚠️ No active camera devices (YR/YP) found")
@@ -76,12 +84,18 @@ class RefreshCameraImagesUseCaseImpl(RefreshCameraImagesUseCase):
                         panel=panel,
                         devices=[int(camera_device.code)],
                         capabilities=capabilities,
+                        max_attempts=max_attempts,
+                        check_interval=check_interval,
                     )
 
-                    formatted_code = camera_identifier(camera_device)
+                    formatted_code = camera_identifier_for_device(camera_device)
                     if (result.successful_requests > 0):
                         _LOGGER.info("⏳ Waiting before retrieving images")
-                        await asyncio.sleep(3)
+                        signal_id = getattr(result, "signal_id", None)
+                        if not isinstance(signal_id, str):
+                            signal_id = None
+                        if signal_id is None:
+                            await asyncio.sleep(3)
 
                         image_result = await self.camera_repository.get_images(
                             installation_id=installation_id,
@@ -89,6 +103,7 @@ class RefreshCameraImagesUseCaseImpl(RefreshCameraImagesUseCase):
                             device=camera_device.type,
                             zone_id=formatted_code,
                             capabilities=capabilities,
+                            **({"signal_id": signal_id} if signal_id is not None else {}),
                         )
                         
                         persisted_successfully = image_result.get("success") is True

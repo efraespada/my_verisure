@@ -172,6 +172,10 @@ class AuthRepositoryImpl(AuthRepository):
         """Invalidate provider-client OTP state without network access."""
         self.client.invalidate_otp_challenge()
 
+    def select_phone(self, phone_id: int) -> bool:
+        """Keep application and provider-client OTP selections consistent."""
+        return self.client.select_phone(phone_id) is True
+
     def get_available_phones(self) -> list[dict[str, object]]:
         """Get available phone numbers for OTP."""
         try:

@@ -5,14 +5,17 @@ from __future__ import annotations
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity import DeviceInfo
 
 from .core.const import DOMAIN, DEVICE_INFO
+from .entity_registry_migration import async_migrate_alarm_entity
 
 
 def get_device_info(config_entry: ConfigEntry) -> DeviceInfo:
     """Get device info for My Verisure."""
     entry_id = config_entry.entry_id
+
 
     return DeviceInfo(
         identifiers={(DOMAIN, entry_id)},
@@ -30,6 +33,22 @@ async def async_setup_device(hass: HomeAssistant, config_entry: ConfigEntry) -> 
     
     entry_id = config_entry.entry_id
 
+    installation_id = config_entry.data.get("installation_id")
+    legacy = device_registry.async_get_device_by_identifier((DOMAIN, installation_id), entry_id) if isinstance(installation_id, str) else None
+    current = device_registry.async_get_device_by_identifier((DOMAIN, entry_id), entry_id)
+    if legacy is not None and legacy.config_entries == {entry_id}:
+        if current is not None and current.id != legacy.id and current.config_entries == {entry_id}:
+            registry = er.async_get(hass)
+            for entity in er.async_entries_for_config_entry(registry, entry_id):
+                if entity.device_id == current.id:
+                    registry.async_update_entity(entity.entity_id, device_id=legacy.id)
+            device_registry.async_remove_device(current.id)
+            current = None
+        if current is None or current.id == legacy.id:
+            device_registry.async_update_device(legacy.id, new_identifiers={(DOMAIN, entry_id)})
+    async_migrate_alarm_entity(hass, config_entry)
+
+
     # Create or update the device
     device_registry.async_get_or_create(
         config_entry_id=entry_id,
@@ -39,4 +58,4 @@ async def async_setup_device(hass: HomeAssistant, config_entry: ConfigEntry) -> 
         model=DEVICE_INFO["model"],
         sw_version=DEVICE_INFO["sw_version"],
         configuration_url=DEVICE_INFO["configuration_url"],
-    ) 
+    )

@@ -1,0 +1,119 @@
+{
+  "date": "2026-11-23",
+  "status": "installed-and-verified",
+  "runtime": {
+    "home_assistant": "2026.11.2",
+    "operating_system": "Home Assistant OS 18.4",
+    "firebase-messaging": "0.4.5"
+  },
+  "deployment": {
+    "production_files": 143,
+    "archive_sha256": "19a6264899e82cd772c94203255c2167278a55a6ca52fea807075ce704053c87",
+    "configuration_check_passed": true,
+    "existing_entry_preserved": true,
+    "entities_preserved": 20,
+    "initial_archive_sha256": "ecf262dfe55918e2abc61c77c57151575c0b2d5d74584f7f9a018d8191ddf8f0",
+    "installed_source_hashes_verified": 143,
+    "installation_method": "Verified full package plus verified receiver patch; all 143 resulting source hashes match the final canonical archive",
+    "transferred_final_package_sha256": "5b810e8a3607ddfdb72940858845c474c6dbdbb29fb8e8a465c6a39ffe673514",
+    "receiver_patch_sha256": "3c0c6c889f156bcb8651ec692fd64adfb09ff9e4ca7c82ddb6cad525fb053be7"
+  },
+  "profile": {
+    "authenticated_callby": "OWA_10",
+    "new_sms_required": false,
+    "receiver_credential_file_mode": "0600"
+  },
+  "initial_registration": {
+    "first_attempt": "PHONE_REGISTRATION_ERROR from Google",
+    "later_spaced_attempt": "success",
+    "verisure_polling_remained_available": true
+  },
+  "push_photo": {
+    "started": "2026-11-23T00:01:35.562+01:00",
+    "confirmed": "2026-11-23T00:01:56.403+01:00",
+    "committed": "2026-11-23T00:01:56.692+01:00",
+    "total_seconds": 21.13,
+    "images_committed": 3,
+    "initial_status_reads": 1,
+    "fallback_status_reads": 0,
+    "delivery_ids_persisted": 1,
+    "selected_camera_matches": true,
+    "freshness_verified": true
+  },
+  "fallback_photo": {
+    "receiver_enabled": false,
+    "started": "2026-11-23T00:09:00.849+01:00",
+    "committed": "2026-11-23T00:09:45.916+01:00",
+    "total_seconds": 45.07,
+    "images_committed": 3,
+    "status_reads": 3,
+    "polling_interval_seconds": 20,
+    "mutations_in_successful_request": 1,
+    "delivery_ids_did_not_increase": true,
+    "earlier_request_rejected": true,
+    "earlier_rejection_cause": "Not established; original GraphQL response was not retained",
+    "retry_spacing": "more than four minutes"
+  },
+  "restart": {
+    "status": "verified",
+    "observed_problem": "SDK checked in on every start and attempted a fresh registration after a transient check-in failure",
+    "correction": "Reuse durable credentials directly; only an actual MCS authentication rejection requests registration recovery",
+    "cached_restart_http_registration_calls_expected": 0,
+    "token_reused": true,
+    "entity_registry_identities_unchanged": true,
+    "receiver_errors_in_final_log_check": false
+  },
+  "alarm_mutations": 0,
+  "interior_total_commands": 0,
+  "routine_scan_interval_minutes": 10,
+  "privacy": "No household identifiers, account data, credentials, tokens, raw payloads, keys or photos included",
+  "safe_errors": {
+    "camera_service_returns_home_assistant_error": true,
+    "translations": [
+      "en",
+      "es"
+    ],
+    "provider_error_strings_not_exposed": true,
+    "actual_ha_invalid_camera_error_recognized": true
+  },
+  "offline_checks": {
+    "tests_passed": 862,
+    "mypy_source_files": 262,
+    "critical_lint": true,
+    "architecture_guard": true,
+    "dependency_check": true,
+    "distribution_check": true,
+    "coverage_percent": 89,
+    "coverage_statements": 14415,
+    "coverage_missed": 1516
+  },
+  "post_restart_photo": {
+    "started": "2026-11-23T00:27:06.557+01:00",
+    "push_confirmed": "2026-11-23T00:27:29.844+01:00",
+    "committed": "2026-11-23T00:27:30.106+01:00",
+    "total_seconds": 23.55,
+    "images_committed": 3,
+    "status_reads": 2,
+    "mutations": 1,
+    "completed_through_push": true,
+    "stored_delivery_ids": 3
+  },
+  "final_configuration": {
+    "push_enabled": true,
+    "routine_scan_interval_minutes": 10,
+    "camera_fallback_interval_seconds": 20,
+    "diagnostic_logger_overrides_restored_to_warning": true,
+    "receiver_credentials_mode": "0600",
+    "temporary_ha_uploads_removed": 6,
+    "rollback_retained": true
+  },
+  "diagnostics_download": "Browser automation download wait did not complete; functional/persistence/file checks used actual service logs and local HA storage instead",
+  "local_cleanup": {
+    "protected_source_count": 600,
+    "protected_source_verified": true,
+    "deleted_files": 1146,
+    "allocated_bytes_removed": 71188480,
+    "free_space_change": 40960000,
+    "private_account_scan": "passed"
+  }
+}

@@ -51,6 +51,7 @@ from .core.const import (
     DEFAULT_SCAN_INTERVAL,
     CONF_AUTO_ARM_PERIMETER_WITH_INTERNAL,
     CONF_DEV_MODE,
+    CONF_PUSH_ENABLED,
 )
 
 
@@ -245,7 +246,7 @@ class MyVerisureConfigFlowHandler(
                     if (
                         isinstance(record_id, bool)
                         or not isinstance(record_id, int)
-                        or record_id <= 0
+                        or record_id < 0
                     ):
                         errors["base"] = "otp_data_missing"
                     elif await self.auth_use_case.send_otp(record_id):
@@ -837,6 +838,10 @@ class MyVerisureOptionsFlowHandler(OptionsFlow):
                     vol.Optional(
                         CONF_AUTO_ARM_PERIMETER_WITH_INTERNAL,
                         default=self.config_entry.options.get(CONF_AUTO_ARM_PERIMETER_WITH_INTERNAL, False),
+                    ): bool,
+                    vol.Optional(
+                        CONF_PUSH_ENABLED,
+                        default=self.config_entry.options.get(CONF_PUSH_ENABLED, False),
                     ): bool,
                     vol.Optional(
                         CONF_DEV_MODE,

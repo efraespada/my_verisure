@@ -70,7 +70,11 @@
         "data": {
           "scan_interval": "Scan interval (minutes)",
           "auto_arm_perimeter_with_internal": "Arm perimeter alarm when any internal alarm is triggered",
-          "dev_mode": "Developer mode (verbose redacted logs)"
+          "dev_mode": "Developer mode (verbose redacted logs)",
+          "push_enabled": "Immediate photo updates (keeps polling enabled)"
+        },
+        "data_description": {
+          "push_enabled": "Receives photo completion through FCM. Device verification by SMS may be requested again."
         }
       }
     }
@@ -127,5 +131,16 @@
         "message": "Too many requests were made, and the service has temporarily blocked further calls. Please wait about 10 minutes before trying again."
       }
     }
+  },
+  "exceptions": {
+    "camera_refresh_failed": {
+      "message": "Verisure did not confirm a new photo. Wait before retrying. The previous image is retained."
+    },
+    "camera_service_blocked": {
+      "message": "Verisure has temporarily blocked requests. Wait about ten minutes before retrying. The previous image is retained."
+    },
+    "camera_authentication_required": {
+      "message": "Authenticate with Verisure again before requesting a new photo."
+    }
   }
-} 
+}

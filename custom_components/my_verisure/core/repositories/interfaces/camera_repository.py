@@ -16,6 +16,8 @@ class CameraRepository(ABC):
         panel: str,
         devices: List[int],
         capabilities: str,
+        max_attempts: int = 30,
+        check_interval: int = 20,
     ) -> CameraRequestImageResult:
         """Request images from cameras."""
         pass
@@ -28,6 +30,7 @@ class CameraRepository(ABC):
         device: str,
         zone_id: str,
         capabilities: str,
+        signal_id: str | None = None,
     ) -> Dict[str, Any]:
         """Get images from a specific camera device."""
         pass

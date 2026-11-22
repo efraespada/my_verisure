@@ -9,6 +9,7 @@ class ArmResult:
     success: bool
     message: str
     reference_id: Optional[str] = None
+    confirmed_state: Optional[str] = None
 
     def dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -19,6 +20,7 @@ class DisarmResult:
     success: bool
     message: str
     reference_id: Optional[str] = None
+    confirmed_state: Optional[str] = None
 
     def dict(self) -> Dict[str, Any]:
         return asdict(self)

@@ -89,6 +89,7 @@ class CameraRequestImageResultDTO:
     success: bool
     successful_requests: int
     reference_id: Optional[str] = None
+    signal_id: Optional[str] = None
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "CameraRequestImageResultDTO":
@@ -97,6 +98,7 @@ class CameraRequestImageResultDTO:
             success=_required_bool(data, "success"),
             successful_requests=_required_count(data),
             reference_id=data.get("reference_id"),
+            signal_id=data.get("signal_id"),
         )
 
     def to_dict(self) -> Dict[str, Any]:

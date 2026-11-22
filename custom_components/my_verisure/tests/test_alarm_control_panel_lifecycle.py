@@ -39,7 +39,7 @@ async def test_arm_success_clears_transition_state() -> None:
 
     assert entity._transition_state is None
     service_call.assert_awaited_once_with(
-        "my_verisure", "arm_away", {"installation_id": "installation-1"}
+        "my_verisure", "arm_away", {"installation_id": "installation-1"}, blocking=True
     )
 
 
@@ -118,3 +118,26 @@ def test_available_uses_coordinator_health() -> None:
     entity.coordinator.last_update_success = False
 
     assert entity.available is False
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("command", ["arm_night", "disarm"])
+async def test_entity_waits_for_real_service_completion(hass, command):
+    entity = _entity()
+    object.__setattr__(entity, "hass", hass)
+    started = asyncio.Event()
+    release = asyncio.Event()
+
+    async def handler(call):
+        started.set()
+        await release.wait()
+
+    hass.services.async_register("my_verisure", command, handler)
+    task = asyncio.create_task(getattr(entity, f"async_alarm_{command}")())
+    try:
+        await started.wait()
+        assert not task.done()
+        assert entity._transition_state is not None
+    finally:
+        release.set()
+        await task

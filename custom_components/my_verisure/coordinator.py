@@ -16,8 +16,10 @@ from homeassistant.helpers.storage import STORAGE_DIR
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.components.persistent_notification import async_create
 
-from .core.application.exceptions import MyVerisureError
+from .core.application.exceptions import MyVerisureAuthenticationError, MyVerisureError
 from .core.api.exceptions import MyVerisureServiceBlockedError
+from .core.api.device_manager import DeviceManager
+from .push import HomeAssistantPush, async_reconcile_profile
 from .core.dependency_injection.composition_root import (
     CompositionRoot,
     build_my_verisure_composition_root,
@@ -30,6 +32,8 @@ from .core.application.coordinator_failure import (
     CoordinatorFailureKind,
 )
 from .core.application.coordinator_snapshot import merge_alarm_snapshot
+from .core.application.alarm_status_service import AlarmStatusService, KNOWN_PANEL_CODES
+from .core.utils.jwt_utils import get_jwt_payload, is_jwt_expired
 from .core.application.coordinator_snapshot_store import CoordinatorSnapshotStore
 from .core.application.coordinator_refresh_effects import CoordinatorRefreshEffects
 from .core.application.coordinator_camera_refresh import CoordinatorCameraRefresh
@@ -56,9 +60,10 @@ from .core.const import (
     CONF_SCAN_INTERVAL,
     CONF_AUTO_ARM_PERIMETER_WITH_INTERNAL,
     CONF_DEV_MODE,
+    CONF_PUSH_ENABLED,
 )
 from .core.log_utils import redact_sensitive_data, reset_dev_mode, set_dev_mode, should_log_detailed
-from .core.application.models.alarm import ArmResult, DisarmResult
+from .core.application.models.alarm import AlarmStatus, ArmResult, DisarmResult
 
 
 class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
@@ -80,8 +85,14 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         project_root = Path(hass.config.path(STORAGE_DIR)) / f"my_verisure_{entry.entry_id}"
         session_file = project_root / "data" / "session.json"
 
+        self._push_enabled = bool(entry.options.get(CONF_PUSH_ENABLED, False))
         self.composition_root = composition_root or build_my_verisure_composition_root(
             project_root=project_root,
+            **({"push_enabled": True} if self._push_enabled else {}),
+        )
+        self._push = (
+            HomeAssistantPush(hass, self.composition_root)
+            if self._push_enabled else None
         )
 
         self.auth_use_case = self.composition_root.get(cast(type[Any], AuthUseCase))
@@ -105,6 +116,8 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         )
 
         self.session_manager = self.composition_root.get(SessionManager)
+        self._installation_auth_hash: str | None = None
+        self._camera_refresh_lock = asyncio.Lock()
         username = self.config_entry.data.get(CONF_USER)
         password = self.config_entry.data.get(CONF_PASSWORD)
         if isinstance(username, str) and isinstance(password, str):
@@ -171,6 +184,9 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
     async def async_login(self) -> bool:
         """Login to My Verisure with improved error handling and caching."""
         try:
+            push = getattr(self, "_push", None)
+            if push is not None:
+                await push.async_prepare()
             decision = self.session_policy.decide(self.session_manager)
             LOGGER.debug(
                 "AUTH_FLOW[async_login]: action=%s, authenticated=%s, valid=%s, blocked=%s, has_cache=%s",
@@ -264,7 +280,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             if not await self.async_login():
                 raise UpdateFailed("Failed to login to My Verisure")
 
-            panel, caps = self._panel_capabilities_from_stored_data()
+            panel, caps = await self._async_ensure_installation_context()
             if not panel or not caps:
                 return await self._async_update_data()
 
@@ -308,7 +324,11 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
                     raise UpdateFailed("Failed to login to My Verisure")
 
                 LOGGER.info("Updating alarm and installation data")
+                snapshot_auth_hash = self.get_session_hash()
                 result = await self.snapshot_service.refresh(self.installation_id)
+                if snapshot_auth_hash != self.get_session_hash():
+                    raise MyVerisureError("Session changed while loading installation")
+                self._installation_auth_hash = snapshot_auth_hash
                 if should_log_detailed():
                     LOGGER.debug(
                         "Coordinator snapshot (redacted): %s",
@@ -359,12 +379,38 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         """Get information about the last saved data file."""
         return self.snapshot_store.metadata()
 
+    async def _async_ensure_installation_context(self) -> tuple[str, str]:
+        """Bind installation permissions to the current authenticated session."""
+        current_hash = self.get_session_hash()
+        if not current_hash:
+            raise MyVerisureAuthenticationError("Authenticated session unavailable")
+        panel, caps = self._panel_capabilities_from_stored_data()
+        claims = get_jwt_payload(caps) if caps else None
+        expired = bool(caps and claims is not None and is_jwt_expired(caps))
+        if self._installation_auth_hash == current_hash and panel and caps and not expired:
+            return panel, caps
+
+        LOGGER.info("Refreshing installation permissions for the current session")
+        detailed = await self.installation_use_case.get_installation_services(self.installation_id)
+        panel = detailed.installation.panel
+        caps = detailed.installation.capabilities
+        if not panel or not caps:
+            raise MyVerisureError("Installation context unavailable")
+        if current_hash != self.get_session_hash():
+            raise MyVerisureError("Session changed while loading installation permissions")
+        self.data = {**(self.data or {}), "detailed_installation": detailed.dict()}
+        self._installation_auth_hash = current_hash
+        return panel, caps
+
     async def _async_execute_alarm_command(self, command_name: str) -> ArmResult | DisarmResult:
         """Execute one alarm command and apply HA-side effects."""
         command = COMMANDS[command_name]
         tok = set_dev_mode(self._dev_mode)
+        command_started = False
         try:
-            panel, caps = self._panel_capabilities_from_stored_data()
+            if not await self.async_login():
+                raise MyVerisureAuthenticationError("Authenticated session unavailable")
+            panel, caps = await self._async_ensure_installation_context()
             operation = getattr(self.alarm_use_case, command.operation)
             kwargs: dict[str, Any] = {"panel": panel, "capabilities": caps}
             if command.auto_arm_perimeter:
@@ -372,9 +418,21 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
                     CONF_AUTO_ARM_PERIMETER_WITH_INTERNAL,
                     self.config_entry.data.get(CONF_AUTO_ARM_PERIMETER_WITH_INTERNAL, False),
                 )
+            command_started = True
             result = await operation(self.installation_id, **kwargs)
+            await self._async_apply_command_state(result)
+            command_started = False
             if result.success:
-                await self._async_refresh_alarm_only()
+                if result.confirmed_state not in KNOWN_PANEL_CODES:
+                    # Preserve support for other configured modes without
+                    # guessing a raw panel code. A failed follow-up read must
+                    # not turn an already confirmed command into a failed one.
+                    try:
+                        await self._async_refresh_alarm_only()
+                    except asyncio.CancelledError:
+                        raise
+                    except Exception:
+                        LOGGER.warning("Command confirmed; panel state refresh unavailable")
                 await self.notifications.notify(
                     title_key="notifications.title.success",
                     message_key=command.success_key,
@@ -389,8 +447,12 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
                 )
             return result
         except MyVerisureError:
+            if command_started:
+                await self._async_apply_command_state(ArmResult(False, "Command not confirmed"))
             raise
         except Exception as error:
+            if command_started:
+                await self._async_apply_command_state(ArmResult(False, "Command not confirmed"))
             LOGGER.error("Failed to execute alarm command %s", command_name)
             await self.notifications.notify(
                 title_key="notifications.title.error",
@@ -402,6 +464,25 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             return result_type(success=False, message="Alarm operation failed")
         finally:
             reset_dev_mode(tok)
+
+    async def _async_apply_command_state(self, result: ArmResult | DisarmResult) -> None:
+        """Publish the panel's completion response without another radio request."""
+        code = result.confirmed_state if result.success else None
+        data = AlarmStatusService.from_panel_code(code)
+        known = code in KNOWN_PANEL_CODES
+        status = AlarmStatus(
+            success=known,
+            message="Panel state confirmed" if known else "Alarm status unknown",
+            status=("OK" if code == "D" else "ALARM") if known else None,
+            data=data,
+        )
+        snapshot = merge_alarm_snapshot(
+            installation_id=self.installation_id,
+            alarm_status=status.dict(),
+            detailed_installation=(self.data or {}).get("detailed_installation", {}),
+            timestamp=time.time(),
+        )
+        await self.refresh_effects.apply(snapshot, self.installation_id, create_dummy_images=False)
     async def async_arm_away(self) -> ArmResult:
         """Arm the alarm in away mode."""
         return cast(ArmResult, await self._async_execute_alarm_command("arm_away"))
@@ -418,11 +499,24 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         """Disarm the alarm."""
         return cast(DisarmResult, await self._async_execute_alarm_command("disarm"))
 
-    async def async_refresh_camera_images(self) -> None:
+    async def async_refresh_camera_images(self, camera_identifier: str | None = None) -> None:
         """Refresh camera images."""
+        if self._camera_refresh_lock.locked():
+            raise MyVerisureError("Camera image refresh already running")
         tok = set_dev_mode(self._dev_mode)
         try:
-            await self.coordinator_camera_refresh.run(self.installation_id)
+            async with self._camera_refresh_lock:
+                if not await self.async_login():
+                    raise MyVerisureAuthenticationError("Authenticated session unavailable")
+                if camera_identifier is None:
+                    result = await self.coordinator_camera_refresh.run(self.installation_id)
+                else:
+                    result = await self.coordinator_camera_refresh.run(
+                        self.installation_id, camera_identifier=camera_identifier
+                    )
+                if result.failed_refreshes:
+                    raise MyVerisureError("Camera images could not all be refreshed")
+                self.async_update_listeners()
         except asyncio.CancelledError:
             raise
         except MyVerisureError:
@@ -464,6 +558,9 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         tok = set_dev_mode(self._dev_mode)
         try:
             await self.session_manager.async_load_session_from_disk()
+            await async_reconcile_profile(
+                self.composition_root.get(DeviceManager), self.session_manager
+            )
             return (
                 self.session_manager.is_session_valid()
                 or self.session_manager.can_attempt_refresh()
@@ -499,6 +596,9 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
     async def async_cleanup(self) -> None:
         """Cancel scheduled coordinator work and release entry-local references."""
         try:
+            push = getattr(self, "_push", None)
+            if push is not None:
+                await push.async_stop()
             await self.async_shutdown()
             self._alarm_control_panel = None
             self._button = None

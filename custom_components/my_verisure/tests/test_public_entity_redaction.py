@@ -23,7 +23,7 @@ def test_camera_attributes_exclude_device_code_and_private_image_path():
     attributes = camera.extra_state_attributes
 
     assert camera.name == "Verisure Camera"
-    assert "7" not in camera.unique_id
+    assert not camera.unique_id.endswith("_7")
     assert "device_name" not in camera.extra_state_attributes
     assert "latest_image_path" not in camera.extra_state_attributes
 

@@ -17,6 +17,8 @@ Quick links: [Installation](docs/user-guide/installation.md) · [Configuration](
 - ✅ **Automatic session management**
 - ✅ **Multiple installations** supported
 - ✅ **Alarm services** (arm/disarm, status)
+- ✅ **Optional FCM photo completion** with conservative polling fallback
+- ✅ **Stable per-entry identities** preserving existing entities and automations
 - ✅ **Modern GraphQL API** (doesn't use obsolete `vsure` library)
 
 ## 📋 Requirements
@@ -40,7 +42,7 @@ Quick links: [Installation](docs/user-guide/installation.md) · [Configuration](
 ### Option 2: Manual installation
 
 1. Download this repository
-2. Copy the `my_verisure` folder to `<config_dir>/custom_components/`
+2. Copy `custom_components/my_verisure` to `<config_dir>/custom_components/my_verisure`
 3. Restart Home Assistant
 4. Configure the integration from the interface
 
@@ -52,7 +54,17 @@ Quick links: [Installation](docs/user-guide/installation.md) · [Configuration](
 4. Enter your **password**
 5. Select the **phone** to receive the OTP code
 6. Enter the **OTP code** you receive via SMS
-7. Done! The integration will configure automatically
+7. Select the installation to configure. SMS verification is requested only when the provider requires it.
+
+In the integration options, enable **Immediate photo updates** to use FCM.
+The existing device UUID and entities are retained; another SMS may be required.
+Photo status polling remains available every 20 seconds if no usable event arrives.
+Routine alarm polling keeps the configured interval, which defaults to 10 minutes.
+Disabling immediate updates keeps a usable polling integration and its verified profile.
+
+The pinned automated validation target is HA Core 2026.8.1; controlled household
+validation also covered HA Core 2026.11.2. See the [quality evidence](docs/quality-status.md)
+and [capability specifications](specs/CATALOG.md) for the tested scope and remaining limits.
 
 ## 🔧 Available Entities
 
@@ -84,32 +96,32 @@ See **[docs/user-guide/entities.md](docs/user-guide/entities.md)** and **[docs/u
 
 ### `my_verisure.arm_away`
 
-Arms the alarm in away mode.
+Arms interior total. The optional supplementary-perimeter setting also arms exterior.
 
 ```yaml
-service: my_verisure.arm_away
+action: my_verisure.arm_away
 data:
-  installation_id: "6220569"
+  installation_id: "YOUR_INSTALLATION_ID"
 ```
 
 ### `my_verisure.arm_home`
 
-Arms the alarm in home mode.
+Arms exterior/perimeter only.
 
 ```yaml
-service: my_verisure.arm_home
+action: my_verisure.arm_home
 data:
-  installation_id: "6220569"
+  installation_id: "YOUR_INSTALLATION_ID"
 ```
 
 ### `my_verisure.arm_night`
 
-Arms the alarm in night mode.
+Arms interior partial night, optionally followed by exterior/perimeter.
 
 ```yaml
-service: my_verisure.arm_night
+action: my_verisure.arm_night
 data:
-  installation_id: "6220569"
+  installation_id: "YOUR_INSTALLATION_ID"
 ```
 
 ### `my_verisure.disarm`
@@ -117,9 +129,9 @@ data:
 Disarms the alarm.
 
 ```yaml
-service: my_verisure.disarm
+action: my_verisure.disarm
 data:
-  installation_id: "6220569"
+  installation_id: "YOUR_INSTALLATION_ID"
 ```
 
 Additional services: `my_verisure.get_status`, `my_verisure.refresh_camera_images` — see **[docs/user-guide/services.md](docs/user-guide/services.md)**.
@@ -259,7 +271,8 @@ my_verisure/
 3. Make your changes
 4. Run the gates: `make ci`
 5. Ensure all tests pass and coverage is maintained
-6. Submit a pull request
+6. Open a pull request targeting `develop`. Release promotion uses a separate
+   `develop` → `master` pull request.
 
 ## 📄 License
 
@@ -269,7 +282,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 If you encounter any issues or have questions:
 
-1. Check the [Issues](https://github.com/efrain.espada/my_verisure/issues) page
+1. Check the [Issues](https://github.com/efraespada/my_verisure/issues) page
 2. Create a new issue with detailed information
 3. Include logs and configuration details
 
