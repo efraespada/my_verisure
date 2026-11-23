@@ -151,20 +151,25 @@
         "custom_components/my_verisure/core/api/push_storage.py",
         "custom_components/my_verisure/core/api/native_profile.py",
         "custom_components/my_verisure/core/application/photo_notifications.py",
-        "custom_components/my_verisure/core/api/camera_client.py"
+        "custom_components/my_verisure/core/api/camera_client.py",
+        "custom_components/my_verisure/core/api/public_push_config.py",
+        "custom_components/my_verisure/core/api/push_config.py"
       ],
       "tests": [
         "custom_components/my_verisure/core/tests/unit/test_push_components.py",
         "custom_components/my_verisure/core/tests/unit/test_push_receiver.py",
         "custom_components/my_verisure/core/tests/unit/test_push_camera.py",
         "custom_components/my_verisure/tests/test_push_lifecycle.py",
-        "custom_components/my_verisure/tests/test_services_contracts.py"
+        "custom_components/my_verisure/tests/test_services_contracts.py",
+        "custom_components/my_verisure/core/tests/unit/test_public_push_config.py"
       ],
       "documentation": [
         "docs/technical/push-reception-investigation.md",
         "docs/validation/2026-11-22-live-verisure.md",
         "experiments/linux_push/README.md",
-        "docs/validation/2026-11-23-ha-push.json"
+        "docs/validation/2026-11-23-ha-push.json",
+        "docs/technical/firebase-client-configuration.md",
+        "docs/validation/2026-11-23-public-firebase-config.json"
       ]
     }
   ]

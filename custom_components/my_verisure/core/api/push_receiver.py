@@ -16,7 +16,8 @@ from firebase_messaging.proto.mcs_pb2 import LoginResponse
 
 from ..application.photo_notifications import PhotoNotifications
 from ..file_manager import FileManager
-from .push_config import PROJECT_ID, APP_ID, API_KEY, MESSAGING_SENDER_ID
+from .public_push_config import async_resolve_public_api_key
+from .push_config import PROJECT_ID, APP_ID, MESSAGING_SENDER_ID
 from .push_decoder import decode
 from .push_storage import PrivatePushStore
 
@@ -71,6 +72,7 @@ class PushReceiver:
         self._factory = client_factory
         self._credentials: dict[str, Any] | None = None
         self._token: str | None = None
+        self._public_api_key = ""
         self._client: Any = None
         self._runner: asyncio.Task | None = None
         self._writer: asyncio.Task | None = None
@@ -126,7 +128,7 @@ class PushReceiver:
     def _new_client(self) -> Any:
         return self._factory(
             self._received,
-            FcmRegisterConfig(PROJECT_ID, APP_ID, API_KEY, MESSAGING_SENDER_ID,
+            FcmRegisterConfig(PROJECT_ID, APP_ID, self._public_api_key, MESSAGING_SENDER_ID,
                               bundle_id="home-assistant-my-verisure"),
             self._credentials, self._credentials_updated,
             received_persistent_ids=self.notifications.recent_ids,
@@ -177,11 +179,13 @@ class PushReceiver:
             self._credentials = value if isinstance(value, dict) else None
             ids = stored.get("persistent_ids", [])
             self.notifications.restore_ids(ids if isinstance(ids, list) else [])
-            self._client = self._new_client()
             cached_token = self._cached_token()
             if cached_token:
+                self._client = self._new_client()
                 self._token = cached_token
                 return cached_token
+            self._public_api_key = await async_resolve_public_api_key(self._http_session)
+            self._client = self._new_client()
             try:
                 async with asyncio.timeout(45):
                     self._token = await self._client.checkin_or_register()
@@ -213,6 +217,8 @@ class PushReceiver:
                 client = self._client
                 try:
                     if client is None:
+                        if self._refresh_registration:
+                            self._public_api_key = await async_resolve_public_api_key(self._http_session)
                         client = self._new_client()
                         self._client = client
                         if self._refresh_registration:

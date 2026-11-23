@@ -60,6 +60,9 @@ state updates. No inbound port or Firebase server credential is needed.
   registration, transport or notification delivery is unavailable.
 - PUSH-8: expose only safe counters/state in diagnostics and meaningful HA errors;
   never expose account credentials, raw payloads or image data in public attributes.
+- PUSH-9: resolve public client metadata only for registration or actual MCS
+  authentication recovery, validate its trusted origin and known project, and
+  keep the provider client-key literal out of source and durable receiver state.
 
 ## 6. Data and state contract
 
@@ -84,8 +87,11 @@ listener while retaining the verified Android profile, token and session so
 polling continues and re-enabling can reuse credentials.
 
 No native capture, `externalCode`, Indigitall app key or owner-entered Firebase
-configuration is required. Public client project identifiers are packaged from
-the official client; they are not account or server credentials.
+configuration is required. Public project/application/sender identifiers are
+packaged from the official client. The client key is discovered automatically
+from its public HTTPS entrypoint and same-origin main asset when needed; no
+JavaScript is executed. These identify the public client rather than an account
+or server credential. See the [security review](../docs/technical/firebase-client-configuration.md).
 
 ## 8. Clean Architecture design
 
@@ -115,6 +121,9 @@ Durable credentials are reused directly on startup and transport reconnect. Only
 an actual MCS login rejection requests HTTP registration recovery. This avoids
 unnecessarily replacing a working registration after a transient check-in failure.
 Fresh registration failure leaves polling available with a 15-minute setup backoff.
+Public configuration discovery uses at most two GETs, each bounded to 15 seconds,
+with 1 MiB HTML and 16 MiB script limits. Unexpected origins, redirects, ambiguous
+metadata or a different project/application/sender fail closed before registration.
 Transport reconnection uses bounded 30-to-900-second backoff. Startup is bounded;
 unload cancels and awaits SDK tasks even if SDK stop returns early. Persistent
 state writes are coalesced and atomic. Cancellation always clears a pending photo.
@@ -134,6 +143,10 @@ SDK registration is replaced. Keys and delivery history use entry-owned atomic
 JSON storage with mode 0600; filesystem I/O runs outside the HA event loop.
 Sender/project, installation, signal, camera and time are checked. Public entities
 and diagnostics contain no receiver token, secret key, raw event or private image.
+The provider's public client key stays in memory when registration needs it.
+Provider Cloud restrictions have not been inspected, and no provider key was
+revoked or rotated. The original alerted commit remains historical evidence;
+secret scanning remains enabled.
 
 ## 12. Observability and operations
 
@@ -153,18 +166,23 @@ rollback are retained. The original 20 entities and device UUID are preserved.
 
 ## 14. Testing strategy and numeric budget
 
-The full suite passes 862 tests with 89% aggregate coverage. Twenty-eight additional
+The full suite passes 882 tests with 90% aggregate coverage. Twenty-eight original
 regressions cover profile isolation, private atomic writes, bounded hints,
 authenticated decoding/tamper rejection, sender filtering, credential reuse,
 failed startup, cancellation/task draining, exact camera/signal retrieval,
 missing/wrong hints, freshness, 403 propagation, lifecycle, Android renewal and
-safe service errors. No unit test contacts the household or Google.
+safe service errors. Twenty further regressions cover public configuration discovery,
+origin/status/size rejection, matching metadata, failure before registration and
+cached startup without configuration HTTP. No unit test contacts the household or Google.
 
 Actual HA tests use one selected camera, conservative pauses and zero alarm
 mutations. Push and disabled-receiver polling commits are verified separately.
 After a full restart, the same token and all entity identities were preserved;
 a further push capture committed three images in 23.55 seconds. The 143 installed
-source files matched the final artifact, and the final receiver error check was clear.
+source files matched that installed artifact, and the receiver error check was clear.
+Those observations predate the public-configuration follow-up. That correction
+has synthetic coverage and a live unauthenticated metadata comparison; it was
+not reinstalled or exercised against household devices during PR preparation.
 
 ## 15. Documentation and discoverability
 
@@ -180,6 +198,8 @@ is not installed. Historical prototype evidence remains labeled by runtime.
 4. PUSH-6: stale/foreign/duplicate/idle events cause no request burst.
 5. PUSH-7: unload drains tasks; absent push keeps the original bounded polling workflow.
 6. PUSH-8: safe diagnostics and recognized HA errors contain no private provider data.
+7. PUSH-9: cached startup makes no configuration GET; invalid public configuration
+   prevents registration and leaves polling available without a new account request.
 
 ## 17. Requirements traceability
 
@@ -190,6 +210,7 @@ is not installed. Historical prototype evidence remains labeled by runtime.
 | PUSH-4/5 | `test_push_camera.py`, live exact photo commit and private completion marker |
 | PUSH-6/7 | broker/receiver/camera lifecycle tests and disabled-receiver live capture |
 | PUSH-8 | safe service error tests, public entity redaction tests and bounded diagnostics |
+| PUSH-9 | `test_public_push_config.py`, cached receiver/failure tests and sanitized public-source comparison |
 
 ## 18. Implementation or maintenance sequence
 

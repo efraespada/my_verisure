@@ -7,9 +7,9 @@ Updated: 2026-11-23
 - Home Assistant Core: `2026.8.1`
 - Python: `3.14.6`
 - Home Assistant test plugin: `pytest-homeassistant-custom-component==0.13.355`
-- Full Home Assistant/Core suite: **862 passed** in the pinned validation environment
-- Measured coverage: **89%** (`14,415` statements; `1,516` missed); no enforced minimum
-- Mypy: no issues in `262` source files
+- Full Home Assistant/Core suite: **882 passed** in the pinned validation environment
+- Measured coverage: **90%** (`14,554` statements; `1,519` missed); no enforced minimum
+- Mypy: no issues in `264` source files
 - Critical Flake8 gate: passing
 - Architecture guard: passing
 - Distribution validation: passing
@@ -53,6 +53,10 @@ exposing provider errors as an unknown failure. After a full restart, the same F
 a further capture completed through push in 23.55 seconds.
 See the [installed receipt](validation/2026-11-23-ha-push.json) and
 [push baseline](../specs/linux-push-photo-completion.md).
+The follow-up public Firebase configuration correction has 20 additional synthetic
+regressions and a two-GET unauthenticated production-metadata comparison. It is not
+yet installed on the household host; the runtime timings above describe the preceding
+build. See the [security review](technical/firebase-client-configuration.md).
 Camera refresh serialization and failure propagation are covered by new regressions.
 Alarm command serialization, compound-command recovery and snapshot freshness UX remain
 documented limitations. See the [dated report](validation/2026-11-22-live-verisure.md)
@@ -66,4 +70,5 @@ The isolated container lifecycle checklist was not executed in this iteration.
 
 The executable gates are defined in `Makefile` and `.github/workflows/validate.yml`.
 The current execution record is
-`docs/superpowers/plans/2026-11-22-ha-push-installation.md`.
+`docs/superpowers/plans/2026-11-22-ha-push-installation.md`, with the follow-up
+`docs/superpowers/plans/2026-11-23-public-firebase-config.md`.

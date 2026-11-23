@@ -26,6 +26,9 @@
   Home Assistant action errors.
 - Reuse of stored FCM credentials after restart, avoiding unnecessary registration
   when a transient Google check-in fails.
+- Automatic discovery of public Firebase client configuration for new registration,
+  removing the provider API-key literal from current source while preserving
+  cached startup and polling fallback. Alert provenance and limits are documented.
 
 ### Validation scope
 

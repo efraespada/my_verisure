@@ -25,6 +25,13 @@ from custom_components.my_verisure.core.application.photo_notifications import P
 from custom_components.my_verisure.core.file_manager import FileManager
 
 
+@pytest.fixture(autouse=True)
+def public_configuration(monkeypatch):
+    resolver = AsyncMock(return_value="synthetic-public-client-key")
+    monkeypatch.setattr(push_receiver, "async_resolve_public_api_key", resolver)
+    return resolver
+
+
 class FakeClient:
     def __init__(self, callback, fcm_config, credentials, updated, **kwargs):
         self.callback = callback
@@ -59,7 +66,7 @@ class FakeClient:
 
 
 @pytest.mark.asyncio
-async def test_receiver_persists_reuses_and_drains_sdk_on_unload(tmp_path):
+async def test_receiver_persists_reuses_and_drains_sdk_on_unload(tmp_path, public_configuration):
     files = FileManager(tmp_path)
     broker = PhotoNotifications()
     receiver = PushReceiver(files, broker, client_factory=FakeClient)
@@ -78,11 +85,28 @@ async def test_receiver_persists_reuses_and_drains_sdk_on_unload(tmp_path):
     stored = files.get_file_path("push_credentials.json")
     assert stored.stat().st_mode & 0o777 == 0o600
     assert "delivery" in json.loads(stored.read_text())["persistent_ids"]
+    public_configuration.assert_awaited_once()
+    public_configuration.reset_mock()
     restored = PushReceiver(files, PhotoNotifications(), client_factory=FakeClient)
     assert await restored.async_prepare() == token
     restored._client.checkin_or_register.assert_not_awaited()
+    public_configuration.assert_not_awaited()
     assert restored.notifications.recent_ids == ["delivery"]
     await restored.async_stop()
+
+
+@pytest.mark.asyncio
+async def test_public_config_failure_does_not_register_or_persist(tmp_path, public_configuration):
+    public_configuration.side_effect = ValueError("Public client unavailable")
+    factory = AsyncMock()
+    files = FileManager(tmp_path)
+    receiver = PushReceiver(files, PhotoNotifications(), client_factory=factory)
+    with pytest.raises(ValueError):
+        await receiver.async_prepare()
+    factory.assert_not_called()
+    assert receiver.token is None
+    assert not files.get_file_path("push_credentials.json").exists()
+    await receiver.async_stop()
 
 
 @pytest.mark.asyncio

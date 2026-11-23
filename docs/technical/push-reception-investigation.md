@@ -1,5 +1,11 @@
 # Push reception on a Linux Home Assistant host
 
+The follow-up [Firebase configuration review](firebase-client-configuration.md)
+removes the embedded public client key and resolves it only for registration
+or actual MCS authentication recovery. Cached startup skips discovery. Its
+unauthenticated public-source comparison is separate from the installed runtime
+measurements below.
+
 Status: optional production receiver installed; HA push and polling verified, 2026-11-23. Linux received and automatically decrypted a real
 photo-ready event in 18.582 seconds; the Python probe retrieved and committed
 its three fresh images by 20.156 seconds from the request. The listener/decoder
