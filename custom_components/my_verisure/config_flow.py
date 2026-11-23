@@ -37,7 +37,12 @@ from .core.use_cases.interfaces.installation_use_case import InstallationUseCase
 from .core.use_cases.interfaces.create_dummy_camera_images_use_case import CreateDummyCameraImagesUseCase
 from .core.session_manager import SessionManager
 from .core.application.otp_code_policy import is_valid_otp_code
-from .core.application.polling import is_valid_scan_interval, normalize_scan_interval
+from .core.application.polling import (
+    MAX_SCAN_INTERVAL,
+    MIN_SCAN_INTERVAL,
+    is_valid_scan_interval,
+    normalize_scan_interval,
+)
 from .core.application.auth_flow_transactions import AuthFlowTransactionService
 from .core.application.models.camera_refresh import CameraRefresh
 from .core.const import (
@@ -822,13 +827,6 @@ class MyVerisureConfigFlowHandler(
         )
 
 
-def _validate_scan_interval(value: object) -> int:
-    """Reject malformed options before they can reach the polling scheduler."""
-    if not isinstance(value, int) or not is_valid_scan_interval(value):
-        raise probatio.Invalid("Polling interval must be an integer from 1 to 1440 minutes")
-    return value
-
-
 class MyVerisureOptionsFlowHandler(OptionsFlow):
     """Handle My Verisure options."""
 
@@ -870,7 +868,10 @@ class MyVerisureOptionsFlowHandler(OptionsFlow):
                                 ),
                             )
                         ),
-                    ): _validate_scan_interval,
+                    ): probatio.All(
+                        int,
+                        probatio.Range(min=MIN_SCAN_INTERVAL, max=MAX_SCAN_INTERVAL),
+                    ),
                     probatio.Optional(
                         CONF_AUTO_ARM_PERIMETER_WITH_INTERNAL,
                         default=options.get(CONF_AUTO_ARM_PERIMETER_WITH_INTERNAL, False),

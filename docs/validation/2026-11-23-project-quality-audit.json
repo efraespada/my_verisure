@@ -2,7 +2,9 @@
   "date": "2026-11-23",
   "source": {
     "base": "d6b14df4208c6867c02337f20c32d35a8bee66dd",
-    "branch": "feature/project-quality-audit"
+    "branch": "feature/serializable-polling-options",
+    "followup_base": "265172e9ded370b91652d319679869a8d279cddc",
+    "develop_audit_pr": 7
   },
   "target": {
     "homeassistant": "2026.11.2",
@@ -17,7 +19,7 @@
   },
   "python": "3.14.6",
   "tests": {
-    "passed": 1704,
+    "passed": 1707,
     "failed": 0,
     "warnings": 0,
     "command": "TMPDIR=/private/tmp make coverage HA_PYTHON=<current-validation-python>"
@@ -25,15 +27,15 @@
   "coverage": {
     "groups": {
       "integration": {
-        "covered_lines": 8123,
-        "num_statements": 9533,
+        "covered_lines": 8119,
+        "num_statements": 9529,
         "missing_lines": 1410,
-        "covered_branches": 1818,
-        "num_branches": 2392,
+        "covered_branches": 1816,
+        "num_branches": 2390,
         "missing_branches": 574,
         "files": 147,
-        "line_percent": 85.2093,
-        "branch_percent": 76.0033
+        "line_percent": 85.2031,
+        "branch_percent": 75.9833
       },
       "cli": {
         "covered_lines": 643,
@@ -47,18 +49,18 @@
         "branch_percent": 60.0719
       },
       "tools": {
-        "covered_lines": 267,
-        "num_statements": 343,
+        "covered_lines": 270,
+        "num_statements": 346,
         "missing_lines": 76,
-        "covered_branches": 115,
-        "num_branches": 166,
+        "covered_branches": 117,
+        "num_branches": 168,
         "missing_branches": 51,
         "files": 6,
-        "line_percent": 77.8426,
-        "branch_percent": 69.2771
+        "line_percent": 78.0347,
+        "branch_percent": 69.6429
       }
     },
-    "contexts": 1913,
+    "contexts": 1916,
     "engine": "ctrace",
     "test_files_excluded": true,
     "scopes": "integration, CLI, scripts; root launcher and external dependencies are not in these denominators",
@@ -85,7 +87,7 @@
     "floors_line_branch_percent": {
       "custom_components/my_verisure": [
         85.0,
-        76.0
+        75.9
       ],
       "cli": [
         73.0,
@@ -173,5 +175,14 @@
     "free_bytes_change": 1064960000,
     "current_environment_preserved": true,
     "old_target_environment_retired": true
+  },
+  "frontend_contract": {
+    "options_schema": "standard bounded integer fields serialize with the real HA converter",
+    "strict_domain_validation": "booleans rejected in the actual options flow before persistence",
+    "test": "custom_components/my_verisure/tests/test_scan_interval_options.py::test_options_schema_serializes_for_frontend_and_recovers_invalid_input",
+    "missing_integration_lines_and_branches_unchanged": [
+      1410,
+      574
+    ]
   }
 }

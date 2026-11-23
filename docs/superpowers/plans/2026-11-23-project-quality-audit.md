@@ -60,3 +60,14 @@ TMPDIR=/private/tmp make coverage HA_PYTHON=/private/tmp/my-verisure-current-ha-
 ```
 
 All new behavior must have a reproducer that fails before its fix and passes afterward. Coverage percentages describe executable paths, not a guarantee that a third-party alarm service cannot fail.
+
+## Frontend serialization follow-up
+
+- [x] Reproduce the options form failure with `probatio.to_field_list` and the HA custom serializer.
+- [x] Replace the nonserializable callable with the standard bounded integer schema, preserving strict boolean rejection before persistence.
+- [x] Cover initial/recoverable-error form serialization and strengthen model/schema-framework import rules.
+- [x] Rerun the complete current-version coverage suite: 1,707 passed; all sixteen complete-coverage module gates pass.
+
+Removing the redundant validator changes covered-code denominators without adding
+missing integration paths (1,410 lines / 574 branches). The branch floor is 75.9%;
+current measured branch coverage is 75.98%.

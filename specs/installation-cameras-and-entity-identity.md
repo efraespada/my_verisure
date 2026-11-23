@@ -109,7 +109,8 @@ class initializes its base lifecycle and serves static JPEGs without streaming.
 
 The selected installation and entry-owned data directory determine device scope.
 `scan_interval` is an exact integer from 1 to 1440 minutes, default 10;
-invalid stored values recover to 10 minutes; it does not request a new
+invalid stored values recover to 10 minutes. Its standard integer form schema
+serializes for HA; the application policy separately rejects boolean input; it does not request a new
 photo on every image read. Image refresh is explicit through the button/service.
 The refresh action accepts optional `camera_entity_id`; a foreign or unknown
 selection fails before a provider mutation. Omitting it preserves all-camera
