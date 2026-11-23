@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## [1.1.0] - 2026-11-23
 
 ### Added
 
@@ -10,8 +10,13 @@
   the existing 20-second status polling remains the fallback.
 - An optional camera selector for the refresh service, preserving the all-camera
   button and default service behavior.
-- Four capability specifications, a traceability catalog and sanitized records
+- Capability specifications, a traceability catalog and sanitized records
   separating synthetic checks, native observations and actual HA validation.
+- Typed notice and verified-result event entities, optional advanced event bus,
+  selective state synchronization and external-photo imports with independent
+  options, safe automation examples and receiver/category diagnostics.
+- Notification contracts and architecture decisions documenting delivery limits,
+  dependency boundaries and independently confirmed outcomes.
 
 ### Fixed
 
@@ -29,11 +34,30 @@
 - Automatic discovery of public Firebase client configuration for new registration,
   removing the provider API-key literal from current source while preserving
   cached startup and polling fallback. Alert provenance and limits are documented.
+- Current-HA option-form serialization, strict scan-interval validation and
+  redundant installation reads during routine polling.
+- Reauthentication after changing login credentials, recovery from malformed
+  persisted sessions and bounded JWT metadata validation.
+- Bounded JPEG/PNG validation and metadata removal before photo persistence,
+  rejection of malformed/animated images and stale photo-completion markers.
+- Propagation of status-action failures and deterministic CLI state isolation,
+  non-interactive behavior and exit codes.
 
 ### Validation scope
 
-The pinned automated target is HA Core 2026.8.1; live validation used HA Core
-2026.11.2. A selected camera completed through FCM, disabled-receiver polling and
-FCM again after restart. Interior total and partial day were not tested live.
+The pinned automated and observed household target is HA Core 2026.11.2 on
+Python 3.14. The pre-release audit passed 1,707 tests; integration-wide coverage
+was 85.20% of executable lines and 75.98% of branches, with enforced 100% coverage
+for the selected critical modules. This is not a claim of exhaustive provider
+or device behavior.
+
+Prior live validation completed a selected camera through FCM, disabled-receiver
+polling and FCM again after restart. The current-runtime installation also
+verified a scheduled poll, automatic session renewal, connected push transport
+and preservation of all 28 existing entity identities and options. Interior total
+and partial day were not tested live; notification-category delivery remains
+limited to the observed examples.
 See [quality status](docs/quality-status.md), [the catalog](specs/CATALOG.md) and
 [the installed receipt](docs/validation/2026-11-23-ha-push.json).
+
+[1.1.0]: https://github.com/efraespada/my_verisure/releases/tag/v1.1.0

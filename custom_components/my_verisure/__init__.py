@@ -1,6 +1,6 @@
 """My Verisure integration."""
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 # Import specific modules as needed
 # Note: These imports are used by the integration
@@ -16,4 +16,4 @@ from . import integration
 # Expose the setup functions for Home Assistant
 async_setup = integration.async_setup
 async_setup_entry = integration.async_setup_entry
-async_unload_entry = integration.async_unload_entry 
+async_unload_entry = integration.async_unload_entry
