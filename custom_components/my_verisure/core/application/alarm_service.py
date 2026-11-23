@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable, Iterable, Mapping
+from collections.abc import Awaitable, Callable, Iterable
 from dataclasses import dataclass
 from typing import Protocol, TypeAlias
 
@@ -16,7 +16,7 @@ AlarmCommandResult: TypeAlias = ArmResult | DisarmResult
 class AlarmCoordinator(Protocol):
     """Minimum coordinator contract required by the application service."""
 
-    config_entry: object
+    installation_id: str
 
     async def async_arm_away(self) -> ArmResult:
         """Arm the installation away."""
@@ -57,10 +57,7 @@ class AlarmServiceDispatcher:
             return ArmResult(success=False, message="Alarm command not supported")
 
         for coordinator in self.coordinators:
-            data = getattr(coordinator.config_entry, "data", {})
-            if not isinstance(data, Mapping):
-                continue
-            if data.get("installation_id") != installation_id:
+            if coordinator.installation_id != installation_id:
                 continue
             try:
                 return await operation(coordinator)

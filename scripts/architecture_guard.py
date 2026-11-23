@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import ast
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -18,8 +19,73 @@ FORBIDDEN_GLOBAL_MANAGER_ACCESS = (
 )
 
 
-def main() -> int:
+def _import_targets(node: ast.AST, package: tuple[str, ...]) -> list[str]:
+    """Resolve absolute and relative imports, including from-parent aliases."""
+    if isinstance(node, ast.Import):
+        return [alias.name for alias in node.names]
+    if not isinstance(node, ast.ImportFrom):
+        return []
+    prefix = package[: len(package) - node.level + 1] if node.level else ()
+    base = ".".join((*prefix, *((node.module or "").split(".") if node.module else ())))
+    return [base, *(f"{base}.{alias.name}" for alias in node.names)]
+
+
+def check_imports(root: Path) -> list[str]:
+    """Keep core HA-free and policies independent of concrete adapters."""
     errors: list[str] = []
+    core = root / "custom_components" / "my_verisure" / "core"
+    infrastructure = {
+        "api",
+        "dependency_injection",
+        "file_manager",
+        "session_manager",
+        "config_manager",
+        "log_manager",
+        "coordinator_snapshot_store",
+        "camera_placeholder_store",
+    }
+    frameworks = {"homeassistant", "aiohttp", "gql", "requests", "PIL", "injector"}
+    for path in sorted(core.rglob("*.py")):
+        relative = path.relative_to(core)
+        if "tests" in relative.parts:
+            continue
+        package = path.relative_to(root).with_suffix("").parts[:-1]
+        source = path.read_text(encoding="utf-8")
+        try:
+            tree = ast.parse(source, filename=str(path))
+        except SyntaxError as error:
+            errors.append(f"invalid Python: {path.relative_to(root)}:{error.lineno}")
+            continue
+        is_policy = relative.parts[0] in {"application", "use_cases"} or (
+            relative.parts[:2] == ("repositories", "interfaces")
+        )
+        is_model = relative.parts[:2] == ("application", "models")
+        for node in ast.walk(tree):
+            targets = _import_targets(node, package)
+            forbidden = False
+            for target in targets:
+                parts = target.split(".")
+                if parts[0] == "homeassistant":
+                    forbidden = True
+                if is_policy and parts[0] in frameworks:
+                    forbidden = True
+                if parts[:3] == ["custom_components", "my_verisure", "core"]:
+                    inner = parts[3:]
+                    if is_policy and inner and inner[0] in infrastructure:
+                        forbidden = True
+                    if is_policy and inner[:2] == ["repositories", "implementations"]:
+                        forbidden = True
+                    if is_model and inner[:2] != ["application", "models"]:
+                        forbidden = True
+            if forbidden:
+                errors.append(
+                    f"outward policy import: {path.relative_to(root)}:{node.lineno}"  # type: ignore[attr-defined]
+                )
+    return errors
+
+
+def main() -> int:
+    errors = check_imports(ROOT)
 
     required_paths = (
         ROOT / "cli",
@@ -42,7 +108,6 @@ def main() -> int:
                 f"{path.relative_to(ROOT)}"
             )
 
-
     for production_root in PRODUCTION_ROOTS:
         for path in production_root.rglob("*.py"):
             if "/tests/" in path.as_posix():
@@ -63,37 +128,6 @@ def main() -> int:
                 "documentation describes the removed global session architecture: "
                 f"{path.relative_to(ROOT)}"
             )
-
-    pure_domain_models = tuple(
-        ROOT / "custom_components" / "my_verisure" / "core" / "application" / "models" / name
-        for name in (
-            "alarm.py",
-            "auth.py",
-            "camera_refresh.py",
-            "camera_refresh_data.py",
-            "camera_request_image.py",
-            "device.py",
-            "installation.py",
-            "service.py",
-            "session.py",
-        )
-    )
-    for path in pure_domain_models:
-        source = path.read_text(encoding="utf-8")
-        if "models.dto" in source or "..dto" in source:
-            errors.append(f"pure domain model imports DTOs: {path.relative_to(ROOT)}")
-
-    application_roots = (
-        ROOT / "custom_components" / "my_verisure" / "core" / "application",
-        ROOT / "custom_components" / "my_verisure" / "core" / "use_cases",
-    )
-    for application_root in application_roots:
-        for path in application_root.rglob("*.py"):
-            source = path.read_text(encoding="utf-8")
-            if "api." in source or "..api" in source:
-                errors.append(
-                    f"application code depends on API adapters: {path.relative_to(ROOT)}"
-                )
 
     if errors:
         print("ARCHITECTURE_GUARD_FAILED")

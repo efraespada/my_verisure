@@ -57,7 +57,7 @@ from an upper bound obtained by observing a screen.
 
 ## Local verification
 
-The existing commands are `make test-ha-2026-8`, `make type-check`,
+The existing commands are `make test-ha-2026-11`, `make type-check`,
 `make lint-critical`, `make git-check`, `make distribution-check` and
 `make coverage`, with `HA_PYTHON` pointing at the supported environment.
 Automated tests use synthetic data and no live provider.
@@ -66,8 +66,10 @@ This repository currently has no Copilot specification validator/generator.
 The SDK's `validate:specifications` and `generate:specifications` commands are
 not installed here. Future integration must verify its selected SDK version,
 schema and ownership rules before claiming compatibility or enabling automation.
-Until then, review JSON shape, unique capability IDs, existing relative paths,
-links, numbered sections and the Markdown/catalog agreement locally.
+`make docs-check` now validates local Markdown file destinations and catalog
+version/unique IDs/path references offline. It does not validate headings, remote
+URLs or future SDK schema compatibility; maintainers still review numbered
+sections and the Markdown/catalog agreement.
 
 ## Operational evidence
 

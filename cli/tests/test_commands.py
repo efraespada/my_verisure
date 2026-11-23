@@ -27,22 +27,15 @@ class TestBaseCommand:
     @pytest.mark.asyncio
     async def test_setup_success(self):
         """Test setup method success."""
-        with patch.object(self.command, "setup") as mock_setup:
-            mock_setup.return_value = True
-
-            result = await self.command.setup()
-
-            assert result is True
+        self.command.session_manager.ensure_authenticated = AsyncMock(return_value=True)
+        assert await self.command.setup(interactive=False) is True
+        self.command.session_manager.ensure_authenticated.assert_awaited_once_with(False)
 
     @pytest.mark.asyncio
     async def test_setup_failure(self):
         """Test setup method failure."""
-        with patch.object(self.command, "setup") as mock_setup:
-            mock_setup.return_value = False
-
-            result = await self.command.setup()
-
-            assert result is False
+        self.command.session_manager.ensure_authenticated = AsyncMock(return_value=False)
+        assert await self.command.setup() is False
 
     @pytest.mark.asyncio
     async def test_setup_redacts_unexpected_exception(self):
@@ -58,9 +51,9 @@ class TestBaseCommand:
     @pytest.mark.asyncio
     async def test_cleanup(self):
         """Test cleanup method."""
-        with patch.object(self.command, "cleanup") as mock_cleanup:
-            await self.command.cleanup()
-            mock_cleanup.assert_called_once()
+        self.command.session_manager.cleanup = AsyncMock()
+        await self.command.cleanup()
+        self.command.session_manager.cleanup.assert_awaited_once()
 
     def test_get_installation_id_provided(self):
         """Test get_installation_id with provided ID."""
@@ -82,24 +75,23 @@ class TestBaseCommand:
     @pytest.mark.asyncio
     async def test_select_installation_if_needed_single(self):
         """Test select_installation_if_needed with single installation."""
-        with patch.object(
-            self.command, "select_installation_if_needed"
-        ) as mock_select:
-            mock_select.return_value = "12345"
-
-            result = await self.command.select_installation_if_needed(None)
-            assert result == "12345"
+        self.command.session_manager.current_installation = None
+        self.command.installation_use_case.get_installations = AsyncMock(
+            return_value=[Mock(numinst="synthetic-home")]
+        )
+        assert await self.command.select_installation_if_needed() == "synthetic-home"
+        assert self.command.session_manager.current_installation == "synthetic-home"
 
     @pytest.mark.asyncio
     async def test_select_installation_if_needed_multiple(self):
         """Test select_installation_if_needed with multiple installations."""
-        with patch.object(
-            self.command, "select_installation_if_needed"
-        ) as mock_select:
-            mock_select.return_value = "67890"
-
-            result = await self.command.select_installation_if_needed(None)
-            assert result == "67890"
+        self.command.session_manager.current_installation = None
+        self.command.installation_use_case.get_installations = AsyncMock(
+            return_value=[Mock(numinst="home-a"), Mock(numinst="home-b")]
+        )
+        with patch("cli.commands.base.select_installation", return_value="home-b"):
+            assert await self.command.select_installation_if_needed() == "home-b"
+        assert self.command.session_manager.current_installation == "home-b"
 
 
 class TestAuthCommand:

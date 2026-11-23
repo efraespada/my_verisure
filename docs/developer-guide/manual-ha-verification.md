@@ -2,13 +2,13 @@
 
 This document defines the manual verification that complements the deterministic
 pytest harness. The default lifecycle checklist uses an isolated Home Assistant
-Core 2026.8.1 instance. Household/provider tests require separate explicit owner
+Core 2026.11.2 instance. Household/provider tests require separate explicit owner
 authorization and a bounded procedure; they are never an automated gate.
 
 ## Automated evidence already covered
 
 The repository currently executes the real Home Assistant config-entry manager
-through `pytest-homeassistant-custom-component` and verifies:
+through the official `pytest-homeassistant` plugin and verifies:
 
 - user config-flow form and installation selection;
 - invalid credentials and connection-error mapping;
@@ -23,7 +23,7 @@ These tests use synthetic credentials and never call Verisure.
 
 ## Manual checklist for an isolated instance
 
-1. Create a disposable HA Core 2026.8.1 environment with no household backup,
+1. Create a disposable HA Core 2026.11.2 environment with no household backup,
    auth state, database, or credentials.
 2. Install the integration from the repository checkout under
    `custom_components/my_verisure`.
@@ -53,7 +53,7 @@ state and keep rollback material private. Do not retry ambiguous mutations
 automatically or bypass provider cooldowns.
 
 The isolated container checklist was not executed in this iteration. The pytest
-harness against HA Core 2026.8.1 supplies deterministic lifecycle evidence.
+harness against HA Core 2026.11.2 supplies deterministic lifecycle evidence.
 Separately, the owner-authorized 2026-11-22 session used the actual HA UI and
 official native application; see the [validation report](../validation/2026-11-22-live-verisure.md).
 Neither evidence set substitutes for the other.

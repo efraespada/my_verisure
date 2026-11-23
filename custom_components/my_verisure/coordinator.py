@@ -41,7 +41,7 @@ from .core.application.coordinator_snapshot import merge_alarm_snapshot
 from .core.application.alarm_status_service import AlarmStatusService, KNOWN_PANEL_CODES
 from .core.application.alarm_state import AlarmState, analyze_alarm_state
 from .core.utils.jwt_utils import get_jwt_payload, is_jwt_expired
-from .core.application.coordinator_snapshot_store import CoordinatorSnapshotStore
+from .core.coordinator_snapshot_store import CoordinatorSnapshotStore
 from .core.application.coordinator_refresh_effects import CoordinatorRefreshEffects
 from .core.application.coordinator_camera_refresh import CoordinatorCameraRefresh
 from .core.application.coordinator_notifications import CoordinatorNotificationService
@@ -50,6 +50,7 @@ from .core.application.coordinator_session_policy import (
     SessionAction,
 )
 from .core.application.installation_snapshot_service import InstallationSnapshotService
+from .core.application.polling import normalize_scan_interval
 from .core.use_cases.interfaces.auth_use_case import AuthUseCase
 from .core.use_cases.interfaces.installation_use_case import InstallationUseCase
 from .core.use_cases.interfaces.alarm_use_case import AlarmUseCase
@@ -193,13 +194,12 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         )
 
         # Get scan interval from config entry (options override data)
-        scan_interval_minutes = entry.options.get(CONF_SCAN_INTERVAL, entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL))
-        # Ensure it's an integer
-        try:
-            scan_interval_minutes = int(scan_interval_minutes)
-        except (ValueError, TypeError):
-            LOGGER.warning("Invalid scan_interval value: %s, using default: %s", scan_interval_minutes, DEFAULT_SCAN_INTERVAL)
-            scan_interval_minutes = DEFAULT_SCAN_INTERVAL
+        scan_interval_minutes = normalize_scan_interval(
+            entry.options.get(
+                CONF_SCAN_INTERVAL,
+                entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
+            )
+        )
         
         LOGGER.info(
             "My Verisure coordinator: scan_interval=%s min (config default %s min)",
@@ -665,7 +665,7 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             if command_started:
                 await self._async_apply_command_state(ArmResult(False, "Command not confirmed"))
             raise
-        except Exception as error:
+        except Exception:
             if command_started:
                 await self._async_apply_command_state(ArmResult(False, "Command not confirmed"))
             LOGGER.error("Failed to execute alarm command %s", command_name)

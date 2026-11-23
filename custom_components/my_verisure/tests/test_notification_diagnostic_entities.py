@@ -14,7 +14,7 @@ from homeassistant.const import EntityCategory
 from homeassistant.helpers.entity_component import EntityComponent
 from homeassistant.util import dt as dt_util
 import pytest
-from pytest_homeassistant_custom_component.common import (
+from pytest_homeassistant.common import (
     MockConfigEntry,
     async_fire_time_changed_exact,
 )

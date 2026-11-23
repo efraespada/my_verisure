@@ -263,7 +263,7 @@ sharing the IP. Security notices are visible immediately; their evidence-gatheri
 Add `Platform.EVENT` without renaming the existing 20 household entities or native
 UUID. Preserve the existing photo/profile/credential storage, migrating replay
 ownership explicitly. Keep the FCM SDK pin reviewed with its adapter. The pinned
-test target is HA 2026.8.1; controlled host evidence currently uses HA 2026.11.2.
+test target and controlled host evidence use HA 2026.11.2.
 
 Roll out inert observation before optional reads, then expand one verified
 category at a time. A missing service or unavailable event entity must not break
@@ -292,6 +292,13 @@ which may be grouped with parametrization rather than 42 separate functions:
 Use injected clocks, deterministic thread/events and fake transports. No test
 contacts the household or Google. Run the existing complete suite and release
 gates after code changes; a green baseline does not demonstrate the new contracts.
+
+The repository audit adds separate integration/CLI/tooling coverage floors,
+AST import rules, real template/schema tests and fail-on-unawaited-coroutine
+warnings. Camera confirmation now requires distinct, validated image files and
+clears an earlier commit marker before rewriting. These strengthen `image_commit`;
+they do not establish broader real-world notification delivery. See the
+[repository audit](../docs/technical/2026-11-23-project-quality-audit.md).
 
 ## 15. Documentation and discoverability
 

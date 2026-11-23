@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 from homeassistant.exceptions import HomeAssistantError
-import voluptuous as vol
+import probatio
 
 from custom_components.my_verisure import services
 from custom_components.my_verisure.core.application.exceptions import MyVerisureError
@@ -18,6 +18,7 @@ from custom_components.my_verisure.camera import camera_unique_id
 
 def _coordinator(installation_id: str) -> MagicMock:
     coordinator = MagicMock()
+    coordinator.installation_id = installation_id
     coordinator.config_entry.data = {"installation_id": installation_id}
     coordinator.clear_alarm_transition_state = MagicMock()
     coordinator.clear_button_executing_state = MagicMock()
@@ -26,6 +27,7 @@ def _coordinator(installation_id: str) -> MagicMock:
     coordinator.async_arm_night = AsyncMock(return_value=ArmResult(True, "ok"))
     coordinator.async_disarm = AsyncMock(return_value=DisarmResult(True, "ok"))
     coordinator.async_request_refresh = AsyncMock()
+    coordinator.last_update_success = True
     coordinator.async_refresh_camera_images = AsyncMock()
     return coordinator
 
@@ -76,6 +78,33 @@ async def test_get_status_refreshes_only_matching_entry() -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("failure", ["missing", "raises", "failed_update"])
+async def test_get_status_reports_unsuccessful_refresh(failure):
+    hass = MagicMock()
+    coordinator = _coordinator("installation-1")
+    if failure == "raises":
+        coordinator.async_request_refresh.side_effect = MyVerisureError(
+            "synthetic-sensitive"
+        )
+    elif failure == "failed_update":
+        coordinator.last_update_success = False
+    coordinators = () if failure == "missing" else (coordinator,)
+    with patch.object(
+        services, "_iter_coordinators", side_effect=lambda _: iter(coordinators)
+    ):
+        await services.async_setup_services(hass)
+        handler = next(
+            call.args[2]
+            for call in hass.services.async_register.call_args_list
+            if call.args[1] == "get_status"
+        )
+        with pytest.raises(HomeAssistantError) as error:
+            await handler(SimpleNamespace(data={"installation_id": "installation-1"}))
+
+    assert "synthetic-sensitive" not in str(error.value)
+
+
+@pytest.mark.asyncio
 async def test_refresh_camera_images_clears_button_state_on_failure() -> None:
     hass = MagicMock()
     coordinator = _coordinator("installation-1")
@@ -120,9 +149,9 @@ async def test_dispatcher_failure_is_propagated_to_service_caller() -> None:
 
 
 def test_service_schemas_reject_empty_or_extra_installation_data() -> None:
-    with pytest.raises(vol.Invalid):
+    with pytest.raises(probatio.Invalid):
         services.SERVICE_ARM_AWAY_SCHEMA({})
-    with pytest.raises(vol.Invalid):
+    with pytest.raises(probatio.Invalid):
         services.SERVICE_DISARM_SCHEMA({"installation_id": "", "unexpected": True})
 
 

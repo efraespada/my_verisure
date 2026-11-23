@@ -44,7 +44,7 @@ class InfoCommand(BaseCommand):
         print_header("INSTALACIONES")
 
         try:
-            if not await self.setup():
+            if not await self.setup(interactive):
                 return False
 
             installations = (
@@ -77,12 +77,12 @@ class InfoCommand(BaseCommand):
         print_header("SERVICIOS DE INSTALACIÓN")
 
         try:
-            if not await self.setup():
+            if not await self.setup(interactive):
                 return False
 
             # Get installation ID
             installation_id = await self.select_installation_if_needed(
-                installation_id
+                installation_id, interactive=interactive
             )
             if not installation_id:
                 return False
@@ -111,12 +111,12 @@ class InfoCommand(BaseCommand):
         print_header("ESTADO DE INSTALACIÓN")
 
         try:
-            if not await self.setup():
+            if not await self.setup(interactive):
                 return False
 
             # Get installation ID
             installation_id = await self.select_installation_if_needed(
-                installation_id
+                installation_id, interactive=interactive
             )
             if not installation_id:
                 return False
@@ -141,7 +141,7 @@ class InfoCommand(BaseCommand):
         print_header("DISPOSITIVOS")
 
         try:
-            if not await self.setup():
+            if not await self.setup(interactive):
                 return False
 
             # Get installation ID

@@ -12,10 +12,7 @@
         "-c",
         "/config"
       ],
-      "console": "integratedTerminal",
-      "env": {
-        "PYTHONPATH": "/workspaces/core"
-      }
+      "console": "integratedTerminal"
     },
     {
       "name": "Python: Current File",

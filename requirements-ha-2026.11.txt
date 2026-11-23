@@ -1,0 +1,13 @@
+# Primary automated validation target, aligned with the observed current HA host.
+# Keep this harness separate from pytest-homeassistant-custom-component.
+homeassistant==2026.11.2
+pytest-homeassistant==2026.11.2
+
+# Match the runtime manifest rather than keeping a second dependency list.
+-r requirements.txt
+PyTurboJPEG>=2.5.0
+
+# The official harness fixes pytest/pytest-asyncio; keep timeout explicit.
+pytest==9.0.3
+pytest-asyncio==1.4.0
+pytest-timeout==2.4.0

@@ -187,3 +187,9 @@ dev_config.py
 custom_components/my_verisure/data/
 
 device_identifiers.json
+my_verisure_device_*.json
+
+# Pinned local Home Assistant validation environment
+.ha-2026.8-venv/
+
+.ha-2026.11-venv/

@@ -10,7 +10,7 @@
 
 ## Prerequisites
 
-- **Home Assistant:** 2026.8.1 (Core; Python >=3.14.2)
+- **Home Assistant:** 2026.11.2 (Core; Python >=3.14.2)
 - **Verisure / Securitas Direct (Spain)** account credentials used in the official app  
 - **Network** — outbound HTTPS to `customers.verisure.es`; optional FCM also needs Google registration HTTPS endpoints and `mtalk.google.com:5228`. No inbound port is required.
 

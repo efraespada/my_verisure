@@ -6,7 +6,7 @@ from types import SimpleNamespace
 
 
 import pytest
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant.common import MockConfigEntry
 
 from custom_components.my_verisure import alarm_control_panel, binary_sensor, button, camera, sensor
 from custom_components.my_verisure.camera import VerisureCamera, camera_unique_id

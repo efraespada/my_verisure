@@ -111,7 +111,6 @@ class AuthFlowTransactionService:
         get_entry: GetEntry,
     ) -> None:
         """Restore session and entry state, proving both after reload."""
-        session_error: BaseException | None = None
         try:
             if session_snapshot is not None:
                 await session.async_restore_transaction_state(

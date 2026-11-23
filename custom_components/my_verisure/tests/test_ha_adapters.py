@@ -6,9 +6,9 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-import voluptuous as vol
+import probatio
 from homeassistant.config_entries import ConfigEntry
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant.common import MockConfigEntry
 
 from custom_components.my_verisure import integration, services
 from custom_components.my_verisure.core.application.models.alarm import ArmResult
@@ -111,7 +111,7 @@ def test_alarm_sensors_hide_partial_alarm_state(config_entry):
 
 
 def test_disarm_schema_rejects_unsupported_code(config_entry):
-    with pytest.raises(vol.Invalid):
+    with pytest.raises(probatio.Invalid):
         services.SERVICE_DISARM_SCHEMA(
             {"installation_id": "123", "code": "2468"}
         )
@@ -162,9 +162,11 @@ async def test_arm_service_dispatches_only_to_matching_installation():
     """A service command must remain scoped to its installation entry."""
     hass = MagicMock()
     first = MagicMock()
+    first.installation_id = "first"
     first.config_entry.data = {"installation_id": "first"}
     first.async_arm_away = AsyncMock(return_value=ArmResult(True, "ok"))
     second = MagicMock()
+    second.installation_id = "second"
     second.config_entry.data = {"installation_id": "second"}
     second.async_arm_away = AsyncMock(return_value=ArmResult(True, "ok"))
 
@@ -186,6 +188,7 @@ async def test_arm_service_does_not_execute_for_unknown_installation():
     hass = MagicMock()
     coordinator = MagicMock()
     coordinator.config_entry.data = {"installation_id": "known"}
+    coordinator.installation_id = "known"
     coordinator.async_arm_away = AsyncMock()
 
     with patch.object(services, "_iter_coordinators", return_value=iter((coordinator,))):

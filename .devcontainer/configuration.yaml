@@ -15,23 +15,10 @@ logger:
     homeassistant.core: warning
     homeassistant.components: warning
 
-# Enable developer tools
-developer_tools:
-
 # HTTP server configuration
 http:
   server_port: 8123
   server_host: 0.0.0.0
-  use_x_forwarded_for: true
-  trusted_proxies:
-    - 172.16.0.0/12
-    - 192.168.0.0/16
-    - 10.0.0.0/8
-    - 127.0.0.1
-    - ::1
-  # Uncomment to allow CORS for development
-  # cors_allowed_origins:
-  #   - http://localhost:3000
 
 # Recorder (optional - comment out if you don't need history)
 recorder:

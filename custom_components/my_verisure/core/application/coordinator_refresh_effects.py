@@ -5,8 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Protocol
 
-from .coordinator_snapshot_store import CoordinatorSnapshotStore
-from .exceptions import MyVerisureError
+from .camera_placeholders import snapshot_camera_identifiers
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -21,8 +20,17 @@ class CoordinatorDataPublisher(Protocol):
 class DummyCameraImageCreator(Protocol):
     """Port for creating camera placeholders after a refresh."""
 
-    async def create_dummy_camera_images(self, installation_id: str) -> Any:
+    async def create_dummy_camera_images(
+        self, installation_id: str, *, camera_identifiers: tuple[str, ...] | None = None
+    ) -> Any:
         """Create dummy camera images."""
+
+
+class CoordinatorSnapshotPersistence(Protocol):
+    """Persist the safe snapshot without exposing filesystem implementation."""
+
+    async def save(self, payload: dict[str, Any]) -> bool:
+        """Return whether the snapshot was persisted."""
 
 
 class CoordinatorRefreshEffects:
@@ -30,7 +38,7 @@ class CoordinatorRefreshEffects:
 
     def __init__(
         self,
-        snapshot_store: CoordinatorSnapshotStore,
+        snapshot_store: CoordinatorSnapshotPersistence,
         publisher: CoordinatorDataPublisher,
         dummy_camera_creator: DummyCameraImageCreator | None = None,
     ) -> None:
@@ -58,9 +66,8 @@ class CoordinatorRefreshEffects:
         if create_dummy_images and self._dummy_camera_creator is not None:
             try:
                 await self._dummy_camera_creator.create_dummy_camera_images(
-                    installation_id
+                    installation_id,
+                    camera_identifiers=snapshot_camera_identifiers(snapshot),
                 )
-            except MyVerisureError:
-                raise
             except Exception:
                 _LOGGER.error("Failed to create dummy camera images")

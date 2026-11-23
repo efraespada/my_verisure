@@ -1,7 +1,7 @@
 """Home Assistant options flow coverage."""
 
 import pytest
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant.common import MockConfigEntry
 
 from custom_components.my_verisure.core.const import (
     CONF_AUTO_ARM_PERIMETER_WITH_INTERNAL,

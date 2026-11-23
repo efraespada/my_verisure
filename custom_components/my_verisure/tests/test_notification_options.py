@@ -5,7 +5,7 @@ https://github.com/tonylofgren/aurora-smart-home
 """
 
 import pytest
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant.common import MockConfigEntry
 
 from custom_components.my_verisure.core.const import (
     CONF_ADVANCED_EVENT_BUS,

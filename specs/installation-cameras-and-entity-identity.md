@@ -94,6 +94,13 @@ unknown and does not grant remote accessibility.
 | Provider refresh pending | awaiting provider result | bounded request/poll workflow |
 | Refresh failure | previous image may remain | do not represent old bytes as a successful fresh capture |
 
+The placeholder use case receives camera identifiers from the existing periodic
+snapshot, with no additional provider reads. `LocalCameraPlaceholderStore` owns
+Pillow/filesystem work behind `CameraPlaceholderStore`, preserves committed
+images and drains its writer before cancellation returns. Placeholder failures
+do not invalidate a valid alarm snapshot. Explicit CLI/config-flow discovery
+remains available when no snapshot is supplied.
+
 The current dummy-image use case can create placeholders. These are not real
 provider photos; their UI/freshness distinction needs further review. The HA camera
 class initializes its base lifecycle and serves static JPEGs without streaming.
@@ -101,7 +108,8 @@ class initializes its base lifecycle and serves static JPEGs without streaming.
 ## 7. User-facing configuration
 
 The selected installation and entry-owned data directory determine device scope.
-`scan_interval` is measured in minutes, default 10; it does not request a new
+`scan_interval` is an exact integer from 1 to 1440 minutes, default 10;
+invalid stored values recover to 10 minutes; it does not request a new
 photo on every image read. Image refresh is explicit through the button/service.
 The refresh action accepts optional `camera_entity_id`; a foreign or unknown
 selection fails before a provider mutation. Omitting it preserves all-camera
@@ -192,8 +200,14 @@ Maintenance minimum: 8 nullable/schema cases, 6 selection/permission cases,
 
 Use projected GraphQL fixtures that return only selected fields, real HA registry
 fixtures, reordered/duplicate camera lists, temporary storage and synthetic image
-bytes. Run existing quality/coverage commands. No numeric fail-under threshold is
-currently enforced. Live photo evidence and a fresh-image UX review remain separate
+bytes. The repository now enforces separate line/branch floors for the
+integration, CLI and tools; see [current measurements](../docs/quality-status.md).
+Regressions cover invalid/empty/non-image/truncated encoded content, duplicate
+photo identifiers and invalidation of a previous completion marker before
+rewriting. Only a verified image commit can publish `photo_ready`. Static JPEG/PNG
+containers are bounded before Pillow decoding; EXIF, profiles and unnecessary
+metadata are removed without changing image pixels. Animated PNG and unsupported
+containers fail closed. Image limits are 8 MiB decoded and 16 million pixels. Live photo evidence and a fresh-image UX review remain separate
 from passing tests or successful entity creation.
 
 ## 15. Documentation and discoverability

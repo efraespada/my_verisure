@@ -5,6 +5,7 @@ from typing import Optional
 
 from .base import BaseCommand
 from ..utils.display import print_header, print_error, print_info, print_success
+from custom_components.my_verisure.core.application.camera_devices import camera_devices
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -50,7 +51,9 @@ class CameraCommand(BaseCommand):
             print_header("CAMERA DEVICES INFORMATION")
 
             # Get installation ID using BaseCommand method
-            installation_id = await self.select_installation_if_needed(installation_id)
+            installation_id = await self.select_installation_if_needed(
+                installation_id, interactive=interactive
+            )
             if not installation_id:
                 print_error("No installation selected")
                 return False
@@ -63,20 +66,16 @@ class CameraCommand(BaseCommand):
             )).devices
 
             # Filter devices to get only cameras (type "YR" or "YP")
-            camera_devices = [
-                device
-                for device in devices
-                if device.type in ["YR", "YP"]
-            ]
+            cameras = camera_devices(devices)
 
-            if not camera_devices:
+            if not cameras:
                 print_info("No active camera devices (YR/YP) found in this installation")
                 return True
 
-            print_success(f"Found {len(camera_devices)} active camera devices:")
+            print_success(f"Found {len(cameras)} active camera devices:")
             print()
 
-            for i, device in enumerate(camera_devices, 1):
+            for i, device in enumerate(cameras, 1):
                 print_info(f"Camera {i}:")
                 print(f"  Name: Camera {i}")
                 print(f"  Type: {device.type}")
@@ -103,7 +102,9 @@ class CameraCommand(BaseCommand):
             print_header("REFRESH CAMERA IMAGES")
 
             # Get installation ID using BaseCommand method
-            installation_id = await self.select_installation_if_needed(installation_id)
+            installation_id = await self.select_installation_if_needed(
+                installation_id, interactive=interactive
+            )
             if not installation_id:
                 print_error("No installation selected")
                 return False
@@ -118,7 +119,7 @@ class CameraCommand(BaseCommand):
             )
 
             # Display results using the new CameraRefresh structure
-            print_success("Camera images refresh completed!")
+            print_info("Camera images refresh finished")
             print_info(f"Total cameras: {result.total_cameras}")
             print_info(f"Successful refreshes: {result.successful_refreshes}")
             print_info(f"Failed refreshes: {result.failed_refreshes}")
@@ -147,7 +148,7 @@ class CameraCommand(BaseCommand):
             if result.failed_refreshes > 0:
                 print_error(f"✗ Failed to refresh {result.failed_refreshes} cameras")
 
-            return True
+            return result.failed_refreshes == 0
 
         except Exception:
             _LOGGER.error("Camera image refresh failed")
@@ -162,7 +163,9 @@ class CameraCommand(BaseCommand):
             print_header("CREATE DUMMY CAMERA IMAGES")
 
             # Get installation ID using BaseCommand method
-            installation_id = await self.select_installation_if_needed(installation_id)
+            installation_id = await self.select_installation_if_needed(
+                installation_id, interactive=interactive
+            )
             if not installation_id:
                 print_error("No installation selected")
                 return False
@@ -175,7 +178,7 @@ class CameraCommand(BaseCommand):
             )
 
             # Display results using the CameraRefresh structure
-            print_success("Dummy camera images creation completed!")
+            print_info("Dummy camera images creation finished")
             print_info(f"Total cameras: {result.total_cameras}")
             print_info(f"Successful creations: {result.successful_refreshes}")
             print_info(f"Failed creations: {result.failed_refreshes}")
@@ -204,7 +207,7 @@ class CameraCommand(BaseCommand):
             if result.failed_refreshes > 0:
                 print_error(f"✗ Failed to create dummy images for {result.failed_refreshes} cameras")
 
-            return True
+            return result.failed_refreshes == 0
 
         except Exception:
             _LOGGER.error("Dummy camera image creation failed")

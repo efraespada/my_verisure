@@ -327,7 +327,11 @@ class TestFileManager:
             
             # Create base64 encoded data
             import base64
-            test_data = b"image data"
+            from io import BytesIO
+            from PIL import Image
+            output = BytesIO()
+            Image.new("RGB", (2, 2), color=(12, 34, 56)).save(output, format="JPEG")
+            test_data = output.getvalue()
             base64_data = base64.b64encode(test_data).decode('utf-8')
             
             result = file_manager.save_base64_image("test.jpg", base64_data)

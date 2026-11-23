@@ -37,6 +37,8 @@ from ..api.device_manager import DeviceManager
 from ..file_manager import FileManager
 from ..session_manager import SessionManager
 from ..application.auth_session_persistence import AuthSessionPersistence
+from ..application.camera_placeholders import CameraPlaceholderStore
+from ..camera_placeholder_store import LocalCameraPlaceholderStore
 
 logger = logging.getLogger(__name__)
 
@@ -203,12 +205,20 @@ class MyVerisureModule(Module):
     def provide_create_dummy_camera_images_use_case(
         self,
         installation_repository: InstallationRepository,
-        file_manager: FileManager,
+        placeholder_store: CameraPlaceholderStore,
     ) -> CreateDummyCameraImagesUseCase:
         """Provide dummy image use case with graph-owned file storage."""
         return CreateDummyCameraImagesUseCaseImpl(
-            installation_repository, file_manager=file_manager
+            installation_repository, placeholder_store=placeholder_store
         )
+
+    @singleton
+    @provider
+    def provide_camera_placeholder_store(
+        self, file_manager: FileManager,
+    ) -> CameraPlaceholderStore:
+        """Own the local camera storage adapter for this entry."""
+        return LocalCameraPlaceholderStore(file_manager)
 
     @singleton
     @provider

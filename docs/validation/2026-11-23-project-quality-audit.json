@@ -1,0 +1,169 @@
+{
+  "date": "2026-11-23",
+  "source": {
+    "base": "d6b14df4208c6867c02337f20c32d35a8bee66dd",
+    "branch": "feature/project-quality-audit"
+  },
+  "target": {
+    "homeassistant": "2026.11.2",
+    "pytest-homeassistant": "2026.11.2",
+    "aiohttp": "3.14.5",
+    "probatio": "0.13.0",
+    "PyJWT": "2.15.1",
+    "cryptography": "50.0.2",
+    "Pillow": "13.0.0",
+    "firebase-messaging": "0.4.5",
+    "coverage": "7.17.4"
+  },
+  "python": "3.14.6",
+  "tests": {
+    "passed": 1704,
+    "failed": 0,
+    "warnings": 0,
+    "command": "TMPDIR=/private/tmp make coverage HA_PYTHON=<current-validation-python>"
+  },
+  "coverage": {
+    "groups": {
+      "integration": {
+        "covered_lines": 8123,
+        "num_statements": 9533,
+        "missing_lines": 1410,
+        "covered_branches": 1818,
+        "num_branches": 2392,
+        "missing_branches": 574,
+        "files": 147,
+        "line_percent": 85.2093,
+        "branch_percent": 76.0033
+      },
+      "cli": {
+        "covered_lines": 643,
+        "num_statements": 876,
+        "missing_lines": 233,
+        "covered_branches": 167,
+        "num_branches": 278,
+        "missing_branches": 111,
+        "files": 12,
+        "line_percent": 73.4018,
+        "branch_percent": 60.0719
+      },
+      "tools": {
+        "covered_lines": 267,
+        "num_statements": 343,
+        "missing_lines": 76,
+        "covered_branches": 115,
+        "num_branches": 166,
+        "missing_branches": 51,
+        "files": 6,
+        "line_percent": 77.8426,
+        "branch_percent": 69.2771
+      }
+    },
+    "contexts": 1913,
+    "engine": "ctrace",
+    "test_files_excluded": true,
+    "scopes": "integration, CLI, scripts; root launcher and external dependencies are not in these denominators",
+    "notification_complete_modules": [
+      "core/api/notification_client.py",
+      "core/api/notification_mapper.py",
+      "core/api/provider_request_gate.py",
+      "core/application/notifications.py",
+      "core/application/notification_refresh.py",
+      "core/application/notification_verification.py",
+      "event.py",
+      "notification_context.py",
+      "notification_runtime.py",
+      "push.py"
+    ],
+    "additional_complete_modules": [
+      "core/application/camera_placeholders.py",
+      "core/application/polling.py",
+      "core/camera_placeholder_store.py",
+      "core/camera_image_sanitizer.py",
+      "core/use_cases/implementations/create_dummy_camera_images_use_case_impl.py",
+      "core/utils/jwt_utils.py"
+    ],
+    "floors_line_branch_percent": {
+      "custom_components/my_verisure": [
+        85.0,
+        76.0
+      ],
+      "cli": [
+        73.0,
+        60.0
+      ],
+      "scripts": [
+        77.0,
+        69.0
+      ]
+    }
+  },
+  "security": {
+    "declared_runtime_closure_packages": 19,
+    "known_advisory_records": 0,
+    "scope": "Installed default closure from manifest, not every optional HA integration",
+    "open_secret_scanning_alerts": 0,
+    "dependabot_alerts": "disabled; API administrative scope unavailable",
+    "private_device_artifact_removed": true,
+    "git_history_rewritten": false
+  },
+  "regression_tests": [
+    "custom_components/my_verisure/core/tests/unit/test_coordinator_update_boundaries.py",
+    "custom_components/my_verisure/core/tests/unit/test_camera_placeholder_store.py",
+    "custom_components/my_verisure/core/tests/unit/test_config_manager_roundtrip.py",
+    "custom_components/my_verisure/core/tests/unit/test_session_hydration.py",
+    "custom_components/my_verisure/core/tests/unit/test_reauthentication_credentials.py",
+    "custom_components/my_verisure/core/tests/unit/test_camera_persistence_integrity.py",
+    "custom_components/my_verisure/core/tests/unit/test_camera_metadata_safety.py",
+    "custom_components/my_verisure/core/tests/unit/test_jwt_metadata_validation.py",
+    "custom_components/my_verisure/core/tests/unit/test_architecture_guard.py",
+    "custom_components/my_verisure/core/tests/unit/test_project_coverage_gate.py",
+    "custom_components/my_verisure/tests/test_scan_interval_options.py",
+    "custom_components/my_verisure/tests/test_services_contracts.py",
+    "custom_components/my_verisure/tests/test_documented_examples.py",
+    "custom_components/my_verisure/tests/test_documentation_validation.py",
+    "custom_components/my_verisure/tests/test_development_tooling.py",
+    "cli/tests/test_command_contracts.py",
+    "cli/tests/test_repository_privacy.py"
+  ],
+  "operational_scope": {
+    "provider_requests": 0,
+    "physical_alarm_commands": 0,
+    "total_interior_tested": false,
+    "household_source_reinstalled": false,
+    "docker_started": false,
+    "old_validation_target_retired": true
+  },
+  "remaining_limits": [
+    "Overall line and branch coverage is incomplete; config-flow/coordinator/CLI recovery are priorities",
+    "Full Flake8 style baseline is not clean; E9,F is the blocking gate",
+    "General non-photo delivery and broader camera-family parity remain unverified",
+    "Historical device identity may remain in Git objects/clones; removal is not revocation",
+    "No household reinstall or physical retest of this audit source",
+    "AST import checks do not prove absence of dynamically generated dependencies"
+  ],
+  "gates": {
+    "mypy": {
+      "source_files": 326,
+      "result": "passed"
+    },
+    "critical_flake8": {
+      "selection": "E9,F",
+      "result": "passed"
+    },
+    "new_python_full_flake8": {
+      "files": 29,
+      "result": "passed"
+    },
+    "full_style_flake8": "known style debt; not passing",
+    "architecture": "passed",
+    "documentation": "passed",
+    "pip_check": "passed",
+    "distribution": "passed",
+    "staged_diff_check": "passed",
+    "tracked_privacy_patterns": {
+      "google_api_keys": 0,
+      "runtime_device_artifacts": 0,
+      "private_capture_files": 0
+    }
+  }
+}

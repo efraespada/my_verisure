@@ -143,6 +143,13 @@ domain results carry the bounded confirmation code, not provider credentials or
 an HTTP response. The entity awaits the service with `blocking=True` so the
 transition lasts until the operation completes.
 
+The application dispatcher receives `installation_id: str`, not a Home Assistant
+config-entry shape. `get_status` raises a sanitized HA error for a missing
+installation or unsuccessful refresh, including failures recorded by the
+coordinator without a raised exception. The CLI propagates batch authentication
+and installation-selection policy; noninteractive alarm writes require the
+explicit `--no-confirm` flag. These contracts are tested offline.
+
 ## 9. UI/UX and content contract
 
 | Condition | Representative primary view |

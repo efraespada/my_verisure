@@ -1,5 +1,6 @@
 [run]
 branch = True
+core = ctrace
 omit =
     */tests/*
     */__pycache__/*

@@ -10,6 +10,7 @@ from ....application.models.camera_refresh import CameraRefresh
 from ....application.models.device import Device
 from ....application.models.installation import DetailedInstallation, InstallationData
 from ....file_manager import FileManager
+from ....camera_placeholder_store import LocalCameraPlaceholderStore
 from ....application.exceptions import MyVerisureError
 from ....repositories.interfaces.camera_repository import CameraRepository
 from ....repositories.interfaces.installation_repository import InstallationRepository
@@ -142,8 +143,9 @@ async def test_create_dummy_rejects_zero_persisted_images(
     installation_repository, tmp_path
 ):
     file_manager = FileManager(tmp_path)
-    use_case = CreateDummyCameraImagesUseCaseImpl(installation_repository, file_manager)
-    use_case._create_dummy_images = Mock(return_value=0)
+    store = LocalCameraPlaceholderStore(file_manager)
+    use_case = CreateDummyCameraImagesUseCaseImpl(installation_repository, store)
+    store._write_images = Mock(side_effect=OSError("disk full"))
 
     with pytest.raises(MyVerisureError, match="Dummy camera image creation failed"):
         await use_case.create_dummy_camera_images("12345")
@@ -157,28 +159,56 @@ def test_create_dummy_implements_interface(installation_repository):
     )
 
 
-def test_create_dummy_cleans_partial_directory_on_image_failure(tmp_path):
-    use_case = CreateDummyCameraImagesUseCaseImpl(Mock(), Mock())
-    directory = tmp_path / "camera" / "timestamp"
-    directory.mkdir(parents=True)
-    image = Mock()
-    image.save.side_effect = [None, OSError("disk full")]
-
-    with patch(
-        "custom_components.my_verisure.core.use_cases.implementations.create_dummy_camera_images_use_case_impl.Image.new",
-        return_value=image,
-    ):
-        assert use_case._create_dummy_images(str(directory)) == 0
-
-    assert not directory.exists()
+@pytest.mark.asyncio
+async def test_create_dummy_cleans_partial_directory_on_image_failure(tmp_path):
+    store = LocalCameraPlaceholderStore(FileManager(tmp_path))
+    with patch.object(store, "_write_images", side_effect=OSError("disk full")):
+        with pytest.raises(MyVerisureError, match="Dummy camera image creation failed"):
+            await store.ensure_placeholders(("YR01",))
+    assert not list(tmp_path.rglob("*.staging"))
+    assert not list(tmp_path.rglob(".complete"))
 
 
 @pytest.mark.asyncio
-async def test_create_dummy_without_cameras_returns_empty(installation_repository):
+async def test_create_dummy_without_cameras_returns_empty(installation_repository, tmp_path):
     installation_repository.get_installation_services.return_value = _installation([])
-    use_case = CreateDummyCameraImagesUseCaseImpl(installation_repository, Mock())
+    use_case = CreateDummyCameraImagesUseCaseImpl(
+        installation_repository, LocalCameraPlaceholderStore(FileManager(tmp_path))
+    )
 
     result = await use_case.create_dummy_camera_images("12345")
 
     assert result.total_cameras == 0
     assert result.refresh_data == []
+
+
+@pytest.mark.asyncio
+async def test_create_dummy_reuses_supplied_cameras_without_provider_reads(
+    installation_repository, tmp_path
+):
+    installation_repository.get_installation_services.side_effect = AssertionError(
+        "No additional provider requests are allowed"
+    )
+    store = LocalCameraPlaceholderStore(FileManager(tmp_path))
+    use_case = CreateDummyCameraImagesUseCaseImpl(installation_repository, store)
+
+    result = await use_case.create_dummy_camera_images(
+        "12345", camera_identifiers=("YR01",)
+    )
+    repeated = await use_case.create_dummy_camera_images(
+        "12345", camera_identifiers=("YR01",)
+    )
+
+    assert result.successful_refreshes == repeated.successful_refreshes == 1
+    assert repeated.refresh_data[0].num_images == 0
+    installation_repository.get_installation_services.assert_not_awaited()
+    assert len(list(tmp_path.rglob("thumbnail.jpg"))) == 1
+
+
+@pytest.mark.asyncio
+async def test_create_dummy_sanitizes_unexpected_storage_failure(installation_repository):
+    store = Mock(ensure_placeholders=AsyncMock(side_effect=OSError("synthetic-sensitive")))
+    use_case = CreateDummyCameraImagesUseCaseImpl(installation_repository, store)
+    with pytest.raises(MyVerisureError, match="Dummy camera image creation failed") as error:
+        await use_case.create_dummy_camera_images("12345", camera_identifiers=())
+    assert "synthetic-sensitive" not in str(error.value)

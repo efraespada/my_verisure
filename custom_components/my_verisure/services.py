@@ -6,7 +6,7 @@ from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import entity_registry as er
-import voluptuous as vol
+import probatio
 
 from .core.application.alarm_service import AlarmServiceDispatcher
 from .core.application.exceptions import (
@@ -18,29 +18,29 @@ from .camera import camera_unique_id
 from .notification_context import notification_service_context
 
 # Service schemas
-SERVICE_ARM_AWAY_SCHEMA = vol.Schema({
-    vol.Required("installation_id"): cv.string,
+SERVICE_ARM_AWAY_SCHEMA = probatio.Schema({
+    probatio.Required("installation_id"): cv.string,
 })
 
-SERVICE_ARM_HOME_SCHEMA = vol.Schema({
-    vol.Required("installation_id"): cv.string,
+SERVICE_ARM_HOME_SCHEMA = probatio.Schema({
+    probatio.Required("installation_id"): cv.string,
 })
 
-SERVICE_ARM_NIGHT_SCHEMA = vol.Schema({
-    vol.Required("installation_id"): cv.string,
+SERVICE_ARM_NIGHT_SCHEMA = probatio.Schema({
+    probatio.Required("installation_id"): cv.string,
 })
 
-SERVICE_DISARM_SCHEMA = vol.Schema({
-    vol.Required("installation_id"): cv.string,
+SERVICE_DISARM_SCHEMA = probatio.Schema({
+    probatio.Required("installation_id"): cv.string,
 })
 
-SERVICE_GET_STATUS_SCHEMA = vol.Schema({
-    vol.Required("installation_id"): cv.string,
+SERVICE_GET_STATUS_SCHEMA = probatio.Schema({
+    probatio.Required("installation_id"): cv.string,
 })
 
-SERVICE_REFRESH_CAMERA_IMAGES_SCHEMA = vol.Schema({
-    vol.Required("installation_id"): cv.string,
-    vol.Optional("camera_entity_id"): cv.entity_id,
+SERVICE_REFRESH_CAMERA_IMAGES_SCHEMA = probatio.Schema({
+    probatio.Required("installation_id"): cv.string,
+    probatio.Optional("camera_entity_id"): cv.entity_id,
 })
 
 
@@ -186,12 +186,15 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 )
                 try:
                     await coordinator.async_request_refresh()
-                    LOGGER.warning("Alarm status refreshed via service")
                 except Exception:
                     LOGGER.error("Error refreshing alarm status via service")
-                break
+                    raise HomeAssistantError("Alarm status refresh failed") from None
+                if coordinator.last_update_success is False:
+                    raise HomeAssistantError("Alarm status refresh failed")
+                LOGGER.warning("Alarm status refreshed via service")
+                return
         else:
-            LOGGER.error("Installation not found")
+            raise HomeAssistantError("Installation not found")
 
     @notification_service_context
     async def async_refresh_camera_images_service(call: ServiceCall) -> None:

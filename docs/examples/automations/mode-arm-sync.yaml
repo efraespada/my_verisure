@@ -22,7 +22,12 @@ action:
           - service: my_verisure.arm_night
             data:
               installation_id: INSTALLATION_ID
-    default:
-      - service: my_verisure.disarm
-        data:
-          installation_id: INSTALLATION_ID
+      - conditions:
+          - condition: state
+            entity_id: input_select.home_security_mode
+            state: disarmed
+        sequence:
+          - service: my_verisure.disarm
+            data:
+              installation_id: INSTALLATION_ID
+# Unknown, unavailable and unrecognised helper values perform no alarm action.

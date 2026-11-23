@@ -119,8 +119,10 @@ remains scoped to the entry and existing registry identity.
 
 The follow-up [general-notification audit](../docs/technical/notification-audit-and-design.md)
 reproduced cancellation ordering and cached-crypto validation defects and identified
-token-binding/ACK limits. They remain uncorrected by the documentation iteration;
-the original passing tests do not establish those additional recovery properties.
+token-binding/ACK limits. Its implemented follow-up adds cancellation-safe
+write ownership, cached credential validation and transactional token binding.
+The [notification implementation receipt](../docs/validation/2026-11-23-notification-implementation.json)
+records those corrections; the original photo-only tests do not establish them.
 
 Durable credentials are reused directly on startup and transport reconnect. Only
 an actual MCS login rejection requests HTTP registration recovery. This avoids
@@ -163,7 +165,7 @@ are separate assertions. Temporary diagnostic levels are restored after testing.
 ## 13. Compatibility, migration, rollout and rollback
 
 The dependency is pinned to `firebase-messaging==0.4.5`. A maintained local decoder
-adapter fixes its combined-header parsing. The pinned HA 2026.8.1 test environment
+adapter fixes its combined-header parsing. The pinned HA 2026.11.2 test environment
 passes dependency checks; the actual installed host is HA 2026.11.2/HAOS 18.4.
 Production-only archives are checksum verified and configuration checked before
 restart. Private pre-push source/session/registry rollback and the small error-UI
