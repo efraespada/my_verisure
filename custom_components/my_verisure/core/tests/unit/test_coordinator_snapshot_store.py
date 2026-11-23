@@ -5,9 +5,10 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 
-from custom_components.my_verisure.core.application.coordinator_snapshot_store import (
+from custom_components.my_verisure.core.coordinator_snapshot_store import (
     CoordinatorSnapshotStore,
 )
+from custom_components.my_verisure.core.file_manager import FileManager
 
 
 def test_load_returns_a_sanitized_non_empty_mapping():
@@ -33,8 +34,6 @@ def test_load_returns_a_sanitized_non_empty_mapping():
     assert "PRIVATE_PANEL" not in serialized
     assert "PRIVATE_CAPABILITIES" not in serialized
     assert result["alarm_status"]["data"]["internal"]["total"]["status"] is True
-
-
 
 
 def test_load_rejects_malformed_legacy_alarm_envelope():
@@ -92,7 +91,9 @@ async def test_save_delegates_to_async_file_manager():
                 "panel": "PRIVATE_PANEL",
                 "capabilities": "PRIVATE_CAPABILITIES",
                 "devices": [{"name": "PRIVATE_DEVICE", "code": "PRIVATE_CODE"}],
-                "services": [{"idService": "PRIVATE_SERVICE", "active": True, "visible": False}],
+                "services": [
+                    {"idService": "PRIVATE_SERVICE", "active": True, "visible": False}
+                ],
             }
         },
     }
@@ -125,3 +126,24 @@ def test_metadata_uses_file_manager_information(tmp_path: Path):
     assert result["file_size"] == 42
     assert result["exists"] is True
     assert "last_modified" in result
+
+
+async def test_real_snapshot_round_trip_keeps_state_and_omits_provider_identity(
+    tmp_path,
+):
+    store = CoordinatorSnapshotStore(FileManager(tmp_path))
+    payload = {
+        "last_updated": 1234567890,
+        "installation_id": "PRIVATE_INSTALLATION_SENTINEL",
+        "alarm_status": {"data": {"external": {"status": True}}},
+        "detailed_installation": {
+            "installation": {"alias": "PRIVATE_ALIAS_SENTINEL", "services": []}
+        },
+    }
+
+    assert await store.save(payload) is True
+    restored = CoordinatorSnapshotStore(FileManager(tmp_path)).load()
+    assert restored["alarm_status"]["data"]["external"]["status"] is True
+    assert restored["last_updated"] == 1234567890
+    assert store.metadata()["exists"] is True
+    assert "PRIVATE_" not in (tmp_path / "data/coordinator_data.json").read_text()

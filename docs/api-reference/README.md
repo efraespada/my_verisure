@@ -12,7 +12,7 @@ Structured reference for **entities** and **domain services**.
 
 ## Events
 
-- [Events](events.md) — custom events (none at present)
+- [Events](events.md) — event entities, typed results and optional advanced bus
 
 ## Services
 

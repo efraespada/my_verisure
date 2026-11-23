@@ -22,6 +22,7 @@ PLATFORMS: list[Platform] = [
     Platform.SENSOR,
     Platform.CAMERA,
     Platform.BUTTON,
+    Platform.EVENT,
 ]
 
 
@@ -33,59 +34,70 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         partial(MyVerisureDataUpdateCoordinator, hass, entry)
     )
 
-    # Load session asynchronously
-    await coordinator.async_load_session()
-
-    # Check if we have a session (even if expired or empty)
-    if coordinator.get_session_hash() is None:
-        LOGGER.info("No session found — will attempt authentication on first update")
-    elif not coordinator.has_valid_session():
-        LOGGER.info("Session expired — automatic refresh will be attempted on updates")
-    else:
-        LOGGER.info("Valid session found — integration ready")
-
-    # Try to load cached data before attempting first refresh
-    cached_data = await coordinator.async_load_alarm_info()
-    
     try:
-        await coordinator.async_config_entry_first_refresh()
-    except asyncio.CancelledError:
-        raise
-    except ConfigEntryAuthFailed:
-        LOGGER.error("Authentication failed - invalid credentials")
-        raise
-    except MyVerisureError:
-        raise
-    except Exception:
-        # If first refresh fails but we have cached data, use it and continue
-        if cached_data:
-            LOGGER.warning(
-                "First refresh failed; using cached data and retrying later"
-            )
-            coordinator.data = cached_data
+        # Load session asynchronously
+        await coordinator.async_load_session()
+
+        # Check if we have a session (even if expired or empty)
+        if coordinator.get_session_hash() is None:
+            LOGGER.info("No session found — will attempt authentication on first update")
+        elif not coordinator.has_valid_session():
+            LOGGER.info("Session expired — automatic refresh will be attempted on updates")
         else:
-            LOGGER.error("First refresh failed and no cached data is available")
+            LOGGER.info("Valid session found — integration ready")
+
+        # Try to load cached data before attempting first refresh
+        cached_data = await coordinator.async_load_alarm_info()
+
+        try:
+            await coordinator.async_config_entry_first_refresh()
+        except asyncio.CancelledError:
             raise
+        except ConfigEntryAuthFailed:
+            LOGGER.error("Authentication failed - invalid credentials")
+            raise
+        except MyVerisureError:
+            raise
+        except Exception:
+            # If first refresh fails but we have cached data, use it and continue
+            if cached_data:
+                LOGGER.warning(
+                    "First refresh failed; using cached data and retrying later"
+                )
+                coordinator.data = cached_data
+            else:
+                LOGGER.error("First refresh failed and no cached data is available")
+                raise
 
-    entry.runtime_data = coordinator
+        entry.runtime_data = coordinator
 
-    hass.data.setdefault(DOMAIN, {})
+        hass.data.setdefault(DOMAIN, {})
 
-    # Set up the device
-    await async_setup_device(hass, entry)
+        # Set up the device
+        await async_setup_device(hass, entry)
 
-    # Set up all platforms for this device/entry
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+        # Set up all platforms for this device/entry
+        await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
-    # Set up services (only once)
-    if not hass.data[DOMAIN].get("services_setup"):
-        await async_setup_services(hass)
-        hass.data[DOMAIN]["services_setup"] = True
+        # Attach consumers before accepting fresh public events. Startup backlog
+        # must not be replayed as new activity when platforms become ready.
+        notification_hub = getattr(coordinator, "notification_hub", None)
+        if notification_hub is not None:
+            notification_hub.activate()
 
-    # Update options
-    entry.async_on_unload(entry.add_update_listener(update_listener))
+        # Set up services (only once)
+        if not hass.data[DOMAIN].get("services_setup"):
+            await async_setup_services(hass)
+            hass.data[DOMAIN]["services_setup"] = True
 
-    return True
+        # Update options
+        entry.async_on_unload(entry.add_update_listener(update_listener))
+
+        return True
+
+    except BaseException:
+        await coordinator.async_cleanup()
+        raise
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
@@ -124,4 +136,4 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await async_unload_services(hass)
         hass.data.pop(DOMAIN, None)
 
-    return True 
+    return True

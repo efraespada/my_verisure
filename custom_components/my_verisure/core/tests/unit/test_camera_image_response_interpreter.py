@@ -7,10 +7,6 @@ from custom_components.my_verisure.core.api.camera_image_response_interpreter im
     interpret_photo_response,
     interpret_thumbnail_response,
 )
-from custom_components.my_verisure.core.application.models.camera_images import (
-    CameraPhotoSet,
-    CameraThumbnail,
-)
 
 
 def test_interprets_thumbnail_metadata_and_defaults() -> None:

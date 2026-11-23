@@ -10,7 +10,6 @@ from ...api.mappers.installation_mapper import (
     installation_from_dto,
 )
 from ...application.models.installation import Installation, DetailedInstallation
-from ...api.models.dto.installation_dto import DetailedInstallationDTO
 from ...file_manager import FileManager
 from ..interfaces.installation_repository import InstallationRepository
 from ...utils.jwt_utils import is_jwt_expired

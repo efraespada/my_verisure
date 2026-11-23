@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import time
-from typing import Any, Dict, cast
+from collections.abc import Callable, Coroutine
+from functools import wraps
+from typing import Any, Concatenate, Dict, ParamSpec, TypeVar, cast
 from datetime import timedelta
 from pathlib import Path
 
@@ -16,8 +19,13 @@ from homeassistant.helpers.storage import STORAGE_DIR
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.components.persistent_notification import async_create
 
-from .core.application.exceptions import MyVerisureError
+from .core.application.exceptions import MyVerisureAuthenticationError, MyVerisureError
 from .core.api.exceptions import MyVerisureServiceBlockedError
+from .core.api.device_manager import DeviceManager
+from .core.api.alarm_client import AlarmClient
+from .core.api.provider_request_gate import ProviderOperationState, get_provider_request_gate
+from .push import HomeAssistantPush, async_reconcile_profile
+from .notification_runtime import NotificationRuntime
 from .core.dependency_injection.composition_root import (
     CompositionRoot,
     build_my_verisure_composition_root,
@@ -30,7 +38,10 @@ from .core.application.coordinator_failure import (
     CoordinatorFailureKind,
 )
 from .core.application.coordinator_snapshot import merge_alarm_snapshot
-from .core.application.coordinator_snapshot_store import CoordinatorSnapshotStore
+from .core.application.alarm_status_service import AlarmStatusService, KNOWN_PANEL_CODES
+from .core.application.alarm_state import AlarmState, analyze_alarm_state
+from .core.utils.jwt_utils import get_jwt_payload, is_jwt_expired
+from .core.coordinator_snapshot_store import CoordinatorSnapshotStore
 from .core.application.coordinator_refresh_effects import CoordinatorRefreshEffects
 from .core.application.coordinator_camera_refresh import CoordinatorCameraRefresh
 from .core.application.coordinator_notifications import CoordinatorNotificationService
@@ -39,6 +50,7 @@ from .core.application.coordinator_session_policy import (
     SessionAction,
 )
 from .core.application.installation_snapshot_service import InstallationSnapshotService
+from .core.application.polling import normalize_scan_interval
 from .core.use_cases.interfaces.auth_use_case import AuthUseCase
 from .core.use_cases.interfaces.installation_use_case import InstallationUseCase
 from .core.use_cases.interfaces.alarm_use_case import AlarmUseCase
@@ -56,9 +68,35 @@ from .core.const import (
     CONF_SCAN_INTERVAL,
     CONF_AUTO_ARM_PERIMETER_WITH_INTERNAL,
     CONF_DEV_MODE,
+    CONF_PUSH_ENABLED,
 )
 from .core.log_utils import redact_sensitive_data, reset_dev_mode, set_dev_mode, should_log_detailed
-from .core.application.models.alarm import ArmResult, DisarmResult
+from .core.application.models.alarm import AlarmStatus, ArmResult, DisarmResult
+
+_P = ParamSpec("_P")
+_T = TypeVar("_T")
+
+
+def _entry_operation(
+    method: Callable[Concatenate[MyVerisureDataUpdateCoordinator, _P], Coroutine[Any, Any, _T]],
+) -> Callable[Concatenate[MyVerisureDataUpdateCoordinator, _P], Coroutine[Any, Any, _T]]:
+    """Track nested entry work so unload drains it before restoring credentials."""
+    @wraps(method)
+    async def wrapped(self: MyVerisureDataUpdateCoordinator, *args: _P.args, **kwargs: _P.kwargs) -> _T:
+        if self.__dict__.get("_closing", False):
+            raise MyVerisureError("Integration is unloading")
+        task = asyncio.current_task()
+        assert task is not None
+        operations: dict[asyncio.Task[Any], int] = self.__dict__.setdefault("_operation_tasks", {})
+        operations[task] = operations.get(task, 0) + 1
+        try:
+            return await method(self, *args, **kwargs)
+        finally:
+            if operations[task] == 1:
+                operations.pop(task)
+            else:
+                operations[task] -= 1
+    return wrapped
 
 
 class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
@@ -76,13 +114,22 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         self.hass = hass
         self.config_entry = entry
         self.installation_id: str = cast(str, entry.data[CONF_INSTALLATION_ID])
+        # HA constructs this coordinator in an executor; bind loop-owned locks
+        # lazily when the first asynchronous operation runs.
+        self._operation_state: ProviderOperationState | None = None
         
         project_root = Path(hass.config.path(STORAGE_DIR)) / f"my_verisure_{entry.entry_id}"
         session_file = project_root / "data" / "session.json"
 
+        self._push_enabled = bool(entry.options.get(CONF_PUSH_ENABLED, False))
         self.composition_root = composition_root or build_my_verisure_composition_root(
             project_root=project_root,
+            **({"push_enabled": True} if self._push_enabled else {}),
         )
+        self._push = HomeAssistantPush(hass, self.composition_root, enabled=self._push_enabled,
+            installation_id=self.installation_id, entry_id=entry.entry_id, options=dict(entry.options))
+        self.notification_hub = self._push.hub
+        self._login_lock = asyncio.Lock()
 
         self.auth_use_case = self.composition_root.get(cast(type[Any], AuthUseCase))
         self.installation_use_case = self.composition_root.get(cast(type[Any], InstallationUseCase))
@@ -105,6 +152,8 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         )
 
         self.session_manager = self.composition_root.get(SessionManager)
+        self._installation_auth_hash: str | None = None
+        self._camera_refresh_lock = asyncio.Lock()
         username = self.config_entry.data.get(CONF_USER)
         password = self.config_entry.data.get(CONF_PASSWORD)
         if isinstance(username, str) and isinstance(password, str):
@@ -145,13 +194,12 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         )
 
         # Get scan interval from config entry (options override data)
-        scan_interval_minutes = entry.options.get(CONF_SCAN_INTERVAL, entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL))
-        # Ensure it's an integer
-        try:
-            scan_interval_minutes = int(scan_interval_minutes)
-        except (ValueError, TypeError):
-            LOGGER.warning("Invalid scan_interval value: %s, using default: %s", scan_interval_minutes, DEFAULT_SCAN_INTERVAL)
-            scan_interval_minutes = DEFAULT_SCAN_INTERVAL
+        scan_interval_minutes = normalize_scan_interval(
+            entry.options.get(
+                CONF_SCAN_INTERVAL,
+                entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
+            )
+        )
         
         LOGGER.info(
             "My Verisure coordinator: scan_interval=%s min (config default %s min)",
@@ -167,10 +215,49 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             name=DOMAIN,
             update_interval=scan_interval,
         )
+        self._notification_runtime = NotificationRuntime(self, self.notification_hub)
 
+    def notification_diagnostics(self) -> dict[str, Any]:
+        """Expose finite local health without issuing provider requests."""
+        summary = self._push.diagnostics()
+        from .core.api.notification_mapper import REQUEST_KINDS
+        from .core.application.notification_verification import has_smart_notifications
+        verification_kinds = {"photo_reported", "alarm_operation_reported", "security_incident_reported", "arm_reminder", "unprotected_home", "smart_disarm_notice"}
+        summary["category_coverage"] = {
+            request: {"source_known": True, "deliveries_observed": summary["coverage"].get(request, 0),
+                      "verification_supported": kind in verification_kinds and (kind != "security_incident_reported" or request == "SMARTNOT"),
+                      "entitled": has_smart_notifications(self.data) if request == "SMARTNOT" and self.data else None}
+            for request, kind in REQUEST_KINDS.items()
+        }
+        return {**summary, "refresh": self._notification_runtime.diagnostics(),
+                "last_state_sync": self._notification_runtime.last_state_sync}
+
+    @_entry_operation
     async def async_login(self) -> bool:
+        """Serialize authentication and commit the staged push address on success."""
+        lock = getattr(self, "_login_lock", None)
+        if lock is None:
+            self._login_lock = lock = asyncio.Lock()
+        async with lock:
+            accepted = False
+            try:
+                accepted = await self._async_login_transaction()
+                return accepted
+            finally:
+                push = getattr(self, "_push", None)
+                finish = getattr(push, "async_finish_auth", None)
+                if callable(finish):
+                    await finish(accepted)
+
+    async def _async_login_transaction(self) -> bool:
         """Login to My Verisure with improved error handling and caching."""
         try:
+            push = getattr(self, "_push", None)
+            if push is not None:
+                await push.async_prepare()
+            runtime = getattr(self, "_notification_runtime", None)
+            if runtime is not None:
+                runtime.activate()
             decision = self.session_policy.decide(self.session_manager)
             LOGGER.debug(
                 "AUTH_FLOW[async_login]: action=%s, authenticated=%s, valid=%s, blocked=%s, has_cache=%s",
@@ -257,17 +344,96 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         caps = inst.get("capabilities") or None
         return panel, caps
 
+    def _get_operation_state(self) -> ProviderOperationState:
+        """Share ordering for one physical installation without exposing its ID."""
+        state = self.__dict__.get("_operation_state")
+        if state is None:
+            namespace = hashlib.sha256(f"ES\0{self.installation_id}".encode()).hexdigest()
+            state = get_provider_request_gate().get_operation_state(f"alarm:{namespace}")
+            self._operation_state = state
+        return state
+
+    def _snapshot_after_obsolete_read(self) -> Dict[str, Any]:
+        """Never return an older response to the DataUpdateCoordinator publisher."""
+        if isinstance(self.data, dict) and self.data:
+            return self.data
+        raise UpdateFailed("Alarm state changed while reading; reconciliation required")
+
+    async def _advance_state_generation(self) -> None:
+        state = self._get_operation_state()
+        async with state.publication_lock:
+            state.generation += 1
+
+    async def _apply_snapshot_while_locked(
+        self, snapshot: Dict[str, Any], *, create_dummy_images: bool,
+    ) -> None:
+        """Drain the persistence task before its publication lock can be released.
+
+        A cancelled to_thread waiter cannot stop an older filesystem write.
+        Shield and own that operation so it cannot overtake the next snapshot.
+        """
+        publication = asyncio.create_task(self.refresh_effects.apply(
+            snapshot, self.installation_id, create_dummy_images=create_dummy_images,
+        ))
+        publications = self.__dict__.setdefault("_publication_tasks", set())
+        publications.add(publication)
+        try:
+            await self._await_owned_publication(publication)
+        finally:
+            publications.discard(publication)
+
+    async def _await_owned_publication(self, publication: asyncio.Task[None]) -> None:
+        """Keep cancellation from abandoning the worker behind a snapshot save."""
+        try:
+            await asyncio.shield(publication)
+        except asyncio.CancelledError:
+            while not publication.done():
+                try:
+                    await asyncio.shield(publication)
+                except asyncio.CancelledError:
+                    continue
+                except Exception:
+                    break
+            if not publication.cancelled():
+                publication.exception()
+            raise
+
+    async def _publish_current_snapshot(
+        self, snapshot: Dict[str, Any], generation: int, auth_hash: str | None,
+        *, create_dummy_images: bool,
+    ) -> Dict[str, Any] | None:
+        """Commit only a read from the still-current operation/session generation."""
+        state = self._get_operation_state()
+        async with state.publication_lock:
+            if (
+                generation != state.generation or state.lock.locked()
+                or auth_hash != self.get_session_hash()
+            ):
+                return None
+            state.generation += 1
+            await self._apply_snapshot_while_locked(snapshot, create_dummy_images=create_dummy_images)
+            runtime = getattr(self, "_notification_runtime", None)
+            if runtime is not None:
+                runtime.state_synchronized(snapshot)
+            return snapshot
+
+    @_entry_operation
     async def _async_refresh_alarm_only(self) -> Dict[str, Any]:
         """Refresh alarm status and merge into existing coordinator data."""
         tok = set_dev_mode(self._dev_mode)
         try:
+            state = self._get_operation_state()
+            if state.lock.locked():
+                return self._snapshot_after_obsolete_read()
+            generation = state.generation
             if not await self.async_login():
                 raise UpdateFailed("Failed to login to My Verisure")
 
-            panel, caps = self._panel_capabilities_from_stored_data()
+            panel, caps = await self._async_ensure_installation_context()
             if not panel or not caps:
                 return await self._async_update_data()
 
+            auth_hash = self.get_session_hash()
             LOGGER.info("Refreshing alarm state")
             alarm_status = await self.alarm_use_case.get_alarm_status(
                 self.installation_id,
@@ -284,44 +450,99 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
                 detailed_installation=detailed_installation,
                 timestamp=time.time(),
             )
-            await self.refresh_effects.apply(
-                result,
-                self.installation_id,
+            published = await self._publish_current_snapshot(
+                result, generation, auth_hash,
                 create_dummy_images=False,
             )
+            if published is None:
+                return self._snapshot_after_obsolete_read()
             LOGGER.info("Alarm state refreshed")
-            return result
+            return published
         finally:
             reset_dev_mode(tok)
 
+    @_entry_operation
+    async def async_refresh_current_alarm_state(self) -> Dict[str, Any] | None:
+        """Reconcile a notification with native status only, without radio fallback.
+
+        Permission renewal may perform its existing installation-context read.
+        A superseded/in-flight operation returns None, never a cached snapshot
+        masquerading as a new notification confirmation.
+        """
+        tok = set_dev_mode(self._dev_mode)
+        try:
+            state = self._get_operation_state()
+            if state.lock.locked():
+                return None
+            generation = state.generation
+            if not await self.async_login():
+                raise MyVerisureAuthenticationError("Authenticated session unavailable")
+            panel, caps = await self._async_ensure_installation_context()
+            if generation != state.generation or state.lock.locked():
+                return None
+            auth_hash = self.get_session_hash()
+            reader = self.composition_root.get(AlarmClient)
+            zones = await reader.get_current_alarm_status(self.installation_id, panel, caps)
+            normalized = analyze_alarm_state({"data": zones})
+            known = normalized.state != AlarmState.UNKNOWN
+            status = AlarmStatus(
+                success=known,
+                message="Current panel state confirmed" if known else "Alarm status unknown",
+                status=("OK" if normalized.state == AlarmState.DISARMED else "ALARM") if known else None,
+                data=zones,
+            )
+            snapshot = merge_alarm_snapshot(
+                installation_id=self.installation_id,
+                alarm_status=status.dict(),
+                detailed_installation=(self.data or {}).get("detailed_installation", {}),
+                timestamp=time.time(),
+            )
+            return await self._publish_current_snapshot(
+                snapshot, generation, auth_hash, create_dummy_images=False,
+            )
+        finally:
+            reset_dev_mode(tok)
+
+    @_entry_operation
     async def _async_update_data(self) -> Dict[str, Any]:
         """Update data via My Verisure API."""
         tok = set_dev_mode(self._dev_mode)
         try:
             try:
+                state = self._get_operation_state()
+                if state.lock.locked():
+                    return self._snapshot_after_obsolete_read()
+                generation = state.generation
                 LOGGER.debug("AUTH_FLOW[update_data]: starting update cycle")
                 authentication = await self.authentication_policy.authenticate()
                 if not authentication.authenticated:
                     if authentication.cached_data:
                         LOGGER.warning("Login failed but using cached coordinator data")
+                        if generation != state.generation:
+                            return self._snapshot_after_obsolete_read()
                         return authentication.cached_data
                     raise UpdateFailed("Failed to login to My Verisure")
 
                 LOGGER.info("Updating alarm and installation data")
+                snapshot_auth_hash = self.get_session_hash()
                 result = await self.snapshot_service.refresh(self.installation_id)
+                if snapshot_auth_hash != self.get_session_hash():
+                    raise MyVerisureError("Session changed while loading installation")
+                self._installation_auth_hash = snapshot_auth_hash
                 if should_log_detailed():
                     LOGGER.debug(
                         "Coordinator snapshot (redacted): %s",
                         redact_sensitive_data(result),
                     )
 
-                await self.refresh_effects.apply(
-                    result,
-                    self.installation_id,
+                published = await self._publish_current_snapshot(
+                    result, generation, snapshot_auth_hash,
                     create_dummy_images=True,
                 )
+                if published is None:
+                    return self._snapshot_after_obsolete_read()
                 LOGGER.info("Alarm and installation data updated")
-                return result
+                return published
 
             except asyncio.CancelledError:
                 raise
@@ -337,6 +558,8 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
                     cached_data = await self.async_load_alarm_info()
                     if cached_data:
                         LOGGER.warning("Service blocked but using cached coordinator data")
+                        if generation != state.generation:
+                            return self._snapshot_after_obsolete_read()
                         return cached_data
                     raise UpdateFailed("Service temporarily blocked") from None
                 if failure.kind is CoordinatorFailureKind.AUTHENTICATION:
@@ -359,22 +582,72 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         """Get information about the last saved data file."""
         return self.snapshot_store.metadata()
 
+    async def _async_ensure_installation_context(self) -> tuple[str, str]:
+        """Bind installation permissions to the current authenticated session."""
+        current_hash = self.get_session_hash()
+        if not current_hash:
+            raise MyVerisureAuthenticationError("Authenticated session unavailable")
+        panel, caps = self._panel_capabilities_from_stored_data()
+        claims = get_jwt_payload(caps) if caps else None
+        expired = bool(caps and claims is not None and is_jwt_expired(caps))
+        if self._installation_auth_hash == current_hash and panel and caps and not expired:
+            return panel, caps
+
+        LOGGER.info("Refreshing installation permissions for the current session")
+        detailed = await self.installation_use_case.get_installation_services(self.installation_id)
+        panel = detailed.installation.panel
+        caps = detailed.installation.capabilities
+        if not panel or not caps:
+            raise MyVerisureError("Installation context unavailable")
+        if current_hash != self.get_session_hash():
+            raise MyVerisureError("Session changed while loading installation permissions")
+        self.data = {**(self.data or {}), "detailed_installation": detailed.dict()}
+        self._installation_auth_hash = current_hash
+        return panel, caps
+
+    @_entry_operation
     async def _async_execute_alarm_command(self, command_name: str) -> ArmResult | DisarmResult:
         """Execute one alarm command and apply HA-side effects."""
         command = COMMANDS[command_name]
         tok = set_dev_mode(self._dev_mode)
+        command_started = False
         try:
-            panel, caps = self._panel_capabilities_from_stored_data()
-            operation = getattr(self.alarm_use_case, command.operation)
-            kwargs: dict[str, Any] = {"panel": panel, "capabilities": caps}
-            if command.auto_arm_perimeter:
-                kwargs["auto_arm_perimeter_with_internal"] = self.config_entry.options.get(
-                    CONF_AUTO_ARM_PERIMETER_WITH_INTERNAL,
-                    self.config_entry.data.get(CONF_AUTO_ARM_PERIMETER_WITH_INTERNAL, False),
-                )
-            result = await operation(self.installation_id, **kwargs)
+            state = self._get_operation_state()
+            async with state.lock:
+                await self._advance_state_generation()
+                try:
+                    if not await self.async_login():
+                        raise MyVerisureAuthenticationError("Authenticated session unavailable")
+                    panel, caps = await self._async_ensure_installation_context()
+                    operation = getattr(self.alarm_use_case, command.operation)
+                    kwargs: dict[str, Any] = {"panel": panel, "capabilities": caps}
+                    if command.auto_arm_perimeter:
+                        kwargs["auto_arm_perimeter_with_internal"] = self.config_entry.options.get(
+                            CONF_AUTO_ARM_PERIMETER_WITH_INTERNAL,
+                            self.config_entry.data.get(CONF_AUTO_ARM_PERIMETER_WITH_INTERNAL, False),
+                        )
+                    command_started = True
+                    result = await operation(self.installation_id, **kwargs)
+                    await self._async_apply_command_state(result)
+                    command_started = False
+                except (asyncio.CancelledError, Exception):
+                    if command_started:
+                        command_started = False
+                        await self._async_apply_command_state(ArmResult(False, "Command not confirmed"))
+                    raise
+                finally:
+                    await self._advance_state_generation()
             if result.success:
-                await self._async_refresh_alarm_only()
+                if result.confirmed_state not in KNOWN_PANEL_CODES:
+                    # Preserve support for other configured modes without
+                    # guessing a raw panel code. A failed follow-up read must
+                    # not turn an already confirmed command into a failed one.
+                    try:
+                        await self._async_refresh_alarm_only()
+                    except asyncio.CancelledError:
+                        raise
+                    except Exception:
+                        LOGGER.warning("Command confirmed; panel state refresh unavailable")
                 await self.notifications.notify(
                     title_key="notifications.title.success",
                     message_key=command.success_key,
@@ -389,8 +662,12 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
                 )
             return result
         except MyVerisureError:
+            if command_started:
+                await self._async_apply_command_state(ArmResult(False, "Command not confirmed"))
             raise
-        except Exception as error:
+        except Exception:
+            if command_started:
+                await self._async_apply_command_state(ArmResult(False, "Command not confirmed"))
             LOGGER.error("Failed to execute alarm command %s", command_name)
             await self.notifications.notify(
                 title_key="notifications.title.error",
@@ -402,6 +679,34 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
             return result_type(success=False, message="Alarm operation failed")
         finally:
             reset_dev_mode(tok)
+
+    async def _async_apply_command_state(self, result: ArmResult | DisarmResult) -> None:
+        """Publish the panel's completion response without another radio request."""
+        code = result.confirmed_state if result.success else None
+        data = AlarmStatusService.from_panel_code(code)
+        known = code in KNOWN_PANEL_CODES
+        status = AlarmStatus(
+            success=known,
+            message="Panel state confirmed" if known else "Alarm status unknown",
+            status=("OK" if code == "D" else "ALARM") if known else None,
+            data=data,
+        )
+        snapshot = merge_alarm_snapshot(
+            installation_id=self.installation_id,
+            alarm_status=status.dict(),
+            detailed_installation=(self.data or {}).get("detailed_installation", {}),
+            timestamp=time.time(),
+        )
+        state = self._get_operation_state()
+        async with state.publication_lock:
+            state.generation += 1
+            await self._apply_snapshot_while_locked(snapshot, create_dummy_images=False)
+            runtime = getattr(self, "_notification_runtime", None)
+            if runtime is not None:
+                runtime.state_synchronized(snapshot)
+                if known:
+                    runtime.command_completed(snapshot, result.reference_id)
+
     async def async_arm_away(self) -> ArmResult:
         """Arm the alarm in away mode."""
         return cast(ArmResult, await self._async_execute_alarm_command("arm_away"))
@@ -418,11 +723,25 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         """Disarm the alarm."""
         return cast(DisarmResult, await self._async_execute_alarm_command("disarm"))
 
-    async def async_refresh_camera_images(self) -> None:
+    @_entry_operation
+    async def async_refresh_camera_images(self, camera_identifier: str | None = None) -> None:
         """Refresh camera images."""
+        if self._camera_refresh_lock.locked():
+            raise MyVerisureError("Camera image refresh already running")
         tok = set_dev_mode(self._dev_mode)
         try:
-            await self.coordinator_camera_refresh.run(self.installation_id)
+            async with self._camera_refresh_lock:
+                if not await self.async_login():
+                    raise MyVerisureAuthenticationError("Authenticated session unavailable")
+                if camera_identifier is None:
+                    result = await self.coordinator_camera_refresh.run(self.installation_id)
+                else:
+                    result = await self.coordinator_camera_refresh.run(
+                        self.installation_id, camera_identifier=camera_identifier
+                    )
+                if result.failed_refreshes:
+                    raise MyVerisureError("Camera images could not all be refreshed")
+                self.async_update_listeners()
         except asyncio.CancelledError:
             raise
         except MyVerisureError:
@@ -464,6 +783,9 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
         tok = set_dev_mode(self._dev_mode)
         try:
             await self.session_manager.async_load_session_from_disk()
+            await async_reconcile_profile(
+                self.composition_root.get(DeviceManager), self.session_manager
+            )
             return (
                 self.session_manager.is_session_valid()
                 or self.session_manager.can_attempt_refresh()
@@ -498,10 +820,31 @@ class MyVerisureDataUpdateCoordinator(DataUpdateCoordinator):
 
     async def async_cleanup(self) -> None:
         """Cancel scheduled coordinator work and release entry-local references."""
+        self._closing = True
+        owner = self.__dict__.get("_cleanup_task")
+        if owner is None:
+            owner = asyncio.create_task(self._async_cleanup_owned(), name="my_verisure_entry_cleanup")
+            self._cleanup_task = owner
+        await self._await_owned_publication(owner)
+
+    async def _async_cleanup_owned(self) -> None:
         try:
-            await self.async_shutdown()
-            self._alarm_control_panel = None
-            self._button = None
-            LOGGER.debug("Coordinator cleanup completed")
-        except Exception:
-            LOGGER.error("Error during coordinator cleanup")
+            runtime = getattr(self, "_notification_runtime", None)
+            if runtime is not None:
+                await runtime.async_close()
+        finally:
+            operations = tuple(self.__dict__.get("_operation_tasks", {}))
+            for operation in operations:
+                operation.cancel()
+            await asyncio.gather(*operations, return_exceptions=True)
+            try:
+                push = getattr(self, "_push", None)
+                if push is not None:
+                    await push.async_stop()
+            finally:
+                await self.async_shutdown()
+                for publication in tuple(self.__dict__.get("_publication_tasks", ())):
+                    await self._await_owned_publication(publication)
+                self._alarm_control_panel = None
+                self._button = None
+                LOGGER.debug("Coordinator cleanup completed")

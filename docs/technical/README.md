@@ -12,3 +12,6 @@ Deep dives supplementing [architecture](../architecture/README.md).
 | [use-cases.md](use-cases.md) | Application services |
 | [testing-strategy.md](testing-strategy.md) | Verification strategy |
 | [performance.md](performance.md) | Polling & throttling |
+| [push-reception-investigation.md](push-reception-investigation.md) | Linux FCM implementation, native evidence and verified HA push/polling completion |
+| [firebase-client-configuration.md](firebase-client-configuration.md) | Public Firebase configuration discovery, secret-scanning classification and evidence limits |
+| [notification-audit-and-design.md](notification-audit-and-design.md) | Notification catalog, original correctness audit and implemented HA events/reconciliation |

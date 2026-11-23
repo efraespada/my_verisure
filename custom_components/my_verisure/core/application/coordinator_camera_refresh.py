@@ -16,7 +16,7 @@ class CameraRefreshPolicy:
     """Stable polling settings for a coordinator camera refresh."""
 
     max_attempts: int = 30
-    check_interval: int = 4
+    check_interval: int = 20
 
 
 class CameraRefreshExecutor(Protocol):
@@ -28,6 +28,7 @@ class CameraRefreshExecutor(Protocol):
         installation_id: str,
         max_attempts: int,
         check_interval: int,
+        camera_identifier: str | None = None,
     ) -> CameraRefresh:
         """Refresh camera images."""
 
@@ -43,14 +44,22 @@ class CoordinatorCameraRefresh:
         self._executor = executor
         self._policy = policy or CameraRefreshPolicy()
 
-    async def run(self, installation_id: str) -> CameraRefresh:
+    async def run(self, installation_id: str, camera_identifier: str | None = None) -> CameraRefresh:
         """Run the configured camera refresh and log its result."""
         _LOGGER.info("Refreshing camera images")
-        result = await self._executor.refresh_camera_images(
-            installation_id=installation_id,
-            max_attempts=self._policy.max_attempts,
-            check_interval=self._policy.check_interval,
-        )
+        if camera_identifier is None:
+            result = await self._executor.refresh_camera_images(
+                installation_id=installation_id,
+                max_attempts=self._policy.max_attempts,
+                check_interval=self._policy.check_interval,
+            )
+        else:
+            result = await self._executor.refresh_camera_images(
+                installation_id=installation_id,
+                max_attempts=self._policy.max_attempts,
+                check_interval=self._policy.check_interval,
+                camera_identifier=camera_identifier,
+            )
         _LOGGER.info(
             "Camera images refresh completed: %d cameras, %d ok, %d failed",
             result.total_cameras,

@@ -10,6 +10,7 @@ from typing import Any
 
 AlarmStatus = dict[str, Any]
 AlarmStatusConfig = Mapping[str, Any]
+KNOWN_PANEL_CODES = frozenset({"D", "E", "Q", "C"})
 
 
 class AlarmStatusService:
@@ -34,11 +35,40 @@ class AlarmStatusService:
         response = self.default_status()
         self._apply_internal_matches(config, message, response)
         self._apply_external_matches(config, message, response)
+        internal_modes = response["internal"].values()
+        inactive_messages = config.get("inactive", [])
+        recognized = (
+            any(mode["status"] is True for mode in internal_modes)
+            or response["external"]["status"] is True
+            or (isinstance(inactive_messages, list) and message in inactive_messages)
+        )
+        if recognized:
+            # Each recognized message describes the complete zone combination.
+            # Preserve unknown for unrecognized messages or missing configuration.
+            for mode in (*response["internal"].values(), response["external"]):
+                if mode["status"] is None:
+                    mode["status"] = False
         return response
 
     async def load_config(self) -> AlarmStatusConfig:
         """Load and cache configuration without blocking the event loop."""
         return await self._load_config()
+
+    @staticmethod
+    def from_panel_code(code: str | None) -> AlarmStatus:
+        """Translate complete panel codes verified against native responses.
+
+        An accepted command alone is not evidence of a particular zone state.
+        Unrecognized or missing confirmation remains unknown.
+        """
+        status = AlarmStatusService.default_status()
+        if code not in KNOWN_PANEL_CODES:
+            return status
+        for mode in (*status["internal"].values(), status["external"]):
+            mode["status"] = False
+        status["external"]["status"] = code in ("E", "C")
+        status["internal"]["night"]["status"] = code in ("Q", "C")
+        return status
 
     @staticmethod
     def default_status() -> AlarmStatus:

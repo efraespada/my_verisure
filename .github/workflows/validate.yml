@@ -8,7 +8,7 @@ on:
 
 jobs:
   python-quality:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -18,16 +18,18 @@ jobs:
         with:
           python-version: "3.14.4"
           cache: pip
-          cache-dependency-path: requirements-dev.txt
+          cache-dependency-path: |
+            requirements-dev.txt
+            requirements-ha-2026.11.txt
 
-      - name: Install development dependencies
+      - name: Install primary development dependencies
         run: python -m pip install -r requirements-dev.txt
 
       - name: Select configured Python interpreter
         run: echo "HA_PYTHON=$(command -v python)" >> "$GITHUB_ENV"
 
-      - name: Run pinned Home Assistant suite
-        run: make test-ha-2026-8
+      - name: Run current Home Assistant suite
+        run: make test-ha-2026-11
 
       - name: Run complete type gate
         run: make type-check
@@ -35,7 +37,7 @@ jobs:
       - name: Run critical lint gate
         run: make lint-critical
 
-      - name: Run architecture and dependency gates
+      - name: Run architecture and documentation gates
         run: make git-check
 
       - name: Validate distribution artifact
@@ -43,6 +45,11 @@ jobs:
 
       - name: Run contextual coverage
         run: make coverage
+
+      - name: Audit current runtime dependency closure
+        run: |
+          python scripts/export_runtime_requirements.py > /tmp/my-verisure-runtime-requirements.txt
+          uv tool run --from pip-audit pip-audit --no-deps --disable-pip -r /tmp/my-verisure-runtime-requirements.txt --progress-spinner off
 
   hacs:
     runs-on: ubuntu-latest

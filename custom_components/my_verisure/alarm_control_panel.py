@@ -171,7 +171,9 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
                 await self.hass.services.async_call(
                     DOMAIN,
                     "disarm",
-                    {"installation_id": installation_id}
+                    {"installation_id": installation_id},
+                    blocking=True,
+                    context=self._context,
                 )
             else:
                 raise MyVerisureError("Installation not found")
@@ -205,7 +207,9 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
                 await self.hass.services.async_call(
                     DOMAIN,
                     "arm_away",
-                    {"installation_id": installation_id}
+                    {"installation_id": installation_id},
+                    blocking=True,
+                    context=self._context,
                 )
                 LOGGER.warning("Alarm armed away successfully")
             else:
@@ -226,7 +230,7 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
 
     async def async_alarm_arm_home(self, code: str | None = None) -> None:
         """Send arm home command."""
-        LOGGER.warning("Arming alarm home (ARMDAY - ARMADO DIA)...")
+        LOGGER.warning("Arming perimeter alarm (PERI1)...")
 
         # Set transition state
         self._transition_state = AlarmControlPanelState.ARMING
@@ -239,7 +243,9 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
                 await self.hass.services.async_call(
                     DOMAIN,
                     "arm_home",
-                    {"installation_id": installation_id}
+                    {"installation_id": installation_id},
+                    blocking=True,
+                    context=self._context,
                 )
                 LOGGER.warning("Alarm armed home successfully")
             else:
@@ -274,7 +280,9 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
                 await self.hass.services.async_call(
                     DOMAIN,
                     "arm_night",
-                    {"installation_id": installation_id}
+                    {"installation_id": installation_id},
+                    blocking=True,
+                    context=self._context,
                 )
                 LOGGER.warning("Alarm armed night successfully")
             else:

@@ -6,10 +6,10 @@ from types import SimpleNamespace
 
 
 import pytest
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant.common import MockConfigEntry
 
 from custom_components.my_verisure import alarm_control_panel, binary_sensor, button, camera, sensor
-from custom_components.my_verisure.camera import VerisureCamera
+from custom_components.my_verisure.camera import VerisureCamera, camera_unique_id
 from custom_components.my_verisure.coordinator import MyVerisureDataUpdateCoordinator
 from custom_components.my_verisure.core.const import DOMAIN
 
@@ -46,6 +46,20 @@ def test_camera_image_returns_none_when_directory_is_missing(tmp_path):
     entity = _camera_entity(tmp_path, _entry())
 
     assert entity._get_latest_image() is None
+
+
+def test_camera_display_name_distinguishes_the_provider_camera(tmp_path):
+    entity = _camera_entity(tmp_path, _entry())
+    assert entity.name == "Verisure Front"
+
+
+def test_camera_exposes_authenticated_proxy_after_initialization(tmp_path):
+    """Exercise the camera properties read by HA while adding the entity."""
+    entity = _camera_entity(tmp_path, _entry())
+    entity.entity_id = "camera.test_verisure"
+
+    assert entity.entity_picture.startswith("/api/camera_proxy/camera.test_verisure?token=")
+    assert entity.state_attributes["access_token"]
 
 
 def test_camera_image_ignores_invalid_timestamp_directories(tmp_path):
@@ -223,14 +237,17 @@ async def test_button_platform_creates_refresh_entity_from_installation_data():
     entry = _entry()
     entry.runtime_data = _coordinator({"installation_id": "123"})
     added = []
+    options = []
     def add_entities(entities, **kwargs):
         added.extend(entities)
+        options.append(kwargs)
 
     await button.async_setup_entry(None, entry, add_entities)
 
     assert len(added) == 1
     assert added[0].unique_id == "platform-entry_refresh_camera_images"
     assert "installation_id" not in added[0].extra_state_attributes
+    assert options == [{}]
 
 
 @pytest.mark.asyncio
@@ -250,13 +267,32 @@ async def test_camera_platform_creates_only_camera_devices():
         }
     )
     added = []
+    options = []
     def add_entities(entities, **kwargs):
         added.extend(entities)
+        options.append(kwargs)
 
     await camera.async_setup_entry(None, entry, add_entities)
 
     assert {entity.unique_id for entity in added} == {
-        "platform-entry_camera_0",
-        "platform-entry_camera_1",
+        camera_unique_id(entry.entry_id, {"type": "YP", "code": "1"}),
+        camera_unique_id(entry.entry_id, {"type": "YR", "code": "2"}),
     }
     assert all(entity.content_type == "image/jpeg" for entity in added)
+    assert options == [{}]
+
+
+def test_camera_identity_is_stable_when_provider_reorders_devices(tmp_path):
+    entry = _entry()
+    coordinator = cast(MyVerisureDataUpdateCoordinator, _coordinator({}))
+    front = {"type": "YP", "code": "1", "name": "Front"}
+    back = {"type": "YR", "code": "2", "name": "Back"}
+
+    first_front = VerisureCamera(coordinator, front, entry, 0)
+    first_back = VerisureCamera(coordinator, back, entry, 1)
+    reordered_front = VerisureCamera(coordinator, front, entry, 1)
+    reordered_back = VerisureCamera(coordinator, back, entry, 0)
+
+    assert first_front.unique_id == reordered_front.unique_id
+    assert first_back.unique_id == reordered_back.unique_id
+    assert first_front.unique_id != first_back.unique_id

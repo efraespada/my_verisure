@@ -31,6 +31,7 @@ class CompositionRoot:
 def build_my_verisure_composition_root(
     *,
     project_root: Path,
+    push_enabled: bool = False,
 ) -> CompositionRoot:
     """Build the production graph for one entry-scoped root."""
     from .module import MyVerisureModule
@@ -42,6 +43,7 @@ def build_my_verisure_composition_root(
         MyVerisureModule(
             session_manager=session_manager,
             file_manager=file_manager,
+            push_enabled=push_enabled,
         )
     )
 

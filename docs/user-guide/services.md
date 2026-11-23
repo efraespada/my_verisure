@@ -4,7 +4,8 @@ Services are registered in [`services.py`](../../custom_components/my_verisure/s
 
 **Domain:** `my_verisure`
 
-All handlers locate the `MyVerisureDataUpdateCoordinator` for the given `installation_id` by scanning `hass.data[DOMAIN]` for coordinator instances whose `config_entry.data["installation_id"]` matches.
+Handlers locate loaded config entries for the domain and use each entry's
+`runtime_data` coordinator, matching `config_entry.data["installation_id"]`.
 
 ## `my_verisure.arm_away`
 
@@ -14,7 +15,7 @@ All handlers locate the `MyVerisureDataUpdateCoordinator` for the given `install
 |-------|----------|------|-------------|
 | `installation_id` | Yes | string | Installation ID (`numinst`) |
 
-Calls `coordinator.async_arm_away()`. May use **auto arm perimeter with internal** from options/data (`CONF_AUTO_ARM_PERIMETER_WITH_INTERNAL`).
+Calls `coordinator.async_arm_away()` to arm interior total. May use **auto arm perimeter with internal** from options/data (`CONF_AUTO_ARM_PERIMETER_WITH_INTERNAL`).
 
 ## `my_verisure.arm_home`
 
@@ -22,7 +23,7 @@ Calls `coordinator.async_arm_away()`. May use **auto arm perimeter with internal
 |-------|----------|------|
 | `installation_id` | Yes | string |
 
-Calls `coordinator.async_arm_home()`.
+Calls `coordinator.async_arm_home()` to arm exterior/perimeter only.
 
 ## `my_verisure.arm_night`
 
@@ -30,7 +31,7 @@ Calls `coordinator.async_arm_home()`.
 |-------|----------|------|
 | `installation_id` | Yes | string |
 
-Calls `coordinator.async_arm_night()` with the same optional perimeter flag as arm_away.
+Calls `coordinator.async_arm_night()` to arm interior partial night, with the same optional perimeter flag as arm_away.
 
 ## `my_verisure.disarm`
 
@@ -38,7 +39,8 @@ Calls `coordinator.async_arm_night()` with the same optional perimeter flag as a
 |-------|----------|------|
 | `installation_id` | Yes | string |
 
-**Note:** The Python handler reads optional `call.data.get("code")` but the registered **Voluptuous schema** (`SERVICE_DISARM_SCHEMA`) only requires `installation_id`. So **`code` is not part of the validated schema** — disarm is executed via the API without passing an HA “alarm code”. Do not rely on README examples that show `code` unless the schema is updated to match.
+Disarm uses the authenticated Verisure API. The validated schema accepts
+`installation_id`; no Home Assistant alarm code is required or accepted.
 
 ## `my_verisure.get_status`
 
@@ -46,18 +48,23 @@ Triggers `coordinator.async_request_refresh()` for the installation (forces an u
 
 ## `my_verisure.refresh_camera_images`
 
-Runs `coordinator.async_refresh_camera_images()` (pulls/refreshes camera images via use case).
+Runs the camera refresh use case. Supply optional `camera_entity_id` to refresh
+only an existing camera owned by that entry; omit it to refresh all eligible
+cameras. Concurrent refreshes are rejected. If enabled, FCM can complete the
+pending photo after authoritative validation; otherwise the existing polling
+schedule continues. Failure preserves the previous complete image and raises a
+safe Home Assistant error. See [the service contract](../api-reference/services/refresh-camera-images.md).
 
 ## Example (YAML)
 
 ```yaml
-service: my_verisure.arm_away
+action: my_verisure.arm_away
 data:
   installation_id: "1234567"
 ```
 
 ```yaml
-service: my_verisure.get_status
+action: my_verisure.get_status
 data:
   installation_id: "1234567"
 ```

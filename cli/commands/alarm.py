@@ -47,12 +47,12 @@ class AlarmCommand(BaseCommand):
         print_header("ALARM STATUS")
 
         try:
-            if not await self.setup():
+            if not await self.setup(interactive):
                 return False
 
             # Get installation ID
             selected_installation_id = await self.select_installation_if_needed(
-                installation_id
+                installation_id, interactive=interactive
             )
             if not selected_installation_id:
                 return False
@@ -81,12 +81,12 @@ class AlarmCommand(BaseCommand):
         print_header(f"ARM ALARM - MODE {mode.upper()}")
 
         try:
-            if not await self.setup():
+            if not await self.setup(interactive):
                 return ArmResult(success=False, message="Error setting up the alarm")
 
             # Get installation ID
             installation_id = await self.select_installation_if_needed(
-                installation_id
+                installation_id, interactive=interactive
             )
             if not installation_id:
                 return ArmResult(
@@ -106,6 +106,8 @@ class AlarmCommand(BaseCommand):
                 )
 
             # Confirm action if requested
+            if confirm and not interactive:
+                return ArmResult(success=False, message="Use --no-confirm to authorize a batch alarm command")
             if confirm:
                 if not await asyncio.to_thread(
                     confirm_action, f"arm the alarm in mode {mode}"
@@ -144,17 +146,19 @@ class AlarmCommand(BaseCommand):
         print_header("DISARM ALARM")
 
         try:
-            if not await self.setup():
+            if not await self.setup(interactive):
                 return DisarmResult(success=False, message="Error setting up the alarm")
 
             # Get installation ID
             installation_id = await self.select_installation_if_needed(
-                installation_id
+                installation_id, interactive=interactive
             )
             if not installation_id:
                 return DisarmResult(success=False, message="Error selecting the installation for disarming the alarm")
 
             # Confirm action if requested and interactive
+            if confirm and not interactive:
+                return DisarmResult(success=False, message="Use --no-confirm to authorize a batch alarm command")
             if confirm and interactive:
                 if not await asyncio.to_thread(confirm_action, "disarm the alarm"):
                     return DisarmResult(success=False, message="Action cancelled")

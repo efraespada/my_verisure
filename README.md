@@ -17,11 +17,14 @@ Quick links: [Installation](docs/user-guide/installation.md) · [Configuration](
 - ✅ **Automatic session management**
 - ✅ **Multiple installations** supported
 - ✅ **Alarm services** (arm/disarm, status)
+- ✅ **Optional FCM photo completion** with conservative polling fallback
+- ✅ **Typed notification events**, independently verified results and receiver diagnostics
+- ✅ **Stable per-entry identities** preserving existing entities and automations
 - ✅ **Modern GraphQL API** (doesn't use obsolete `vsure` library)
 
 ## 📋 Requirements
 
-- Home Assistant 2026.8.1 (Core; Python >=3.14.2)
+- Home Assistant 2026.11.2 (Core; Python >=3.14.2)
 - Verisure/Securitas Direct account
 - DNI/NIE and account password
 
@@ -40,7 +43,7 @@ Quick links: [Installation](docs/user-guide/installation.md) · [Configuration](
 ### Option 2: Manual installation
 
 1. Download this repository
-2. Copy the `my_verisure` folder to `<config_dir>/custom_components/`
+2. Copy `custom_components/my_verisure` to `<config_dir>/custom_components/my_verisure`
 3. Restart Home Assistant
 4. Configure the integration from the interface
 
@@ -52,7 +55,23 @@ Quick links: [Installation](docs/user-guide/installation.md) · [Configuration](
 4. Enter your **password**
 5. Select the **phone** to receive the OTP code
 6. Enter the **OTP code** you receive via SMS
-7. Done! The integration will configure automatically
+7. Select the installation to configure. SMS verification is requested only when the provider requires it.
+
+In the integration options, enable **Immediate photo updates** to use FCM.
+The existing device UUID and entities are retained; another SMS may be required.
+Photo status polling remains available every 20 seconds if no usable event arrives.
+Routine alarm polling keeps the configured interval, which defaults to 10 minutes.
+Disabling immediate updates keeps a usable polling integration and its verified profile.
+
+The **Verisure notices** and **Verified results** event entities provide a safe
+automation interface. Selective alarm/incident reads, external photo updates and
+the advanced event bus are separate opt-in options. Notifications never execute
+alarm commands. See the [notification guide and blueprint](docs/automation-notifications.md)
+for the event vocabulary, dependencies, validated examples and delivery limits.
+
+The primary automated validation target is HA Core 2026.11.2, matching the
+separately observed household runtime. See the [quality evidence](docs/quality-status.md)
+and [capability specifications](specs/CATALOG.md) for the tested scope and remaining limits.
 
 ## 🔧 Available Entities
 
@@ -84,32 +103,32 @@ See **[docs/user-guide/entities.md](docs/user-guide/entities.md)** and **[docs/u
 
 ### `my_verisure.arm_away`
 
-Arms the alarm in away mode.
+Arms interior total. The optional supplementary-perimeter setting also arms exterior.
 
 ```yaml
-service: my_verisure.arm_away
+action: my_verisure.arm_away
 data:
-  installation_id: "6220569"
+  installation_id: "YOUR_INSTALLATION_ID"
 ```
 
 ### `my_verisure.arm_home`
 
-Arms the alarm in home mode.
+Arms exterior/perimeter only.
 
 ```yaml
-service: my_verisure.arm_home
+action: my_verisure.arm_home
 data:
-  installation_id: "6220569"
+  installation_id: "YOUR_INSTALLATION_ID"
 ```
 
 ### `my_verisure.arm_night`
 
-Arms the alarm in night mode.
+Arms interior partial night, optionally followed by exterior/perimeter.
 
 ```yaml
-service: my_verisure.arm_night
+action: my_verisure.arm_night
 data:
-  installation_id: "6220569"
+  installation_id: "YOUR_INSTALLATION_ID"
 ```
 
 ### `my_verisure.disarm`
@@ -117,80 +136,34 @@ data:
 Disarms the alarm.
 
 ```yaml
-service: my_verisure.disarm
+action: my_verisure.disarm
 data:
-  installation_id: "6220569"
+  installation_id: "YOUR_INSTALLATION_ID"
 ```
 
 Additional services: `my_verisure.get_status`, `my_verisure.refresh_camera_images` — see **[docs/user-guide/services.md](docs/user-guide/services.md)**.
 
 ## 🛠️ Development
 
-### Quick Start
-
-New to the project? Start here: **[QUICKSTART.md](QUICKSTART.md)** (5-minute setup)
-
-### Local Home Assistant Setup
-
-#### Option A: Docker Standalone (Recommended for OrbStack)
-
-If you're using OrbStack, use this simple Docker setup:
+### Pinned offline setup
 
 ```bash
-# Start Home Assistant
-./dev docker-start
-
-# Access at http://localhost:8123
-
-# View logs
-./dev docker-logs
-
-# Stop
-./dev docker-stop
-```
-
-**See complete guide:** [OrbStack Setup](ORBSTACK_SETUP.md)
-
-#### Option B: DevContainer (For Docker Desktop + Cursor/VS Code)
-
-For Docker Desktop users who want integrated debugging:
-
-```bash
-# Using the dev helper script
-./dev devcontainer  # Opens in Cursor/VS Code DevContainer
-./dev start         # Start Home Assistant
-./dev logs          # View logs
-
-# Or manually
-cursor .            # Open in Cursor (or: code .)
-# Reopen in Container (Cursor will prompt you)
-container start     # Start Home Assistant
-# Access at http://localhost:7123
-```
-
-**Cursor users:** Works identically to VS Code! All DevContainer features, debugging, and extensions are fully compatible.
-
-**See complete guides:**
-
-- [Local Development Setup](docs/developer-guide/local-development.md)
-- [OrbStack Setup](ORBSTACK_SETUP.md) ← Use this if you have OrbStack
-
-### Quick Setup (CLI/Core Development)
-
-To set up the development environment for CLI and core library development:
-
-```bash
-# Clone the repository
-git clone <repository-url>
+git clone https://github.com/efraespada/my_verisure.git
 cd my_verisure
-
-# Create and activate virtual environment
-python3.14 -m venv .ha-2026.8-venv
-source .ha-2026.8-venv/bin/activate  # Windows: use an equivalent Python 3.14 environment
-
-# Install the pinned validation dependencies
-HA_PYTHON=/tmp/ha-2026.8.1-venv/bin/python make install
+python3.14 -m venv .ha-2026.11-venv
+make install
+make test-ha-2026-11
 ```
+
+`Makefile`, `./dev` and the HA validation script use
+`.ha-2026.11-venv/bin/python` by default. To reuse another environment, export
+`HA_PYTHON=/path/to/validation-env/bin/python` before the commands.
+The suite uses synthetic data and sends no provider requests.
+
+Start with [QUICKSTART.md](QUICKSTART.md). An optional local HA UI is described
+in [local development](docs/developer-guide/local-development.md), including
+pinned Docker and Dev Container configurations. Those container paths have
+static configuration checks; the current audit did not start them.
 
 ### Testing System
 
@@ -204,18 +177,25 @@ The project includes a reproducible testing system:
 
 #### 📊 **Coverage Reports**
 
-- Contextual coverage is generated by `make coverage` and is not committed.
+- Contextual integration, CLI and tooling line/branch coverage is generated by
+  `make coverage` and is not committed. Package regression floors and the
+  stricter notification-module gate are described in [quality status](docs/quality-status.md).
+
+The [repository audit](docs/technical/2026-11-23-project-quality-audit.md) records
+corrected defects, actual coverage gaps and operational limits. Dependency direction
+is documented in [ADR 0001](docs/adr/0001-core-and-adapter-dependencies.md).
 
 #### 🛠️ **Available Commands**
 
 **Using the repository Makefile:**
 
 ```bash
-make test-ha-2026-8  # Complete suite against HA Core 2026.8.1
+make test-ha-2026-11  # Complete suite against HA Core 2026.11.2
 make coverage        # Coverage report
 make lint-critical   # CI-critical lint checks
 make type-check      # Complete mypy gate
-make git-check       # Architecture, compilation and dependencies
+make git-check       # Architecture, documentation, compilation and dependencies
+make docs-check      # Local Markdown links and SDD catalog paths
 make ci              # All local release gates
 ```
 
@@ -231,9 +211,9 @@ python -m pytest custom_components/my_verisure/core/tests -q
 All development dependencies are automatically installed from `requirements-dev.txt`:
 
 ```text
-Home Assistant Core 2026.8.1
+Home Assistant Core 2026.11.2
 Python >=3.14.2
-pytest-homeassistant-custom-component 0.13.355
+pytest-homeassistant 2026.11.2
 ```
 
 ### Project Structure
@@ -259,7 +239,8 @@ my_verisure/
 3. Make your changes
 4. Run the gates: `make ci`
 5. Ensure all tests pass and coverage is maintained
-6. Submit a pull request
+6. Open a pull request targeting `develop`. Release promotion uses a separate
+   `develop` → `master` pull request.
 
 ## 📄 License
 
@@ -269,9 +250,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 If you encounter any issues or have questions:
 
-1. Check the [Issues](https://github.com/efrain.espada/my_verisure/issues) page
+1. Check the [Issues](https://github.com/efraespada/my_verisure/issues) page
 2. Create a new issue with detailed information
-3. Include logs and configuration details
+3. Include versions, reproduction steps and sanitized errors; remove credentials, tokens, device identifiers and household details from attachments
 
 ## 📈 Changelog
 

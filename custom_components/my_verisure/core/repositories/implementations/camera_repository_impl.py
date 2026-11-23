@@ -26,6 +26,8 @@ class CameraRepositoryImpl(CameraRepository):
         panel: str,
         devices: List[int],
         capabilities: str,
+        max_attempts: int = 30,
+        check_interval: int = 20,
     ) -> CameraRequestImageResult:
         """Request images from cameras."""
         try:
@@ -35,6 +37,8 @@ class CameraRepositoryImpl(CameraRepository):
                 panel=panel,
                 devices=devices,
                 capabilities=capabilities,
+                max_attempts=max_attempts,
+                check_interval=check_interval,
             )
 
             # Convert DTO to domain model
@@ -59,6 +63,7 @@ class CameraRepositoryImpl(CameraRepository):
         device: str,
         zone_id: str,
         capabilities: str,
+        signal_id: str | None = None,
     ) -> Dict[str, Any]:
         """Get images from a specific camera device."""
         try:
@@ -69,6 +74,7 @@ class CameraRepositoryImpl(CameraRepository):
                 device=device,
                 zone_id=zone_id,
                 capabilities=capabilities,
+                **({"signal_id": signal_id} if signal_id is not None else {}),
             )
 
             return result

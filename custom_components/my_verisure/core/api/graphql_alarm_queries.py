@@ -2,6 +2,14 @@
 
 # GraphQL queries and mutations (extracted from alarm_client for maintainability)
 
+PANEL_STATUS_QUERY = """
+query Status($numinst: String!) {
+    xSStatus(numinst: $numinst) {
+        status
+    }
+}
+"""
+
 CHECK_ALARM_QUERY = """
 query CheckAlarm($numinst: String!, $panel: String!) {
     xSCheckAlarm(numinst: $numinst, panel: $panel) {

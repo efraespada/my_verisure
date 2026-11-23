@@ -1,7 +1,8 @@
 # Service `my_verisure.disarm`
 
-**Schema:** `installation_id` required; **`code` not validated** in schema despite legacy README examples.
+**Schema:** requires `installation_id` (string). `code` is not accepted.
 
-Implementation optionally reads `call.data.get("code")` but service registration uses `SERVICE_DISARM_SCHEMA` without `code` field — disarm path ignores HA PIN.
-
-Calls `coordinator.async_disarm()`.
+Calls `coordinator.async_disarm()` using the entry's authenticated provider
+session and current installation permissions. No HA panel PIN is required.
+Failure is returned as a Home Assistant service error; it is not reported as a
+successful disarm. This service changes physical alarm state.

@@ -70,9 +70,24 @@
         "data": {
           "scan_interval": "Intervalo de escaneo (minutos)",
           "auto_arm_perimeter_with_internal": "Armar alarma perimetral al activar cualquier alarma interna",
-          "dev_mode": "Modo desarrollador (registros detallados redactados)"
+          "dev_mode": "Modo desarrollador (registros detallados redactados)",
+          "push_enabled": "Recibir notificaciones de Verisure (mantiene el sondeo)",
+          "notification_observation": "Mostrar avisos y resultados confirmados",
+          "push_state_refresh": "Actualizar el estado de alarma tras un aviso",
+          "external_photo_updates": "Importar fotos solicitadas fuera de Home Assistant",
+          "advanced_event_bus": "Exportar al bus de eventos avanzado"
+        },
+        "data_description": {
+          "push_enabled": "Recibe avisos mediante un receptor independiente. Puede requerir verificar de nuevo el dispositivo por SMS.",
+          "notification_observation": "Muestra entidades de evento y permite la publicación opcional en el bus. La recepción y las actualizaciones habilitadas continúan por separado.",
+          "push_state_refresh": "Consulta el estado actual de forma limitada cuando Verisure notifica un cambio de alarma. Requiere recibir notificaciones.",
+          "external_photo_updates": "Importa fotos existentes de avisos de cámaras verificadas, incluidas las solicitadas desde la app oficial. Requiere recibir notificaciones.",
+          "advanced_event_bus": "Refleja los mismos eventos seguros en my_verisure_event. Elige una fuente de eventos por automatización. Requiere mostrar avisos y resultados."
         }
       }
+    },
+    "error": {
+      "invalid_options": "Activa la recepción de notificaciones para actualizar alarmas o importar fotos externas. Activa la observación de avisos para exportar al bus avanzado."
     }
   },
   "entity": {
@@ -90,6 +105,71 @@
           "arming": "Armando",
           "disarming": "Desarmando"
         }
+      }
+    },
+    "event": {
+      "notifications": {
+        "name": "Avisos",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "photo_reported": "Foto notificada",
+              "alarm_operation_reported": "Operación de alarma notificada",
+              "security_incident_reported": "Incidencia de seguridad notificada",
+              "arm_reminder": "Recordatorio de conexión",
+              "unprotected_home": "Aviso Conéctame",
+              "smart_disarm_notice": "Aviso Smart Disarm",
+              "device_maintenance_notice": "Mantenimiento de dispositivo",
+              "device_tamper_reported": "Manipulación de dispositivo notificada",
+              "maintenance_appointment": "Cita de mantenimiento",
+              "support_reply": "Respuesta de soporte",
+              "account_notice": "Aviso de cuenta",
+              "generic_notice": "Aviso general",
+              "unclassified_notice": "Aviso sin clasificar"
+            }
+          }
+        }
+      },
+      "confirmed_results": {
+        "name": "Resultados confirmados",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "photo_ready": "Foto disponible",
+              "alarm_state_confirmed": "Estado de alarma confirmado",
+              "incident_status_confirmed": "Estado de incidencia confirmado"
+            }
+          }
+        }
+      }
+    },
+    "sensor": {
+      "push_last_received": {
+        "name": "Último aviso recibido"
+      },
+      "push_last_accepted": {
+        "name": "Último aviso aceptado"
+      },
+      "push_last_verified": {
+        "name": "Último resultado verificado"
+      },
+      "push_binding_state": {
+        "name": "Vinculación de notificaciones",
+        "state": {
+          "disabled": "Deshabilitada",
+          "pending": "Pendiente",
+          "bound": "Vinculada",
+          "reauth_required": "Autenticación necesaria",
+          "degraded": "Degradada"
+        }
+      },
+      "push_cooldown_remaining": {
+        "name": "Espera del proveedor"
+      }
+    },
+    "binary_sensor": {
+      "push_connected": {
+        "name": "Conexión de notificaciones"
       }
     }
   },
@@ -127,5 +207,16 @@
         "message": "Se han realizado demasiadas peticiones y el servicio ha bloqueado temporalmente las solicitudes. Espera unos 10 minutos antes de volver a intentarlo."
       }
     }
+  },
+  "exceptions": {
+    "camera_refresh_failed": {
+      "message": "Verisure no ha confirmado una foto nueva. Espera antes de volver a intentarlo. Se conserva la imagen anterior."
+    },
+    "camera_service_blocked": {
+      "message": "Verisure ha bloqueado temporalmente las solicitudes. Espera unos diez minutos antes de volver a intentarlo. Se conserva la imagen anterior."
+    },
+    "camera_authentication_required": {
+      "message": "Vuelve a autenticarte en Verisure antes de solicitar una foto nueva."
+    }
   }
-} 
+}

@@ -10,11 +10,11 @@ CAMERA_DEVICE_TYPES = frozenset({"YR", "YP"})
 
 
 def camera_devices(devices: Iterable[Device]) -> list[Device]:
-    """Return active Verisure camera devices in source order."""
+    """Return present cameras unless the provider explicitly marks them inactive."""
     return [
         device
         for device in devices
-        if device.is_active and device.type in CAMERA_DEVICE_TYPES
+        if device.is_active is not False and device.type in CAMERA_DEVICE_TYPES
     ]
 
 

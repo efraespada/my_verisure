@@ -24,7 +24,9 @@ async def test_apply_publishes_persists_and_creates_dummy_images() -> None:
 
     publisher.assert_called_once_with(snapshot)
     store.save.assert_awaited_once_with(snapshot)
-    creator.create_dummy_camera_images.assert_awaited_once_with("home-1")
+    creator.create_dummy_camera_images.assert_awaited_once_with(
+        "home-1", camera_identifiers=()
+    )
 
 
 @pytest.mark.asyncio
@@ -59,7 +61,7 @@ async def test_apply_keeps_dummy_image_failure_non_fatal() -> None:
 
 
 @pytest.mark.asyncio
-async def test_apply_propagates_terminal_dummy_image_failure() -> None:
+async def test_apply_keeps_domain_dummy_failure_non_fatal() -> None:
     store = Mock()
     store.save = AsyncMock(return_value=True)
     creator = Mock()
@@ -68,5 +70,23 @@ async def test_apply_propagates_terminal_dummy_image_failure() -> None:
     )
     effects = CoordinatorRefreshEffects(store, Mock(), creator)
 
-    with pytest.raises(MyVerisureError):
-        await effects.apply({"value": 1}, "home-1", create_dummy_images=True)
+    await effects.apply({"value": 1}, "home-1", create_dummy_images=True)
+    store.save.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_apply_reuses_the_snapshot_camera_list():
+    store = Mock(save=AsyncMock(return_value=True))
+    creator = Mock(create_dummy_camera_images=AsyncMock())
+    effects = CoordinatorRefreshEffects(store, Mock(), creator)
+    snapshot = {"detailed_installation": {"installation": {"devices": [
+        {"type": "YR", "code": "1", "is_active": True},
+        {"type": "YP", "code": "2", "is_active": False},
+        {"type": "DOOR", "code": "3", "is_active": True},
+    ]}}}
+
+    await effects.apply(snapshot, "home-1", create_dummy_images=True)
+
+    creator.create_dummy_camera_images.assert_awaited_once_with(
+        "home-1", camera_identifiers=("YR01",)
+    )

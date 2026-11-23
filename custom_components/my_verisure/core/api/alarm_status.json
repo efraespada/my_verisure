@@ -1,4 +1,5 @@
 {
+    "inactive": ["alarm-manager.inactive_alarm"],
     "internal": {
         "day": {
             "alarm": [

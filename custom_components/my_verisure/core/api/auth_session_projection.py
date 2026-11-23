@@ -28,6 +28,8 @@ def build_session_data(
         if field not in login_data:
             continue
         value = login_data[field]
+        if value is None:
+            continue
         if expected_type is str and (not isinstance(value, str) or not value.strip()):
             raise MyVerisurePersistenceError("Authentication response failed")
         if expected_type is bool and not isinstance(value, bool):

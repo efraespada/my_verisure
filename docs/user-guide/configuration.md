@@ -11,7 +11,7 @@ Populated during the flow (see [`config_flow.py`](../../custom_components/my_ver
 | User | `CONF_USER` | Account identifier (e.g. DNI/NIE as used in the mobile app) |
 | Password | `CONF_PASSWORD` | Account password |
 | Installation ID | `CONF_INSTALLATION_ID` | Selected Securitas installation (`numinst`) |
-| Scan interval | `CONF_SCAN_INTERVAL` | Initial polling interval in **minutes** (default from `DEFAULT_SCAN_INTERVAL` = **10** in [`core/const.py`](../../custom_components/my_verisure/core/const.py)) |
+| Scan interval | `CONF_SCAN_INTERVAL` | Polling interval: integer **1–1440 minutes** (default from `DEFAULT_SCAN_INTERVAL` = **10** in [`core/const.py`](../../custom_components/my_verisure/core/const.py)) |
 
 Phone / OTP steps use `CONF_PHONE_ID` and `CONF_OTP_CODE` during the flow only.
 
@@ -30,18 +30,50 @@ If login succeeds without OTP, installation selection follows directly.
 | Option | Constant | Purpose |
 |--------|----------|---------|
 | Scan interval (minutes) | `CONF_SCAN_INTERVAL` | Coordinator `update_interval` ([Coordinator](../developer-guide/coordinator.md)) |
-| Auto arm perimeter with internal | `CONF_AUTO_ARM_PERIMETER_WITH_INTERNAL` | Passed to `arm_away` / `arm_night` use cases when enabled |
+| Immediate photo updates | `CONF_PUSH_ENABLED` | Default false. FCM completion keeps status polling as fallback and may request device verification by SMS. |
+| Observe notifications | `CONF_NOTIFICATION_OBSERVATION` | Default true. Adds safe reported/verified EventEntities; no additional provider reads by itself. |
+| Refresh state from push | `CONF_PUSH_STATE_REFRESH` | Default false; requires push. Coalesces known state/incident hints into read-only verification. |
+| External photo updates | `CONF_EXTERNAL_PHOTO_UPDATES` | Default false; requires push. Retrieves a fresh existing signal without creating another capture. |
+| Advanced event bus | `CONF_ADVANCED_EVENT_BUS` | Default false; requires observation. Mirrors the same safe record on `my_verisure_event`. |
+| Auto arm perimeter with internal | `CONF_AUTO_ARM_PERIMETER_WITH_INTERNAL` | Default false for new entries; adds exterior after a successful interior Away or Night command when enabled |
+
+Disabling immediate updates stops the receiver and keeps the verified native device
+profile and ordinary polling. Re-enabling reuses its private receiver credentials.
+No inbound port or Firebase server credential is needed.
+See the [automation guide](../automation-notifications.md) for examples and scope.
 
 Options override entry `data` for scan interval (see `update_listener` in [`integration.py`](../../custom_components/my_verisure/integration.py)).
 
+Invalid stored polling values recover to the default ten minutes. New options
+reject booleans, strings, fractions, zero, negative values and values above one day.
+
 ## Session persistence
 
-- Session material is tied to the account; paths use `STORAGE_DIR` / `my_verisure_{user}.json` pattern in [`coordinator.py`](../../custom_components/my_verisure/coordinator.py).  
-- Coordinator uses **`async_login`** → **`async_refresh_session`** → **`SessionManager.ensure_authenticated`** (single reauth path via `auth_use_case.login`; no separate `_perform_new_login`).  
-- **Reauth** flow exists (`async_step_reauth`); OTP during reauth surfaces as `otp_required` error by design in current code.  
+- Session material is entry scoped under `.storage/my_verisure_<entry_id>/data/`; separate entries do not share sessions, device identity or snapshots.
+- Authentication uses the stored native refresh token when possible. Password login and a device-bound SMS challenge are used when required; the selected phone identifier may validly be zero.
+- Successful SMS verification is followed by native login. Authentication is published only after the token pair is persisted; failed persistence restores the previous session.
+- Alarm commands authenticate first and refresh installation permissions when their session binding changes or their capability JWT expires. Failed permission refresh prevents the command.
+- Reauthentication keeps the existing entry and entity identities.
 
 For deeper behavior see [Session persistence](../technical/session-persistence.md).
+
+## Current alarm mapping
+
+| HA control | Verisure command |
+|---|---|
+| Home / En casa | Exterior only (`PERI1`) in the current implementation |
+| Night / Noche | Interior partial night (`ARMNIGHT1`), optionally followed by exterior |
+| Away / Ausente | Interior total (`ARM1`), optionally followed by exterior |
+| Disarm / Desarmar | Disconnect (`DARM1`) |
+
+The supplementary exterior option applies to both interior modes. The owner
+confirmed that Home remains exterior-only. See the
+[alarm contract](../../specs/alarm-modes-and-confirmation.md).
 
 ## Service blocked / rate limiting
 
 `MyVerisureServiceBlockedError` triggers a **persistent notification** and failed update (`UpdateFailed`). See [Troubleshooting](troubleshooting.md).
+Every Verisure client in the HA process shares origin admission and the 403/429
+cooldown, including `Retry-After`. Background verification groups hints for two
+seconds and starts at most one job per 30 seconds across entries. It retains a
+single dirty job per resource while blocked. Ordinary polling remains enabled.

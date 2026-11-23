@@ -1,4 +1,8 @@
-"""Application boundary for persisting camera images."""
+"""Application boundary for persisting camera images.
+
+Generated with ha-integration@aurora-smart-home v1.1.0
+https://github.com/tonylofgren/aurora-smart-home
+"""
 
 from __future__ import annotations
 
@@ -13,6 +17,10 @@ class CameraImageWriter(Protocol):
 
     def save_base64_image(self, filepath: str, base64_content: str) -> bool:
         """Persist one encoded image and report whether it was written."""
+        ...
+
+    def begin_camera_directory(self, directory: str) -> bool:
+        """Invalidate a prior commit marker before any image can be rewritten."""
         ...
 
     def mark_camera_directory_complete(self, directory: str) -> bool:
@@ -50,6 +58,13 @@ class CameraImageStorage:
             f"{self._safe_component(zone_id)}/"
             f"{self._safe_component(timestamp_directory)}"
         )
+        # Validate every destination before replacing any previously committed
+        # image. Duplicate provider IDs must not count the same file twice.
+        filenames = [self._image_filename(image["id"]) for image in photos.images]
+        if len(filenames) != len(set(filenames)):
+            raise ValueError("duplicate camera image identifier")
+        if not self._writer.begin_camera_directory(device_directory):
+            return CameraImageStorageResult(False, 0, len(photos.images), False)
         thumbnail_saved = False
         if thumbnail.image:
             thumbnail_saved = self._writer.save_base64_image(
@@ -58,12 +73,10 @@ class CameraImageStorage:
             )
 
         images_saved = 0
-        for image in photos.images:
+        for image, filename in zip(photos.images, filenames, strict=True):
             image_data = image["image"]
             if not image_data:
                 continue
-            image_id = image["id"]
-            filename = self._image_filename(image_id)
             if self._writer.save_base64_image(
                 f"{device_directory}/{filename}",
                 image_data,

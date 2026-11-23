@@ -1,0 +1,321 @@
+{
+  "date": "2026-11-23",
+  "scope": "Static official web/native-bridge notification research; no new live delivery claims",
+  "sources": [
+    {
+      "kind": "public_main",
+      "url": "https://customers.verisure.es/3.8.0/static/js/main.338b7d5f.js",
+      "sha256": "1a05416c8f21499252f0a3e436a61710085ed46a1388615c5eef9631958ba2b4",
+      "provenance": "Retained official public asset; current entry page still references this exact filename. Previous public-source comparison is recorded separately."
+    },
+    {
+      "kind": "public_loader",
+      "url": "https://customers.verisure.es/owa-static/home",
+      "sha256": "31dc33f56d9c996091c49840f61f6640501e15caed2a3b810846083bc7ccdd08"
+    },
+    {
+      "kind": "spanish_locale",
+      "url": "https://customers.verisure.es/3.8.0/static/js/3542.e8809b92.chunk.js",
+      "sha256": "8c4d41b6315aeebee2f4dfc4a502bf323748c01b87c18988e5b5f275bfc527f3"
+    },
+    {
+      "kind": "official_help",
+      "url": "https://www.verisure.es/cliente/datos?panel=fast"
+    },
+    {
+      "kind": "official_help",
+      "url": "https://www.verisure.es/cliente/configuracion-sistema"
+    },
+    {
+      "kind": "official_help",
+      "url": "https://www.verisure.es/cliente/dispositivos"
+    },
+    {
+      "kind": "official_terms",
+      "url": "https://customers.verisure.es/media_contents/app/myverisure/android/terms_es_verisure.html"
+    }
+  ],
+  "native_installed_version": "10.192.1",
+  "native_installed_build": "3",
+  "modules": {
+    "native_bridge": 18831,
+    "push_action": 91386,
+    "push_reducer": 18079,
+    "push_manager": 81491,
+    "push_dialogs": 26460,
+    "smart_incidence_toast": 89895,
+    "open_incidence_query": 49029,
+    "activity_signal_catalog": 87643
+  },
+  "explicit_push_request_types": [
+    "ANSWER",
+    "ARMDISARM",
+    "AUTHTESTMODE",
+    "CHATHELP",
+    "DIY",
+    "DIYKEYS",
+    "DIYREMINDER",
+    "DIYTAMPER_DIY",
+    "DIYTAMPER_NO_DIY",
+    "DIYTRACKING",
+    "FAMILIES",
+    "IND",
+    "INF",
+    "INVITATIONACCEPTED",
+    "MAINTENANCE",
+    "NOT",
+    "PWC",
+    "RSCHAFTERSUSPEND",
+    "SCHCD",
+    "SMARTDISARM",
+    "SMARTNOT",
+    "UNPROTECTED"
+  ],
+  "request_contract_fields": [
+    "request",
+    "numinst",
+    "title",
+    "text",
+    "idSignal",
+    "deeplink",
+    "advancedInfo",
+    "aux3"
+  ],
+  "verified_behaviors": [
+    {
+      "request": "INF",
+      "behavior": "Fetch thumbnail by installation and exact signal, then offer the image gallery",
+      "evidence": "client handler plus prior independent real HA delivery"
+    },
+    {
+      "request": "ARMDISARM",
+      "behavior": "Parse advancedInfo completion/error metadata; successful dialog refreshes authoritative status on acknowledgement; errors open exception handling",
+      "evidence": "client code only; new HA delivery not exercised"
+    },
+    {
+      "request": "SMARTNOT",
+      "behavior": "Refetch the open-incidence list and navigate to the incidence report; show an active-incidence toast",
+      "evidence": "client code plus official owner-only service description"
+    },
+    {
+      "request": "SCHCD",
+      "behavior": "Read current status and offer the reminder/protection dialog; no automatic arming on receipt",
+      "evidence": "client code and Spanish locale"
+    },
+    {
+      "request": "UNPROTECTED",
+      "behavior": "Show the Connect Me flow and check current alarm status",
+      "evidence": "client code plus official push service description"
+    },
+    {
+      "request": "SMARTDISARM",
+      "behavior": "Check current alarm status; locale reports an already-disarmed alarm",
+      "evidence": "client code and Spanish locale; originating trigger unverified"
+    },
+    {
+      "request_group": [
+        "DIY",
+        "DIYKEYS",
+        "DIYREMINDER",
+        "DIYTAMPER_DIY",
+        "DIYTAMPER_NO_DIY",
+        "DIYTRACKING"
+      ],
+      "behavior": "Battery replacement, reminders, unresolved tamper and shipment/process navigation",
+      "evidence": "client handlers, Spanish locale and official battery help"
+    },
+    {
+      "request_group": [
+        "MAINTENANCE",
+        "RSCHAFTERSUSPEND"
+      ],
+      "behavior": "Show maintenance and rescheduling dialogs",
+      "evidence": "client code"
+    },
+    {
+      "request_group": [
+        "ANSWER",
+        "CHATHELP"
+      ],
+      "behavior": "Show a support answer or navigate to support",
+      "evidence": "client code"
+    },
+    {
+      "request_group": [
+        "NOT",
+        "PWC"
+      ],
+      "behavior": "Display generic title/body; no category meaning inferred from the abbreviation",
+      "evidence": "client code"
+    },
+    {
+      "request_group": [
+        "AUTHTESTMODE",
+        "IND",
+        "FAMILIES",
+        "INVITATIONACCEPTED"
+      ],
+      "behavior": "Trusted-device test, targeted navigation and personal-protection/family invitation handling",
+      "evidence": "client code"
+    }
+  ],
+  "official_configuration_constraints": [
+    "User activity push depends on enabled tracking and pushNotifications settings; current owner settings were not queried or changed.",
+    "SmartNotifications is described as an owner-only service and is feature/service-gated by the client.",
+    "The client includes installation/workspace routing and does not treat all notifications as belonging to the selected home."
+  ],
+  "not_established": [
+    "Delivery of every documented request category to this independent receiver.",
+    "Presence or entitlement of all services/devices on the owner installation.",
+    "A one-to-one mapping between activity signal codes, push.type and push.request.",
+    "Continuous push telemetry for each door, PIR sensor, battery percentage or environmental measurement.",
+    "Exhaustive parity with current Android native foreground/background behavior."
+  ],
+  "new_account_logins": 0,
+  "account_api_queries": 0,
+  "alarm_commands": 0,
+  "notifications_or_permissions_changed": false,
+  "ui_limitations": [
+    "Web UI reached the login screen only; no new authenticated mailbox review.",
+    "Native application accessibility inspection timed out; version was read from its installed Info.plist."
+  ],
+  "delivery_evidence": "docs/validation/2026-11-23-ha-push.json",
+  "declared_request_namespace": [
+    "ACTIONPLAN",
+    "ALARMCHANGEUSER",
+    "ALARMCONNECT",
+    "ALARMDISCONNECT",
+    "ALARMSTATUS",
+    "ALARMTRIGGER",
+    "ALARMTRIPCANCELED",
+    "ANSWER",
+    "ARMDISARM",
+    "AUTH",
+    "AUTHTESTMODE",
+    "BATTERYSTATUS",
+    "BILLINGDATA",
+    "CHATHELP",
+    "CODEWORDS",
+    "CONTRACT",
+    "DEVICESFAST",
+    "DEVICESMOONSHOT",
+    "DIY",
+    "DIYKEYS",
+    "DIYTAMPER_DIY",
+    "DIYTAMPER_NO_DIY",
+    "DIYREMINDER",
+    "DIYTRACKING",
+    "ENTRYEXITTIME",
+    "FAMILIES",
+    "FIRST_INVOICE",
+    "HOME",
+    "HOMEMOVE",
+    "IND",
+    "INF",
+    "INVITATIONACCEPTED",
+    "INVOICES",
+    "KEYSREMOTE",
+    "MAINTENANCE",
+    "MAINTENANCES",
+    "NOACCESSBROKER",
+    "NOINTERNET",
+    "NOT",
+    "PREDIY",
+    "PREDIYREMINDER",
+    "PWC",
+    "RESETPASSW",
+    "RSCHAFTERSUSPEND",
+    "SCHCD",
+    "SENTINELCONFIG",
+    "SMARTDISARM",
+    "SMARTNOT",
+    "SUPPORTHUB",
+    "UNPROTECTED",
+    "WIFI",
+    "WIFISETTINGS",
+    "TRUSTEDDEVICES"
+  ],
+  "static_navigation_map": {
+    "ACTIONPLAN": "ACTIONPLAN",
+    "ALARMTRIGGER": "TIMELINE",
+    "AUTH": "TRUSTED_DEVICES",
+    "BATTERYSTATUS": "DIY",
+    "BILLINGDATA": "BILLING",
+    "CODEWORDS": "CODEWORD",
+    "CONTRACT": "CONTRACTS",
+    "DEVICESFAST": "DEVICES",
+    "DEVICESMOONSHOT": "PARTIAL_DEVICES",
+    "ENTRYEXITTIME": "SC_ENTRYEXIT_TIME",
+    "FIRST_INVOICE": "INVOICES",
+    "HOMEMOVE": "HOMEMOVE",
+    "IND": "INSTALLATIONS",
+    "INVOICES": "INVOICES",
+    "KEYSREMOTE": "KEYSREMOTES",
+    "MAINTENANCES": "MAINTENANCE",
+    "RESETPASSW": "LOGIN",
+    "SENTINELCONFIG": "SENTINEL",
+    "SUPPORTHUB": "SUPPORTHUB",
+    "WIFISETTINGS": "WIFI_SETTINGS",
+    "TRUSTEDDEVICES": "TRUSTED_DEVICES"
+  },
+  "declared_without_explicit_handler": [
+    "ACTIONPLAN",
+    "ALARMCHANGEUSER",
+    "ALARMCONNECT",
+    "ALARMDISCONNECT",
+    "ALARMSTATUS",
+    "ALARMTRIGGER",
+    "ALARMTRIPCANCELED",
+    "AUTH",
+    "BATTERYSTATUS",
+    "BILLINGDATA",
+    "CODEWORDS",
+    "CONTRACT",
+    "DEVICESFAST",
+    "DEVICESMOONSHOT",
+    "ENTRYEXITTIME",
+    "FIRST_INVOICE",
+    "HOME",
+    "HOMEMOVE",
+    "INVOICES",
+    "KEYSREMOTE",
+    "MAINTENANCES",
+    "NOACCESSBROKER",
+    "NOINTERNET",
+    "PREDIY",
+    "PREDIYREMINDER",
+    "RESETPASSW",
+    "SENTINELCONFIG",
+    "SUPPORTHUB",
+    "TRUSTEDDEVICES",
+    "WIFI",
+    "WIFISETTINGS"
+  ],
+  "activity_signal_catalog": {
+    "kind": "Activity/timeline vocabulary; not proven FCM push schema",
+    "declared_signal_count": 216,
+    "selected_examples": {
+      "lowBattery": 23,
+      "alarmSabotage": 24,
+      "powerFailEnd": 25,
+      "powerFailStart": 26,
+      "sos": 29,
+      "smoke": 33,
+      "water": 35,
+      "jamming": 51,
+      "endJamming": 52,
+      "alertHighTemperature": 56,
+      "alertLowTemperature": 57,
+      "alertHighHumidity": 58,
+      "alertAirQualityDanger": 59,
+      "doorlockForced": 315,
+      "doorlockBattery": 329,
+      "alarmConnected": 31,
+      "alarmDisconnected": 32,
+      "alarmConnectedNight": 46,
+      "alarmConnectedDay": 311,
+      "processPhotoRequest": 520,
+      "errorPhotoRequest": 506
+    }
+  }
+}

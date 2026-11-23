@@ -1,13 +1,14 @@
 # Manual Home Assistant verification
 
 This document defines the manual verification that complements the deterministic
-pytest harness. It must be executed against an isolated Home Assistant Core
-2026.8.1 instance, never against the household installation.
+pytest harness. The default lifecycle checklist uses an isolated Home Assistant
+Core 2026.11.2 instance. Household/provider tests require separate explicit owner
+authorization and a bounded procedure; they are never an automated gate.
 
 ## Automated evidence already covered
 
 The repository currently executes the real Home Assistant config-entry manager
-through `pytest-homeassistant-custom-component` and verifies:
+through the official `pytest-homeassistant` plugin and verifies:
 
 - user config-flow form and installation selection;
 - invalid credentials and connection-error mapping;
@@ -22,7 +23,7 @@ These tests use synthetic credentials and never call Verisure.
 
 ## Manual checklist for an isolated instance
 
-1. Create a disposable HA Core 2026.8.1 environment with no household backup,
+1. Create a disposable HA Core 2026.11.2 environment with no household backup,
    auth state, database, or credentials.
 2. Install the integration from the repository checkout under
    `custom_components/my_verisure`.
@@ -44,24 +45,21 @@ These tests use synthetic credentials and never call Verisure.
 
 ## Current limitation
 
-No live Verisure end-to-end call is part of the automated or manual gate in this
-repository. A real-provider check requires a dedicated test account and must
-be approved and run outside the household HA instance. The absence of that
-check is reported explicitly rather than replaced with synthetic success.
+No live Verisure call is part of the automated gate. Prefer a dedicated test
+installation. For an explicitly authorized household session, record permitted
+modes, original state, active pause instructions and command spacing; never infer
+permission for total mode from permission for partial night. Restore the agreed
+state and keep rollback material private. Do not retry ambiguous mutations
+automatically or bypass provider cooldowns.
 
-The current development host has Docker installed but the active operator does
-not have permission to access `/var/run/docker.sock`. Therefore the disposable
-HA process/container checklist has not been executed here. The pytest harness
-against the pinned HA Core 2026.8.1 environment remains the verified lifecycle
-evidence; it must not be conflated with manual UI or provider validation.
-
-Diagnostic detail: Docker Engine 29.6.2 is installed and the socket is owned by
-`root:docker` with mode `0660`; the active user is not a member of `docker`. No
-permission or host configuration changes were made by the validation process.
+The isolated container checklist was not executed in this iteration. The pytest
+harness against HA Core 2026.11.2 supplies deterministic lifecycle evidence.
+Separately, the owner-authorized 2026-11-22 session used the actual HA UI and
+official native application; see the [validation report](../validation/2026-11-22-live-verisure.md).
+Neither evidence set substitutes for the other.
 
 ## Follow-up implementation evidence
 
-The current iteration added focused coverage for camera filesystem boundaries
-and preserved the explicit limitation that Docker/manual UI and live Verisure
-validation were not executed. See the plan file for the slice-by-slice commits
-and the final gate output.
+The specification catalog records implemented contracts, regression tests and
+outstanding acceptance decisions. Update the dated report after a live session
+without adding raw traffic, account identifiers or authentication state.

@@ -5,7 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Mapping
 
-from ..application.otp_code_policy import is_valid_otp_code
 from ..application.models.auth import Phone
 
 
@@ -40,7 +39,7 @@ class OTPAuthorizationPolicy:
             if (
                 isinstance(phone_id, bool)
                 or not isinstance(phone_id, int)
-                or phone_id <= 0
+                or phone_id < 0
                 or not isinstance(phone_number, str)
                 or not phone_number
             ):
@@ -58,10 +57,13 @@ class OTPAuthorizationPolicy:
                 if record_id_from_camel is not None
                 else record_id_from_snake
             )
+            if "recordId" not in phone and "record_id" not in phone:
+                # The current web challenge names the delivery record "id".
+                record_id = phone_id
             if (
                 isinstance(record_id, bool)
                 or not isinstance(record_id, int)
-                or record_id <= 0
+                or record_id < 0
             ):
                 return None
             phones.append(
@@ -79,6 +81,6 @@ class OTPAuthorizationPolicy:
     def select_phone(
         self, phones: tuple[Phone, ...], phone_id: int
     ) -> Phone | None:
-        if isinstance(phone_id, bool) or not isinstance(phone_id, int) or phone_id <= 0:
+        if isinstance(phone_id, bool) or not isinstance(phone_id, int) or phone_id < 0:
             return None
         return next((phone for phone in phones if phone.id == phone_id), None)

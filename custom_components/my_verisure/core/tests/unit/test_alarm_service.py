@@ -14,7 +14,7 @@ from custom_components.my_verisure.core.application.alarm_service import (
 @pytest.fixture
 def coordinator():
     value = SimpleNamespace(
-        config_entry=SimpleNamespace(data={"installation_id": "home-1"}),
+        installation_id="home-1",
         async_arm_away=AsyncMock(
             return_value=SimpleNamespace(success=True, message="ok")
         ),

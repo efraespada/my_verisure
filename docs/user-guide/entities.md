@@ -8,13 +8,20 @@ Friendly names come from `ENTITY_NAMES` in [`core/const.py`](../../custom_compon
 
 | Platform | Naming | `unique_id` pattern (typical) |
 |----------|--------|--------------------------------|
-| Alarm control panel | `ENTITY_NAMES["alarm_control_panel"]` → **"My Verisure"** | **`my_verisure`** (fixed string) |
+| Alarm control panel | `ENTITY_NAMES["alarm_control_panel"]` → **"My Verisure"** | `my_verisure-{entry_id}` |
 | Sensors | Per-sensor friendly name | `{entry_id}_{sensor_id}` e.g. `{entry}_alarm_status` |
 | Binary sensors | Per-sensor friendly name | `{entry_id}_alarm_{sensor_id}` |
-| Cameras | `Verisure {device name}` | `verisure_camera_{code}` |
-| Button | `Refresh Camera Images` | `verisure_refresh_camera_images_{installation_id}` |
+| Cameras | `Verisure {device name}` | `{entry_id}_camera_{opaque_device_digest}` |
+| Button | `Refresh Camera Images` | `{entry_id}_refresh_camera_images` |
+| Reported event | Verisure notices | `{entry_id}_notifications` |
+| Confirmed event | Verified results | `{entry_id}_confirmed_results` |
+| Push diagnostics | Connection, binding, receipt/verification times, cooldown | `{entry_id}_push_{diagnostic}` |
 
-**Important:** The alarm panel uses a **fixed** `unique_id` (`my_verisure`). If you run **multiple config entries**, verify in your HA version whether unique IDs collide; you may need separate HA instances or code changes if collisions occur.
+Unique IDs are scoped to the config entry. Camera identity uses a digest of the
+entry, provider device type and code, so list reordering does not change it.
+The registry migration preserves unambiguous existing entity IDs, areas and
+customization. Reauthentication and updates retain the original entry; do not
+remove/re-add it as a routine session refresh.
 
 Entity IDs in the UI will look like `alarm_control_panel.my_verisure`, `sensor.<slug>`, etc., depending on HA’s slug rules.
 
@@ -48,11 +55,29 @@ Device class **SAFETY**. Types: **internal_day**, **internal_night**, **internal
 
 ## Cameras
 
-[`camera.py`](../../custom_components/my_verisure/camera.py): images are read from on-disk paths under the integration file manager (`cameras/{type}{code}/timestamp dirs`). No RTSP/stream — **still image** from latest captured file.
+[`camera.py`](../../custom_components/my_verisure/camera.py): images are read from on-disk paths under the integration file manager (`cameras/{type}{code}/timestamp dirs`). No RTSP/stream — **still image** from the latest complete committed capture.
+Optional FCM completion verifies the exact signal, camera and freshness before
+commit; the existing 20-second status polling remains available. An older displayed
+image does not prove a new request succeeded. See the [camera reference](../api-reference/entities/cameras.md).
 
 ## Buttons
 
 **Refresh Camera Images** triggers the domain service `my_verisure.refresh_camera_images` for the installation ([Services](services.md)).
+
+## Notification events and diagnostics
+
+The two event entities expose 13 finite reported types and three confirmed types.
+Restoring their last display does not replay automations. Their availability is
+independent of the socket/API connection, so the first new event after reconnect
+is retained. Account/personal messages without a verified installation remain in
+sanitized diagnostics rather than the household event stream.
+
+The connection binary sensor is enabled by default. Binding state, last received,
+last accepted, last verified and cooldown sensors are diagnostic entities disabled
+by default. Their attributes contain no raw messages or provider identifiers.
+The diagnostic download adds bounded counters, a safe recent ring, category
+coverage and last authoritative state-sync time. A quiet channel is not itself an error.
+See [notification automations](../automation-notifications.md).
 
 ## Device registry
 

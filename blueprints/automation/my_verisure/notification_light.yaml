@@ -1,0 +1,56 @@
+blueprint:
+  name: My Verisure - Luz tras un resultado verificado
+  description: >-
+    Enciende una luz cuando la entrada seleccionada publica un resultado nuevo,
+    fresco y verificado. Selecciona su entidad Resultados verificados.
+    No conecta ni desconecta la alarma. No garantiza la entrega de todos los
+    cambios del proveedor; conserva el sondeo de respaldo.
+  domain: automation
+  homeassistant:
+    min_version: "2026.8.1"
+  input:
+    result_event:
+      name: Resultados verificados de My Verisure
+      selector:
+        entity:
+          filter:
+            - integration: my_verisure
+              domain: event
+    confirmed_kind:
+      name: Resultado que enciende la luz
+      default: photo_ready
+      selector:
+        select:
+          options:
+            - label: Foto guardada
+              value: photo_ready
+            - label: Estado de alarma confirmado
+              value: alarm_state_confirmed
+            - label: Estado de incidencia confirmado
+              value: incident_status_confirmed
+    light_target:
+      name: Luz que se encenderá
+      selector:
+        target:
+          entity:
+            domain: light
+triggers:
+  - trigger: event.received
+    target:
+      entity_id: !input result_event
+    options:
+      event_type:
+        - !input confirmed_kind
+conditions:
+  - condition: template
+    value_template: >-
+      {{ trigger.to_state.attributes.get('schema_version') == 1
+         and trigger.to_state.attributes.get('stage') == 'confirmed'
+         and trigger.to_state.attributes.get('scope') == 'installation'
+         and trigger.to_state.attributes.get('freshness') == 'fresh'
+         and trigger.to_state.attributes.get('delivery') == 'live' }}
+actions:
+  - action: light.turn_on
+    target: !input light_target
+mode: queued
+max: 10

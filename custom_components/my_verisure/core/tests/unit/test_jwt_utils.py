@@ -23,7 +23,7 @@ class TestJWTUtils:
         """Test JWT expiration check when PyJWT is not available."""
         with patch.object(jwt_utils, "jwt", None):
             result = is_jwt_expired("some_token")
-            assert result is False
+            assert result is True
 
     def test_is_jwt_expired_valid_token(self):
         """Test JWT expiration check with valid token."""

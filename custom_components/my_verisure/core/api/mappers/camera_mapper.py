@@ -43,7 +43,7 @@ def request_image_status_to_dto(value: CameraRequestImageStatus) -> CameraReques
 
 
 def request_image_result_from_dto(dto: CameraRequestImageResultDTO) -> CameraRequestImageResult:
-    return CameraRequestImageResult(dto.success, dto.successful_requests, dto.reference_id)
+    return CameraRequestImageResult(dto.success, dto.successful_requests, dto.reference_id, dto.signal_id)
 
 
 def request_image_result_to_dto(value: CameraRequestImageResult) -> CameraRequestImageResultDTO:
@@ -51,4 +51,5 @@ def request_image_result_to_dto(value: CameraRequestImageResult) -> CameraReques
         value.success,
         value.successful_requests,
         value.reference_id,
+        value.signal_id,
     )

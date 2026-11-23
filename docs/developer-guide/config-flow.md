@@ -18,12 +18,18 @@ Mapped to `errors["base"]`: `invalid_auth`, `cannot_connect`, `unknown`, OTP-spe
 
 ## Options flow (`MyVerisureOptionsFlowHandler`)
 
-Single step `init` with:
+The `init` form exposes polling, supplementary perimeter, push reception,
+notification observation, selective state reads, external photos and the advanced
+bus. See [configuration](../user-guide/configuration.md) for defaults and option
+dependencies. Invalid combinations preserve the submitted form for correction.
 
-- `CONF_SCAN_INTERVAL` (int minutes)  
-- `CONF_AUTO_ARM_PERIMETER_WITH_INTERNAL` (bool)
+## Reauthentication and lifetime
 
-## Observations for contributors
+Reauthentication updates the existing entry and continues through device-bound
+phone/SMS steps when required; it does not require deleting the integration.
+Successful verification is followed by native login. Session publication is
+transactional with persistence; failure restores the prior state.
 
-- **Reauth + OTP**: `async_step_reauth` catches `MyVerisureOTPError` and sets `otp_required` rather than continuing OTP steps — users needing OTP must likely re-add integration or extend the flow.  
-- Dependencies: `setup_dependencies()` / `get_*_use_case()` pattern — avoid clearing injector prematurely between steps.
+A flow owns an isolated `CompositionRoot`, and a loaded entry owns a separate
+runtime graph. See [dependency injection](dependency-injection.md). Real HA
+flow tests cover selection, OTP failures, reauthentication and reload outcomes.

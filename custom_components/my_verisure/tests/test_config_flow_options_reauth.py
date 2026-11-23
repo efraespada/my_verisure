@@ -1,11 +1,16 @@
 """Home Assistant options flow coverage."""
 
 import pytest
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant.common import MockConfigEntry
 
 from custom_components.my_verisure.core.const import (
     CONF_AUTO_ARM_PERIMETER_WITH_INTERNAL,
     CONF_DEV_MODE,
+    CONF_PUSH_ENABLED,
+    CONF_NOTIFICATION_OBSERVATION,
+    CONF_PUSH_STATE_REFRESH,
+    CONF_EXTERNAL_PHOTO_UPDATES,
+    CONF_ADVANCED_EVENT_BUS,
     CONF_INSTALLATION_ID,
     CONF_SCAN_INTERVAL,
     CONF_USER,
@@ -37,6 +42,7 @@ async def test_options_flow_persists_scan_and_runtime_options(
             CONF_SCAN_INTERVAL: 5,
             CONF_AUTO_ARM_PERIMETER_WITH_INTERNAL: True,
             CONF_DEV_MODE: True,
+            CONF_PUSH_ENABLED: True,
         },
     )
 
@@ -45,4 +51,9 @@ async def test_options_flow_persists_scan_and_runtime_options(
         CONF_SCAN_INTERVAL: 5,
         CONF_AUTO_ARM_PERIMETER_WITH_INTERNAL: True,
         CONF_DEV_MODE: True,
+        CONF_PUSH_ENABLED: True,
+        CONF_NOTIFICATION_OBSERVATION: True,
+        CONF_PUSH_STATE_REFRESH: False,
+        CONF_EXTERNAL_PHOTO_UPDATES: False,
+        CONF_ADVANCED_EVENT_BUS: False,
     }

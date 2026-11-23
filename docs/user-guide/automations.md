@@ -29,7 +29,7 @@ trigger:
   - platform: time
     at: "22:30:00"
 action:
-  - service: my_verisure.get_status
+  - action: my_verisure.get_status
     data:
       installation_id: "YOUR_INSTALLATION_ID"
 ```
@@ -40,7 +40,7 @@ Use **`my_verisure.arm_*` / `disarm`** when you want explicit service calls (e.g
 
 ```yaml
 action:
-  - service: my_verisure.arm_night
+  - action: my_verisure.arm_night
     data:
       installation_id: "YOUR_INSTALLATION_ID"
 ```

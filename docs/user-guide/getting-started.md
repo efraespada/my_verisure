@@ -5,13 +5,14 @@
 - **Alarm control** via the native alarm panel entity and domain services  
 - **Rich status** via text sensors and binary sensors for internal day/night/total and perimeter  
 - **Cameras** backed by refreshed images on disk (see [Entities](entities.md))  
+- **Optional immediate photo updates** through FCM, retaining status polling as fallback
 - **Cloud polling** — the integration contacts Securitas Direct’s GraphQL API; there is no local LAN API  
 
 ## Prerequisites
 
-- **Home Assistant:** 2026.8.1 (Core; Python >=3.14.2)
+- **Home Assistant:** 2026.11.2 (Core; Python >=3.14.2)
 - **Verisure / Securitas Direct (Spain)** account credentials used in the official app  
-- **Network** — outbound HTTPS to `customers.securitasdirect.es`  
+- **Network** — outbound HTTPS to `customers.verisure.es`; optional FCM also needs Google registration HTTPS endpoints and `mtalk.google.com:5228`. No inbound port is required.
 
 ## Five-minute setup
 
@@ -25,7 +26,7 @@
 
 ## Next steps
 
-- Tune **polling interval** and **auto arm perimeter** in integration **Options** ([Configuration](configuration.md)).  
+- Tune **polling interval** and **auto arm perimeter** and optional **immediate photo updates** in integration **Options** ([Configuration](configuration.md)).
 - Use **Panel State** or **Active Alarms** sensors in automations ([Automations](automations.md)).  
 
 ## Assumptions

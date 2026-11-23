@@ -7,8 +7,8 @@ trigger:
 condition:
   - condition: template
     value_template: >
-      {% set t = states.sensor.my_verisure_last_updated.last_changed %}
-      {{ (now() - t).total_seconds() > 7200 }}
+      {% set updated = as_datetime(states('sensor.my_verisure_last_updated'), none) %}
+      {{ updated is none or (now() - updated).total_seconds() > 7200 }}
 action:
   - service: notify.persistent_notification
     data:

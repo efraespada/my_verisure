@@ -1,47 +1,30 @@
 # Contributing to My Verisure
 
-We love your input! We want to make contributing to My Verisure as easy and transparent as possible, whether it's:
+Create a `feature/` branch from **`develop`** and open a pull request targeting
+`develop`. Release promotion uses a separate `develop` → `master` pull request.
+Use [the issue tracker](https://github.com/efraespada/my_verisure/issues) for
+reproducible bug reports and proposed changes.
 
-- Reporting a bug
-- Discussing the current state of the code
-- Submitting a fix
-- Proposing new features
-- Becoming a maintainer
+## Before opening a pull request
 
-## We Develop with Github
-We use GitHub to host code, to track issues and feature requests, as well as accept pull requests.
+1. Set up the [pinned validation environment](docs/developer-guide/setup.md).
+2. Add behavior tests for new or changed contracts, including relevant failure,
+   concurrency and cancellation paths.
+3. Update user/developer documentation, README and applicable [specifications](specs/README.md).
+4. Run `make ci` with the selected `HA_PYTHON` and report the results and any
+   evidence limits. `make lint` also exposes historical formatting debt.
+5. Describe the concrete problem, resulting behavior and validation in the PR.
 
-## We Use [Github Flow](https://guides.github.com/introduction/flow/index.html)
-We use GitHub Flow. So all code changes happen through Pull Requests.
+Keep application policies independent of Home Assistant, HTTP, DTO and storage
+implementations. Compose ports/adapters explicitly per entry; see
+[architecture](docs/developer-guide/architecture.md).
 
-## Pull Requests
-1. Fork the repo and create your branch from `main`.
-2. If you've added code that should be tested, add tests.
-3. If you've changed APIs, update the documentation.
-4. Ensure the test suite passes.
-5. Make sure your code lints.
-6. Issue that pull request!
+Automated tests use synthetic data. Do not commit passwords, SMS codes, device
+or account identifiers, tokens, household `.storage`, logs, photos or raw traffic
+captures. Live alarm tests require specific owner authorization, permitted modes,
+spaced calls and a dated sanitized report. A test or example is not authorization
+to arm a real alarm.
 
-## Any contributions you make will be under the MIT Software License
-In short, when you submit code changes, your submissions are understood to be under the same [MIT License](http://choosealicense.com/licenses/mit/) that covers the project. Feel free to contact the maintainers if that's a concern.
-
-## Report bugs using Github's [issue tracker](https://github.com/efrain.espada/my_verisure/issues)
-We use GitHub issues to track public bugs. Report a bug by [opening a new issue](https://github.com/efrain.espada/my_verisure/issues/new); it's that easy!
-
-## Write bug reports with detail, background, and sample code
-
-**Great Bug Reports** tend to have:
-
-- A quick summary and/or background
-- Steps to reproduce
-  - Be specific!
-  - Give sample code if you can.
-- What you expected would happen
-- What actually happens
-- Notes (possibly including why you think this might be happening, or stuff you tried that didn't work)
-
-## License
-By contributing, you agree that your contributions will be licensed under its MIT License.
-
-## References
-This document was adapted from the open-source contribution guidelines for [Facebook's Draft](https://github.com/facebook/draft-js/blob/a9316a723f9e918afde44dea68b5f9f39b7d9b00/CONTRIBUTING.md). 
+Include steps to reproduce, expected/actual behavior, versions and sanitized
+errors in bug reports. Contributions are licensed under the repository's
+[MIT License](LICENSE).

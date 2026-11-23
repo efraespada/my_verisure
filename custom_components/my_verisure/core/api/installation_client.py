@@ -5,6 +5,7 @@ from typing import List
 
 from ..session_manager import SessionManager
 from .base_client import BaseClient
+from .device_manager import DeviceManager
 from .exceptions import MyVerisureAuthenticationError, MyVerisureError
 from .models.dto.installation_dto import (
     InstallationDTO,
@@ -108,6 +109,7 @@ query xSDeviceList($numinst: String!, $panel: String!) {
       name
       type
       subtype
+      remoteUse
       idService
       isActive
       serialNumber
@@ -126,9 +128,10 @@ query xSDeviceList($numinst: String!, $panel: String!) {
 class InstallationClient(BaseClient):
     """Installation client for My Verisure API."""
 
-    def __init__(self, session_manager: SessionManager) -> None:
+    def __init__(self, session_manager: SessionManager, device_manager: DeviceManager) -> None:
         """Initialize the installation client."""
-        super().__init__(session_manager=session_manager)
+        super().__init__(session_manager=session_manager, profile_context=device_manager.profile_context)
+        self._device_manager = device_manager
 
 
     async def get_installations(self) -> List[InstallationDTO]:
@@ -193,7 +196,11 @@ class InstallationClient(BaseClient):
 
         try:
             # Prepare variables
-            variables = {"numinst": installation_id}
+            await self._device_manager.async_ensure_device_identifiers()
+            variables = {
+                "numinst": installation_id,
+                "uuid": self._device_manager.get_device_identifiers()["uuid"],
+            }
 
             # Execute the services query
             headers = self._get_session_headers(session_data or {}, hash_token)

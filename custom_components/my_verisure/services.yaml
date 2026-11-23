@@ -4,10 +4,6 @@
 arm_away:
   name: "Arm Alarm Away"
   description: "Arm the alarm in away mode (total)"
-  target:
-    entity:
-      integration: my_verisure
-      domain: alarm_control_panel
   fields:
     installation_id:
       name: "Installation ID"
@@ -20,10 +16,6 @@ arm_away:
 arm_home:
   name: "Arm Alarm Home"
   description: "Arm the alarm in home mode (perimeter)"
-  target:
-    entity:
-      integration: my_verisure
-      domain: alarm_control_panel
   fields:
     installation_id:
       name: "Installation ID"
@@ -36,10 +28,6 @@ arm_home:
 arm_night:
   name: "Arm Alarm Night"
   description: "Arm the alarm in night mode"
-  target:
-    entity:
-      integration: my_verisure
-      domain: alarm_control_panel
   fields:
     installation_id:
       name: "Installation ID"
@@ -52,10 +40,6 @@ arm_night:
 disarm:
   name: "Disarm Alarm"
   description: "Disarm the alarm"
-  target:
-    entity:
-      integration: my_verisure
-      domain: alarm_control_panel
   fields:
     installation_id:
       name: "Installation ID"
@@ -63,21 +47,10 @@ disarm:
       required: true
       selector:
         text:
-    code:
-      name: "Disarm code"
-      description: "Optional PIN if required by your panel (reserved for future use)"
-      required: false
-      selector:
-        text:
-
 # Get alarm status
 get_status:
   name: "Get Alarm Status"
   description: "Refresh the alarm status"
-  target:
-    entity:
-      integration: my_verisure
-      domain: alarm_control_panel
   fields:
     installation_id:
       name: "Installation ID"
@@ -97,3 +70,11 @@ refresh_camera_images:
       required: true
       selector:
         text:
+    camera_entity_id:
+      name: "Camera"
+      description: "Refresh only this camera. Leave empty to refresh all cameras."
+      required: false
+      selector:
+        entity:
+          integration: my_verisure
+          domain: camera

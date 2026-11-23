@@ -9,12 +9,14 @@ from .alarm_command_poller import AlarmCommandPoller
 from .alarm_command_response import AlarmCommandResponseInterpreter
 from .alarm_command_workflow import AlarmCommandWorkflow
 from .alarm_graphql_requests import AlarmGraphQLRequestPolicy
-from ..application.alarm_status_service import AlarmStatusService
+from .graphql_alarm_queries import PANEL_STATUS_QUERY
+from ..application.alarm_status_service import AlarmStatusService, KNOWN_PANEL_CODES
 from .realtime_alarm_status_workflow import (
     RealtimeAlarmStatusWorkflow,
 )
 from ..application.models.alarm import ArmResult, DisarmResult
 from .base_client import BaseClient
+from .native_profile import ProfileContext
 from .exceptions import (
     MyVerisureAuthenticationError,
     MyVerisureError,
@@ -31,9 +33,9 @@ _LOGGER = logging.getLogger(__name__)
 class AlarmClient(BaseClient):
     """Alarm client for My Verisure API."""
 
-    def __init__(self, session_manager: SessionManager) -> None:
+    def __init__(self, session_manager: SessionManager, profile_context: ProfileContext | None = None) -> None:
         """Initialize the alarm client."""
-        super().__init__(session_manager=session_manager)
+        super().__init__(session_manager=session_manager, profile_context=profile_context)
         self._command_poller = AlarmCommandPoller()
         self._command_response_interpreter = AlarmCommandResponseInterpreter()
         self._command_workflow = AlarmCommandWorkflow(
@@ -108,6 +110,26 @@ class AlarmClient(BaseClient):
         """Return the default alarm status through the application service."""
         return self._status_service.default_status()
 
+    async def get_current_alarm_status(
+        self,
+        installation_id: str,
+        panel: str,
+        capabilities: str,
+    ) -> Dict[str, Any]:
+        """Read the native current state without initiating a panel radio check.
+
+        An unrecognized, non-empty provider code remains unknown. This entry
+        point is safe for notification reconciliation: it never falls back to
+        CheckAlarm, command polling or a full installation refresh.
+        """
+        hash_token, session_data = self._get_current_credentials()
+        if not hash_token:
+            raise MyVerisureAuthenticationError("Authenticated session unavailable")
+        code = await self._get_current_panel_status(
+            installation_id, panel, capabilities, hash_token, session_data
+        )
+        return self._status_service.from_panel_code(code)
+
 
     async def get_alarm_status(
         self,
@@ -115,7 +137,7 @@ class AlarmClient(BaseClient):
         panel: str,
         capabilities: str,
     ) -> Dict[str, Any]:
-        """Get alarm status from installation services and real-time check."""
+        """Read native status; request a panel check only for an unmapped code."""
         # Get credentials from SessionManager
         hash_token, session_data = self._get_current_credentials()
         
@@ -126,6 +148,11 @@ class AlarmClient(BaseClient):
 
         try:
             try:
+                code = await self._get_current_panel_status(
+                    installation_id, panel, capabilities, hash_token, session_data
+                )
+                if code in KNOWN_PANEL_CODES:
+                    return self._status_service.from_panel_code(code)
                 service_id = "EST"
 
                 check_alarm_result = await self._execute_check_alarm_direct(
@@ -210,11 +237,16 @@ class AlarmClient(BaseClient):
         panel: str,
         request: str,
         capabilities: str,
-        current_status: str = "E",
+        current_status: str | None = None,
     ) -> ArmResult:
         """Send an alarm command to the specified installation using the correct flow."""
         try:
             hash_token, session_data = self._get_current_credentials()
+
+            if current_status is None:
+                current_status = await self._get_current_panel_status(
+                    installation_id, panel, capabilities, hash_token, session_data
+                )
 
             async def command_transport() -> dict[str, Any]:
                 return await self._execute_arm_panel_direct(
@@ -340,6 +372,22 @@ class AlarmClient(BaseClient):
             "ARMNIGHT1",
             capabilities=capabilities,
         )
+
+    async def _get_current_panel_status(
+        self, installation_id: str, panel: str, capabilities: str,
+        hash_token: str | None, session_data: Dict[str, Any],
+    ) -> str:
+        """Read the same inexpensive status used by the native home screen."""
+        result = await self._execute_alarm_graphql(
+            "Status", PANEL_STATUS_QUERY, {"numinst": installation_id},
+            installation_id, panel, capabilities, hash_token, session_data,
+        )
+        data = result.get("data")
+        payload = data.get("xSStatus") if isinstance(data, dict) else None
+        code = payload.get("status") if isinstance(payload, dict) else None
+        if "errors" in result or not isinstance(code, str) or not code.strip():
+            raise MyVerisureError("Current panel status unavailable")
+        return code
 
     # Helper methods for direct GraphQL execution
     async def _execute_check_alarm_direct(

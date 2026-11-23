@@ -6,6 +6,8 @@ import logging
 from injector import Module, provider, singleton
 
 from ..api.auth_client import AuthClient
+from ..api.native_profile import ProfileContext
+from ..application.photo_notifications import PhotoNotifications
 from ..api.installation_client import InstallationClient
 from ..api.alarm_client import AlarmClient
 from ..api.camera_client import CameraClient
@@ -35,6 +37,8 @@ from ..api.device_manager import DeviceManager
 from ..file_manager import FileManager
 from ..session_manager import SessionManager
 from ..application.auth_session_persistence import AuthSessionPersistence
+from ..application.camera_placeholders import CameraPlaceholderStore
+from ..camera_placeholder_store import LocalCameraPlaceholderStore
 
 logger = logging.getLogger(__name__)
 
@@ -46,10 +50,12 @@ class MyVerisureModule(Module):
         self,
         session_manager: SessionManager,
         file_manager: FileManager,
+        push_enabled: bool = False,
     ) -> None:
         """Initialize the module with entry-scoped managers."""
         self._session_manager = session_manager
         self._file_manager = file_manager
+        self._push_enabled = push_enabled
 
     @singleton
     @provider
@@ -77,9 +83,9 @@ class MyVerisureModule(Module):
 
     @singleton
     @provider
-    def provide_device_manager(self, file_manager: FileManager) -> DeviceManager:
+    def provide_device_manager(self, file_manager: FileManager, profile: ProfileContext) -> DeviceManager:
         """Provide DeviceManager with the graph-owned file manager."""
-        return DeviceManager(file_manager=file_manager)
+        return DeviceManager(file_manager=file_manager, profile_context=profile)
 
     @singleton
     @provider
@@ -106,25 +112,27 @@ class MyVerisureModule(Module):
     @singleton
     @provider
     def provide_installation_client(
-        self, session_manager: SessionManager
+        self, session_manager: SessionManager, device_manager: DeviceManager
     ) -> InstallationClient:
         """Provide InstallationClient with the graph-owned session manager."""
-        return InstallationClient(session_manager=session_manager)
+        return InstallationClient(session_manager=session_manager, device_manager=device_manager)
 
     @singleton
     @provider
-    def provide_alarm_client(self, session_manager: SessionManager) -> AlarmClient:
+    def provide_alarm_client(self, session_manager: SessionManager, profile: ProfileContext) -> AlarmClient:
         """Provide AlarmClient with the graph-owned session manager."""
-        return AlarmClient(session_manager=session_manager)
+        return AlarmClient(session_manager=session_manager, profile_context=profile)
 
     @singleton
     @provider
     def provide_camera_client(
-        self, session_manager: SessionManager, file_manager: FileManager
+        self, session_manager: SessionManager, file_manager: FileManager,
+        profile: ProfileContext, notifications: PhotoNotifications,
     ) -> CameraClient:
         """Provide CameraClient with graph-owned managers."""
         return CameraClient(
-            session_manager=session_manager, file_manager=file_manager
+            session_manager=session_manager, file_manager=file_manager,
+            profile_context=profile, notifications=notifications if self._push_enabled else None,
         )
 
     @singleton
@@ -197,9 +205,27 @@ class MyVerisureModule(Module):
     def provide_create_dummy_camera_images_use_case(
         self,
         installation_repository: InstallationRepository,
-        file_manager: FileManager,
+        placeholder_store: CameraPlaceholderStore,
     ) -> CreateDummyCameraImagesUseCase:
         """Provide dummy image use case with graph-owned file storage."""
         return CreateDummyCameraImagesUseCaseImpl(
-            installation_repository, file_manager=file_manager
+            installation_repository, placeholder_store=placeholder_store
         )
+
+    @singleton
+    @provider
+    def provide_camera_placeholder_store(
+        self, file_manager: FileManager,
+    ) -> CameraPlaceholderStore:
+        """Own the local camera storage adapter for this entry."""
+        return LocalCameraPlaceholderStore(file_manager)
+
+    @singleton
+    @provider
+    def provide_profile_context(self) -> ProfileContext:
+        return ProfileContext()
+
+    @singleton
+    @provider
+    def provide_photo_notifications(self) -> PhotoNotifications:
+        return PhotoNotifications()

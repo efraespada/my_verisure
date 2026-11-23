@@ -1,431 +1,100 @@
-#!/bin/bash
-# Development helper script for My Verisure integration
-# Usage: ./dev <command>
-
-set -e
+#!/usr/bin/env bash
+# Development helper. Verification delegates to the canonical Makefile.
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
+HA_PYTHON="${HA_PYTHON:-${SCRIPT_DIR}/.ha-2026.11-venv/bin/python}"
+export HA_PYTHON
+HA_CONFIG="${HA_CONFIG:-/config}"
+DOCKER_CONTAINER="my_verisure_dev"
+DOCKER_IMAGE="ghcr.io/home-assistant/home-assistant:2026.11.2"
 
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+usage() {
+    cat <<'HELP'
+My Verisure development helper
 
-# Helper functions
-info() {
-    echo -e "${BLUE}ℹ${NC} $1"
+  setup          Create Python 3.14 environment and install pinned dependencies
+  test           Run complete pinned Home Assistant/Core/CLI suite
+  test-cli       Run CLI suite
+  test-core      Run application/core suite
+  coverage       Run contextual coverage and notification coverage gate
+  lint           Run complete Flake8 baseline
+  type-check     Run complete mypy gate
+  check          Run all canonical release gates (make ci)
+  deps           Install pinned development dependencies
+  start          Run HA in foreground (HA_CONFIG defaults to /config)
+  config         Validate HA_CONFIG without starting HA
+  logs           Follow HA_CONFIG/home-assistant.log
+  devcontainer   Open the project in Cursor or VS Code
+  docker-start   Start pinned HA; retain its named config volume
+  docker-stop    Stop pinned HA without deleting its configuration
+  docker-logs    Follow Docker logs
+  docker-shell   Open Docker shell
+  version        Show integration and selected interpreter versions
+  help           Show this message
+
+HA_PYTHON can select an existing validation environment. Docker configuration
+is stored in the my_verisure_dev_config named volume, outside the repository.
+HELP
 }
 
-success() {
-    echo -e "${GREEN}✓${NC} $1"
-}
-
-error() {
-    echo -e "${RED}✗${NC} $1"
-}
-
-warning() {
-    echo -e "${YELLOW}⚠${NC} $1"
-}
-
-# Check if running in DevContainer
-is_devcontainer() {
-    [ -f "/.dockerenv" ] && [ -d "/workspaces" ]
-}
-
-# Commands
-cmd_help() {
-    cat << EOF
-${BLUE}My Verisure Development Helper${NC}
-
-${GREEN}Setup Commands:${NC}
-  setup         Set up development environment (venv + deps)
-  devcontainer  Open project in VS Code DevContainer
-
-${GREEN}Home Assistant Commands:${NC}
-  start         Start Home Assistant (DevContainer)
-  stop          Stop Home Assistant (DevContainer)
-  restart       Restart Home Assistant (DevContainer)
-  logs          Show Home Assistant logs
-  config        Check Home Assistant configuration
-
-${GREEN}Testing Commands:${NC}
-  test          Run all tests
-  test-cli      Run CLI tests only
-  test-core     Run core tests only
-  test-watch    Run tests in watch mode
-  coverage      Generate coverage report
-
-${GREEN}Code Quality Commands:${NC}
-  lint          Run pylint on integration code
-  format        Format code with black
-  type-check    Run mypy type checking
-  check         Run all checks (lint + format + type-check)
-
-${GREEN}Docker Commands:${NC}
-  docker-start  Start Home Assistant in Docker (standalone)
-  docker-stop   Stop Home Assistant Docker container
-  docker-logs   View Docker container logs
-  docker-shell  Open shell in Docker container
-
-${GREEN}Other Commands:${NC}
-  clean         Clean temporary files and caches
-  deps          Install/update dependencies
-  version       Show version information
-  help          Show this help message
-
-${YELLOW}Examples:${NC}
-  ./dev setup              # First time setup
-  ./dev test               # Run all tests
-  ./dev start              # Start Home Assistant
-  ./dev logs               # View logs
-  ./dev check              # Run all quality checks
-
-EOF
-}
-
-cmd_setup() {
-    info "Setting up development environment..."
-    
-    if [ ! -d ".ha-2026.8-venv" ]; then
-        info "Creating Home Assistant 2026.8.1 virtual environment..."
-        python3.14 -m venv .ha-2026.8-venv
-    fi
-    
-    info "Activating virtual environment..."
-    source .ha-2026.8-venv/bin/activate
-    
-    info "Installing dependencies..."
-    pip install --upgrade pip
-    pip install -r requirements-dev.txt
-    
-    success "Development environment ready!"
-    info "Activate with: source .ha-2026.8-venv/bin/activate"
-}
-
-cmd_devcontainer() {
-    info "Opening in Cursor DevContainer..."
-    
-    # Try Cursor first, fallback to VS Code
-    if command -v cursor &> /dev/null; then
-        EDITOR_CMD="cursor"
-        EDITOR_NAME="Cursor"
-    elif command -v code &> /dev/null; then
-        EDITOR_CMD="code"
-        EDITOR_NAME="VS Code"
-    else
-        error "Neither Cursor nor VS Code 'cursor'/'code' command found"
-        info "Install Cursor from: https://cursor.sh"
-        info "Or VS Code from: https://code.visualstudio.com"
-        exit 1
-    fi
-    
-    info "Using $EDITOR_NAME..."
-    
-    # Check for Remote Containers extension
-    if ! $EDITOR_CMD --list-extensions | grep -q "ms-vscode-remote.remote-containers"; then
-        warning "Remote Containers extension not installed"
-        info "Installing extension..."
-        $EDITOR_CMD --install-extension ms-vscode-remote.remote-containers
-    fi
-    
-    info "Opening project..."
-    $EDITOR_CMD .
-    success "$EDITOR_NAME will prompt to reopen in container"
-}
-
-cmd_start() {
-    if is_devcontainer; then
-        info "Starting Home Assistant..."
-        container start
-    else
-        error "This command only works inside DevContainer"
-        info "Use: ./dev devcontainer"
-        exit 1
-    fi
-}
-
-cmd_stop() {
-    if is_devcontainer; then
-        info "Stopping Home Assistant..."
-        container stop
-    else
-        error "This command only works inside DevContainer"
-        exit 1
-    fi
-}
-
-cmd_restart() {
-    if is_devcontainer; then
-        info "Restarting Home Assistant..."
-        container restart
-    else
-        error "This command only works inside DevContainer"
-        exit 1
-    fi
-}
-
-cmd_logs() {
-    if is_devcontainer; then
-        info "Showing Home Assistant logs (Ctrl+C to exit)..."
-        tail -f /config/home-assistant.log | grep --color=auto -E "my_verisure|ERROR|WARNING|$"
-    else
-        error "This command only works inside DevContainer"
-        exit 1
-    fi
-}
-
-cmd_config() {
-    if is_devcontainer; then
-        info "Checking Home Assistant configuration..."
-        container check-config
-    else
-        error "This command only works inside DevContainer"
-        exit 1
-    fi
-}
-
-cmd_test() {
-    info "Running all tests..."
-    python -m pytest custom_components/my_verisure/tests/ -v --tb=short
-}
-
-cmd_test_cli() {
-    info "Running CLI tests..."
-    python -m pytest cli/tests/ -v --tb=short
-}
-
-cmd_test_core() {
-    info "Running core tests..."
-    python -m pytest custom_components/my_verisure/core/tests/ -v --tb=short
-}
-
-cmd_test_watch() {
-    info "Running tests in watch mode (Ctrl+C to exit)..."
-    python -m pytest_watch custom_components/my_verisure/tests/
-}
-
-cmd_coverage() {
-    info "Generating coverage report..."
-    python -m pytest --cov=custom_components.my_verisure \
-                     --cov-report=html \
-                     --cov-report=term \
-                     custom_components/my_verisure/tests/
-    success "Coverage report generated in htmlcov/index.html"
-}
-
-cmd_lint() {
-    info "Running pylint..."
-    python -m pylint custom_components/my_verisure
-}
-
-cmd_format() {
-    info "Formatting code with black..."
-    python -m black custom_components/my_verisure cli/
-    success "Code formatted"
-}
-
-cmd_type_check() {
-    info "Running mypy type checking..."
-    python -m mypy custom_components/my_verisure
-}
-
-cmd_check() {
-    info "Running all quality checks..."
-    echo ""
-    
-    info "1/3 Linting..."
-    cmd_lint
-    echo ""
-    
-    info "2/3 Formatting..."
-    cmd_format
-    echo ""
-    
-    info "3/3 Type checking..."
-    cmd_type_check
-    echo ""
-    
-    success "All checks passed!"
-}
-
-cmd_docker_start() {
-    info "Starting Home Assistant in Docker..."
-    
-    # Stop existing container if running
-    docker stop my_verisure_dev 2>/dev/null || true
-    docker rm my_verisure_dev 2>/dev/null || true
-    
-    # Start new container with bind mounts
-    docker run -d \
-        --name my_verisure_dev \
-        -p 8123:8123 \
-        -v "$SCRIPT_DIR/custom_components/my_verisure:/config/custom_components/my_verisure" \
-        -v "$SCRIPT_DIR/.devcontainer/configuration.yaml:/config/configuration.yaml" \
-        -v "$SCRIPT_DIR/.devcontainer/automations.yaml:/config/automations.yaml" \
-        -v "$SCRIPT_DIR/.devcontainer/scripts.yaml:/config/scripts.yaml" \
-        -v "$SCRIPT_DIR/.devcontainer/scenes.yaml:/config/scenes.yaml" \
-        ghcr.io/home-assistant/home-assistant:stable
-    
-    success "Home Assistant started!"
-    info "Waiting 30 seconds for startup..."
-    sleep 30
-    success "Ready!"
-    info "Access at: http://localhost:8123"
-    info "View logs: ./dev docker-logs"
-}
-
-cmd_docker_stop() {
-    info "Stopping Home Assistant Docker container..."
-    docker stop my_verisure_dev
-    docker rm my_verisure_dev
-    success "Container stopped and removed"
-}
-
-cmd_docker_logs() {
-    info "Showing Docker logs (Ctrl+C to exit)..."
-    docker logs -f my_verisure_dev | grep --color=auto -E "my_verisure|ERROR|WARNING|$"
-}
-
-cmd_docker_shell() {
-    info "Opening shell in Docker container..."
-    docker exec -it my_verisure_dev /bin/bash
-}
-
-cmd_clean() {
-    info "Cleaning temporary files..."
-    
-    find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
-    find . -type f -name "*.pyc" -delete 2>/dev/null || true
-    find . -type f -name "*.pyo" -delete 2>/dev/null || true
-    find . -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
-    find . -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
-    find . -type d -name ".mypy_cache" -exec rm -rf {} + 2>/dev/null || true
-    rm -rf htmlcov/ .coverage 2>/dev/null || true
-    
-    success "Cleaned temporary files"
-}
-
-cmd_deps() {
-    info "Updating dependencies..."
-    
-    if [ -d ".ha-2026.8-venv" ]; then
-        source .ha-2026.8-venv/bin/activate
-    fi
-    
-    pip install --upgrade pip
-    pip install -r requirements-dev.txt
-    
-    success "Dependencies updated"
-}
-
-cmd_version() {
-    info "Version information:"
-    echo ""
-    
-    if [ -f "custom_components/my_verisure/manifest.json" ]; then
-        VERSION=$(grep -o '"version": "[^"]*"' custom_components/my_verisure/manifest.json | cut -d'"' -f4)
-        echo "  My Verisure: $VERSION"
-    fi
-    
-    if command -v python3 &> /dev/null; then
-        echo "  Python: $(python3 --version | cut -d' ' -f2)"
-    fi
-    
-    if command -v docker &> /dev/null; then
-        echo "  Docker: $(docker --version | cut -d' ' -f3 | tr -d ',')"
-    fi
-    
-    if command -v cursor &> /dev/null; then
-        echo "  Cursor: $(cursor --version | head -n1)"
-    elif command -v code &> /dev/null; then
-        echo "  VS Code: $(code --version | head -n1)"
-    fi
-}
-
-# Main
-COMMAND="${1:-help}"
-
-case "$COMMAND" in
-    help)
-        cmd_help
-        ;;
+case "${1:-help}" in
+    help) usage ;;
     setup)
-        cmd_setup
+        if [[ "$HA_PYTHON" != */* ]]; then
+            command -v "$HA_PYTHON" >/dev/null 2>&1 || {
+                echo "HA_PYTHON does not identify an existing interpreter." >&2
+                exit 2
+            }
+        elif [[ ! -x "$HA_PYTHON" ]]; then
+            python3.14 -m venv "$(dirname "$(dirname "$HA_PYTHON")")"
+        fi
+        make install
         ;;
+    test) make test-ha-2026-11 ;;
+    test-cli) make test-cli ;;
+    test-core) make test-core ;;
+    coverage) make coverage ;;
+    lint) make lint ;;
+    type-check) make type-check ;;
+    check) make ci ;;
+    deps) make install ;;
+    start) exec "$HA_PYTHON" -m homeassistant --config "$HA_CONFIG" ;;
+    config) exec "$HA_PYTHON" -m homeassistant --config "$HA_CONFIG" --script check_config ;;
+    logs) exec tail -f "$HA_CONFIG/home-assistant.log" ;;
     devcontainer)
-        cmd_devcontainer
-        ;;
-    start)
-        cmd_start
-        ;;
-    stop)
-        cmd_stop
-        ;;
-    restart)
-        cmd_restart
-        ;;
-    logs)
-        cmd_logs
-        ;;
-    config)
-        cmd_config
-        ;;
-    test)
-        cmd_test
-        ;;
-    test-cli)
-        cmd_test_cli
-        ;;
-    test-core)
-        cmd_test_core
-        ;;
-    test-watch)
-        cmd_test_watch
-        ;;
-    coverage)
-        cmd_coverage
-        ;;
-    lint)
-        cmd_lint
-        ;;
-    format)
-        cmd_format
-        ;;
-    type-check)
-        cmd_type_check
-        ;;
-    check)
-        cmd_check
+        if command -v cursor >/dev/null 2>&1; then
+            exec cursor .
+        elif command -v code >/dev/null 2>&1; then
+            exec code .
+        else
+            echo "Install the Cursor or VS Code shell command and Dev Containers extension." >&2
+            exit 1
+        fi
         ;;
     docker-start)
-        cmd_docker_start
+        if docker container inspect "$DOCKER_CONTAINER" >/dev/null 2>&1; then
+            docker start "$DOCKER_CONTAINER"
+        else
+            docker run -d --name "$DOCKER_CONTAINER" \
+                -p 127.0.0.1:8123:8123 \
+                -v my_verisure_dev_config:/config \
+                -v "$SCRIPT_DIR/custom_components/my_verisure:/config/custom_components/my_verisure:ro" \
+                -v "$SCRIPT_DIR/.devcontainer/configuration.yaml:/config/configuration.yaml:ro" \
+                -v "$SCRIPT_DIR/.devcontainer/automations.yaml:/config/automations.yaml:ro" \
+                -v "$SCRIPT_DIR/.devcontainer/scripts.yaml:/config/scripts.yaml:ro" \
+                -v "$SCRIPT_DIR/.devcontainer/scenes.yaml:/config/scenes.yaml:ro" \
+                "$DOCKER_IMAGE"
+        fi
+        echo "Home Assistant: http://localhost:8123 (use docker-logs to check readiness)."
+        echo "Existing containers keep their original image and storage; back them up before migration."
         ;;
-    docker-stop)
-        cmd_docker_stop
-        ;;
-    docker-logs)
-        cmd_docker_logs
-        ;;
-    docker-shell)
-        cmd_docker_shell
-        ;;
-    clean)
-        cmd_clean
-        ;;
-    deps)
-        cmd_deps
-        ;;
+    docker-stop) docker stop "$DOCKER_CONTAINER" ;;
+    docker-logs) exec docker logs -f "$DOCKER_CONTAINER" ;;
+    docker-shell) exec docker exec -it "$DOCKER_CONTAINER" /bin/bash ;;
     version)
-        cmd_version
+        "$HA_PYTHON" -c 'import json, sys; from pathlib import Path; print("My Verisure", json.loads(Path("custom_components/my_verisure/manifest.json").read_text())["version"]); print(sys.version)'
         ;;
-    *)
-        error "Unknown command: $COMMAND"
-        echo ""
-        cmd_help
-        exit 1
-        ;;
+    *) echo "Unknown command: $1. Run ./dev help." >&2; exit 1 ;;
 esac

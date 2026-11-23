@@ -18,7 +18,7 @@ The HA alarm **panel entity** is configured without required codes. Disarm is ex
 
 ## Does it work outside Spain?
 
-The configured GraphQL endpoint is **`customers.securitasdirect.es`**. Other regions may use different endpoints — **not supported** by this fork unless you change constants and verify API compatibility yourself.
+The configured GraphQL endpoint is **`customers.verisure.es`**. Other regions may use different endpoints — **not supported** by this fork unless you change constants and verify API compatibility yourself.
 
 ## Can I stream video?
 

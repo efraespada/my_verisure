@@ -6,7 +6,7 @@ import asyncio
 from pathlib import Path
 from typing import Any
 
-import voluptuous as vol
+import probatio
 
 from homeassistant.config_entries import (
     ConfigEntry,
@@ -37,6 +37,12 @@ from .core.use_cases.interfaces.installation_use_case import InstallationUseCase
 from .core.use_cases.interfaces.create_dummy_camera_images_use_case import CreateDummyCameraImagesUseCase
 from .core.session_manager import SessionManager
 from .core.application.otp_code_policy import is_valid_otp_code
+from .core.application.polling import (
+    MAX_SCAN_INTERVAL,
+    MIN_SCAN_INTERVAL,
+    is_valid_scan_interval,
+    normalize_scan_interval,
+)
 from .core.application.auth_flow_transactions import AuthFlowTransactionService
 from .core.application.models.camera_refresh import CameraRefresh
 from .core.const import (
@@ -51,6 +57,11 @@ from .core.const import (
     DEFAULT_SCAN_INTERVAL,
     CONF_AUTO_ARM_PERIMETER_WITH_INTERNAL,
     CONF_DEV_MODE,
+    CONF_PUSH_ENABLED,
+    CONF_NOTIFICATION_OBSERVATION,
+    CONF_PUSH_STATE_REFRESH,
+    CONF_EXTERNAL_PHOTO_UPDATES,
+    CONF_ADVANCED_EVENT_BUS,
 )
 
 
@@ -210,10 +221,10 @@ class MyVerisureConfigFlowHandler(
 
         return self.async_show_form(
             step_id="user",
-            data_schema=vol.Schema(
+            data_schema=probatio.Schema(
                 {
-                    vol.Required(CONF_USER): str,
-                    vol.Required(CONF_PASSWORD): str,
+                    probatio.Required(CONF_USER): str,
+                    probatio.Required(CONF_PASSWORD): str,
                 }
             ),
             errors=errors,
@@ -245,7 +256,7 @@ class MyVerisureConfigFlowHandler(
                     if (
                         isinstance(record_id, bool)
                         or not isinstance(record_id, int)
-                        or record_id <= 0
+                        or record_id < 0
                     ):
                         errors["base"] = "otp_data_missing"
                     elif await self.auth_use_case.send_otp(record_id):
@@ -283,7 +294,7 @@ class MyVerisureConfigFlowHandler(
                 LOGGER.error("No phone numbers available for required OTP")
                 return self.async_show_form(
                     step_id="phone_selection",
-                    data_schema=vol.Schema({}),
+                    data_schema=probatio.Schema({}),
                     errors={"base": "otp_no_phone_destinations"},
                 )
 
@@ -295,7 +306,7 @@ class MyVerisureConfigFlowHandler(
             if not phone_options:
                 return self.async_show_form(
                     step_id="phone_selection",
-                    data_schema=vol.Schema({}),
+                    data_schema=probatio.Schema({}),
                     errors={"base": "otp_no_phone_destinations"},
                 )
         except asyncio.CancelledError:
@@ -304,28 +315,28 @@ class MyVerisureConfigFlowHandler(
         except MyVerisureConnectionError:
             return self.async_show_form(
                 step_id="phone_selection",
-                data_schema=vol.Schema({}),
+                data_schema=probatio.Schema({}),
                 errors={"base": "cannot_connect"},
             )
         except MyVerisureError:
             return self.async_show_form(
                 step_id="phone_selection",
-                data_schema=vol.Schema({}),
+                data_schema=probatio.Schema({}),
                 errors={"base": "unknown"},
             )
         except Exception:
             LOGGER.error("OTP phone lookup failed")
             return self.async_show_form(
                 step_id="phone_selection",
-                data_schema=vol.Schema({}),
+                data_schema=probatio.Schema({}),
                 errors={"base": "unknown"},
             )
 
         return self.async_show_form(
             step_id="phone_selection",
-            data_schema=vol.Schema(
+            data_schema=probatio.Schema(
                 {
-                    vol.Required(CONF_PHONE_ID): vol.In(phone_options),
+                    probatio.Required(CONF_PHONE_ID): probatio.In(phone_options),
                 }
             ),
             errors=errors,
@@ -345,7 +356,7 @@ class MyVerisureConfigFlowHandler(
                 errors["base"] = "otp_invalid"
                 return self.async_show_form(
                     step_id="otp_verification",
-                    data_schema=vol.Schema({vol.Required(CONF_OTP_CODE): str}),
+                    data_schema=probatio.Schema({probatio.Required(CONF_OTP_CODE): str}),
                     errors=errors,
                 )
 
@@ -432,9 +443,9 @@ class MyVerisureConfigFlowHandler(
 
         return self.async_show_form(
             step_id="otp_verification",
-            data_schema=vol.Schema(
+            data_schema=probatio.Schema(
                 {
-                    vol.Required(CONF_OTP_CODE): str,
+                    probatio.Required(CONF_OTP_CODE): str,
                 }
             ),
             errors=errors,
@@ -454,7 +465,7 @@ class MyVerisureConfigFlowHandler(
         if not session_manager.is_session_valid():
             return self.async_show_form(
                 step_id="installation",
-                data_schema=vol.Schema({}),
+                data_schema=probatio.Schema({}),
                 errors={"base": "authentication_required"},
             )
 
@@ -562,9 +573,9 @@ class MyVerisureConfigFlowHandler(
 
         return self.async_show_form(
             step_id="installation",
-            data_schema=vol.Schema(
+            data_schema=probatio.Schema(
                 {
-                    vol.Required(CONF_INSTALLATION_ID): vol.In(installation_options),
+                    probatio.Required(CONF_INSTALLATION_ID): probatio.In(installation_options),
                 }
             ),
             errors=errors,
@@ -645,10 +656,10 @@ class MyVerisureConfigFlowHandler(
                 return await self._async_abort_with_cleanup(reason="cannot_persist")
             return self.async_show_form(
                 step_id="reauth_confirm",
-                data_schema=vol.Schema(
+                data_schema=probatio.Schema(
                     {
-                        vol.Required(CONF_USER, default=self.user): str,
-                        vol.Required(CONF_PASSWORD): str,
+                        probatio.Required(CONF_USER, default=self.user): str,
+                        probatio.Required(CONF_PASSWORD): str,
                     }
                 ),
                 errors={"base": "authentication_required"},
@@ -680,10 +691,10 @@ class MyVerisureConfigFlowHandler(
         if not committed:
             return self.async_show_form(
                 step_id="reauth_confirm",
-                data_schema=vol.Schema(
+                data_schema=probatio.Schema(
                     {
-                        vol.Required(CONF_USER, default=self.user): str,
-                        vol.Required(CONF_PASSWORD): str,
+                        probatio.Required(CONF_USER, default=self.user): str,
+                        probatio.Required(CONF_PASSWORD): str,
                     }
                 ),
                 errors={"base": "cannot_persist"},
@@ -806,10 +817,10 @@ class MyVerisureConfigFlowHandler(
 
         return self.async_show_form(
             step_id="reauth_confirm",
-            data_schema=vol.Schema(
+            data_schema=probatio.Schema(
                 {
-                    vol.Required(CONF_USER, default=self.user): str,
-                    vol.Required(CONF_PASSWORD): str,
+                    probatio.Required(CONF_USER, default=self.user): str,
+                    probatio.Required(CONF_PASSWORD): str,
                 }
             ),
             errors=errors,
@@ -823,25 +834,73 @@ class MyVerisureOptionsFlowHandler(OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Manage the options."""
+        options = dict(self.config_entry.options)
+        errors: dict[str, str] = {}
         if user_input is not None:
-            return self.async_create_entry(title="", data=user_input)
+            options.update(user_input)
+            interval = options.get(
+                CONF_SCAN_INTERVAL,
+                self.config_entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
+            )
+            needs_push = options.get(CONF_PUSH_STATE_REFRESH, False) or options.get(
+                CONF_EXTERNAL_PHOTO_UPDATES, False
+            )
+            invalid_push = needs_push and not options.get(CONF_PUSH_ENABLED, False)
+            invalid_bus = options.get(CONF_ADVANCED_EVENT_BUS, False) and not options.get(
+                CONF_NOTIFICATION_OBSERVATION, True
+            )
+            if invalid_push or invalid_bus or not is_valid_scan_interval(interval):
+                errors["base"] = "invalid_options"
+            else:
+                return self.async_create_entry(title="", data=options)
 
         return self.async_show_form(
             step_id="init",
-            data_schema=vol.Schema(
+            data_schema=probatio.Schema(
                 {
-                    vol.Optional(
+                    probatio.Optional(
                         CONF_SCAN_INTERVAL,
-                        default=self.config_entry.options.get(CONF_SCAN_INTERVAL, self.config_entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)),
-                    ): int,
-                    vol.Optional(
+                        default=normalize_scan_interval(
+                            options.get(
+                                CONF_SCAN_INTERVAL,
+                                self.config_entry.data.get(
+                                    CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
+                                ),
+                            )
+                        ),
+                    ): probatio.All(
+                        int,
+                        probatio.Range(min=MIN_SCAN_INTERVAL, max=MAX_SCAN_INTERVAL),
+                    ),
+                    probatio.Optional(
                         CONF_AUTO_ARM_PERIMETER_WITH_INTERNAL,
-                        default=self.config_entry.options.get(CONF_AUTO_ARM_PERIMETER_WITH_INTERNAL, False),
+                        default=options.get(CONF_AUTO_ARM_PERIMETER_WITH_INTERNAL, False),
                     ): bool,
-                    vol.Optional(
+                    probatio.Optional(
+                        CONF_PUSH_ENABLED,
+                        default=options.get(CONF_PUSH_ENABLED, False),
+                    ): bool,
+                    probatio.Optional(
+                        CONF_NOTIFICATION_OBSERVATION,
+                        default=options.get(CONF_NOTIFICATION_OBSERVATION, True),
+                    ): bool,
+                    probatio.Optional(
+                        CONF_PUSH_STATE_REFRESH,
+                        default=options.get(CONF_PUSH_STATE_REFRESH, False),
+                    ): bool,
+                    probatio.Optional(
+                        CONF_EXTERNAL_PHOTO_UPDATES,
+                        default=options.get(CONF_EXTERNAL_PHOTO_UPDATES, False),
+                    ): bool,
+                    probatio.Optional(
+                        CONF_ADVANCED_EVENT_BUS,
+                        default=options.get(CONF_ADVANCED_EVENT_BUS, False),
+                    ): bool,
+                    probatio.Optional(
                         CONF_DEV_MODE,
-                        default=self.config_entry.options.get(CONF_DEV_MODE, False),
+                        default=options.get(CONF_DEV_MODE, False),
                     ): bool,
                 }
             ),
+            errors=errors,
         )

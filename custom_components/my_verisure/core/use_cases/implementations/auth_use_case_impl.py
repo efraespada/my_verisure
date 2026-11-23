@@ -86,12 +86,12 @@ class AuthUseCaseImpl(AuthUseCase):
             valid_phone_binding = all(
                 not isinstance(phone.id, bool)
                 and isinstance(phone.id, int)
-                and phone.id > 0
+                and phone.id >= 0
                 and isinstance(phone.phone, str)
                 and bool(phone.phone)
                 and not isinstance(phone.record_id, bool)
                 and isinstance(phone.record_id, int)
-                and phone.record_id > 0
+                and phone.record_id >= 0
                 for phone in challenge_phones
             )
             if (
@@ -139,7 +139,7 @@ class AuthUseCaseImpl(AuthUseCase):
             if (
                 isinstance(record_id, bool)
                 or not isinstance(record_id, int)
-                or record_id <= 0
+                or record_id < 0
             ):
                 raise MyVerisureOTPError("Invalid OTP record")
             if self._otp_attempts >= MAX_OTP_ATTEMPTS:
@@ -306,7 +306,7 @@ class AuthUseCaseImpl(AuthUseCase):
         if (
             isinstance(phone_id, bool)
             or not isinstance(phone_id, int)
-            or phone_id <= 0
+            or phone_id < 0
         ):
             _LOGGER.error("Selected OTP phone is not available")
             return False
@@ -317,6 +317,10 @@ class AuthUseCaseImpl(AuthUseCase):
         )
         if selected_phone is None or not isinstance(selected_phone.record_id, int):
             _LOGGER.error("Selected OTP phone is not available")
+            return False
+
+        if not self.auth_repository.select_phone(phone_id):
+            self._selected_phone = None
             return False
 
         self._selected_phone = selected_phone

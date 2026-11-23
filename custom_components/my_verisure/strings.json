@@ -70,9 +70,24 @@
         "data": {
           "scan_interval": "Scan interval (minutes)",
           "auto_arm_perimeter_with_internal": "Arm perimeter alarm when any internal alarm is triggered",
-          "dev_mode": "Developer mode (verbose redacted logs)"
+          "dev_mode": "Developer mode (verbose redacted logs)",
+          "push_enabled": "Receive Verisure notifications (keeps polling enabled)",
+          "notification_observation": "Show notifications and confirmed results",
+          "push_state_refresh": "Update alarm state after notifications",
+          "external_photo_updates": "Import photos requested outside Home Assistant",
+          "advanced_event_bus": "Advanced event bus export"
+        },
+        "data_description": {
+          "push_enabled": "Receives notifications through an independent receiver. Device verification by SMS may be requested again.",
+          "notification_observation": "Shows event entities and permits optional event bus publication. Reception and explicitly enabled refreshes continue independently.",
+          "push_state_refresh": "Uses a bounded current-state check when Verisure reports an alarm change. Requires notification reception.",
+          "external_photo_updates": "Imports existing photos from matching camera notifications, including requests made in the official app. Requires notification reception.",
+          "advanced_event_bus": "Mirrors the same safe events on my_verisure_event. Choose one event source per automation. Requires notification observation."
         }
       }
+    },
+    "error": {
+      "invalid_options": "Enable notification reception before selecting alarm refresh or external photo updates. Enable notification observation before selecting advanced event bus export."
     }
   },
   "entity": {
@@ -90,6 +105,71 @@
           "arming": "Armando",
           "disarming": "Desarmando"
         }
+      }
+    },
+    "event": {
+      "notifications": {
+        "name": "Notifications",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "photo_reported": "Photo reported",
+              "alarm_operation_reported": "Alarm operation reported",
+              "security_incident_reported": "Security incident reported",
+              "arm_reminder": "Arming reminder",
+              "unprotected_home": "Connect Me notice",
+              "smart_disarm_notice": "Smart Disarm notice",
+              "device_maintenance_notice": "Device maintenance notice",
+              "device_tamper_reported": "Device tamper reported",
+              "maintenance_appointment": "Maintenance appointment",
+              "support_reply": "Support reply",
+              "account_notice": "Account notice",
+              "generic_notice": "General notice",
+              "unclassified_notice": "Unclassified notice"
+            }
+          }
+        }
+      },
+      "confirmed_results": {
+        "name": "Confirmed results",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "photo_ready": "Photo available",
+              "alarm_state_confirmed": "Alarm state confirmed",
+              "incident_status_confirmed": "Incident status confirmed"
+            }
+          }
+        }
+      }
+    },
+    "sensor": {
+      "push_last_received": {
+        "name": "Last notification received"
+      },
+      "push_last_accepted": {
+        "name": "Last notification accepted"
+      },
+      "push_last_verified": {
+        "name": "Last result verified"
+      },
+      "push_binding_state": {
+        "name": "Notification binding",
+        "state": {
+          "disabled": "Disabled",
+          "pending": "Pending",
+          "bound": "Bound",
+          "reauth_required": "Authentication required",
+          "degraded": "Degraded"
+        }
+      },
+      "push_cooldown_remaining": {
+        "name": "Provider cooldown"
+      }
+    },
+    "binary_sensor": {
+      "push_connected": {
+        "name": "Notification connection"
       }
     }
   },
@@ -127,5 +207,16 @@
         "message": "Too many requests were made, and the service has temporarily blocked further calls. Please wait about 10 minutes before trying again."
       }
     }
+  },
+  "exceptions": {
+    "camera_refresh_failed": {
+      "message": "Verisure did not confirm a new photo. Wait before retrying. The previous image is retained."
+    },
+    "camera_service_blocked": {
+      "message": "Verisure has temporarily blocked requests. Wait about ten minutes before retrying. The previous image is retained."
+    },
+    "camera_authentication_required": {
+      "message": "Authenticate with Verisure again before requesting a new photo."
+    }
   }
-} 
+}

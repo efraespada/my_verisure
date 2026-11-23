@@ -27,3 +27,4 @@ class CameraRequestImageResult:
     success: bool
     successful_requests: int
     reference_id: Optional[str] = None
+    signal_id: Optional[str] = None

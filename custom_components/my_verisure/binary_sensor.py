@@ -9,7 +9,8 @@ from homeassistant.components.binary_sensor import (
     BinarySensorEntity,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.const import EntityCategory
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .core.application.alarm_state import AlarmState, analyze_alarm_state
@@ -26,7 +27,7 @@ async def async_setup_entry(
     """Set up My Verisure binary sensors based on a config entry."""
     coordinator: MyVerisureDataUpdateCoordinator = config_entry.runtime_data
 
-    entities = []
+    entities: list[BinarySensorEntity] = []
 
     # Create alarm status binary sensors
     entities.extend([
@@ -64,7 +65,45 @@ async def async_setup_entry(
         ),
     ])
 
+    if getattr(coordinator, "notification_hub", None) is not None:
+        entities.append(MyVerisurePushConnectivitySensor(coordinator, config_entry))
     async_add_entities(entities)
+
+
+class MyVerisurePushConnectivitySensor(BinarySensorEntity):
+    """Expose socket connectivity separately from binding and alarm API health."""
+
+    _attr_has_entity_name = True
+    _attr_should_poll = False
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
+    _attr_translation_key = "push_connected"
+
+    def __init__(
+        self, coordinator: MyVerisureDataUpdateCoordinator,
+        config_entry: ConfigEntry,
+    ) -> None:
+        self._coordinator = coordinator
+        self._attr_unique_id = f"{config_entry.entry_id}_push_connected"
+        self._attr_device_info = get_device_info(config_entry)
+
+    @property
+    def is_on(self) -> bool | None:
+        data = self._coordinator.notification_diagnostics()
+        if data.get("enabled") is False:
+            return False
+        value = data.get("connected")
+        return value if isinstance(value, bool) else None
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        self.async_on_remove(
+            self._coordinator.notification_hub.subscribe_diagnostics(self._updated)
+        )
+
+    @callback
+    def _updated(self) -> None:
+        self.async_write_ha_state()
 
 
 class MyVerisureAlarmBinarySensor(BinarySensorEntity):
