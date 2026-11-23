@@ -3,6 +3,8 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/custom-components/hacs)
 [![maintainer](https://img.shields.io/badge/maintainer-%40efraespada-blue.svg)](https://github.com/efraespada)
 
+Current release: **[1.1.0](https://github.com/efraespada/my_verisure/releases/tag/v1.1.0)** · [Release notes](CHANGELOG.md).
+
 Custom integration for Home Assistant that connects to the Verisure / Securitas Direct GraphQL API. Control alarm modes, read detailed zone status, refresh camera snapshots, and automate via services.
 
 ## 📚 Documentation

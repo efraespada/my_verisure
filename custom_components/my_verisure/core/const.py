@@ -42,7 +42,7 @@ ENTITY_NAMES = {
 DEVICE_INFO = {
     "manufacturer": "Verisure",
     "model": "Alarm System",
-    "sw_version": "1.0.0",
+    "sw_version": "1.1.0",
     "configuration_url": "https://github.com/efraespada/my_verisure",
 }
 
