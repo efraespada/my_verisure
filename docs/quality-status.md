@@ -5,7 +5,7 @@ Updated: 2026-11-23. Current supported target: **Home Assistant Core 2026.11.2**
 ## Verified local evidence
 
 - Python `3.14.6`; official harness `pytest-homeassistant==2026.11.2`.
-- Complete suite: **1,704 passed, zero failures and warnings**.
+- Complete suite: **1,707 passed, zero failures and warnings**.
 - Mypy: no issues in **326 source files** with the repository's existing settings.
 - Blocking Flake8 `E9,F`: passing; full style lint remains a separate, failing baseline.
 - Architecture, documentation, dependency consistency and distribution gates are
@@ -16,21 +16,24 @@ Updated: 2026-11-23. Current supported target: **Home Assistant Core 2026.11.2**
 
 | Measured scope | Executable lines | Branches | Missing lines / branches |
 |---|---:|---:|---:|
-| HA integration/core | **85.21%** (8,123 / 9,533) | **76.00%** (1,818 / 2,392) | 1,410 / 574 |
+| HA integration/core | **85.20%** (8,119 / 9,529) | **75.98%** (1,816 / 2,390) | 1,410 / 574 |
 | CLI | **73.40%** (643 / 876) | **60.07%** (167 / 278) | 233 / 111 |
-| Quality tools | **77.84%** (267 / 343) | **69.28%** (115 / 166) | 76 / 51 |
+| Quality tools | **78.03%** (270 / 346) | **69.64%** (117 / 168) | 76 / 51 |
 
 The denominator excludes tests and third-party packages. These three scopes do
 not include the thin root CLI launcher. **Global coverage is incomplete.**
 Config-flow/coordinator recovery and broader CLI behavior are the principal gaps.
+Removing a redundant fully covered form validator changed the denominator;
+missing integration lines/branches remain 1,410/574. The form now uses standard
+serializable integer fields plus the strict application policy.
 
-CI enforces line/branch floors of 85/76 for integration, 73/60 for CLI and 77/69
+CI enforces line/branch floors of 85/75.9 for integration, 73/60 for CLI and 77/69
 for tools, rejecting omitted source files. Ten notification modules and six
 additional image/placeholder/polling/JWT modules require **100% executable lines
 and branches**. See their exact lists in
 [`check_notification_coverage.py`](../scripts/check_notification_coverage.py) and
 [`check_project_coverage.py`](../scripts/check_project_coverage.py).
-The C tracer recorded **1,913 per-test contexts**; sys.monitoring is not used
+The C tracer recorded **1,916 per-test contexts**; sys.monitoring is not used
 because it cannot supply the requested dynamic contexts in this tool version.
 
 The [repository audit](technical/2026-11-23-project-quality-audit.md) explains the

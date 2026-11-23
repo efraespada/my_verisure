@@ -21,6 +21,8 @@ from scripts.architecture_guard import check_imports
         ("core/application/new_policy.py", "import homeassistant.core as ha"),
         ("core/new_adapter.py", "from homeassistant import core"),
         ("core/application/new_policy.py", "from injector import Injector"),
+        ("core/application/new_policy.py", "from probatio import Schema"),
+        ("core/application/models/new_model.py", "from pydantic import BaseModel"),
         ("core/use_cases/implementations/new_case.py", "from PIL import Image"),
         (
             "core/application/models/new_model.py",

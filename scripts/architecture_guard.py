@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import ast
 from pathlib import Path
+import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 PRODUCTION_ROOTS = (
@@ -44,7 +45,10 @@ def check_imports(root: Path) -> list[str]:
         "coordinator_snapshot_store",
         "camera_placeholder_store",
     }
-    frameworks = {"homeassistant", "aiohttp", "gql", "requests", "PIL", "injector"}
+    frameworks = {
+        "homeassistant", "aiohttp", "gql", "requests", "PIL", "injector",
+        "probatio", "voluptuous",
+    }
     for path in sorted(core.rglob("*.py")):
         relative = path.relative_to(core)
         if "tests" in relative.parts:
@@ -69,6 +73,10 @@ def check_imports(root: Path) -> list[str]:
                     forbidden = True
                 if is_policy and parts[0] in frameworks:
                     forbidden = True
+                if is_model and parts[0] not in (
+                    sys.stdlib_module_names | {"custom_components"}
+                ):
+                    forbidden = True
                 if parts[:3] == ["custom_components", "my_verisure", "core"]:
                     inner = parts[3:]
                     if is_policy and inner and inner[0] in infrastructure:
@@ -79,7 +87,8 @@ def check_imports(root: Path) -> list[str]:
                         forbidden = True
             if forbidden:
                 errors.append(
-                    f"outward policy import: {path.relative_to(root)}:{node.lineno}"  # type: ignore[attr-defined]
+                    f"outward policy import: {path.relative_to(root)}:"
+                    f"{node.lineno}"  # type: ignore[attr-defined]
                 )
     return errors
 
