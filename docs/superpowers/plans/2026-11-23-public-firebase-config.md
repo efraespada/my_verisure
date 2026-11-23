@@ -31,4 +31,5 @@ The alert's original commit remains historical evidence. Never claim that the pr
 - Live public discovery: two unauthenticated HTTPS GETs matched the original public client value; no account calls, receiver registration or alarm commands. See `docs/validation/2026-11-23-public-firebase-config.json`.
 - Existing Validate with HACS workflow re-enabled after GitHub disabled it for inactivity. Remote PR validation follows the corrective push.
 - Initial remote Python runs failed during interpreter setup: Ubuntu 26.04 lacks a Python 3.14.4 distribution. The official actions/python-versions manifest confirms Ubuntu 24.04 support, so the Python job is pinned to that image. HACS passed independently.
+- The next clean remote run exposed a missing `firebase-messaging` target requirement; the local environment already had the manifest dependency installed. Add its existing production pin to `requirements-ha-2026.8.txt` so the documented fresh installation matches production imports.
 - Historical installed HA timings predate this bootstrap correction. No new household deployment is claimed.

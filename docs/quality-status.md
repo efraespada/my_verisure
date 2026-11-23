@@ -19,6 +19,8 @@ reported separately on each pull request; they do not imply a published release.
 The Python CI job uses Ubuntu 24.04 for the pinned Python 3.14.4 build. The moving
 `ubuntu-latest` image became Ubuntu 26.04, where that Python patch has no official
 setup-python distribution; the initial run stopped before dependency installation.
+The target requirements also include `firebase-messaging==0.4.5`, matching the
+integration manifest so a clean CI environment can import the optional receiver.
 
 ## Full lint policy
 
