@@ -13,6 +13,7 @@ from custom_components.my_verisure.core.application.exceptions import MyVerisure
 def _coordinator(installation_id: str, *, result=None, error=None):
     command = AsyncMock(return_value=result, side_effect=error)
     return SimpleNamespace(
+        installation_id=installation_id,
         config_entry=SimpleNamespace(data={"installation_id": installation_id}),
         async_arm_away=command,
         clear_alarm_transition_state=Mock(),

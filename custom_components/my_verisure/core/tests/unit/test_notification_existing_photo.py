@@ -5,7 +5,6 @@ https://github.com/tonylofgren/aurora-smart-home
 """
 
 import asyncio
-import base64
 from datetime import datetime
 import time
 import threading
@@ -13,6 +12,8 @@ from unittest.mock import AsyncMock, Mock
 from zoneinfo import ZoneInfo
 
 import pytest
+
+from custom_components.my_verisure.core.tests.image_fixtures import synthetic_jpeg_base64
 
 from custom_components.my_verisure.core.api.camera_client import CameraClient
 from custom_components.my_verisure.core.application.camera_image_storage import (
@@ -46,7 +47,7 @@ def thumbnail(*, camera="YR07", signal="123", timestamp=None, signal_type="16"):
                     time.time(), ZoneInfo("Europe/Madrid")
                 ).strftime("%Y-%m-%d %H:%M:%S"),
                 "deviceAlias": "synthetic",
-                "image": base64.b64encode(b"synthetic").decode(),
+                "image": synthetic_jpeg_base64(),
             }
         }
     }
@@ -66,9 +67,7 @@ async def test_external_photo_commits_exact_signal_with_two_read_queries(tmp_pat
                                 "images": [
                                     {
                                         "id": str(i),
-                                        "image": base64.b64encode(
-                                            b"synthetic"
-                                        ).decode(),
+                                        "image": synthetic_jpeg_base64(),
                                     }
                                     for i in range(3)
                                 ],

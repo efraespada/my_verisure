@@ -98,7 +98,10 @@ journey; it does not request another SMS for every token expiration.
 Pending challenges are cleared on cancellation, expiry and terminal errors.
 Transport failures do not provoke an immediate password-login fallback. A provider
 rejection of native renewal permits one registered-device login attempt. An
-ambiguous tokenless response is not authenticated.
+ambiguous tokenless response is not authenticated. A changed password must be
+validated with password login; an older refresh token cannot validate replacement
+credentials. Invalid persisted JSON shapes/types/timestamps are ignored before
+changing memory, allowing a clean login with the configured credentials.
 
 ## 7. User-facing configuration
 
@@ -208,7 +211,7 @@ these tests and is never a CI dependency.
 | Requirement | Owner | Test/evidence | Documentation |
 |---|---|---|---|
 | AUTH-1/2 | OTP policy, config flow, auth repository | `test_otp_authorization.py`, `test_current_native_auth.py`, `test_config_flow_branches.py` | configuration guide |
-| AUTH-3/4 | SessionManager, AuthClient | `test_auth_session_persistence.py`, `test_session_manager.py`, native refresh live log | session persistence guide |
+| AUTH-3/4 | SessionManager, AuthClient | `test_session_hydration.py`, `test_reauthentication_credentials.py`, `test_auth_session_persistence.py`, `test_session_manager.py`, native refresh live log | session persistence guide |
 | AUTH-5 | coordinator auth boundary | `test_coordinator_update_boundaries.py` | alarm/camera service guides |
 | AUTH-6 | redaction and diagnostics | `test_public_entity_redaction.py`, `test_ha_diagnostics_button.py` | this specification |
 

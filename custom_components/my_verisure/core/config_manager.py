@@ -1,6 +1,7 @@
 """Configuration manager for My Verisure integration."""
 
 import logging
+from copy import deepcopy
 from typing import Any, Dict
 
 from .file_manager import FileManager
@@ -44,15 +45,21 @@ class ConfigManager:
             config = self._resolve_file_manager().load_json(self._config_file)
             if config is None:
                 _LOGGER.info("No config file found, using defaults")
-                return self._default_config.copy()
+                return deepcopy(self._default_config)
             
             # Merge with defaults to ensure all keys exist
-            merged_config = self._default_config.copy()
+            if not isinstance(config, dict):
+                raise ValueError("Invalid configuration mapping")
+            if "config" in config:
+                config = config["config"]
+                if not isinstance(config, dict):
+                    raise ValueError("Invalid configuration envelope")
+            merged_config = deepcopy(self._default_config)
             merged_config.update(config)
             return merged_config
         except Exception:
             _LOGGER.error("Failed to load config")
-            return self._default_config.copy()
+            return deepcopy(self._default_config)
     
     def save_config(self, config: Dict[str, Any]) -> bool:
         """Save configuration to file."""

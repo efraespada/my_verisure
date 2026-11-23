@@ -4,7 +4,7 @@
     {
       "label": "Run Home Assistant",
       "type": "shell",
-      "command": "python3 -m homeassistant --config /config --debug",
+      "command": "./dev start",
       "problemMatcher": [],
       "presentation": {
         "reveal": "always",
@@ -12,21 +12,15 @@
       }
     },
     {
-      "label": "Restart Home Assistant",
-      "type": "shell",
-      "command": "pkill -f homeassistant && sleep 2 && python3 -m homeassistant --config /config --debug &",
-      "problemMatcher": []
-    },
-    {
       "label": "Check Config",
       "type": "shell",
-      "command": "python3 -m homeassistant --config /config --script check_config",
+      "command": "./dev config",
       "problemMatcher": []
     },
     {
       "label": "Run Tests",
       "type": "shell",
-      "command": "pytest custom_components/my_verisure/tests/ -v",
+      "command": "make test-ha-2026-11",
       "problemMatcher": [],
       "group": {
         "kind": "test",
@@ -34,21 +28,15 @@
       }
     },
     {
-      "label": "Lint: Pylint",
+      "label": "Lint: Flake8 critical",
       "type": "shell",
-      "command": "pylint custom_components/my_verisure",
-      "problemMatcher": []
-    },
-    {
-      "label": "Format: Black",
-      "type": "shell",
-      "command": "black custom_components/my_verisure",
+      "command": "make lint-critical",
       "problemMatcher": []
     },
     {
       "label": "Type Check: MyPy",
       "type": "shell",
-      "command": "mypy custom_components/my_verisure",
+      "command": "make type-check",
       "problemMatcher": []
     }
   ]

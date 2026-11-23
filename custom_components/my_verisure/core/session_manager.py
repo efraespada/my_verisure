@@ -1,4 +1,8 @@
-"""Session manager for My Verisure integration."""
+"""Session manager for My Verisure integration.
+
+Generated with ha-integration@aurora-smart-home v1.1.0
+https://github.com/tonylofgren/aurora-smart-home
+"""
 
 from __future__ import annotations
 
@@ -90,11 +94,42 @@ class SessionManager:
         raise RuntimeError("session path must be derived from the injected FileManager")
 
     def _hydrate_session_from_disk_sync(self) -> None:
-        """Load session from file (blocking I/O)."""
+        """Validate a persisted session before changing any in-memory credentials.
+
+        Corrupt or incompatible files must not replace the configured login or
+        prevent normal reauthentication. An expired, well-formed session still
+        carries useful device refresh credentials.
+        """
         try:
             if os.path.exists(self.session_file):
                 with open(self.session_file, encoding="utf-8") as f:
                     session_data = json.load(f)
+
+                if not isinstance(session_data, dict):
+                    raise ValueError("session object required")
+                for key in ("username", "password"):
+                    value = session_data.get(key)
+                    if not isinstance(value, str) or not value.strip():
+                        raise ValueError("session login credentials required")
+                for key in ("hash_token", "refresh_token"):
+                    value = session_data.get(key)
+                    if value is not None and (
+                        not isinstance(value, str) or not value.strip()
+                    ):
+                        raise ValueError("invalid session token")
+                timestamp = session_data.get("session_timestamp")
+                if timestamp is not None and (
+                    type(timestamp) not in (int, float)
+                    or not 0 < timestamp <= time.time() + 60
+                ):
+                    raise ValueError("invalid session timestamp")
+                if session_data.get("hash_token") is not None and timestamp is None:
+                    raise ValueError("session timestamp required")
+                installation = session_data.get("current_installation")
+                if installation is not None and (
+                    not isinstance(installation, str) or not installation.strip()
+                ):
+                    raise ValueError("invalid session installation")
 
                 self.username = session_data.get("username")
                 self.password = session_data.get("password")
@@ -113,8 +148,8 @@ class SessionManager:
 
         except OSError:
             logger.warning("Could not load session")
-        except json.JSONDecodeError:
-            logger.warning("Could not parse session file")
+        except (ValueError, RecursionError):
+            logger.warning("Ignoring invalid persisted session")
 
     def load_session_sync(self) -> None:
         """Load session from disk synchronously (CLI / tests)."""

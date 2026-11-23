@@ -1,7 +1,7 @@
 # Automatizaciones con notificaciones de My Verisure
 
 Esta guía describe la superficie implementada en la rama de desarrollo. Los
-ejemplos y el blueprint se validan con los esquemas de Home Assistant **2026.8.1**;
+ejemplos y el blueprint se validan con los esquemas de Home Assistant **2026.11.2**;
 su validación no ejecuta acciones ni demuestra la entrega real de cada categoría
 de Verisure. La instalación y la comprobación en una instancia real se registran
 por separado en la documentación de validación.
@@ -109,7 +109,7 @@ proveedor no se deduce del texto ni de los identificadores de correlación.
 ## Ejemplo: avisar cuando una foto esté guardada
 
 Sustituye `event.mi_alarma_resultados_confirmados` por la entidad real. Este
-ejemplo utiliza el disparador nativo `event.received` de HA 2026.8.1 y solo crea
+ejemplo utiliza el disparador nativo `event.received` de HA 2026.11.2 y solo crea
 una notificación local. Los datos pertenecen a `trigger.to_state.attributes`.
 
 ```yaml

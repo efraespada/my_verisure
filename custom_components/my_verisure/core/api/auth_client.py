@@ -1,4 +1,8 @@
-"""Authentication client for My Verisure API."""
+"""Authentication client for My Verisure API.
+
+Generated with ha-integration@aurora-smart-home v1.1.0
+https://github.com/tonylofgren/aurora-smart-home
+"""
 
 import asyncio
 import json
@@ -170,7 +174,7 @@ class AuthClient(BaseClient):
         )
 
         try:
-            refreshed = await self._try_refresh_login(user)
+            refreshed = await self._try_refresh_login(user, password)
             if refreshed is not None:
                 return refreshed
             _LOGGER.info("Attempting My Verisure login")
@@ -317,11 +321,20 @@ class AuthClient(BaseClient):
             _LOGGER.error("Login failed")
             raise MyVerisureAuthenticationError("Login failed") from None
 
-    async def _try_refresh_login(self, user: str) -> AuthDTO | None:
-        """Renew an existing native session before using the password again."""
+    async def _try_refresh_login(self, user: str, password: str) -> AuthDTO | None:
+        """Renew unchanged credentials; validate explicitly changed passwords.
+
+        A refresh token validates its existing session, so it cannot establish
+        whether a newly supplied password is correct during reauthentication.
+        """
         manager = self._resolve_session_manager()
         token = manager.refresh_token
-        if manager.username != user or not isinstance(token, str) or not token.strip():
+        if (
+            manager.username != user
+            or manager.password != password
+            or not isinstance(token, str)
+            or not token.strip()
+        ):
             return None
         variables: dict[str, Any] = self._device_manager.get_login_variables(self._profile_context.current.session_id)
         variables["refreshToken"] = token

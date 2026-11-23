@@ -1,36 +1,30 @@
 {
   "name": "My Verisure Development",
-  "image": "ghcr.io/home-assistant/home-assistant:stable",
+  "image": "ghcr.io/home-assistant/home-assistant:2026.11.2",
   "appPort": [
     "7123:8123"
   ],
-  "postCreateCommand": "pip install --upgrade pip && pip install pytest pytest-asyncio pytest-homeassistant-custom-component",
-  "runArgs": [
-    "--privileged"
-  ],
+  "postCreateCommand": "python3 -m venv --system-site-packages /opt/my-verisure-validation && /opt/my-verisure-validation/bin/python -m pip install -r requirements-dev.txt",
   "mounts": [
-    "type=bind,source=${localWorkspaceFolder}/custom_components/my_verisure,target=/config/custom_components/my_verisure",
-    "type=bind,source=${localWorkspaceFolder}/.devcontainer/configuration.yaml,target=/config/configuration.yaml",
-    "type=bind,source=${localWorkspaceFolder}/.devcontainer/automations.yaml,target=/config/automations.yaml",
-    "type=bind,source=${localWorkspaceFolder}/.devcontainer/scripts.yaml,target=/config/scripts.yaml",
-    "type=bind,source=${localWorkspaceFolder}/.devcontainer/scenes.yaml,target=/config/scenes.yaml"
+    "type=volume,source=my_verisure_devcontainer_config,target=/config",
+    "type=bind,source=${localWorkspaceFolder}/custom_components/my_verisure,target=/config/custom_components/my_verisure,readonly",
+    "type=bind,source=${localWorkspaceFolder}/.devcontainer/configuration.yaml,target=/config/configuration.yaml,readonly",
+    "type=bind,source=${localWorkspaceFolder}/.devcontainer/automations.yaml,target=/config/automations.yaml,readonly",
+    "type=bind,source=${localWorkspaceFolder}/.devcontainer/scripts.yaml,target=/config/scripts.yaml,readonly",
+    "type=bind,source=${localWorkspaceFolder}/.devcontainer/scenes.yaml,target=/config/scenes.yaml,readonly"
   ],
   "customizations": {
     "vscode": {
       "extensions": [
         "ms-python.python",
         "ms-python.vscode-pylance",
-        "ms-python.black-formatter",
         "visualstudioexptteam.vscodeintellicode",
         "redhat.vscode-yaml",
         "esbenp.prettier-vscode"
       ],
       "settings": {
-        "python.defaultInterpreterPath": "/usr/bin/python3",
-        "python.linting.enabled": true,
-        "python.linting.pylintEnabled": false,
-        "python.formatting.provider": "black",
-        "editor.formatOnSave": true,
+        "python.defaultInterpreterPath": "/opt/my-verisure-validation/bin/python",
+        "editor.formatOnSave": false,
         "python.testing.pytestEnabled": true,
         "files.eol": "\n",
         "editor.tabSize": 4,
@@ -39,12 +33,15 @@
     }
   },
   "forwardPorts": [
-    7123
+    8123
   ],
   "portsAttributes": {
-    "7123": {
+    "8123": {
       "label": "Home Assistant",
       "onAutoForward": "notify"
     }
+  },
+  "containerEnv": {
+    "HA_PYTHON": "/opt/my-verisure-validation/bin/python"
   }
 }

@@ -32,13 +32,17 @@
         "custom_components/my_verisure/core/tests/unit/test_auth_session_persistence.py",
         "custom_components/my_verisure/core/tests/unit/test_session_manager.py",
         "custom_components/my_verisure/tests/test_config_flow_branches.py",
-        "custom_components/my_verisure/tests/test_ha_diagnostics_button.py"
+        "custom_components/my_verisure/tests/test_ha_diagnostics_button.py",
+        "custom_components/my_verisure/core/tests/unit/test_session_hydration.py",
+        "custom_components/my_verisure/core/tests/unit/test_reauthentication_credentials.py"
       ],
       "documentation": [
         "docs/user-guide/configuration.md",
         "docs/technical/authentication.md",
         "docs/technical/session-persistence.md",
-        "specs/README.md"
+        "specs/README.md",
+        "docs/technical/2026-11-23-project-quality-audit.md",
+        "docs/adr/0001-core-and-adapter-dependencies.md"
       ]
     },
     {
@@ -47,7 +51,7 @@
       "status": "as-built-baseline",
       "scope": "HA/Verisure mapping, configurable supplementary perimeter, authenticated commands, bounded confirmation and honest unknown state; total-mode live evidence remains owner-reserved.",
       "owner": "My Verisure maintainers",
-      "lastVerified": "2026-11-22",
+      "lastVerified": "2026-11-23",
       "specs": [
         "specs/alarm-modes-and-confirmation.md"
       ],
@@ -73,7 +77,10 @@
         "custom_components/my_verisure/core/tests/unit/test_alarm_command_poller.py",
         "custom_components/my_verisure/core/tests/unit/test_coordinator_update_boundaries.py",
         "custom_components/my_verisure/tests/test_alarm_control_panel_lifecycle.py",
-        "custom_components/my_verisure/tests/test_entity_registry_migration.py"
+        "custom_components/my_verisure/tests/test_entity_registry_migration.py",
+        "custom_components/my_verisure/core/tests/unit/test_alarm_service.py",
+        "custom_components/my_verisure/tests/test_services_contracts.py",
+        "cli/tests/test_command_contracts.py"
       ],
       "documentation": [
         "docs/api-reference/services/arm-home.md",
@@ -81,7 +88,9 @@
         "docs/api-reference/services/arm-away.md",
         "docs/api-reference/entities/alarm-control-panel.md",
         "docs/user-guide/configuration.md",
-        "specs/README.md"
+        "specs/README.md",
+        "docs/technical/2026-11-23-project-quality-audit.md",
+        "docs/adr/0001-core-and-adapter-dependencies.md"
       ]
     },
     {
@@ -119,13 +128,18 @@
         "custom_components/my_verisure/tests/test_ha_platforms.py",
         "custom_components/my_verisure/tests/test_entity_registry_migration.py",
         "custom_components/my_verisure/tests/test_public_entity_redaction.py",
-        "custom_components/my_verisure/tests/test_ha_diagnostics_button.py"
+        "custom_components/my_verisure/tests/test_ha_diagnostics_button.py",
+        "custom_components/my_verisure/core/tests/unit/test_camera_persistence_integrity.py",
+        "custom_components/my_verisure/core/tests/unit/test_camera_placeholder_store.py",
+        "custom_components/my_verisure/core/tests/unit/test_coordinator_update_boundaries.py"
       ],
       "documentation": [
         "docs/api-reference/entities/cameras.md",
         "docs/api-reference/services/refresh-camera-images.md",
         "docs/user-guide/entities.md",
-        "specs/README.md"
+        "specs/README.md",
+        "docs/technical/2026-11-23-project-quality-audit.md",
+        "docs/adr/0001-core-and-adapter-dependencies.md"
       ]
     },
     {
@@ -169,7 +183,9 @@
         "experiments/linux_push/README.md",
         "docs/validation/2026-11-23-ha-push.json",
         "docs/technical/firebase-client-configuration.md",
-        "docs/validation/2026-11-23-public-firebase-config.json"
+        "docs/validation/2026-11-23-public-firebase-config.json",
+        "docs/technical/2026-11-23-project-quality-audit.md",
+        "docs/adr/0001-core-and-adapter-dependencies.md"
       ]
     },
     {
@@ -226,7 +242,8 @@
         "custom_components/my_verisure/core/tests/unit/test_provider_request_gate.py",
         "custom_components/my_verisure/core/tests/unit/test_provider_gate_edges.py",
         "custom_components/my_verisure/core/tests/unit/test_push_binding_transaction.py",
-        "custom_components/my_verisure/tests/test_push_auth_transaction.py"
+        "custom_components/my_verisure/tests/test_push_auth_transaction.py",
+        "custom_components/my_verisure/tests/test_documented_examples.py"
       ],
       "documentation": [
         "docs/technical/notification-audit-and-design.md",
@@ -234,7 +251,9 @@
         "docs/validation/2026-11-23-notification-audit.json",
         "docs/automation-notifications.md",
         "blueprints/automation/my_verisure/notification_light.yaml",
-        "docs/validation/2026-11-23-notification-implementation.json"
+        "docs/validation/2026-11-23-notification-implementation.json",
+        "docs/technical/2026-11-23-project-quality-audit.md",
+        "docs/adr/0001-core-and-adapter-dependencies.md"
       ]
     }
   ]

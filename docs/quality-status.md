@@ -1,100 +1,95 @@
 # Quality status
 
-Updated: 2026-11-23
+Updated: 2026-11-23. Current supported target: **Home Assistant Core 2026.11.2**.
 
-## Current local evidence
+## Verified local evidence
 
-- Home Assistant Core: `2026.8.1`
-- Python: `3.14.6`
-- Home Assistant test plugin: `pytest-homeassistant-custom-component==0.13.355`
-- Full Home Assistant/Core suite: **1,358 passed** in the pinned validation environment
-- Measured coverage: **82% combined production line/branch coverage** (`9,346` statements; `1,492` missed); the 10 notification modules enforce **100% executable lines and branches**
-- Mypy: no issues in `298` source files
-- Critical Flake8 gate: passing
-- Architecture guard: passing
-- Distribution validation: passing
+- Python `3.14.6`; official harness `pytest-homeassistant==2026.11.2`.
+- Complete suite: **1,704 passed, zero failures and warnings**.
+- Mypy: no issues in **326 source files** with the repository's existing settings.
+- Blocking Flake8 `E9,F`: passing; full style lint remains a separate, failing baseline.
+- Architecture, documentation, dependency consistency and distribution gates are
+  required by `make ci`; PR results are reported by GitHub separately.
+- Isolated `pip-audit`: **zero known advisories across 19 installed dependencies**
+  in the integration's declared default runtime closure. This excludes unrelated
+  optional HA integrations and is a dated scan, not a future security guarantee.
 
-These metrics describe local verification. GitHub Actions and HACS results are
-reported separately on each pull request; they do not imply a published release.
-The Python CI job uses Ubuntu 24.04 for the pinned Python 3.14.4 build. The moving
-`ubuntu-latest` image became Ubuntu 26.04, where that Python patch has no official
-setup-python distribution; the initial run stopped before dependency installation.
-The target requirements also include `firebase-messaging==0.4.5`, matching the
-integration manifest so a clean CI environment can import the optional receiver.
+| Measured scope | Executable lines | Branches | Missing lines / branches |
+|---|---:|---:|---:|
+| HA integration/core | **85.21%** (8,123 / 9,533) | **76.00%** (1,818 / 2,392) | 1,410 / 574 |
+| CLI | **73.40%** (643 / 876) | **60.07%** (167 / 278) | 233 / 111 |
+| Quality tools | **77.84%** (267 / 343) | **69.28%** (115 / 166) | 76 / 51 |
 
-## Full lint policy
+The denominator excludes tests and third-party packages. These three scopes do
+not include the thin root CLI launcher. **Global coverage is incomplete.**
+Config-flow/coordinator recovery and broader CLI behavior are the principal gaps.
 
-`make lint` remains intentionally available and reports the complete Flake8
-baseline. The remaining findings are primarily historical whitespace and line
-length debt (`W293` and `E501`); they are not hidden by a global ignore. The CI
-gate blocks syntax/import-safety findings through `make lint-critical`, while
-other historical style findings remain visible.
+CI enforces line/branch floors of 85/76 for integration, 73/60 for CLI and 77/69
+for tools, rejecting omitted source files. Ten notification modules and six
+additional image/placeholder/polling/JWT modules require **100% executable lines
+and branches**. See their exact lists in
+[`check_notification_coverage.py`](../scripts/check_notification_coverage.py) and
+[`check_project_coverage.py`](../scripts/check_project_coverage.py).
+The C tracer recorded **1,913 per-test contexts**; sys.monitoring is not used
+because it cannot supply the requested dynamic contexts in this tool version.
 
-## Evidence boundaries
+The [repository audit](technical/2026-11-23-project-quality-audit.md) explains the
+reproduced defects, fixes, architecture decisions, privacy review and limitations.
+The [machine-readable receipt](validation/2026-11-23-project-quality-audit.json)
+records exact versions, denominators and regression paths.
 
-The [notification audit](technical/notification-audit-and-design.md) originally reproduced
-state-order, HTTP-admission, canceled-write and cached-crypto defects on develop.
-They now have passing correction regressions. The implementation adds typed reported
-and confirmed events, read-only scheduling, transactional binding and durable replay.
-Real HA platform tests cover event.received, restore, context, reconnect, unload,
-multiple entries, options and diagnostics. The [implementation receipt](validation/2026-11-23-notification-implementation.json)
-separates these synthetic guarantees from household delivery evidence. General
-non-photo delivery remains unverified.
+## Architecture and documentation
 
-Coverage now uses an explicit .coveragerc with branch measurement and production
-files only; tests are excluded from its denominator. The historical 90% metric
-is not directly comparable. CI fails if any executable line or branch in the ten
-notification modules is missing coverage.
+Policies/models/use cases do not import HA or concrete provider/storage/image
+adapters. Absolute and relative imports are checked across the core with AST
+regressions. Snapshot projection remains pure; local image/persistence adapters
+implement semantic ports. The [decision](adr/0001-core-and-adapter-dependencies.md)
+and [project context](../CONTEXT.md) describe ownership and domain invariants.
+The coordinator and config flow remain large; reusable HTTP sessions are a
+performance opportunity, without a remaining reproduced correctness defect.
 
-Automated tests use synthetic data and make no provider calls. Separately, the
-owner explicitly authorized household validation on HA Core `2026.11.2` with
-native My Verisure `10.192.1` as the protocol reference. That session established
-device/SMS verification, token renewal, installation/service/device projection,
-exterior and partial-night commands, supplementary perimeter, completion-state
-publication and restoration to fully disarmed.
+README, developer/user/API guides and [SDDs](../specs/README.md) describe the
+current target. Local Markdown destinations/catalog references have an offline
+gate. Actual HA schema/template tests validate examples and blueprint expansion.
+Anchors and remote links are not included in the link checker.
 
-The installed correction was exercised after actual token expiry: Night plus
-perimeter took about 4.0 seconds including renewal; the following disarm took
-about 3.9 seconds including HA-side completion. Individual observations do not
-establish an SLA or exhaustive equivalence with the official application.
+The full Flake8 report contains historical line-length/whitespace and other style
+findings. They are not hidden behind a global ignore. The blocking gate includes
+all Pyflakes findings, including unused imports/variables, plus syntax errors.
+Mypy allows untyped code and missing third-party stubs; passing is not strict
+coverage of every type or runtime path.
 
-Total/away and partial-day modes were not exercised live. Home is confirmed as
-exterior-only. A selected-camera HA refresh produced and displayed three fresh
-images in 24.88 seconds; native capture was also observed separately. Broader
-camera-family parity is not established. The optional production FCM receiver is
-now installed on the existing HA entry. A selected fresh capture committed three
-images in 21.13 seconds using one initial status read and a verified push hint.
-With the receiver disabled, a later accepted capture committed three images in
-45.07 seconds with unchanged 20-second polling. One earlier request was rejected;
-a spaced retry succeeded, but its exact provider cause was not retained.
-The UI now uses recognized, translated Home Assistant camera errors instead of
-exposing provider errors as an unknown failure. After a full restart, the same FCM token and all entity identities were retained;
-a further capture completed through push in 23.55 seconds.
-See the [installed receipt](validation/2026-11-23-ha-push.json) and
-[push baseline](../specs/linux-push-photo-completion.md).
-The follow-up public Firebase configuration correction has 20 additional synthetic
-regressions and a two-GET unauthenticated production-metadata comparison. It is now installed with the notification implementation; the older runtime
-timings above describe the preceding build. A new selected-camera capture committed
-three images in **23.22 seconds**, publishing one `photo_reported` and one correlated
-`photo_ready` with `verification=image_commit`. The receiver was bound/connected,
-with zero additional duplicate photo reads and no current provider cooldown.
-The same 20 original entity identities, native UUID and FCM token survived restart
-and entry reload; restored display retained the original photo timestamp.
-No alarm commands were sent by this agent during this iteration. See the [security review](technical/firebase-client-configuration.md).
-Camera refresh serialization and failure propagation are covered by new regressions.
-Alarm command serialization and stale snapshot publication are now covered by
-shared-installation operation locks, generations and cancellation regressions.
-Broader compound-command physical recovery and freshness UX remain evidence limits. See the [dated report](validation/2026-11-22-live-verisure.md)
-and [specification catalog](../specs/README.md).
+## Deployment and physical evidence
 
-Credentials, OTPs, tokens, private captures and HA storage must not be committed.
-Private source/session and registry rollback archives remain on the HA host.
-The isolated container lifecycle checklist was not executed in this iteration.
+This audit ran offline against HA 2026.11.2 packages and did **not** reinstall its
+changed source on the household host, start Docker or send alarm/camera requests.
+The native harness uses per-test temporary HA configuration; CLI tests use private
+temporary state. Total/away tests remain reserved for the owner.
 
-## Source of truth
+The earlier [notification implementation receipt](validation/2026-11-23-notification-implementation.json)
+records the installed build's selected-camera delivery, correlated `photo_ready`,
+restart/reload identity preservation and measured timing. Earlier
+[alarm/camera live evidence](validation/2026-11-22-live-verisure.md) and
+[push evidence](validation/2026-11-23-ha-push.json) remain historical observations.
+They do not establish physical behavior for every subsequent source change.
+General non-photo delivery, broader camera-family parity and freshness UX still
+need separate evidence.
 
-The executable gates are defined in `Makefile` and `.github/workflows/validate.yml`.
-The current execution record is
-`docs/superpowers/plans/2026-11-22-ha-push-installation.md`, with the follow-up
-`docs/superpowers/plans/2026-11-23-public-firebase-config.md`, followed by
-`docs/superpowers/plans/2026-11-23-notification-implementation.md`.
+No open secret-scanning alerts were returned during this review. The accidentally
+tracked runtime device artifact was removed and guarded; its historical Git
+objects were not rewritten. Dependabot alerts are disabled and its administrative
+API was unavailable; the independent dependency scan now runs in CI. Credentials,
+OTPs, device files, raw captures and private photos must remain outside Git.
+
+## Reproduction
+
+```sh
+python3.14 -m venv .ha-2026.11-venv
+make install
+make ci
+```
+
+Set `HA_PYTHON` to reuse another environment containing the exact current pins.
+The [audit plan](superpowers/plans/2026-11-23-project-quality-audit.md) records the
+work. Active legacy requirements/runners have been retired; historical receipts
+are retained without rewriting their original measurements.

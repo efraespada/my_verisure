@@ -1,13 +1,13 @@
-# Numeric sensor — seconds since last Verisure coordinator refresh (example)
+# Numeric sensor — age of the timestamp reported by the coordinator.
+# Replace the source entity ID with the actual Last Updated entity.
 template:
   - sensor:
       - name: Verisure seconds since update
         unique_id: verisure_seconds_since_update
         unit_of_measurement: s
-        state: >
-          {% set s = states.sensor.my_verisure_last_updated %}
-          {% if s in ['unknown','unavailable'] %}
-            none
-          {% else %}
-            {{ (now() - s | as_datetime).total_seconds() | int }}
-          {% endif %}
+        availability: >-
+          {{ as_datetime(states('sensor.my_verisure_last_updated'), none) is not none }}
+        state: >-
+          {% set updated = as_datetime(states('sensor.my_verisure_last_updated'), none) %}
+          {{ [0, (now() - updated).total_seconds() | int] | max
+             if updated is not none else none }}

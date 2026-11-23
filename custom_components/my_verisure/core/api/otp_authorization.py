@@ -5,7 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Mapping
 
-from ..application.otp_code_policy import is_valid_otp_code
 from ..application.models.auth import Phone
 
 

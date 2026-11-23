@@ -5,7 +5,6 @@ https://github.com/tonylofgren/aurora-smart-home
 """
 
 import asyncio
-import base64
 import json
 import time
 from datetime import datetime
@@ -13,6 +12,8 @@ from zoneinfo import ZoneInfo
 from unittest.mock import AsyncMock
 
 import pytest
+
+from custom_components.my_verisure.core.tests.image_fixtures import synthetic_jpeg_base64
 
 from custom_components.my_verisure.core.api.camera_client import CameraClient
 from custom_components.my_verisure.core.application.photo_notifications import PhotoNotifications
@@ -42,7 +43,7 @@ def _thumbnail(code="YR07"):
     return {"data": {"xSGetThumbnail": {
         "deviceCode": code, "idSignal": "123", "signalType": "16",
         "timestamp": datetime.fromtimestamp(time.time(), ZoneInfo("Europe/Madrid")).strftime("%Y-%m-%d %H:%M:%S"), "deviceAlias": "Entry",
-        "image": base64.b64encode(b"synthetic-image").decode(),
+        "image": synthetic_jpeg_base64(),
     }}}
 
 
@@ -65,7 +66,7 @@ async def test_push_confirms_exact_signal_and_downloads_without_extra_status(tmp
         assert "query mkGetPhotoImages(" in document
         assert variables["idSignal"] == "123"
         return {"data": {"xSGetPhotoImages": {"devices": [{
-            "code": "7", "images": [{"id": str(i), "image": base64.b64encode(b"synthetic").decode()} for i in range(3)]
+            "code": "7", "images": [{"id": str(i), "image": synthetic_jpeg_base64()} for i in range(3)]
         }]}}}
 
     monkeypatch.setattr(client, "_execute_query_direct", query)

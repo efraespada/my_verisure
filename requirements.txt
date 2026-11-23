@@ -1,18 +1,10 @@
-# Dependencies for My Verisure integration
-aiohttp>=3.8.0
-voluptuous>=0.13.0
+# Standalone CLI/runtime dependencies; HA uses manifest.json.
+# Development/test tools belong in requirements-dev.txt.
+aiohttp>=3.14.5
+probatio>=0.13.0
 injector>=0.21.0
-PyJWT>=2.8.0
-Pillow>=10.0.0
+PyJWT>=2.15.1
+Pillow>=13.0.0
+cryptography>=50.0.2
+http-ece~=1.1.0
 firebase-messaging==0.4.5
-
-# Development dependencies
-pytest>=8.4.0
-pytest-asyncio>=0.21.0
-pytest-cov>=6.2.0
-pytest-mock>=3.14.0
-pytest-timeout>=2.4.0
-coverage>=7.10.0
-black>=23.11.0
-flake8>=6.1.0
-mypy>=1.7.0 

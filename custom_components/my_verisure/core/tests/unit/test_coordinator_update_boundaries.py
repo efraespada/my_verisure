@@ -25,6 +25,19 @@ from custom_components.my_verisure.core.application.coordinator_refresh_effects 
 from custom_components.my_verisure.core.application.coordinator_session_policy import (
     CoordinatorSessionPolicy,
 )
+from custom_components.my_verisure.core.application.installation_snapshot_service import (
+    InstallationSnapshotService,
+)
+from custom_components.my_verisure.core.application.models.alarm import AlarmStatus
+from custom_components.my_verisure.core.application.models.device import Device
+from custom_components.my_verisure.core.application.models.installation import (
+    DetailedInstallation, InstallationData,
+)
+from custom_components.my_verisure.core.camera_placeholder_store import LocalCameraPlaceholderStore
+from custom_components.my_verisure.core.file_manager import FileManager
+from custom_components.my_verisure.core.use_cases.implementations.create_dummy_camera_images_use_case_impl import (
+    CreateDummyCameraImagesUseCaseImpl,
+)
 from custom_components.my_verisure.core.api.exceptions import (
     MyVerisureAuthenticationError,
     MyVerisureConnectionError,
@@ -79,6 +92,46 @@ async def test_update_data_returns_snapshot_and_persists_cache(coordinator) -> N
         "home-1",
         create_dummy_images=True,
     )
+
+
+@pytest.mark.asyncio
+async def test_full_update_reads_installation_only_once_with_local_placeholders(
+    coordinator, tmp_path
+):
+    reader = Mock()
+    reader.get_installation_services = AsyncMock(return_value=DetailedInstallation(
+        installation=InstallationData(
+            numinst="home-1", role="OWNER", alias="Home", status="OP",
+            panel="panel", sim="sim", instIbs="ibs", services=[],
+            devices=[Device("id", "1", "Front", "YR", None, True, "CAM", True)],
+            capabilities="caps",
+        ),
+        language="es",
+    ))
+    alarm = Mock(get_alarm_status=AsyncMock(return_value=AlarmStatus(
+        success=True, message="ok", status="OK", data={
+            "internal": {
+                "day": {"status": False}, "night": {"status": False},
+                "total": {"status": False},
+            }, "external": {"status": False},
+        },
+    )))
+    coordinator.snapshot_service = InstallationSnapshotService(reader, alarm)
+    creator = CreateDummyCameraImagesUseCaseImpl(
+        reader, LocalCameraPlaceholderStore(FileManager(tmp_path))
+    )
+    coordinator.snapshot_store.save = AsyncMock(return_value=True)
+    publisher = Mock()
+    coordinator.refresh_effects = CoordinatorRefreshEffects(
+        coordinator.snapshot_store, publisher, creator
+    )
+
+    result = await coordinator._async_update_data()
+
+    reader.get_installation_services.assert_awaited_once_with("home-1")
+    publisher.assert_called_once_with(result)
+    coordinator.snapshot_store.save.assert_awaited_once_with(result)
+    assert len(list(tmp_path.rglob("thumbnail.jpg"))) == 1
 
 
 @pytest.mark.asyncio

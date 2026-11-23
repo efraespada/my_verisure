@@ -5,7 +5,7 @@ from typing import Any, cast
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant.common import MockConfigEntry
 
 from custom_components.my_verisure.alarm_control_panel import MyVerisureAlarmControlPanel
 from custom_components.my_verisure.core.application.exceptions import MyVerisureError

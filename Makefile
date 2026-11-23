@@ -1,9 +1,9 @@
 # My Verisure development and verification commands.
 
-.PHONY: help test test-cli test-core test-ha-2026-8 coverage ci lint lint-critical type-check type-check-migrated clean install dev-setup git-check distribution-check
+.PHONY: help test test-cli test-core test-ha-2026-11 coverage ci lint lint-critical type-check type-check-migrated clean install dev-setup git-check distribution-check docs-check
 
-# Home Assistant Core 2026.8.1 is the only supported validation target.
-HA_PYTHON ?= /tmp/ha-2026.8.1-venv/bin/python
+# Primary validation target: Home Assistant Core 2026.11.2.
+HA_PYTHON ?= $(CURDIR)/.ha-2026.11-venv/bin/python
 PYTHON = $(HA_PYTHON)
 PIP = $(PYTHON) -m pip
 PYTEST = $(PYTHON) -m pytest
@@ -20,8 +20,8 @@ dev-setup: ## Install development dependencies in the selected Python environmen
 test: ## Run the complete repository test suite
 	$(PYTEST) -c pytest.ini -q
 
-test-ha-2026-8: ## Run the complete suite against Home Assistant Core 2026.8.1
-	@./scripts/test-ha-2026.8.sh
+test-ha-2026-11: ## Run the complete primary suite against HA Core 2026.11.2
+	@HA_PYTHON="$(HA_PYTHON)" ./scripts/test-ha-2026.11.sh
 
 test-cli: ## Run CLI tests
 	$(PYTEST) cli/tests -q
@@ -33,17 +33,19 @@ coverage: ## Run the complete suite with contextual coverage
 	rm -f coverage.xml
 	PYTHONPATH="$(CURDIR)" $(PYTHON) -m pytest -c pytest.ini \
 		--cov=custom_components/my_verisure \
+		--cov=cli --cov=scripts \
 		--cov-context=test \
 		--cov-report=term-missing \
-		--cov-report=xml --cov-report=json:dist/notification-coverage.json -q
-	$(PYTHON) scripts/check_notification_coverage.py dist/notification-coverage.json
-	rm -f coverage.xml device_identifiers.json dist/notification-coverage.json
+		--cov-report=xml --cov-report=json:dist/project-coverage.json -q
+	$(PYTHON) scripts/check_notification_coverage.py dist/project-coverage.json
+	$(PYTHON) scripts/check_project_coverage.py dist/project-coverage.json
+	rm -f coverage.xml device_identifiers.json dist/project-coverage.json
 
 lint: ## Run the full Flake8 check
 	$(PYTHON) -m flake8 cli custom_components scripts
 
 lint-critical: ## Run the CI critical Flake8 check
-	$(PYTHON) -m flake8 --select=E9,F63,F7,F82 cli custom_components scripts
+	$(PYTHON) -m flake8 --select=E9,F cli custom_components scripts
 
 type-check: ## Run the repository mypy check
 	$(PYTHON) -m mypy --explicit-package-bases --ignore-missing-imports cli custom_components scripts
@@ -61,17 +63,21 @@ clean: ## Remove Python caches and local test reports
 	find . -type d -name '__pycache__' -prune -exec rm -rf {} +
 	find . -type d -name '.pytest_cache' -prune -exec rm -rf {} +
 
+docs-check: ## Check local documentation links and specification references
+	$(PYTHON) scripts/check_documentation.py
+
 git-check: ## Verify formatting, architecture and dependency consistency
 	git diff --check
 	$(PYTHON) -m compileall -q custom_components scripts
 	$(PYTHON) scripts/architecture_guard.py
+	$(PYTHON) scripts/check_documentation.py
 	$(PIP) check
 
 distribution-check: ## Validate the installable Home Assistant artifact
 	$(PYTHON) scripts/validate_distribution.py
 
 ci: ## Run all local release-quality gates
-	$(MAKE) test-ha-2026-8
+	$(MAKE) test-ha-2026-11
 	$(MAKE) type-check
 	$(MAKE) lint-critical
 	$(MAKE) git-check

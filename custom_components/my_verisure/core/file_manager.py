@@ -1,8 +1,13 @@
-"""File manager for My Verisure integration."""
+"""File manager for My Verisure integration.
+
+Generated with ha-integration@aurora-smart-home v1.1.0
+https://github.com/tonylofgren/aurora-smart-home
+"""
 
 from __future__ import annotations
 
 import asyncio
+from io import BytesIO
 import json
 import logging
 import os
@@ -11,9 +16,16 @@ import tempfile
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional, TypeVar, Union
 
+from PIL import Image
+
+from .camera_image_sanitizer import sanitize_camera_image
+
 _LOGGER = logging.getLogger(__name__)
 
 T = TypeVar("T")
+
+MAX_CAMERA_IMAGE_BYTES = 8 * 1024 * 1024
+MAX_CAMERA_IMAGE_PIXELS = 16_000_000
 
 
 async def _to_thread(func: Callable[..., T], /, *args: Any, **kwargs: Any) -> T:
@@ -218,16 +230,46 @@ class FileManager:
             return False
     
     def save_base64_image(self, filepath: str, base64_content: str) -> bool:
-        """Save base64 encoded image to a file."""
+        """Verify bounded image contents before atomically publishing a file."""
         try:
             import base64
+            if (
+                not isinstance(base64_content, str)
+                or len(base64_content) > ((MAX_CAMERA_IMAGE_BYTES + 2) // 3) * 4
+            ):
+                return False
             # Decode base64 content
-            image_data = base64.b64decode(base64_content)
+            image_data = base64.b64decode(base64_content, validate=True)
+            if not image_data or len(image_data) > MAX_CAMERA_IMAGE_BYTES:
+                return False
+            image_data = sanitize_camera_image(
+                image_data, max_pixels=MAX_CAMERA_IMAGE_PIXELS
+            )
+            with Image.open(BytesIO(image_data), formats=["JPEG", "PNG"]) as image:
+                if (
+                    image.format not in {"JPEG", "PNG"}
+                    or not 0 < image.width * image.height <= MAX_CAMERA_IMAGE_PIXELS
+                ):
+                    return False
+                image.verify()
+            # JPEG verify() checks the container without decoding pixels. Load
+            # after the limits above to reject truncated compressed data too.
+            with Image.open(BytesIO(image_data), formats=["JPEG", "PNG"]) as image:
+                image.load()
             return self.save_binary(filepath, image_data)
         except Exception:
             _LOGGER.error("Failed to save base64 image")
             return False
     
+    def begin_camera_directory(self, directory: str) -> bool:
+        """Invalidate an earlier commit before replacing any of its images."""
+        try:
+            self._safe_data_path(f"{directory}/.complete").unlink(missing_ok=True)
+            return True
+        except (OSError, ValueError):
+            _LOGGER.error("Failed to invalidate camera directory commit")
+            return False
+
     def mark_camera_directory_complete(self, directory: str) -> bool:
         """Commit a camera directory after all expected images are present."""
         try:

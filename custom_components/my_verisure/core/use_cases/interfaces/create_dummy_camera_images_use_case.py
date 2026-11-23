@@ -12,6 +12,8 @@ class CreateDummyCameraImagesUseCase(ABC):
     async def create_dummy_camera_images(
         self,
         installation_id: str,
+        *,
+        camera_identifiers: tuple[str, ...] | None = None,
     ) -> CameraRefresh:
-        """Create dummy images for cameras."""
+        """Ensure local images; discover cameras only when none were supplied."""
         pass

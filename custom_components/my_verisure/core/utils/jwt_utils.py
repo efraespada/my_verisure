@@ -1,9 +1,14 @@
-"""JWT utility functions for My Verisure integration."""
+"""Bounded JWT metadata inspection, never signature or identity verification.
+
+Generated with ha-integration@aurora-smart-home v1.1.0
+https://github.com/tonylofgren/aurora-smart-home
+"""
 
 import importlib
 import logging
+import math
 import time
-from typing import Any, Dict, Optional
+from typing import Any
 
 jwt: Any = None
 try:
@@ -12,73 +17,66 @@ except ImportError:
     pass
 
 _LOGGER = logging.getLogger(__name__)
+_MAX_TOKEN_BYTES = 64 * 1024
 
 
 def is_jwt_expired(token: str, leeway: int = 30) -> bool:
+    """Inspect expiry metadata, failing closed for invalid or unavailable decoding.
+
+    ``leeway`` is a nonnegative early-refresh margin in seconds: expiry at 1000
+    with margin 30 is considered expired from 970. This helper does not verify
+    signatures, issuers, audiences, authentication or authorization.
+
+    A decoded object without ``exp`` retains the legacy "no known JWT expiry"
+    result. SessionManager separately enforces its maximum session age; callers
+    must not use this result as proof that a credential is authentic or valid.
     """
-    Check if a JWT token has expired.
-    
-    Args:
-        token: The JWT token to check
-        leeway: Number of seconds of leeway for expiration check
-        
-    Returns:
-        True if token is expired or invalid, False if still valid
-    """
-    if not token:
-        _LOGGER.debug("No token provided")
+    if type(leeway) is not int or leeway < 0:
         return True
-        
-    if jwt is None:
-        _LOGGER.warning("PyJWT not available, cannot validate JWT expiration")
+    payload = get_jwt_payload(token)
+    if payload is None:
+        return True
+    if "exp" not in payload:
         return False
-    
+
     try:
-        # Decode the token without verification to get the payload
-        # We only need to check the expiration, not verify the signature
-        payload = jwt.decode(token, options={"verify_signature": False})
-        
-        # Check if token has expiration claim
-        if "exp" not in payload:
-            _LOGGER.debug("Token has no expiration claim")
-            return False
-            
-        # Get current time
+        expiration = payload["exp"]
         current_time = time.time()
-        expiration_time = payload["exp"]
-        
-        # Check if token is expired (with leeway)
-        is_expired = current_time >= (expiration_time - leeway)
-        
-        if is_expired:
-            _LOGGER.debug("JWT token expired (exp: %s, current: %s)", 
-                         expiration_time, current_time)
-        else:
-            _LOGGER.debug("JWT token is still valid (exp: %s, current: %s)", 
-                         expiration_time, current_time)
-            
-        return is_expired
-        
+        if (
+            type(expiration) not in (int, float)
+            or not math.isfinite(expiration)
+            or type(current_time) not in (int, float)
+            or not math.isfinite(current_time)
+        ):
+            return True
+        return current_time >= expiration - leeway
     except Exception:
-        _LOGGER.warning("Invalid JWT token")
+        _LOGGER.debug("Unable to inspect JWT expiry metadata")
         return True
 
 
-def get_jwt_payload(token: str) -> Optional[Dict[str, Any]]:
+def get_jwt_payload(token: str) -> dict[str, Any] | None:
+    """Return untrusted JSON object metadata from an ASCII JWT of at most 64 KiB.
+
+    Signature and claim verification are deliberately disabled for metadata
+    inspection. A new options dictionary is supplied for every call; mutations
+    by the decoder cannot carry validation settings into another operation.
+    The returned claims must never establish identity or grant authorization.
     """
-    Get the payload of a JWT token without verification.
-    
-    Args:
-        token: The JWT token to decode
-        
-    Returns:
-        The token payload or None if invalid
-    """
-    if not token or jwt is None:
+    if (
+        type(token) is not str
+        or not 0 < len(token) <= _MAX_TOKEN_BYTES
+        or not token.isascii()
+    ):
         return None
-        
+    if jwt is None:
+        _LOGGER.warning("PyJWT unavailable; JWT metadata cannot be inspected")
+        return None
     try:
-        return jwt.decode(token, options={"verify_signature": False})
+        payload = jwt.decode(token, options={"verify_signature": False})
+        if type(payload) is not dict or any(type(key) is not str for key in payload):
+            return None
+        return payload
     except Exception:
-        _LOGGER.debug("Error decoding JWT payload")
+        _LOGGER.debug("Unable to decode JWT metadata")
         return None

@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 import json
 import logging
 from types import SimpleNamespace
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 from homeassistant.components.event import EventExtraStoredData
 from homeassistant.components.event.trigger import EventReceivedTrigger
@@ -16,7 +16,7 @@ from homeassistant.core import Context, State
 from homeassistant.helpers.entity_component import EntityComponent
 from homeassistant.helpers.trigger import TriggerConfig
 import pytest
-from pytest_homeassistant_custom_component.common import (
+from pytest_homeassistant.common import (
     MockConfigEntry,
     mock_restore_cache_with_extra_data,
 )
@@ -203,7 +203,9 @@ async def test_reported_entity_and_unknown_constructor_stage(hass):
 
 
 @pytest.mark.homeassistant
-async def test_native_received_trigger_keeps_first_and_same_millisecond_events(hass):
+async def test_native_received_trigger_keeps_first_and_same_millisecond_events(
+    hass, freezer,
+):
     hub = FakeHub()
     value, _component = await add_real_entity(hass, entry(), hub)
     trigger = EventReceivedTrigger(
@@ -218,10 +220,10 @@ async def test_native_received_trigger_keeps_first_and_same_millisecond_events(h
     remove = await trigger.async_attach_runner(action)
     hub.activate()
     instant = datetime(2026, 11, 23, 2, tzinfo=timezone.utc)
-    with patch("homeassistant.components.event.dt_util.utcnow", return_value=instant):
-        hub.emit(FakeEvent(event_id="one"))
-        hub.emit(FakeEvent(event_id="two"))
-        await hass.async_block_till_done()
+    freezer.move_to(instant)
+    hub.emit(FakeEvent(event_id="one"))
+    hub.emit(FakeEvent(event_id="two"))
+    await hass.async_block_till_done()
     assert action.call_count == 2
     assert action.call_args_list[0].args[0]["from_state"].state == "unknown"
     first = action.call_args_list[0].args[0]["to_state"].state

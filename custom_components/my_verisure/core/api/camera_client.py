@@ -509,7 +509,6 @@ class CameraClient(BaseClient):
 
             id_signal = thumbnail.id_signal
             signal_type = thumbnail.signal_type
-            device_alias = thumbnail.device_alias
             timestamp = thumbnail.timestamp
 
             timestamp_dir = self._request_policy.image_directory(timestamp)

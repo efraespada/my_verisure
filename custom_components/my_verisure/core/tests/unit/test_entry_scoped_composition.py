@@ -7,6 +7,7 @@ from custom_components.my_verisure.core.dependency_injection.composition_root im
     build_my_verisure_composition_root,
 )
 from custom_components.my_verisure.core.file_manager import FileManager
+from custom_components.my_verisure.core.camera_placeholder_store import LocalCameraPlaceholderStore
 from custom_components.my_verisure.core.session_manager import SessionManager
 from custom_components.my_verisure.core.api.auth_client import AuthClient
 from custom_components.my_verisure.core.api.installation_client import InstallationClient
@@ -57,5 +58,7 @@ def test_composition_root_owns_isolated_session_and_file_managers(tmp_path: Path
     assert second_root.get(ConfigManager)._resolve_file_manager() is second_files
     assert cast(InstallationRepositoryImpl, first_root.get(InstallationRepository))._file_manager is first_files
     assert cast(InstallationRepositoryImpl, second_root.get(InstallationRepository))._file_manager is second_files
-    assert cast(CreateDummyCameraImagesUseCaseImpl, first_root.get(CreateDummyCameraImagesUseCase)).file_manager is first_files
-    assert cast(CreateDummyCameraImagesUseCaseImpl, second_root.get(CreateDummyCameraImagesUseCase)).file_manager is second_files
+    first_placeholder = cast(CreateDummyCameraImagesUseCaseImpl, first_root.get(CreateDummyCameraImagesUseCase)).placeholder_store
+    second_placeholder = cast(CreateDummyCameraImagesUseCaseImpl, second_root.get(CreateDummyCameraImagesUseCase)).placeholder_store
+    assert cast(LocalCameraPlaceholderStore, first_placeholder).files is first_files
+    assert cast(LocalCameraPlaceholderStore, second_placeholder).files is second_files

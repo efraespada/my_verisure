@@ -5,7 +5,7 @@ https://github.com/tonylofgren/aurora-smart-home
 """
 
 from homeassistant.helpers import area_registry as ar, device_registry as dr, entity_registry as er
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant.common import MockConfigEntry
 
 from custom_components.my_verisure.camera import camera_unique_id
 from custom_components.my_verisure.device import async_setup_device

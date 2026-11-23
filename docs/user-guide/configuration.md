@@ -11,7 +11,7 @@ Populated during the flow (see [`config_flow.py`](../../custom_components/my_ver
 | User | `CONF_USER` | Account identifier (e.g. DNI/NIE as used in the mobile app) |
 | Password | `CONF_PASSWORD` | Account password |
 | Installation ID | `CONF_INSTALLATION_ID` | Selected Securitas installation (`numinst`) |
-| Scan interval | `CONF_SCAN_INTERVAL` | Initial polling interval in **minutes** (default from `DEFAULT_SCAN_INTERVAL` = **10** in [`core/const.py`](../../custom_components/my_verisure/core/const.py)) |
+| Scan interval | `CONF_SCAN_INTERVAL` | Polling interval: integer **1–1440 minutes** (default from `DEFAULT_SCAN_INTERVAL` = **10** in [`core/const.py`](../../custom_components/my_verisure/core/const.py)) |
 
 Phone / OTP steps use `CONF_PHONE_ID` and `CONF_OTP_CODE` during the flow only.
 
@@ -43,6 +43,9 @@ No inbound port or Firebase server credential is needed.
 See the [automation guide](../automation-notifications.md) for examples and scope.
 
 Options override entry `data` for scan interval (see `update_listener` in [`integration.py`](../../custom_components/my_verisure/integration.py)).
+
+Invalid stored polling values recover to the default ten minutes. New options
+reject booleans, strings, fractions, zero, negative values and values above one day.
 
 ## Session persistence
 

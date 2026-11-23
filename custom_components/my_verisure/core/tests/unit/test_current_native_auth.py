@@ -65,6 +65,7 @@ async def test_current_native_login_preserves_device_and_accepts_verified_respon
 async def test_native_refresh_rotates_token_without_password_login(tmp_path, android):
     session = SessionManager(file_manager=FileManager(tmp_path))
     session.username = "synthetic-user"
+    session.password = "synthetic-password"
     session.refresh_token = "stored-refresh"
     device = DeviceManager(FileManager(tmp_path))
     if android:
@@ -92,6 +93,7 @@ async def test_native_refresh_rotates_token_without_password_login(tmp_path, and
 async def test_native_refresh_rejection_falls_back_once_to_device_login(tmp_path):
     session = SessionManager(file_manager=FileManager(tmp_path))
     session.username = "synthetic-user"
+    session.password = "synthetic-password"
     session.refresh_token = "expired-refresh"
     client = AuthClient(session, DeviceManager(FileManager(tmp_path)))
     client._execute_query_direct = AsyncMock(side_effect=[
@@ -189,6 +191,7 @@ def test_tokenless_context_cannot_authenticate_alarm_requests(tmp_path, context)
 async def test_refresh_transport_failure_does_not_retry_password_login(tmp_path):
     session = SessionManager(file_manager=FileManager(tmp_path))
     session.username = "synthetic-user"
+    session.password = "synthetic-password"
     session.refresh_token = "stored-refresh"
     client = AuthClient(session, DeviceManager(FileManager(tmp_path)))
     client._execute_query_direct = AsyncMock(side_effect=MyVerisureConnectionError("offline"))

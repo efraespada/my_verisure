@@ -87,7 +87,7 @@ class BaseCommand(ABC):
         return None
 
     async def select_installation_if_needed(
-        self, installation_id: Optional[str] = None
+        self, installation_id: Optional[str] = None, *, interactive: bool = True
     ) -> Optional[str]:
         """Select installation if not provided and multiple are available."""
 
@@ -111,6 +111,9 @@ class BaseCommand(ABC):
                 return installation.numinst
 
             # Multiple installations, let user select
+            if not interactive:
+                print_error("An explicit installation ID is required in noninteractive mode")
+                return None
             selected_id = await asyncio.to_thread(select_installation, installations)
             if selected_id:
                 self.session_manager.current_installation = selected_id
