@@ -171,6 +171,71 @@
         "docs/technical/firebase-client-configuration.md",
         "docs/validation/2026-11-23-public-firebase-config.json"
       ]
+    },
+    {
+      "id": "notification-observability-and-automation",
+      "title": "Notification observability and automation",
+      "status": "as-built-baseline",
+      "scope": "Implemented typed reported/verified HA events, diagnostics, bounded read-only reconciliation and transactional receiver recovery; non-photo delivery remains installation-specific.",
+      "owner": "My Verisure maintainers",
+      "lastVerified": "2026-11-23",
+      "specs": [
+        "specs/notification-observability-and-automation.md"
+      ],
+      "workflows": [
+        ".github/workflows/validate.yml"
+      ],
+      "entrypoints": [
+        "custom_components/my_verisure/push.py",
+        "custom_components/my_verisure/coordinator.py",
+        "custom_components/my_verisure/integration.py"
+      ],
+      "code": [
+        "custom_components/my_verisure/event.py",
+        "custom_components/my_verisure/notification_context.py",
+        "custom_components/my_verisure/notification_runtime.py",
+        "custom_components/my_verisure/push.py",
+        "custom_components/my_verisure/coordinator.py",
+        "custom_components/my_verisure/core/api/notification_mapper.py",
+        "custom_components/my_verisure/core/api/notification_client.py",
+        "custom_components/my_verisure/core/api/provider_request_gate.py",
+        "custom_components/my_verisure/core/api/push_receiver.py",
+        "custom_components/my_verisure/core/api/push_storage.py",
+        "custom_components/my_verisure/core/api/device_manager.py",
+        "custom_components/my_verisure/core/application/notifications.py",
+        "custom_components/my_verisure/core/application/notification_refresh.py",
+        "custom_components/my_verisure/core/application/notification_verification.py",
+        "custom_components/my_verisure/core/application/photo_notifications.py"
+      ],
+      "tests": [
+        "custom_components/my_verisure/core/tests/unit/test_coordinator_notifications.py",
+        "custom_components/my_verisure/core/tests/unit/test_notification_admission.py",
+        "custom_components/my_verisure/core/tests/unit/test_notification_client.py",
+        "custom_components/my_verisure/core/tests/unit/test_notification_contract_edges.py",
+        "custom_components/my_verisure/core/tests/unit/test_notification_durable_results.py",
+        "custom_components/my_verisure/core/tests/unit/test_notification_existing_photo.py",
+        "custom_components/my_verisure/core/tests/unit/test_notification_refresh.py",
+        "custom_components/my_verisure/core/tests/unit/test_notification_state_epochs.py",
+        "custom_components/my_verisure/core/tests/unit/test_notification_verification.py",
+        "custom_components/my_verisure/tests/test_notification_context.py",
+        "custom_components/my_verisure/tests/test_notification_coordinator_unload.py",
+        "custom_components/my_verisure/tests/test_notification_diagnostic_entities.py",
+        "custom_components/my_verisure/tests/test_notification_event_entities.py",
+        "custom_components/my_verisure/tests/test_notification_options.py",
+        "custom_components/my_verisure/tests/test_notification_runtime.py",
+        "custom_components/my_verisure/core/tests/unit/test_provider_request_gate.py",
+        "custom_components/my_verisure/core/tests/unit/test_provider_gate_edges.py",
+        "custom_components/my_verisure/core/tests/unit/test_push_binding_transaction.py",
+        "custom_components/my_verisure/tests/test_push_auth_transaction.py"
+      ],
+      "documentation": [
+        "docs/technical/notification-audit-and-design.md",
+        "docs/validation/2026-11-23-notification-catalog.json",
+        "docs/validation/2026-11-23-notification-audit.json",
+        "docs/automation-notifications.md",
+        "blueprints/automation/my_verisure/notification_light.yaml",
+        "docs/validation/2026-11-23-notification-implementation.json"
+      ]
     }
   ]
 }

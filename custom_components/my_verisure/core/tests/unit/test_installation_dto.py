@@ -228,7 +228,7 @@ class TestDetailedInstallationDTO:
         data = {
             "language": "es",
             "installation": {
-                "numinst": "6220569",
+                "numinst": "123456",
                 "role": "OWNER",
                 "alias": "Test Installation",
                 "status": "OP",
@@ -247,7 +247,7 @@ class TestDetailedInstallationDTO:
         dto = DetailedInstallationDTO.from_dict(data)
 
         assert dto.language == "es"
-        assert dto.installation.numinst == "6220569"
+        assert dto.installation.numinst == "123456"
         assert dto.installation.role == "OWNER"
         assert dto.installation.alias == "Test Installation"
         assert dto.installation.status == "OP"
@@ -264,7 +264,7 @@ class TestDetailedInstallationDTO:
         data = {
             "language": "es",
             "installation": {
-                "numinst": "6220569",
+                "numinst": "123456",
                 "role": "OWNER",
                 "alias": "Test Installation",
                 "status": "OP",
@@ -280,7 +280,7 @@ class TestDetailedInstallationDTO:
         dto = DetailedInstallationDTO.from_dict(data)
 
         assert dto.language == "es"
-        assert dto.installation.numinst == "6220569"
+        assert dto.installation.numinst == "123456"
         assert dto.installation.role == "OWNER"
         assert dto.installation.alias == "Test Installation"
         assert dto.installation.status == "OP"
@@ -295,7 +295,7 @@ class TestDetailedInstallationDTO:
         from ...api.models.dto.installation_dto import InstallationDataDTO
         
         installation_data = InstallationDataDTO(
-            numinst="6220569",
+            numinst="123456",
             role="OWNER",
             alias="Test Installation",
             status="OP",
@@ -315,6 +315,6 @@ class TestDetailedInstallationDTO:
         result = dto.to_dict()
 
         assert result["language"] == "es"
-        assert result["installation"]["numinst"] == "6220569"
+        assert result["installation"]["numinst"] == "123456"
         assert result["installation"]["role"] == "OWNER"
         assert result["installation"]["alias"] == "Test Installation"

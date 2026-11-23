@@ -22,6 +22,7 @@ PLATFORMS: list[Platform] = [
     Platform.SENSOR,
     Platform.CAMERA,
     Platform.BUTTON,
+    Platform.EVENT,
 ]
 
 
@@ -77,6 +78,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         # Set up all platforms for this device/entry
         await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+        # Attach consumers before accepting fresh public events. Startup backlog
+        # must not be replayed as new activity when platforms become ready.
+        notification_hub = getattr(coordinator, "notification_hub", None)
+        if notification_hub is not None:
+            notification_hub.activate()
 
         # Set up services (only once)
         if not hass.data[DOMAIN].get("services_setup"):

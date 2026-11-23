@@ -103,6 +103,7 @@ async def test_button_clears_executing_state_after_success() -> None:
         "refresh_camera_images",
         {"installation_id": "home-1"},
         blocking=True,
+        context=button._context,
     )
 
 

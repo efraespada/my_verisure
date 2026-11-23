@@ -1,7 +1,10 @@
 """Camera client for My Verisure API."""
 
 import asyncio
+from collections.abc import Collection
 import logging
+import math
+import re
 import time
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -10,7 +13,7 @@ from typing import Any, Dict, List
 from .base_client import BaseClient
 from .native_profile import ProfileContext
 from ..application.photo_notifications import PhotoNotifications
-from ..application.models.camera_images import CameraThumbnail
+from ..application.models.camera_images import CameraPhotoSet, CameraThumbnail
 from .exceptions import (
     MyVerisureAuthenticationError,
     MyVerisureConnectionError,
@@ -34,7 +37,7 @@ from .camera_request_polling import (
     decide_initial_request,
     decide_status,
 )
-from ..application.camera_image_storage import CameraImageStorage
+from ..application.camera_image_storage import CameraImageStorage, CameraImageStorageResult
 from ..api.models.dto.camera_request_image_dto import CameraRequestImageResultDTO
 from ..log_utils import redact_headers_for_log, should_log_detailed
 
@@ -181,18 +184,74 @@ class CameraClient(BaseClient):
             return None
         code = result["data"]["xSGetThumbnail"].get("deviceCode")
         allowed = {f"YP{devices[0]:02d}", f"YR{devices[0]:02d}"}
-        if code not in allowed or thumbnail.id_signal != signal or thumbnail.signal_type != "16":
+        if not isinstance(code, str) or code not in allowed or thumbnail.id_signal != signal or thumbnail.signal_type != "16":
             return None
-        try:
-            captured = datetime.strptime(thumbnail.timestamp, "%Y-%m-%d %H:%M:%S").replace(
-                tzinfo=ZoneInfo("Europe/Madrid")
-            ).timestamp()
-        except ValueError:
-            return None
-        if not self._capture_started_at - 5 <= captured <= time.time() + 60:
+        captured = self._thumbnail_time(thumbnail)
+        if captured is None or not self._capture_started_at - 5 <= captured <= time.time() + 60:
             return None
         self._push_thumbnails[(installation_id, code)] = thumbnail
         return thumbnail
+
+    @staticmethod
+    def _thumbnail_time(thumbnail: CameraThumbnail) -> float | None:
+        try:
+            return datetime.strptime(thumbnail.timestamp, "%Y-%m-%d %H:%M:%S").replace(
+                tzinfo=ZoneInfo("Europe/Madrid")
+            ).timestamp()
+        except (ValueError, OverflowError):
+            return None
+
+    async def get_existing_photo(
+        self, installation_id: str, panel: str, capabilities: str, *,
+        signal_id: str, expected_camera_codes: Collection[str], event_timestamp: float,
+    ) -> Dict[str, Any] | None:
+        """Retrieve a fresh existing signal without initiating another capture.
+
+        Callers use the same camera-operation lock as a pending HA request.
+        Photo generation/delivery may span seconds, so the thumbnail must be
+        within one minute of the notice and within the five-minute live window.
+        """
+        now = time.time()
+        if (
+            not isinstance(signal_id, str) or not re.fullmatch(r"[0-9]{1,128}", signal_id)
+            or type(event_timestamp) not in (int, float) or not math.isfinite(event_timestamp)
+            or not now - 300 <= event_timestamp <= now + 60
+            or not expected_camera_codes or len(expected_camera_codes) > 256
+        ):
+            return None
+        if any(not isinstance(code, str) or not re.fullmatch(r"Y[RP][0-9]{2,6}", code) for code in expected_camera_codes):
+            return None
+        if any(not isinstance(value, str) or not value.strip() for value in (installation_id, panel, capabilities)):
+            raise MyVerisureError("Camera notification context unavailable")
+        token, session = self._get_current_credentials()
+        headers = self._get_session_headers(session, token)
+        headers.update({"numinst": installation_id, "panel": panel, "x-capabilities": capabilities})
+        response = await self._execute_query_direct(
+            GET_THUMBNAIL_QUERY,
+            {"numinst": installation_id, "panel": panel, "idSignal": signal_id}, headers,
+        )
+        try:
+            thumbnail = interpret_thumbnail_response(response)
+        except CameraImageResponseError:
+            return None
+        code = response["data"]["xSGetThumbnail"].get("deviceCode")
+        captured = self._thumbnail_time(thumbnail)
+        if (
+            not isinstance(code, str) or code not in expected_camera_codes or thumbnail.id_signal != signal_id
+            or thumbnail.signal_type != "16" or captured is None
+            or not max(event_timestamp - 60, now - 300) <= captured <= min(event_timestamp + 60, now + 60)
+        ):
+            return None
+        key = installation_id, code
+        self._push_thumbnails[key] = thumbnail
+        try:
+            result = await self.get_images(
+                installation_id, panel, code[:2], code, capabilities, signal_id=signal_id,
+            )
+        finally:
+            if self._push_thumbnails.get(key) is thumbnail:
+                self._push_thumbnails.pop(key, None)
+        return {**result, "camera_identifier": code} if result.get("success") is True else None
 
     async def _request_image(
         self,
@@ -480,19 +539,14 @@ class CameraClient(BaseClient):
                 if len(raw_devices) != 1 or str(raw_devices[0].get("code")) not in expected:
                     raise MyVerisureError("Photo does not match the selected camera")
 
-            storage_result = await asyncio.to_thread(
-                self._image_storage.save,
-                thumbnail,
-                photo_set,
-                zone_id=zone_id,
-                timestamp_directory=timestamp_dir,
-            )
+            storage_result = await self._save_images(thumbnail, photo_set, zone_id, timestamp_dir)
 
             saved_all_images = storage_result.complete
             if not photo_set.images:
                 _LOGGER.warning("⚠️ No devices found in photo images response")
                 return {
                     "success": saved_all_images,
+                    "signal_id": id_signal,
                     "thumbnail_saved": storage_result.thumbnail_saved,
                     "images_saved": 0,
                     "message": "Thumbnail saved, but no additional images found",
@@ -500,6 +554,7 @@ class CameraClient(BaseClient):
 
             return {
                 "success": saved_all_images,
+                "signal_id": id_signal,
                 "thumbnail_saved": storage_result.thumbnail_saved,
                 "images_saved": storage_result.images_saved,
                 "total_images": storage_result.total_images,
@@ -517,4 +572,27 @@ class CameraClient(BaseClient):
         except Exception:
             _LOGGER.error("Unexpected error during image retrieval")
             raise MyVerisureError("Image retrieval failed") from None
+
+    async def _save_images(
+        self, thumbnail: CameraThumbnail, photos: CameraPhotoSet,
+        zone_id: str, timestamp_directory: str,
+    ) -> CameraImageStorageResult:
+        """Own the executor write until completion, including repeated cancellation."""
+        write = asyncio.create_task(asyncio.to_thread(
+            self._image_storage.save, thumbnail, photos,
+            zone_id=zone_id, timestamp_directory=timestamp_directory,
+        ))
+        try:
+            return await asyncio.shield(write)
+        except asyncio.CancelledError:
+            while not write.done():
+                try:
+                    await asyncio.shield(write)
+                except asyncio.CancelledError:
+                    continue
+                except Exception:
+                    break
+            if not write.cancelled():
+                write.exception()
+            raise
 

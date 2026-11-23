@@ -52,6 +52,7 @@ class RefreshCameraImagesButton(CoordinatorEntity, ButtonEntity):
                 "refresh_camera_images",
                 {"installation_id": self._installation_id},
                 blocking=True,
+                context=self._context,
             )
             _LOGGER.debug("Camera images refresh service called successfully")
         except Exception:

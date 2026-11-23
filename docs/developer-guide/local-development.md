@@ -154,7 +154,7 @@ logger:
 2. Select your service (e.g., `my_verisure.arm_away`)
 3. Fill in the data:
    ```yaml
-   installation_id: "6220569"
+   installation_id: "123456"
    ```
 4. Click **Call Service**
 
@@ -323,7 +323,7 @@ Or reload the integration:
 
 ## Next Steps
 
-- [Integration Architecture](./architecture.md)
+- [Integration Architecture](../architecture/README.md)
 - [Testing Guide](./testing.md)
-- [Contributing Guidelines](../CONTRIBUTING.md)
-- [API Documentation](./api-reference.md)
+- [Contributing Guidelines](../../CONTRIBUTING.md)
+- [API Documentation](../api-reference/README.md)

@@ -39,7 +39,8 @@ async def test_arm_success_clears_transition_state() -> None:
 
     assert entity._transition_state is None
     service_call.assert_awaited_once_with(
-        "my_verisure", "arm_away", {"installation_id": "installation-1"}, blocking=True
+        "my_verisure", "arm_away", {"installation_id": "installation-1"}, blocking=True,
+        context=entity._context,
     )
 
 

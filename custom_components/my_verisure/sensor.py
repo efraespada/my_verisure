@@ -4,16 +4,21 @@ from __future__ import annotations
 
 from typing import Any
 from datetime import datetime, timezone
+import math
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.const import EntityCategory, UnitOfTime
+from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.event import async_call_later
+from homeassistant.util import dt as dt_util
 
 from .core.application.alarm_state import AlarmState, analyze_alarm_state
+from .core.application.notifications import BINDING_STATES
 from .core.const import LOGGER, ENTITY_NAMES
 from .coordinator import MyVerisureDataUpdateCoordinator
 from .device import get_device_info
@@ -71,7 +76,102 @@ async def async_setup_entry(
         ),
     ])
 
+    if getattr(coordinator, "notification_hub", None) is not None:
+        entities.extend(
+            MyVerisureNotificationDiagnosticSensor(coordinator, config_entry, key)
+            for key in (
+                "last_received", "last_accepted", "last_verified",
+                "binding_state", "cooldown_remaining",
+            )
+        )
     async_add_entities(entities)
+
+
+class MyVerisureNotificationDiagnosticSensor(SensorEntity):
+    """Read a typed local summary without polling the provider or hiding events."""
+
+    _attr_has_entity_name = True
+    _attr_should_poll = False
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(
+        self, coordinator: MyVerisureDataUpdateCoordinator,
+        config_entry: ConfigEntry, key: str,
+    ) -> None:
+        self._coordinator = coordinator
+        self._key = key
+        self._diagnostics_active = False
+        self._cooldown_cancel: CALLBACK_TYPE | None = None
+        self._attr_unique_id = f"{config_entry.entry_id}_push_{key}"
+        self._attr_translation_key = f"push_{key}"
+        self._attr_device_info = get_device_info(config_entry)
+        if key == "binding_state":
+            self._attr_device_class = SensorDeviceClass.ENUM
+            self._attr_options = list(BINDING_STATES)
+        elif key == "cooldown_remaining":
+            self._attr_device_class = SensorDeviceClass.DURATION
+            self._attr_native_unit_of_measurement = UnitOfTime.SECONDS
+        else:
+            self._attr_device_class = SensorDeviceClass.TIMESTAMP
+
+    @property
+    def native_value(self) -> datetime | float | str | None:
+        value = self._coordinator.notification_diagnostics().get(self._key)
+        if self._key == "binding_state":
+            return value if isinstance(value, str) and value in BINDING_STATES else None
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            return None
+        if not math.isfinite(value):
+            return None
+        if self._key == "cooldown_remaining":
+            return float(value) if value >= 0 else None
+        try:
+            return dt_util.utc_from_timestamp(value)
+        except (ValueError, OverflowError, OSError):
+            return None
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        self._diagnostics_active = True
+        self.async_on_remove(self._shutdown_diagnostics)
+        self.async_on_remove(
+            self._coordinator.notification_hub.subscribe_diagnostics(self._updated)
+        )
+        self._schedule_cooldown_update()
+
+    @callback
+    def _updated(self) -> None:
+        if not self._diagnostics_active:
+            return
+        self.async_write_ha_state()
+        self._schedule_cooldown_update()
+
+    @callback
+    def _schedule_cooldown_update(self) -> None:
+        if self._key != "cooldown_remaining" or not self._diagnostics_active:
+            return
+        if self._cooldown_cancel is not None:
+            self._cooldown_cancel()
+        remaining = self.native_value
+        delay = (
+            min(30.0, max(0.05, remaining))
+            if isinstance(remaining, float) and remaining > 0
+            else 30.0
+        )
+        self._cooldown_cancel = async_call_later(self.hass, delay, self._cooldown_tick)
+
+    @callback
+    def _cooldown_tick(self, _now: datetime) -> None:
+        self._cooldown_cancel = None
+        self._updated()
+
+    @callback
+    def _shutdown_diagnostics(self) -> None:
+        self._diagnostics_active = False
+        if self._cooldown_cancel is not None:
+            self._cooldown_cancel()
+            self._cooldown_cancel = None
 
 
 class MyVerisureAlarmStatusSensor(SensorEntity):

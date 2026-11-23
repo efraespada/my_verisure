@@ -7,7 +7,7 @@
 - Owners: My Verisure maintainers
 - Scope: HA mode mapping, command completion and authoritative state
 - Required review gates: behavior, architecture, testing, documentation, security/operations
-- Open decisions blocking readiness: live total/away acceptance is reserved to the owner; request concurrency and compound-operation recovery need further review
+- Open decisions blocking readiness: live total/away acceptance is reserved to the owner; broader physical compound-operation recovery remains unverified
 
 ## 1. Executive summary
 
@@ -37,8 +37,11 @@ made it succeed. Commands now require permissions bound to the current session
 and refresh expired capability JWTs before sending a mutation.
 
 Intentional contract: preserve the owner's mapping and optional perimeter behavior.
-Known debt: live total/day combinations are not established by this validation;
-concurrent commands have no dedicated coordinator serialization lock. Historical
+Known debt: live total/day combinations are not established by this validation.
+The notification iteration now serializes the whole compound command per physical
+installation and rejects older state publications, including across entries.
+Its synthetic regressions are in `test_notification_state_epochs.py` and the
+[notification contract](notification-observability-and-automation.md). Historical
 reasons for the original aggressive polling/change of identifiers are not established.
 
 ## 3. Actors, surfaces and terminology
@@ -199,7 +202,8 @@ response/unknown cases, 5 HA transition/error cases, 4 migration/isolation cases
 clocks and injected sleep; no unit test contacts the real alarm.
 
 Run the existing suite, type/lint/architecture/distribution gates and coverage
-report. No enforced numeric coverage threshold currently exists. Live evidence
+report. The ten notification modules now require complete executable line/branch
+coverage; no repository-wide percentage is enforced. Live evidence
 must explicitly list which modes were exercised; synthetic Away tests do not
 establish live total acceptance.
 
@@ -251,6 +255,11 @@ live cycles and restore the agreed state.
 - [ ] Owner performs reserved total-mode verification in a suitable later session.
 
 ## 20. References and decisions
+
+The [notification audit](../docs/technical/notification-audit-and-design.md)
+reproduced stale-read publication and incomplete transport cooldown enforcement.
+Command serialization also remains a prerequisite before enabling notification-driven
+state refresh. This is new synthetic/code evidence, not a new physical alarm test.
 
 The owner's clarification preserves the existing perimeter option for both interior
 modes. No change to that preference is proposed. Primary protocol evidence is the

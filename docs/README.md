@@ -22,5 +22,7 @@ This directory contains **production-oriented documentation** for the My Verisur
 - **Site hub:** [index.md](index.md)  
 - **Users:** [user-guide/getting-started.md](user-guide/getting-started.md)  
 - **Contributors:** [developer-guide/setup.md](developer-guide/setup.md)  
+- **Notification automations and blueprint:** [automation-notifications.md](automation-notifications.md)
+- **Notification research and implementation:** [technical/notification-audit-and-design.md](technical/notification-audit-and-design.md)
 
 Legacy project docs at repo root (e.g. `TESTING.md`, `MULTIPLE_ALARMS_GUIDE.md`) remain for historical context; prefer this tree for structured navigation.

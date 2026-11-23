@@ -1,5 +1,11 @@
 # Push reception on a Linux Home Assistant host
 
+The [notification audit and proposal](notification-audit-and-design.md) catalogs
+the official client's broader push handlers and current correctness gaps. Its
+new event entities and reconciliation are proposed, not part of the installed
+photo receiver. See the [source catalog](../validation/2026-11-23-notification-catalog.json)
+and [synthetic audit evidence](../validation/2026-11-23-notification-audit.json).
+
 The follow-up [Firebase configuration review](firebase-client-configuration.md)
 removes the embedded public client key and resolves it only for registration
 or actual MCS authentication recovery. Cached startup skips discovery. Its

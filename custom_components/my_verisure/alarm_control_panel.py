@@ -173,6 +173,7 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
                     "disarm",
                     {"installation_id": installation_id},
                     blocking=True,
+                    context=self._context,
                 )
             else:
                 raise MyVerisureError("Installation not found")
@@ -208,6 +209,7 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
                     "arm_away",
                     {"installation_id": installation_id},
                     blocking=True,
+                    context=self._context,
                 )
                 LOGGER.warning("Alarm armed away successfully")
             else:
@@ -243,6 +245,7 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
                     "arm_home",
                     {"installation_id": installation_id},
                     blocking=True,
+                    context=self._context,
                 )
                 LOGGER.warning("Alarm armed home successfully")
             else:
@@ -279,6 +282,7 @@ class MyVerisureAlarmControlPanel(AlarmControlPanelEntity):
                     "arm_night",
                     {"installation_id": installation_id},
                     blocking=True,
+                    context=self._context,
                 )
                 LOGGER.warning("Alarm armed night successfully")
             else:

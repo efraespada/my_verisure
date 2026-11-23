@@ -4,7 +4,7 @@ Generated with ha-integration@aurora-smart-home v1.1.0
 https://github.com/tonylofgren/aurora-smart-home
 """
 
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock
 
 import jwt
 import pytest
@@ -25,6 +25,7 @@ async def test_activation_restart_rotation_and_close(hass, tmp_path, monkeypatch
     before = device.get_device_identifiers()["uuid"]
     session.hash_token, session.refresh_token = "old-ios", "old-refresh"
     receiver = AsyncMock()
+    receiver.request_state_save = Mock()
     receiver.async_prepare.return_value = "synthetic-fcm-token"
     monkeypatch.setattr(push, "PushReceiver", lambda *args, **kwargs: receiver)
     adapter = push.HomeAssistantPush(hass, root)
@@ -32,11 +33,15 @@ async def test_activation_restart_rotation_and_close(hass, tmp_path, monkeypatch
     assert session.hash_token is None and session.refresh_token is None
     assert device.get_device_identifiers()["uuid"] == before
     session.hash_token, session.refresh_token = "android", "android-refresh"
+    await adapter.async_finish_auth(True)
     await adapter.async_prepare()
     assert session.hash_token == "android"
+    await adapter.async_finish_auth(True)
     receiver.async_prepare.return_value = "synthetic-rotated-token"
     await adapter.async_prepare()
     assert session.hash_token is None and session.refresh_token == "android-refresh"
+    session.hash_token = "rotated-android"
+    await adapter.async_finish_auth(True)
     await adapter.async_stop()
     receiver.async_stop.assert_awaited_once()
     restored = build_my_verisure_composition_root(project_root=tmp_path)
@@ -55,6 +60,7 @@ async def test_failed_fcm_registration_keeps_session_and_backs_off(hass, tmp_pat
     session = root.get(SessionManager)
     session.hash_token = "existing"
     receiver = AsyncMock()
+    receiver.request_state_save = Mock()
     receiver.async_prepare.side_effect = OSError("synthetic")
     monkeypatch.setattr(push, "PushReceiver", lambda *args, **kwargs: receiver)
     adapter = push.HomeAssistantPush(hass, root)

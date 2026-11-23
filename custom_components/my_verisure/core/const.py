@@ -16,6 +16,10 @@ CONF_SCAN_INTERVAL = "scan_interval"
 CONF_AUTO_ARM_PERIMETER_WITH_INTERNAL = "auto_arm_perimeter_with_internal"
 CONF_DEV_MODE = "dev_mode"
 CONF_PUSH_ENABLED = "push_enabled"
+CONF_NOTIFICATION_OBSERVATION = "notification_observation"
+CONF_PUSH_STATE_REFRESH = "push_state_refresh"
+CONF_EXTERNAL_PHOTO_UPDATES = "external_photo_updates"
+CONF_ADVANCED_EVENT_BUS = "advanced_event_bus"
 
 # Default values
 DEFAULT_SCAN_INTERVAL = 10  # minutes

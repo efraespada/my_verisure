@@ -51,6 +51,13 @@ async def async_get_config_entry_diagnostics(
         session_info = {"error": "Unable to collect session diagnostics"}
 
     push = getattr(coordinator, "_push", None)
+    notification_summary: dict[str, Any] = {"enabled": False, "connected": False}
+    reader = getattr(coordinator, "notification_diagnostics", None)
+    if callable(reader):
+        try:
+            notification_summary = reader()
+        except Exception:
+            notification_summary = {"error": "Notification diagnostics unavailable"}
     return {
         "entry": redacted_entry,
         "coordinator": {
@@ -63,5 +70,6 @@ async def async_get_config_entry_diagnostics(
             "push": push.diagnostics()
             if push is not None
             else {"enabled": False, "connected": False},
+            "notifications": notification_summary,
         },
     }

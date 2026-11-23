@@ -15,6 +15,7 @@ from .core.application.exceptions import (
 from .core.const import DOMAIN, LOGGER
 from .coordinator import MyVerisureDataUpdateCoordinator
 from .camera import camera_unique_id
+from .notification_context import notification_service_context
 
 # Service schemas
 SERVICE_ARM_AWAY_SCHEMA = vol.Schema({
@@ -137,6 +138,7 @@ async def _dispatch_alarm_service(
 async def async_setup_services(hass: HomeAssistant) -> None:
     """Set up services for My Verisure."""
 
+    @notification_service_context
     async def async_arm_away_service(call: ServiceCall) -> None:
         """Service to arm the alarm away."""
         installation_id = call.data["installation_id"]
@@ -145,6 +147,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             hass, installation_id, "async_arm_away", "arm away"
         )
 
+    @notification_service_context
     async def async_arm_home_service(call: ServiceCall) -> None:
         """Service to arm the alarm home."""
         installation_id = call.data["installation_id"]
@@ -153,6 +156,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             hass, installation_id, "async_arm_home", "arm home"
         )
 
+    @notification_service_context
     async def async_arm_night_service(call: ServiceCall) -> None:
         """Service to arm the alarm night."""
         installation_id = call.data["installation_id"]
@@ -161,12 +165,14 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             hass, installation_id, "async_arm_night", "arm night"
         )
 
+    @notification_service_context
     async def async_disarm_service(call: ServiceCall) -> None:
         """Service to disarm the alarm."""
         installation_id = call.data["installation_id"]
         LOGGER.warning("Service disarm called")
         await _dispatch_alarm_service(hass, installation_id, "async_disarm", "disarm")
 
+    @notification_service_context
     async def async_get_status_service(call: ServiceCall) -> None:
         """Service to get alarm status."""
         installation_id = call.data["installation_id"]
@@ -187,6 +193,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         else:
             LOGGER.error("Installation not found")
 
+    @notification_service_context
     async def async_refresh_camera_images_service(call: ServiceCall) -> None:
         """Service to refresh camera images."""
         installation_id = call.data["installation_id"]
