@@ -64,6 +64,13 @@ def test_alarm_status_sensor_maps_alarm_state_and_attributes(config_entry):
     assert sensor.available is True
 
 
+def test_alarm_status_sensor_labels_exterior_without_claiming_interior_day(config_entry):
+    sensor = MyVerisureAlarmStatusSensor(_coordinator(_alarm_data(external=True)), config_entry, "alarm", "Alarm")
+
+    assert sensor.native_value == "Perimeter Active"
+    assert sensor.extra_state_attributes["internal_day_status"] is False
+
+
 def test_active_alarms_sensor_reports_multiple_states(config_entry):
     coordinator = _coordinator(_alarm_data(day=True, external=True))
     sensor = MyVerisureActiveAlarmsSensor(coordinator, config_entry, "active", "Active")

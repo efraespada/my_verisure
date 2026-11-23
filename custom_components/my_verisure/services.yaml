@@ -97,3 +97,11 @@ refresh_camera_images:
       required: true
       selector:
         text:
+    camera_entity_id:
+      name: "Camera"
+      description: "Refresh only this camera. Leave empty to refresh all cameras."
+      required: false
+      selector:
+        entity:
+          integration: my_verisure
+          domain: camera

@@ -1,6 +1,6 @@
 # My Verisure — Documentation Hub
 
-Custom integration for Home Assistant connecting to **Verisure / Securitas Direct** via the official GraphQL API (`customers.securitasdirect.es`). This hub links all sections of the documentation site.
+Custom integration for Home Assistant connecting to **Verisure / Securitas Direct** via the official GraphQL API (`customers.verisure.es`). This hub links all sections of the documentation site.
 
 ## Audience quick links
 
@@ -27,7 +27,9 @@ Custom integration for Home Assistant connecting to **Verisure / Securitas Direc
 
 - **Domain:** `my_verisure` · **Integration type:** hub · **IoT class:** cloud_polling  
 - **Home Assistant:** `2026.8.1` (Core; Python >=3.14.2)
-- **API endpoint:** `https://customers.securitasdirect.es/owa-api/graphql` (see [`core/const.py`](../custom_components/my_verisure/core/const.py))  
+- **API endpoint:** `https://customers.verisure.es/owa-api/graphql` (see [`core/api/fields.py`](../custom_components/my_verisure/core/api/fields.py))
+- **Photo completion:** optional FCM with 20-second polling fallback; routine alarm polling defaults to 10 minutes.
+- **Specifications:** [capability catalog](../specs/CATALOG.md) and [quality evidence](quality-status.md).
 - **Platforms:** `alarm_control_panel`, `sensor`, `binary_sensor`, `camera`, `button` (see [`integration.py`](../custom_components/my_verisure/integration.py))
 
 ## Search keywords (findability)

@@ -1,0 +1,176 @@
+{
+  "version": 1,
+  "capabilities": [
+    {
+      "id": "native-authentication",
+      "title": "Native authentication and session lifecycle",
+      "status": "as-built-baseline",
+      "scope": "Device-bound login/SMS, transactional session persistence and native token renewal; provider-profile compatibility remains evidence-driven.",
+      "owner": "My Verisure maintainers",
+      "lastVerified": "2026-11-23",
+      "specs": [
+        "specs/native-authentication-and-session-lifecycle.md"
+      ],
+      "workflows": [
+        ".github/workflows/validate.yml"
+      ],
+      "entrypoints": [
+        "custom_components/my_verisure/config_flow.py",
+        "custom_components/my_verisure/coordinator.py"
+      ],
+      "code": [
+        "custom_components/my_verisure/core/api/auth_client.py",
+        "custom_components/my_verisure/core/api/auth_response_classifier.py",
+        "custom_components/my_verisure/core/api/otp_authorization.py",
+        "custom_components/my_verisure/core/use_cases/implementations/auth_use_case_impl.py",
+        "custom_components/my_verisure/core/application/auth_session_persistence.py",
+        "custom_components/my_verisure/core/session_manager.py"
+      ],
+      "tests": [
+        "custom_components/my_verisure/core/tests/unit/test_current_native_auth.py",
+        "custom_components/my_verisure/core/tests/unit/test_otp_authorization.py",
+        "custom_components/my_verisure/core/tests/unit/test_auth_session_persistence.py",
+        "custom_components/my_verisure/core/tests/unit/test_session_manager.py",
+        "custom_components/my_verisure/tests/test_config_flow_branches.py",
+        "custom_components/my_verisure/tests/test_ha_diagnostics_button.py"
+      ],
+      "documentation": [
+        "docs/user-guide/configuration.md",
+        "docs/technical/authentication.md",
+        "docs/technical/session-persistence.md",
+        "specs/README.md"
+      ]
+    },
+    {
+      "id": "alarm-commands-and-state",
+      "title": "Alarm modes and provider confirmation",
+      "status": "as-built-baseline",
+      "scope": "HA/Verisure mapping, configurable supplementary perimeter, authenticated commands, bounded confirmation and honest unknown state; total-mode live evidence remains owner-reserved.",
+      "owner": "My Verisure maintainers",
+      "lastVerified": "2026-11-22",
+      "specs": [
+        "specs/alarm-modes-and-confirmation.md"
+      ],
+      "workflows": [
+        ".github/workflows/validate.yml"
+      ],
+      "entrypoints": [
+        "custom_components/my_verisure/alarm_control_panel.py",
+        "custom_components/my_verisure/services.py"
+      ],
+      "code": [
+        "custom_components/my_verisure/coordinator.py",
+        "custom_components/my_verisure/core/api/alarm_client.py",
+        "custom_components/my_verisure/core/api/alarm_command_poller.py",
+        "custom_components/my_verisure/core/application/alarm_status_service.py",
+        "custom_components/my_verisure/core/application/coordinator_alarm_commands.py",
+        "custom_components/my_verisure/core/repositories/implementations/alarm_repository_impl.py"
+      ],
+      "tests": [
+        "custom_components/my_verisure/core/tests/unit/test_current_native_alarm.py",
+        "custom_components/my_verisure/core/tests/unit/test_coordinator_alarm_commands.py",
+        "custom_components/my_verisure/core/tests/unit/test_alarm_client_contracts.py",
+        "custom_components/my_verisure/core/tests/unit/test_alarm_command_poller.py",
+        "custom_components/my_verisure/core/tests/unit/test_coordinator_update_boundaries.py",
+        "custom_components/my_verisure/tests/test_alarm_control_panel_lifecycle.py",
+        "custom_components/my_verisure/tests/test_entity_registry_migration.py"
+      ],
+      "documentation": [
+        "docs/api-reference/services/arm-home.md",
+        "docs/api-reference/services/arm-night.md",
+        "docs/api-reference/services/arm-away.md",
+        "docs/api-reference/entities/alarm-control-panel.md",
+        "docs/user-guide/configuration.md",
+        "specs/README.md"
+      ]
+    },
+    {
+      "id": "installation-and-camera-data",
+      "title": "Installation data, camera snapshots and stable HA identity",
+      "status": "as-built-baseline",
+      "scope": "Nullable installation/service/device projection, private static snapshots and stable entry-owned entity identity; live photo parity and freshness UX remain explicit limitations.",
+      "owner": "My Verisure maintainers",
+      "lastVerified": "2026-11-23",
+      "specs": [
+        "specs/installation-cameras-and-entity-identity.md"
+      ],
+      "workflows": [
+        ".github/workflows/validate.yml"
+      ],
+      "entrypoints": [
+        "custom_components/my_verisure/integration.py",
+        "custom_components/my_verisure/camera.py",
+        "custom_components/my_verisure/button.py"
+      ],
+      "code": [
+        "custom_components/my_verisure/core/api/installation_client.py",
+        "custom_components/my_verisure/core/api/models/dto/device_dto.py",
+        "custom_components/my_verisure/core/application/models/device.py",
+        "custom_components/my_verisure/core/application/camera_devices.py",
+        "custom_components/my_verisure/core/application/camera_image_storage.py",
+        "custom_components/my_verisure/entity_registry_migration.py",
+        "custom_components/my_verisure/device.py"
+      ],
+      "tests": [
+        "custom_components/my_verisure/core/tests/unit/test_current_native_installation.py",
+        "custom_components/my_verisure/core/tests/unit/test_camera_devices.py",
+        "custom_components/my_verisure/core/tests/unit/test_camera_refresh_boundaries.py",
+        "custom_components/my_verisure/core/tests/unit/test_camera_image_storage.py",
+        "custom_components/my_verisure/tests/test_ha_platforms.py",
+        "custom_components/my_verisure/tests/test_entity_registry_migration.py",
+        "custom_components/my_verisure/tests/test_public_entity_redaction.py",
+        "custom_components/my_verisure/tests/test_ha_diagnostics_button.py"
+      ],
+      "documentation": [
+        "docs/api-reference/entities/cameras.md",
+        "docs/api-reference/services/refresh-camera-images.md",
+        "docs/user-guide/entities.md",
+        "specs/README.md"
+      ]
+    },
+    {
+      "id": "linux-push-photo-completion",
+      "title": "Linux push reception and photo completion",
+      "status": "as-built-baseline",
+      "scope": "Installed optional entry-owned FCM photo completion with bounded polling fallback; actual HA push, polling, credential reuse and restart verified.",
+      "owner": "My Verisure maintainers",
+      "lastVerified": "2026-11-23",
+      "specs": [
+        "specs/linux-push-photo-completion.md"
+      ],
+      "workflows": [
+        ".github/workflows/validate.yml"
+      ],
+      "entrypoints": [
+        "custom_components/my_verisure/config_flow.py",
+        "custom_components/my_verisure/push.py"
+      ],
+      "code": [
+        "custom_components/my_verisure/core/api/push_receiver.py",
+        "custom_components/my_verisure/core/api/push_decoder.py",
+        "custom_components/my_verisure/core/api/push_storage.py",
+        "custom_components/my_verisure/core/api/native_profile.py",
+        "custom_components/my_verisure/core/application/photo_notifications.py",
+        "custom_components/my_verisure/core/api/camera_client.py",
+        "custom_components/my_verisure/core/api/public_push_config.py",
+        "custom_components/my_verisure/core/api/push_config.py"
+      ],
+      "tests": [
+        "custom_components/my_verisure/core/tests/unit/test_push_components.py",
+        "custom_components/my_verisure/core/tests/unit/test_push_receiver.py",
+        "custom_components/my_verisure/core/tests/unit/test_push_camera.py",
+        "custom_components/my_verisure/tests/test_push_lifecycle.py",
+        "custom_components/my_verisure/tests/test_services_contracts.py",
+        "custom_components/my_verisure/core/tests/unit/test_public_push_config.py"
+      ],
+      "documentation": [
+        "docs/technical/push-reception-investigation.md",
+        "docs/validation/2026-11-22-live-verisure.md",
+        "experiments/linux_push/README.md",
+        "docs/validation/2026-11-23-ha-push.json",
+        "docs/technical/firebase-client-configuration.md",
+        "docs/validation/2026-11-23-public-firebase-config.json"
+      ]
+    }
+  ]
+}

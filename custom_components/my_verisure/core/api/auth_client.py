@@ -42,7 +42,7 @@ _LOGGER = logging.getLogger(__name__)
 
 # GraphQL mutations
 LOGIN_MUTATION = """
-mutation mkLoginToken($user: String!, $password: String!, $id: String!, $country: String!, $idDevice: String, $idDeviceIndigitall: String, $deviceType: String, $deviceVersion: String, $deviceResolution: String, $lang: String!, $callby: String!, $uuid: String, $deviceName: String, $deviceBrand: String, $deviceOsVersion: String) {
+mutation mkLoginToken($user: String!, $password: String!, $id: String!, $country: String!, $idDevice: String, $idDeviceIndigitall: String, $deviceType: String, $deviceVersion: String, $deviceResolution: String, $lang: String!, $callby: String!, $uuid: String, $deviceName: String, $deviceBrand: String, $deviceOsVersion: String, $deviceUseBiometric: String, $phoneAsLogin: Boolean) {
     xSLoginToken(
         user: $user
         password: $password
@@ -59,6 +59,8 @@ mutation mkLoginToken($user: String!, $password: String!, $id: String!, $country
         deviceName: $deviceName
         deviceBrand: $deviceBrand
         deviceOsVersion: $deviceOsVersion
+        deviceUseBiometric: $deviceUseBiometric
+        phoneAsLogin: $phoneAsLogin
     ) {
         res
         msg
@@ -72,8 +74,16 @@ mutation mkLoginToken($user: String!, $password: String!, $id: String!, $country
 }
 """
 
+REFRESH_LOGIN_MUTATION = """
+mutation RefreshLogin($refreshToken: String!, $id: String!, $country: String!, $lang: String!, $callby: String!, $idDevice: String, $idDeviceIndigitall: String, $deviceType: String, $deviceName: String, $deviceBrand: String, $deviceVersion: String, $deviceOsVersion: String, $deviceResolution: String, $uuid: String) {
+    xSRefreshLogin(refreshToken: $refreshToken, id: $id, country: $country, lang: $lang, callby: $callby, idDevice: $idDevice, idDeviceIndigitall: $idDeviceIndigitall, deviceType: $deviceType, deviceName: $deviceName, deviceBrand: $deviceBrand, deviceVersion: $deviceVersion, deviceOsVersion: $deviceOsVersion, deviceResolution: $deviceResolution, uuid: $uuid) {
+        res msg lang hash refreshToken legals changePassword needDeviceAuthorization
+    }
+}
+"""
+
 VALIDATE_DEVICE_MUTATION = """
-mutation mkValidateDevice($idDevice: String, $idDeviceIndigitall: String, $uuid: String, $deviceName: String, $deviceBrand: String, $deviceOsVersion: String, $deviceVersion: String) {
+mutation mkValidateDevice($idDevice: String, $idDeviceIndigitall: String, $uuid: String, $deviceName: String, $deviceBrand: String, $deviceOsVersion: String, $deviceVersion: String, $password: String) {
     xSValidateDevice(
         idDevice: $idDevice
         idDeviceIndigitall: $idDeviceIndigitall
@@ -82,6 +92,7 @@ mutation mkValidateDevice($idDevice: String, $idDeviceIndigitall: String, $uuid:
         deviceBrand: $deviceBrand
         deviceOsVersion: $deviceOsVersion
         deviceVersion: $deviceVersion
+        password: $password
     ) {
         res
         msg
@@ -115,7 +126,7 @@ class AuthClient(BaseClient):
     ) -> None:
         """Initialize the authentication client."""
         _LOGGER.debug("AuthClient initialized")
-        super().__init__(session_manager=session_manager)
+        super().__init__(session_manager=session_manager, profile_context=device_manager.profile_context)
         self._otp_data: Optional[Dict[str, Any]] = None
         self._otp_expires_at: Optional[float] = None
         self._otp_consumed = False
@@ -127,8 +138,16 @@ class AuthClient(BaseClient):
         self._otp_policy = OTPAuthorizationPolicy()
         self._device_manager = device_manager
 
+    def _get_login_headers(self) -> dict[str, str]:
+        """Use the native transport for access and refresh token issuance."""
+        return {
+            "Content-Type": "application/json",
+            "User-Agent": "HomeAssistant-MyVerisure/1.0",
+            **self._get_native_app_headers(),
+        }
+
     async def login(self, user: str, password: str) -> AuthDTO:
-        """Login to My Verisure API (Native App Simulation)."""
+        """Begin native login using this entry's stable device identity."""
         self._otp_data = None
         self._otp_expires_at = None
         self._otp_consumed = False
@@ -137,18 +156,23 @@ class AuthClient(BaseClient):
         await self._device_manager.async_ensure_device_identifiers()
 
         # Generate unique ID for this session
-        session_id = "OWI______________________"
+        session_id = self._profile_context.current.session_id
 
         # Prepare variables for the login mutation
-        variables = self._device_manager.get_login_variables(session_id)
+        variables: dict[str, Any] = self._device_manager.get_login_variables(session_id)
         variables.update(
             {
                 "user": user,
                 "password": password,
+                "deviceUseBiometric": "DISABLED",
+                "phoneAsLogin": False,
             }
         )
 
         try:
+            refreshed = await self._try_refresh_login(user)
+            if refreshed is not None:
+                return refreshed
             _LOGGER.info("Attempting My Verisure login")
             if should_log_detailed():
                 _LOGGER.debug(
@@ -165,7 +189,7 @@ class AuthClient(BaseClient):
             result = await self._execute_query_direct(
                 LOGIN_MUTATION,
                 variables,
-                self._get_headers(),
+                self._get_login_headers(),
             )
 
             classified = classify_login_response(result)
@@ -193,7 +217,10 @@ class AuthClient(BaseClient):
                 auth_dto = AuthDTO.from_dict(login_data)
                 candidate_hash = auth_dto.hash
                 candidate_refresh_token = auth_dto.refresh_token
-                if not isinstance(candidate_hash, str) or not candidate_hash.strip():
+                if not (
+                    isinstance(candidate_hash, str) and candidate_hash.strip()
+                    or candidate_hash is None and need_device_auth is True
+                ):
                     raise MyVerisureAuthenticationError(
                         "Authentication response failed"
                     ) from None
@@ -210,7 +237,7 @@ class AuthClient(BaseClient):
                 self._pending_user = user
                 self._pending_password = password
 
-                _LOGGER.info("Successfully logged in to My Verisure")
+                _LOGGER.info("Login response accepted; checking device authorization")
                 if should_log_detailed():
                     _LOGGER.debug(
                         "Session data (redacted): %s",
@@ -233,8 +260,10 @@ class AuthClient(BaseClient):
                         )
                     except MyVerisureConnectionError:
                         raise
-                    except MyVerisureOTPError:
+                    except MyVerisureOTPError as error:
                         _LOGGER.info("Device requires OTP authorization")
+                        if error.phones:
+                            raise
                         return await self._complete_device_authorization()
 
                     self._clear_pending_auth()
@@ -288,6 +317,42 @@ class AuthClient(BaseClient):
             _LOGGER.error("Login failed")
             raise MyVerisureAuthenticationError("Login failed") from None
 
+    async def _try_refresh_login(self, user: str) -> AuthDTO | None:
+        """Renew an existing native session before using the password again."""
+        manager = self._resolve_session_manager()
+        token = manager.refresh_token
+        if manager.username != user or not isinstance(token, str) or not token.strip():
+            return None
+        variables: dict[str, Any] = self._device_manager.get_login_variables(self._profile_context.current.session_id)
+        variables["refreshToken"] = token
+        _LOGGER.info("Renewing the native session with its refresh token")
+        result = await self._execute_query_direct(
+            REFRESH_LOGIN_MUTATION, variables, self._get_login_headers()
+        )
+        # A rejected refresh may fall back once to normal device login. Transport
+        # failures propagate, avoiding a second request during connectivity issues.
+        if isinstance(result, dict) and isinstance(result.get("errors"), list) and result["errors"]:
+            _LOGGER.info("Native renewal rejected; attempting registered-device login")
+            return None
+        wrapper = result.get("data") if isinstance(result, dict) else None
+        payload = wrapper.get("xSRefreshLogin") if isinstance(wrapper, dict) else None
+        if not isinstance(payload, dict) or "errors" in result:
+            raise MyVerisureAuthenticationError("Session refresh response failed")
+        if payload.get("res") != "OK" or payload.get("needDeviceAuthorization") is True:
+            return None
+        classified = classify_login_response({"data": {"xSLoginToken": payload}})
+        if not isinstance(classified, LoginResponse):
+            raise MyVerisureAuthenticationError("Session refresh response failed")
+        auth = AuthDTO.from_dict(classified.data)
+        if (
+            auth.need_device_authorization is not False
+            or not isinstance(auth.hash, str) or not auth.hash.strip()
+            or not isinstance(auth.refresh_token, str) or not auth.refresh_token.strip()
+        ):
+            raise MyVerisureAuthenticationError("Session refresh response failed")
+        _LOGGER.info("Native session renewed and ready for transactional persistence")
+        return auth
+
     def _get_current_auth_state(
         self,
         pending_session_data: Optional[dict[str, Any]] = None,
@@ -309,6 +374,40 @@ class AuthClient(BaseClient):
         self._pending_user = None
         self._pending_password = None
 
+    def _get_authentication_headers(
+        self, session_data: dict[str, Any], hash_token: str | None
+    ) -> dict[str, str]:
+        """Allow a tokenless context only for the active provider login challenge."""
+        if isinstance(hash_token, str) and hash_token.strip():
+            return self._get_session_headers(session_data, hash_token)
+        if (
+            hash_token is not None
+            or session_data != self._pending_session_data
+            or session_data.get("needDeviceAuthorization") is not True
+            or not self._pending_user
+            or session_data.get("user") != self._pending_user
+            or not self._pending_password
+        ):
+            raise MyVerisureAuthenticationError("Authentication challenge unavailable")
+        headers = self._get_headers()
+        headers["auth"] = json.dumps({
+            "loginTimestamp": int(time.time() * 1000),
+            "user": self._pending_user,
+            "id": self._profile_context.current.session_id,
+            "country": "ES", "lang": session_data.get("lang", "es"),
+            "callby": self._profile_context.current.callby, "hash": None,
+        })
+        return headers
+
+    def _get_device_validation_variables(self) -> dict[str, Any]:
+        """Bind verification to the same native device as the pending login."""
+        if self._pending_session_data is not None and self._pending_hash is None:
+            if not self._pending_password:
+                raise MyVerisureAuthenticationError("Authentication challenge unavailable")
+            variables = self._device_manager.get_validation_variables()
+            return {**variables, "password": self._pending_password}
+        return self._device_manager.get_validation_variables()
+
     def _clear_otp_challenge(self) -> None:
         """Discard any OTP challenge that must not be reused."""
         self._otp_data = None
@@ -327,7 +426,7 @@ class AuthClient(BaseClient):
         await self._device_manager.async_ensure_device_identifiers()
 
         # Prepare variables for device validation
-        variables = self._device_manager.get_validation_variables()
+        variables = self._get_device_validation_variables()
 
         try:
             _LOGGER.info("Checking if device is already authorized")
@@ -336,7 +435,7 @@ class AuthClient(BaseClient):
             session_data, hash_token = self._get_current_auth_state(
                 session_data, hash_token
             )
-            session_headers = self._get_session_headers(
+            session_headers = self._get_authentication_headers(
                 session_data, hash_token
             )
 
@@ -350,10 +449,13 @@ class AuthClient(BaseClient):
             decision = classify_device_authorization_response(result)
             if isinstance(decision, DeviceAuthorizationSuccess):
                 _LOGGER.info("Device is already authorized — no OTP required")
+                authorized_hash = decision.data.get("hash") or hash_token
+                if not isinstance(authorized_hash, str) or not authorized_hash.strip():
+                    raise MyVerisureAuthenticationError("Device returned no session hash")
                 return AuthDTO(
                     res="OK",
                     msg="Device already authorized",
-                    hash=hash_token,
+                    hash=authorized_hash,
                     refresh_token=refresh_token,
                     lang=session_data.get("lang"),
                     legals=session_data.get("legals"),
@@ -367,7 +469,7 @@ class AuthClient(BaseClient):
                         "Device requires authorization (redacted): %s",
                         redact_sensitive_data(decision.data),
                     )
-                raise MyVerisureOTPError("Device authorization required")
+                return await self._handle_otp_authentication(decision.data)
 
             if isinstance(decision, DeviceAuthorizationFailure):
                 raise MyVerisureAuthenticationError("Device authorization failed") from None
@@ -396,14 +498,14 @@ class AuthClient(BaseClient):
         await self._device_manager.async_ensure_device_identifiers()
 
         # Prepare variables for device validation
-        variables = self._device_manager.get_validation_variables()
+        variables = self._get_device_validation_variables()
 
         try:
             _LOGGER.info("Validating device with My Verisure")
 
             # Use session headers for device validation
             session_data, hash_token = self._get_current_auth_state()
-            session_headers = self._get_session_headers(
+            session_headers = self._get_authentication_headers(
                 session_data, hash_token
             )
 
@@ -527,7 +629,7 @@ class AuthClient(BaseClient):
             _LOGGER.error("No OTP data available")
             return False
 
-        if isinstance(phone_id, bool) or not isinstance(phone_id, int) or phone_id <= 0:
+        if isinstance(phone_id, bool) or not isinstance(phone_id, int) or phone_id < 0:
             _LOGGER.error("Selected OTP phone is not available")
             return False
 
@@ -612,7 +714,7 @@ class AuthClient(BaseClient):
             if (
                 isinstance(record_id, bool)
                 or not isinstance(record_id, int)
-                or record_id <= 0
+                or record_id < 0
             ):
                 raise MyVerisureOTPError("Invalid OTP record")
             phones = challenge_data.get("phones")
@@ -631,12 +733,12 @@ class AuthClient(BaseClient):
 
             # Use direct aiohttp request for OTP
             session_data, hash_token = self._get_current_auth_state()
-            if not session_data or not isinstance(hash_token, str) or not hash_token.strip():
+            if not session_data:
                 raise MyVerisureAuthenticationError("Authenticated session unavailable")
             result = await self._execute_query_direct(
                 SEND_OTP_MUTATION,
                 variables,
-                self._get_session_headers(session_data, hash_token),
+                self._get_authentication_headers(session_data, hash_token),
             )
 
             if "errors" in result:
@@ -690,13 +792,13 @@ class AuthClient(BaseClient):
 
         try:
             # Use the same device validation mutation but with OTP verification headers
-            variables = self._device_manager.get_validation_variables()
+            variables = self._get_device_validation_variables()
 
             # Get session headers (Auth header)
             session_data, hash_token = self._get_current_auth_state()
-            if not session_data or not isinstance(hash_token, str) or not hash_token.strip():
+            if not session_data:
                 raise MyVerisureAuthenticationError("Authenticated session unavailable")
-            headers = self._get_session_headers(session_data, hash_token)
+            headers = self._get_authentication_headers(session_data, hash_token)
 
             # Add Security header for OTP verification
             security_header = {
@@ -727,6 +829,17 @@ class AuthClient(BaseClient):
             _LOGGER.info("OTP verification successful — session updated")
 
             try:
+                if "needDeviceAuthorization" not in validation_response:
+                    # The current verification mutation does not select this field. Its
+                    # positive OTP response must contain the issued session hash.
+                    issued_hash = validation_response.get("hash")
+                    if not isinstance(issued_hash, str) or not issued_hash.strip():
+                        raise MyVerisureDeviceAuthorizationError(
+                            "Device authorization returned no session hash"
+                        )
+                    # The native app repeats login after web-based SMS verification
+                    # to obtain device-bound access and refresh tokens.
+                    return await self._perform_post_otp_login()
                 # Check if device authorization is still needed
                 need_device_authorization = validation_response.get(
                     "needDeviceAuthorization"
@@ -783,8 +896,6 @@ class AuthClient(BaseClient):
         await self._device_manager.async_ensure_device_identifiers()
 
         # Generate unique ID for this session
-        session_id = "OWI______________________"
-
         session_manager = self._resolve_session_manager()
         user = self._pending_user or session_manager.username
         if not user:
@@ -795,11 +906,13 @@ class AuthClient(BaseClient):
             raise MyVerisureAuthenticationError("No password available for post-OTP login")
 
         # Prepare variables for the login mutation
-        variables = self._device_manager.get_login_variables(session_id)
+        variables: dict[str, Any] = self._device_manager.get_login_variables(self._profile_context.current.session_id)
         variables.update(
             {
                 "user": user,
                 "password": password,
+                "deviceUseBiometric": "DISABLED",
+                "phoneAsLogin": False,
             }
         )
 
@@ -819,7 +932,7 @@ class AuthClient(BaseClient):
             result = await self._execute_query_direct(
                 LOGIN_MUTATION,
                 variables,
-                self._get_headers(),
+                self._get_login_headers(),
             )
 
             # Check for GraphQL errors first

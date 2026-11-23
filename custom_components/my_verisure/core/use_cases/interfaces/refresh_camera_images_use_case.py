@@ -13,7 +13,8 @@ class RefreshCameraImagesUseCase(ABC):
         self,
         installation_id: str,
         max_attempts: int = 30,
-        check_interval: int = 4,
+        check_interval: int = 20,
+        camera_identifier: str | None = None,
     ) -> CameraRefresh:
         """Refresh images from cameras."""
         pass

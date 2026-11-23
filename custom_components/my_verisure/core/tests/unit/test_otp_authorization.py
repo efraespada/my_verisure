@@ -58,6 +58,17 @@ def test_prepare_rejects_missing_phone_record_id():
     assert prepared is None
 
 
+def test_prepare_uses_current_web_phone_id_as_delivery_record():
+    prepared = OTPAuthorizationPolicy().prepare({
+        "auth-phones": [{"id": 7, "phone": "******08"}],
+        "auth-otp-hash": HASH_SENTINEL,
+    })
+
+    assert prepared is not None
+    assert prepared.phones[0].id == 7
+    assert prepared.phones[0].record_id == 7
+
+
 def test_select_phone_returns_only_matching_phone():
     policy = OTPAuthorizationPolicy()
     prepared = policy.prepare(

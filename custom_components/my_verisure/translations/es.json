@@ -70,7 +70,11 @@
         "data": {
           "scan_interval": "Intervalo de escaneo (minutos)",
           "auto_arm_perimeter_with_internal": "Armar alarma perimetral al activar cualquier alarma interna",
-          "dev_mode": "Modo desarrollador (registros detallados redactados)"
+          "dev_mode": "Modo desarrollador (registros detallados redactados)",
+          "push_enabled": "Actualizaciones inmediatas de fotos (mantiene el sondeo)"
+        },
+        "data_description": {
+          "push_enabled": "Recibe avisos de finalización por FCM. Puede solicitar verificar de nuevo el dispositivo por SMS."
         }
       }
     }
@@ -127,5 +131,16 @@
         "message": "Se han realizado demasiadas peticiones y el servicio ha bloqueado temporalmente las solicitudes. Espera unos 10 minutos antes de volver a intentarlo."
       }
     }
+  },
+  "exceptions": {
+    "camera_refresh_failed": {
+      "message": "Verisure no ha confirmado una foto nueva. Espera antes de volver a intentarlo. Se conserva la imagen anterior."
+    },
+    "camera_service_blocked": {
+      "message": "Verisure ha bloqueado temporalmente las solicitudes. Espera unos diez minutos antes de volver a intentarlo. Se conserva la imagen anterior."
+    },
+    "camera_authentication_required": {
+      "message": "Vuelve a autenticarte en Verisure antes de solicitar una foto nueva."
+    }
   }
-} 
+}

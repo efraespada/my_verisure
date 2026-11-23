@@ -2,9 +2,15 @@
 
 import asyncio
 import logging
+import time
+from datetime import datetime
+from zoneinfo import ZoneInfo
 from typing import Any, Dict, List
 
 from .base_client import BaseClient
+from .native_profile import ProfileContext
+from ..application.photo_notifications import PhotoNotifications
+from ..application.models.camera_images import CameraThumbnail
 from .exceptions import (
     MyVerisureAuthenticationError,
     MyVerisureConnectionError,
@@ -124,9 +130,15 @@ class CameraClient(BaseClient):
         self,
         session_manager: SessionManager,
         file_manager: FileManager,
+        profile_context: ProfileContext | None = None,
+        notifications: PhotoNotifications | None = None,
     ) -> None:
         """Initialize the camera client."""
-        super().__init__(session_manager=session_manager)
+        super().__init__(session_manager=session_manager, profile_context=profile_context)
+        self.notifications = notifications
+        self._push_thumbnails: dict[tuple[str, str], CameraThumbnail] = {}
+        self._capture_started_at = 0.0
+        self.last_completion_source = "polling"
         self._file_manager = file_manager
         self._request_policy = CameraRequestPolicy()
         self._image_storage = CameraImageStorage(file_manager)
@@ -137,6 +149,52 @@ class CameraClient(BaseClient):
 
     
     async def request_image(
+        self, installation_id: str, panel: str, devices: List[int], capabilities: str,
+        max_attempts: int = 30, check_interval: int = 20,
+    ) -> CameraRequestImageResultDTO:
+        """Keep one pending hint scope for the existing bounded request."""
+        self._push_thumbnails.clear()
+        self._capture_started_at = time.time()
+        if self.notifications is not None:
+            self.notifications.begin(installation_id, self._capture_started_at)
+        try:
+            return await self._request_image(
+                installation_id, panel, devices, capabilities, max_attempts, check_interval
+            )
+        finally:
+            if self.notifications is not None:
+                self.notifications.finish()
+
+    async def _push_thumbnail(
+        self, installation_id: str, panel: str, devices: list[int],
+        headers: dict[str, str] | None, signal: str,
+    ) -> CameraThumbnail | None:
+        if len(devices) != 1:
+            return None
+        result = await self._execute_query_direct(
+            GET_THUMBNAIL_QUERY,
+            {"numinst": installation_id, "panel": panel, "idSignal": signal}, headers,
+        )
+        try:
+            thumbnail = interpret_thumbnail_response(result)
+        except CameraImageResponseError:
+            return None
+        code = result["data"]["xSGetThumbnail"].get("deviceCode")
+        allowed = {f"YP{devices[0]:02d}", f"YR{devices[0]:02d}"}
+        if code not in allowed or thumbnail.id_signal != signal or thumbnail.signal_type != "16":
+            return None
+        try:
+            captured = datetime.strptime(thumbnail.timestamp, "%Y-%m-%d %H:%M:%S").replace(
+                tzinfo=ZoneInfo("Europe/Madrid")
+            ).timestamp()
+        except ValueError:
+            return None
+        if not self._capture_started_at - 5 <= captured <= time.time() + 60:
+            return None
+        self._push_thumbnails[(installation_id, code)] = thumbnail
+        return thumbnail
+
+    async def _request_image(
         self,
         installation_id: str,
         panel: str,
@@ -200,7 +258,12 @@ class CameraClient(BaseClient):
                         error.code, attempt, max_attempts
                     )
                     if decision.action is PollingAction.RETRY:
+                        if self.notifications is not None:
+                            self.notifications.finish()
                         await asyncio.sleep(check_interval)
+                        if self.notifications is not None:
+                            self._capture_started_at = time.time()
+                            self.notifications.begin(installation_id, self._capture_started_at)
                         continue
                     if decision.action is PollingAction.RETURN_FAILURE:
                         return CameraRequestImageResultDTO(
@@ -262,6 +325,7 @@ class CameraClient(BaseClient):
                         "🎉 Images request completed successfully after %d attempts",
                         attempt,
                     )
+                    self.last_completion_source = "polling"
                     return CameraRequestImageResultDTO(
                         success=True,
                         successful_requests=len(devices),
@@ -282,7 +346,25 @@ class CameraClient(BaseClient):
                     "Images request still in progress; waiting %d seconds",
                     check_interval,
                 )
-                await asyncio.sleep(check_interval)
+                waited_at = time.monotonic()
+                if self.notifications is not None:
+                    signal = await self.notifications.wait(check_interval)
+                    if signal:
+                        thumbnail = await self._push_thumbnail(
+                            installation_id, panel, devices, headers, signal
+                        )
+                        if thumbnail is not None:
+                            self.last_completion_source = "push"
+                            _LOGGER.info("Photo completion confirmed by push")
+                            return CameraRequestImageResultDTO(
+                                success=True, successful_requests=len(devices),
+                                reference_id=reference_id, signal_id=signal,
+                            )
+                        remaining = check_interval - (time.monotonic() - waited_at)
+                        if remaining > 0:
+                            await asyncio.sleep(remaining)
+                else:
+                    await asyncio.sleep(check_interval)
 
             # If we get here, we've exceeded max attempts
             _LOGGER.warning(
@@ -315,6 +397,7 @@ class CameraClient(BaseClient):
         device: str,
         zone_id: str,
         capabilities: str,
+        signal_id: str | None = None,
     ) -> Dict[str, Any]:
         """Get images from a specific camera device."""
         try:
@@ -347,18 +430,23 @@ class CameraClient(BaseClient):
                 "zoneId": zone_id,
             }
 
-            thumbnail_result = await self._execute_query_direct(
-                GET_THUMBNAIL_QUERY,
-                thumbnail_variables,
-                headers,
-            )
-
-            try:
-                thumbnail = interpret_thumbnail_response(
-                    thumbnail_result,
+            thumbnail = self._push_thumbnails.pop((installation_id, zone_id), None) if signal_id else None
+            if thumbnail is None or thumbnail.id_signal != signal_id:
+                if signal_id is not None:
+                    if not isinstance(signal_id, str) or not signal_id.isdigit():
+                        raise MyVerisureError("Invalid photo signal")
+                    thumbnail_variables = {"numinst": installation_id, "panel": panel, "idSignal": signal_id}
+                thumbnail_result = await self._execute_query_direct(
+                    GET_THUMBNAIL_QUERY, thumbnail_variables, headers,
                 )
-            except CameraImageResponseError as error:
-                raise MyVerisureError(error.safe_message) from None
+                try:
+                    thumbnail = interpret_thumbnail_response(thumbnail_result)
+                except CameraImageResponseError as error:
+                    raise MyVerisureError(error.safe_message) from None
+                if signal_id and thumbnail_result["data"]["xSGetThumbnail"].get("deviceCode") != zone_id:
+                    raise MyVerisureError("Photo does not match the selected camera")
+            if signal_id and (thumbnail.id_signal != signal_id or thumbnail.signal_type != "16"):
+                raise MyVerisureError("Photo signal could not be confirmed")
 
             id_signal = thumbnail.id_signal
             signal_type = thumbnail.signal_type
@@ -385,6 +473,12 @@ class CameraClient(BaseClient):
                 photo_set = interpret_photo_response(photo_result)
             except CameraImageResponseError as error:
                 raise MyVerisureError(error.safe_message) from None
+
+            if signal_id:
+                raw_devices = photo_result.get("data", {}).get("xSGetPhotoImages", {}).get("devices", [])
+                expected = {zone_id, zone_id[2:], str(int(zone_id[2:]))}
+                if len(raw_devices) != 1 or str(raw_devices[0].get("code")) not in expected:
+                    raise MyVerisureError("Photo does not match the selected camera")
 
             storage_result = await asyncio.to_thread(
                 self._image_storage.save,

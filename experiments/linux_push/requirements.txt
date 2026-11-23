@@ -1,0 +1,5 @@
+firebase-messaging==0.4.5
+cryptography==50.0.2
+protobuf==7.36.2
+aiohttp==3.14.5
+http-ece==1.1.0

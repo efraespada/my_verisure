@@ -1,0 +1,16 @@
+{
+  "date": "2026-11-23",
+  "public_home": "https://customers.verisure.es/owa-static/home",
+  "public_asset": "https://customers.verisure.es/3.8.0/static/js/main.338b7d5f.js",
+  "asset_sha256": "1a05416c8f21499252f0a3e436a61710085ed46a1388615c5eef9631958ba2b4",
+  "unauthenticated_https_gets": 2,
+  "project_app_sender_validated": true,
+  "matches_alerted_public_client_value": true,
+  "account_calls": 0,
+  "alarm_commands": 0,
+  "cloud_key_restrictions_verified": false,
+  "original_commit": "c7195690e14cbe5e393525c8e56e196b33cfd009",
+  "history_rewritten": false,
+  "provider_key_revoked": false,
+  "alert_url": "https://github.com/efraespada/my_verisure/security/secret-scanning/1"
+}

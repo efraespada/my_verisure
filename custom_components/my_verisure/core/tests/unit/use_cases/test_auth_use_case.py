@@ -33,6 +33,7 @@ class TestAuthUseCase:
         mock_repo.verify_otp = AsyncMock()
         mock_repo.invalidate_otp_challenge = Mock()
         mock_repo.get_available_phones = Mock()
+        mock_repo.select_phone = Mock(return_value=True)
         return mock_repo
 
     @pytest.fixture
@@ -142,13 +143,14 @@ class TestAuthUseCase:
             await auth_use_case.login(username, password)
 
     @pytest.mark.asyncio
-    async def test_login_preserves_typed_otp_challenge(self, auth_use_case, mock_auth_repository):
+    @pytest.mark.parametrize("phone_id", [0, 7])
+    async def test_login_preserves_typed_otp_challenge(self, auth_use_case, mock_auth_repository, phone_id):
         """OTP challenge metadata survives the repository/application boundary."""
         from ....api.models.dto.auth_dto import PhoneDTO
 
         mock_auth_repository.login.side_effect = MyVerisureOTPError(
             "OTP required",
-            phones=[PhoneDTO(id=7, phone="[REDACTED]", record_id=7)],
+            phones=[PhoneDTO(id=phone_id, phone="[REDACTED]", record_id=phone_id)],
             otp_hash="[REDACTED]",
         )
 
@@ -157,9 +159,9 @@ class TestAuthUseCase:
 
         assert auth_use_case.get_available_phones() == [
             {
-                "id": 7,
+                "id": phone_id,
                 "phone": "[REDACTED]",
-                "record_id": 7,
+                "record_id": phone_id,
             }
         ]
 
@@ -244,6 +246,20 @@ class TestAuthUseCase:
             await auth_use_case.send_otp(2)
         mock_auth_repository.send_otp.assert_not_awaited()
 
+    def test_selection_rejected_by_provider_cannot_send_sms(
+        self, auth_use_case, mock_auth_repository
+    ):
+        auth_use_case._otp_data = OTPData(
+            phones=[Phone(id=0, phone="PHONE_SENTINEL", record_id=0)],
+            otp_hash="OTP_HASH_SENTINEL",
+        )
+        mock_auth_repository.select_phone.return_value = False
+
+        assert auth_use_case.select_phone(0) is False
+        assert auth_use_case._selected_phone is None
+        mock_auth_repository.select_phone.assert_called_once_with(0)
+        mock_auth_repository.send_otp.assert_not_awaited()
+
     @pytest.mark.asyncio
     async def test_resending_otp_does_not_reset_original_budget_or_expiry(
         self, auth_use_case, mock_auth_repository
@@ -263,7 +279,7 @@ class TestAuthUseCase:
         assert auth_use_case._otp_expires_at == original_expiry
 
     @pytest.mark.asyncio
-    async def test_send_otp_rejects_non_positive_or_boolean_record_id(
+    async def test_send_otp_rejects_negative_or_boolean_record_id(
         self, auth_use_case, mock_auth_repository
     ):
         auth_use_case._otp_data = OTPData(
@@ -271,14 +287,14 @@ class TestAuthUseCase:
             otp_hash="OTP_HASH_SENTINEL",
         )
         auth_use_case.select_phone(1)
-        for record_id in (0, -1, True):
+        for record_id in (-1, True):
             with pytest.raises(MyVerisureOTPError, match="record"):
                 await auth_use_case.send_otp(record_id)
         mock_auth_repository.send_otp.assert_not_awaited()
 
     @pytest.mark.asyncio
-    async def test_send_otp_success(self, auth_use_case, mock_auth_repository):
-        record_id = 1
+    @pytest.mark.parametrize("record_id", [0, 1])
+    async def test_send_otp_success(self, auth_use_case, mock_auth_repository, record_id):
         otp_hash = "VALUE_HASH"
         auth_use_case._otp_data = OTPData(
             phones=[Phone(id=record_id, phone="PHONE_SENTINEL", record_id=record_id)],

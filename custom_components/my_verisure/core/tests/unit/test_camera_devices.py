@@ -26,3 +26,11 @@ def test_camera_devices_selects_active_supported_types_in_order():
 
 def test_camera_identifier_zero_pads_numeric_code():
     assert camera_identifier(_device("YR", "3")) == "YR03"
+
+
+def test_camera_with_nullable_activity_remains_present_without_remote_access():
+    camera = Device("synthetic-id", "3", "Synthetic camera", "YR", None, None, "CAM", None)
+
+    assert camera_devices([camera]) == [camera]
+    assert camera.is_active is None
+    assert camera.is_remote_accessible is False

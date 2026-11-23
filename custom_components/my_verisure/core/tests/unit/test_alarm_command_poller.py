@@ -1,6 +1,7 @@
 """Tests for the application-level alarm command poller."""
 
 from collections.abc import Mapping
+from unittest.mock import AsyncMock, call, patch
 
 import pytest
 
@@ -83,3 +84,28 @@ async def test_poll_disarm_returns_unknown_response_as_failure() -> None:
 
     assert result.success is False
     assert result.message == "Disarm command rejected"
+
+
+@pytest.mark.asyncio
+async def test_default_command_polling_matches_native_one_second_cadence():
+    transport = AsyncMock(return_value={"data": {"xSArmStatus": {"res": "WAIT"}}})
+    with patch(
+        "custom_components.my_verisure.core.api.alarm_command_poller.asyncio.sleep",
+        new_callable=AsyncMock,
+    ) as sleep:
+        result = await AlarmCommandPoller(max_retries=6).poll_arm(
+            transport, reference_id="synthetic-reference"
+        )
+
+    assert result.success is False
+    assert transport.await_count == 6
+    assert sleep.await_args_list == [call(1)] * 5
+
+
+@pytest.mark.parametrize("operation,payload_key,code", [("poll_arm", "xSArmStatus", "E"), ("poll_disarm", "xSDisarmStatus", "D")])
+async def test_command_completion_retains_provider_confirmed_panel_state(operation, payload_key, code):
+    transport = AsyncMock(return_value={"data": {payload_key: {"res": "OK", "protomResponse": code}}})
+
+    result = await getattr(AlarmCommandPoller(), operation)(transport, reference_id="ref")
+
+    assert result.confirmed_state == code

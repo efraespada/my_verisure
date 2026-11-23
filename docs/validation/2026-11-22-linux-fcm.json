@@ -1,0 +1,57 @@
+{
+  "date": "2026-11-22",
+  "status": "isolated-prototype-validated",
+  "scope": {
+    "receiver_and_decryption": "Linux container",
+    "orchestration_and_photo_retrieval": "Python process on macOS",
+    "production_ha_push_installed": false
+  },
+  "runtime": {
+    "system": "Linux",
+    "architecture": "aarch64",
+    "python": "3.14.6",
+    "firebase-messaging": "0.4.5",
+    "cryptography": "50.0.2",
+    "protobuf": "7.36.2",
+    "aiohttp": "3.14.5",
+    "container_image_digest": "sha256:7bec7ddcddeff7975d6ba9b4be7dd6f6b2f55e7491539145e2978f7f97ce9144"
+  },
+  "protocol": {
+    "authenticated_profile": "OWA_10",
+    "device_notification_token_field": "idDevice",
+    "push_request_kind": "INF",
+    "push_signal_type_empty": true,
+    "authoritative_photo_signal_type": "16",
+    "photo_signal_correlated": true,
+    "selected_camera_correlated": true
+  },
+  "observations": {
+    "first_android_delivery_seconds": 19.104,
+    "first_decode": "offline after diagnosing header parser failure",
+    "automatic_delivery_seconds": 18.582,
+    "automatic_request_to_committed_images_seconds": 20.156,
+    "images_saved": 3,
+    "freshness_verified": true,
+    "automatic_decode": true,
+    "initial_status_reads_in_successful_request": 1,
+    "fallback_status_reads_in_successful_request": 0
+  },
+  "decoder_verification": {
+    "synthetic_encrypted_round_trips": 4,
+    "legacy_failure_reproduced": true
+  },
+  "limitations": [
+    "Current Android native app traffic was not captured",
+    "Actual HA runtime/dependency compatibility is untested",
+    "Profile migration, reconnect, deduplication and polling fallback need production tests"
+  ],
+  "privacy": "No account identifiers, tokens, private payloads, keys or photos are included",
+  "public_client_source_sha256": "1a05416c8f21499252f0a3e436a61710085ed46a1388615c5eef9631958ba2b4",
+  "direct_registration_proof": {
+    "registered_with_indigitall": false,
+    "delivery_seconds": 18.882,
+    "request_to_committed_images_seconds": 20.147,
+    "images_saved": 3,
+    "freshness_verified": true
+  }
+}

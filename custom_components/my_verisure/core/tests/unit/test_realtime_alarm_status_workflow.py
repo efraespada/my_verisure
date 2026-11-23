@@ -1,6 +1,6 @@
 """Tests for realtime alarm status workflow."""
 
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, call
 
 import pytest
 
@@ -82,3 +82,16 @@ def test_workflow_rejects_invalid_policy(max_retries, retry_delay_seconds):
             max_retries=max_retries,
             retry_delay_seconds=retry_delay_seconds,
         )
+
+
+@pytest.mark.asyncio
+async def test_legacy_radio_status_check_retains_conservative_polling_cadence():
+    transport = AsyncMock(return_value={
+        "data": {"xSCheckAlarmStatus": {"res": "WAIT", "msg": "pending"}}
+    })
+    sleep = AsyncMock()
+    with pytest.raises(MyVerisureError, match="retries exhausted"):
+        await RealtimeAlarmStatusWorkflow(max_retries=6, sleep=sleep).run(transport)
+
+    assert transport.await_count == 6
+    assert sleep.await_args_list == [call(15)] * 5

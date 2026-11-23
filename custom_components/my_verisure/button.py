@@ -51,10 +51,12 @@ class RefreshCameraImagesButton(CoordinatorEntity, ButtonEntity):
                 DOMAIN,
                 "refresh_camera_images",
                 {"installation_id": self._installation_id},
+                blocking=True,
             )
             _LOGGER.debug("Camera images refresh service called successfully")
         except Exception:
             _LOGGER.error("Failed to refresh camera images")
+            raise
         finally:
             self._is_executing = False
             self.async_write_ha_state()
@@ -115,7 +117,7 @@ async def async_setup_entry(
         _LOGGER.info("Created refresh camera images button")
 
     if buttons:
-        async_add_entities(buttons, update_before_add=True)
+        async_add_entities(buttons)
         _LOGGER.info("Added %d Verisure button entities", len(buttons))
     else:
         _LOGGER.info("No button entities created")

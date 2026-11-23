@@ -18,6 +18,20 @@ def _required_bool(data: Dict[str, Any], key: str) -> bool:
     if not isinstance(value, bool):
         raise ValueError(f"device field required: {key}")
     return value
+
+
+def _nullable_string(data: Dict[str, Any], key: str) -> str | None:
+    if key not in data:
+        raise ValueError(f"device field required: {key}")
+    return None if data[key] is None else _required_string(data, key)
+
+
+def _nullable_bool(data: Dict[str, Any], key: str) -> bool | None:
+    if key not in data:
+        raise ValueError(f"device field required: {key}")
+    return None if data[key] is None else _required_bool(data, key)
+
+
 @dataclass
 class DeviceConfigFlagsDTO:
     """Device configuration flags DTO."""
@@ -72,10 +86,10 @@ class DeviceDTO:
     code: str
     name: str
     type: str
-    subtype: str
-    remote_use: bool
+    subtype: str | None
+    remote_use: bool | None
     id_service: str
-    is_active: bool
+    is_active: bool | None
     serial_number: Optional[str] = None
     config: Optional[DeviceConfigDTO] = None
     
@@ -92,10 +106,10 @@ class DeviceDTO:
             code=_required_string(data, "code"),
             name=_required_string(data, "name"),
             type=_required_string(data, "type"),
-            subtype=_required_string(data, "subtype"),
-            remote_use=_required_bool(data, "remoteUse"),
+            subtype=_nullable_string(data, "subtype"),
+            remote_use=_nullable_bool(data, "remoteUse"),
             id_service=_required_string(data, "idService"),
-            is_active=_required_bool(data, "isActive"),
+            is_active=_nullable_bool(data, "isActive"),
             serial_number=data.get("serialNumber"),
             config=config,
         )

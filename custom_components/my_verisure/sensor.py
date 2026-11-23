@@ -88,13 +88,13 @@ class MyVerisureAlarmStatusSensor(SensorEntity):
         self.coordinator = coordinator
         self.config_entry = config_entry
         self.sensor_id = sensor_id
-        
+
         self._attr_name = friendly_name
         self._attr_unique_id = f"{config_entry.entry_id}_{sensor_id}"
         self._attr_device_class = None
         self._attr_state_class = None
         self._attr_should_poll = False
-        
+
         # Set device info
         self._attr_device_info = get_device_info(config_entry)
 
@@ -111,6 +111,8 @@ class MyVerisureAlarmStatusSensor(SensorEntity):
             AlarmState.DISARMED: "Alarm Disarmed",
         }
         active = snapshot.active_alarms
+        if active == ("External",):
+            return "Perimeter Active"
         if len(active) > 1 and snapshot.external:
             return "Total and Perimeter Active" if snapshot.internal_total else f"{active[0]} and Perimeter Active"
         return labels[snapshot.state]
@@ -154,13 +156,13 @@ class MyVerisureActiveAlarmsSensor(SensorEntity):
         self.coordinator = coordinator
         self.config_entry = config_entry
         self.sensor_id = sensor_id
-        
+
         self._attr_name = friendly_name
         self._attr_unique_id = f"{config_entry.entry_id}_{sensor_id}"
         self._attr_device_class = None
         self._attr_state_class = None
         self._attr_should_poll = False
-        
+
         # Set device info
         self._attr_device_info = get_device_info(config_entry)
 
@@ -196,7 +198,7 @@ class MyVerisureActiveAlarmsSensor(SensorEntity):
         internal_night = snapshot.internal_night
         internal_total = snapshot.internal_total
         external_status = snapshot.external
-        
+
         return {
             "active_alarms": active_alarms,
             "alarm_count": len(active_alarms),
@@ -233,13 +235,13 @@ class MyVerisureLastUpdatedSensor(SensorEntity):
         self.coordinator = coordinator
         self.config_entry = config_entry
         self.sensor_id = sensor_id
-        
+
         self._attr_name = friendly_name
         self._attr_unique_id = f"{config_entry.entry_id}_{sensor_id}"
         self._attr_device_class = SensorDeviceClass.TIMESTAMP
         self._attr_state_class = None
         self._attr_should_poll = False
-        
+
         # Set device info
         self._attr_device_info = get_device_info(config_entry)
 
@@ -268,7 +270,7 @@ class MyVerisureLastUpdatedSensor(SensorEntity):
             return {}
 
         last_updated = self.coordinator.data.get("last_updated")
-        
+
         return {
             "timestamp": last_updated,
         }
@@ -283,7 +285,7 @@ class MyVerisureLastUpdatedSensor(SensorEntity):
         await super().async_added_to_hass()
         self.async_on_remove(
             self.coordinator.async_add_listener(self.async_write_ha_state)
-        ) 
+        )
 
 
 class MyVerisurePanelStateSensor(SensorEntity):
@@ -300,13 +302,13 @@ class MyVerisurePanelStateSensor(SensorEntity):
         self.coordinator = coordinator
         self.config_entry = config_entry
         self.sensor_id = sensor_id
-        
+
         self._attr_name = friendly_name
         self._attr_unique_id = f"{config_entry.entry_id}_{sensor_id}"
         self._attr_device_class = None
         self._attr_state_class = None
         self._attr_should_poll = False
-        
+
         # Set device info
         self._attr_device_info = get_device_info(config_entry)
 
@@ -340,4 +342,4 @@ class MyVerisurePanelStateSensor(SensorEntity):
         await super().async_added_to_hass()
         self.async_on_remove(
             self.coordinator.async_add_listener(self.async_write_ha_state)
-        ) 
+        )

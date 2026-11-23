@@ -13,7 +13,7 @@ def _required_string(data: Dict[str, Any], key: str, scope: str) -> str:
 
 def _required_int(data: Dict[str, Any], key: str, scope: str) -> int:
     value = data.get(key)
-    if not isinstance(value, int) or value <= 0:
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
         raise ValueError(f"{scope} field required: {key}")
     return value
 

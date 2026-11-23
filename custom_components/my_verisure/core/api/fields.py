@@ -1,7 +1,13 @@
 """Constants and field names for My Verisure API."""
 
 # API Endpoints
-VERISURE_GRAPHQL_URL = "https://customers.securitasdirect.es/owa-api/graphql"
+VERISURE_GRAPHQL_URL = "https://customers.verisure.es/owa-api/graphql"
+
+# Native protocol profile observed in the official app. These are API
+# compatibility fields, not the operating system of the Home Assistant host.
+NATIVE_APP_VERSION = "10.192.1"
+NATIVE_OS_VERSION = "27.2"
+NATIVE_SESSION_ID = "OWI______________________"
 
 # GraphQL Query Names
 LOGIN_MUTATION = "mkLoginToken"

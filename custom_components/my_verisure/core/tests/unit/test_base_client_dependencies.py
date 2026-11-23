@@ -1,6 +1,7 @@
 """Tests for entry-scoped session ownership in the HTTP client base."""
 
 import asyncio
+import json
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
@@ -29,12 +30,12 @@ def test_session_headers_require_complete_authenticated_state():
         client._get_session_headers({}, None)
 
 
-def test_session_headers_do_not_invent_a_language():
+def test_session_headers_retain_the_configured_spanish_protocol_profile():
     client = BaseClient(session_manager=SimpleNamespace())
 
     headers = client._get_session_headers({"user": "user"}, "hash")
 
-    assert '"lang"' not in headers["auth"]
+    assert json.loads(headers["auth"])["lang"] == "es"
 
 
 async def test_base_client_propagates_cancellation_and_closes_session(monkeypatch):

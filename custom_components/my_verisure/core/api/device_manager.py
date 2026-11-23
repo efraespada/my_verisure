@@ -11,6 +11,9 @@ import random
 import time
 from typing import Any, Dict, Optional, TypeGuard
 
+from .fields import NATIVE_APP_VERSION, NATIVE_OS_VERSION
+from .native_profile import ProfileContext
+from .push_storage import PrivatePushStore
 from ..file_manager import FileManager
 from ..log_utils import redact_sensitive_data
 
@@ -31,10 +34,11 @@ class DeviceManager:
         }
     )
 
-    def __init__(self, file_manager: FileManager) -> None:
+    def __init__(self, file_manager: FileManager, profile_context: ProfileContext | None = None) -> None:
         """Initialize the device manager."""
         self._device_identifiers: Optional[Dict[str, Any]] = None
         self._file_manager = file_manager
+        self.profile_context = profile_context or ProfileContext()
         # Keep platform discovery scoped to this manager. A module-level cache
         # would leak host-derived state between ConfigEntry graphs and tests.
         self._platform_string: str | None = None
@@ -137,8 +141,8 @@ class DeviceManager:
             "idDeviceIndigitall": formatted_indigitall,
             "deviceName": device_name,
             "deviceBrand": "HomeAssistant",
-            "deviceOsVersion": f"{system_info['system']} {platform.release()}",
-            "deviceVersion": "10.154.0",
+            "deviceOsVersion": NATIVE_OS_VERSION,
+            "deviceVersion": NATIVE_APP_VERSION,
             "generated_time": int(time.time()),
         }
 
@@ -162,6 +166,7 @@ class DeviceManager:
             device_data = self._resolve_file_manager().load_device_identifiers()
             if self._has_required_identifiers(device_data):
                 self._device_identifiers = device_data
+                self.profile_context.select(device_data.get("protocol_profile"))
                 _LOGGER.warning("Device identifiers loaded from device_identifiers.json")
                 _LOGGER.warning(
                     "Device context loaded (redacted): %s",
@@ -188,6 +193,7 @@ class DeviceManager:
             device_data = await self._resolve_file_manager().async_load_device_identifiers()
             if self._has_required_identifiers(device_data):
                 self._device_identifiers = device_data
+                self.profile_context.select(device_data.get("protocol_profile"))
                 _LOGGER.warning("Device identifiers loaded from device_identifiers.json")
                 _LOGGER.warning(
                     "Device context loaded (redacted): %s",
@@ -293,6 +299,20 @@ class DeviceManager:
         identifiers = self._device_identifiers or {}
         return identifiers.copy()
 
+    async def async_set_push_token(self, token: str) -> bool:
+        """Persist the notification address while retaining the device UUID."""
+        if not isinstance(token, str) or not 10 <= len(token) <= 4096:
+            raise ValueError("Invalid notification token")
+        await self.async_ensure_device_identifiers()
+        identifiers = dict(self._device_identifiers or {})
+        if identifiers.get("idDevice") == token and identifiers.get("protocol_profile") == "android":
+            return False
+        identifiers.update({"idDevice": token, "protocol_profile": "android"})
+        await PrivatePushStore(self._resolve_file_manager()).save("device_identifiers.json", identifiers)
+        self._device_identifiers = identifiers
+        self.profile_context.select("android")
+        return True
+
     def get_login_variables(
         self, session_id: str, lang: str = "es"
     ) -> Dict[str, str]:
@@ -304,15 +324,15 @@ class DeviceManager:
         variables: Dict[str, str] = {
             "id": session_id,
             "country": "ES",
-            "callby": "OWI_10",
+            "callby": self.profile_context.current.callby,
             "lang": lang,
             "idDevice": identifiers["idDevice"],
             "idDeviceIndigitall": identifiers["idDeviceIndigitall"],
-            "deviceVersion": identifiers["deviceVersion"],
+            "deviceVersion": NATIVE_APP_VERSION,
             "uuid": identifiers["uuid"],
             "deviceName": identifiers["deviceName"],
             "deviceBrand": identifiers["deviceBrand"],
-            "deviceOsVersion": identifiers["deviceOsVersion"],
+            "deviceOsVersion": self.profile_context.current.os_version,
         }
         for key in ("deviceType", "deviceResolution"):
             value = identifiers.get(key)
@@ -334,6 +354,6 @@ class DeviceManager:
             "uuid": identifiers["uuid"],
             "deviceName": identifiers["deviceName"],
             "deviceBrand": identifiers["deviceBrand"],
-            "deviceOsVersion": identifiers["deviceOsVersion"],
-            "deviceVersion": identifiers["deviceVersion"],
+            "deviceOsVersion": self.profile_context.current.os_version,
+            "deviceVersion": NATIVE_APP_VERSION,
         }

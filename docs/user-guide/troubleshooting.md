@@ -16,13 +16,13 @@ Reload YAML / restart as needed, reproduce the issue, then download **Home Assis
 |---------|-------------------|
 | Config flow “invalid auth” | Credentials match the **official app**; account not locked |
 | OTP loop | Phone selected receives SMS; OTP entered before expiry |
-| Reauth shows `otp_required` | Known limitation: reauth step does not walk OTP flow (`config_flow.py`) — you may need to remove/re-add or fix credentials outside HA |
+| Reauth requests SMS | Complete the new phone/device-bound challenge in the reauthentication flow; retain the existing entry and do not reuse an old SMS code |
 
 Session files live under the HA config directory (see coordinator session path pattern).
 
 ## Connection / GraphQL errors
 
-- **DNS / firewall** blocking `customers.securitasdirect.es`  
+- **DNS / firewall** blocking `customers.verisure.es`
 - **TLS interception** on corporate networks  
 - **`MyVerisureConnectionError`** — transient network; coordinator raises `UpdateFailed`  
 
@@ -45,3 +45,16 @@ Cameras read **latest files from disk** under the integration’s data layout. I
 1. HA Core version, integration version (`manifest.json`).  
 2. Redacted installation ID.  
 3. Log excerpt — include lines containing `my_verisure` and any traceback.  
+
+## Immediate photo updates
+
+If registration or transport is unavailable, ordinary photo polling remains active.
+Stored receiver credentials are reused after restart; a transient Google check-in
+must not replace a working registration. New registrations back off on failure,
+and transport reconnects use bounded delays. Avoid repeated toggles or rapid photo
+requests while investigating a provider rejection.
+
+A successful photo requires a complete fresh image set, not just an FCM event.
+Check safe receiver counters in integration diagnostics and completion logs. A
+camera rejection preserves the previous image; wait before trying again. Do not
+publish receiver tokens, raw notification payloads, session files or household photos.

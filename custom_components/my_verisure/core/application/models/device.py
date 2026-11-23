@@ -27,10 +27,10 @@ class Device:
     code: str
     name: str
     type: str
-    subtype: str
-    remote_use: bool
+    subtype: str | None
+    remote_use: bool | None
     id_service: str
-    is_active: bool
+    is_active: bool | None
     serial_number: Optional[str] = None
     config: Optional[DeviceConfig] = None
 
@@ -54,7 +54,7 @@ class Device:
 
     @property
     def is_remote_accessible(self) -> bool:
-        return self.remote_use and self.is_active
+        return self.remote_use is True and self.is_active is True
 
     @property
     def device_type_description(self) -> str:

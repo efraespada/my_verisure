@@ -43,6 +43,16 @@ def classify_login_response(result: object) -> LoginResponse | str:
         else None
     )
     if isinstance(login_data, dict) and login_data.get("res") == "OK":
+        # Current native responses select this nullable field. A successful,
+        # token-bearing native login is the explicit authorization signal.
+        if (
+            "needDeviceAuthorization" in login_data
+            and login_data["needDeviceAuthorization"] is None
+            and login_data.get("msg") == "auth-api.login.success"
+            and isinstance(login_data.get("hash"), str) and login_data["hash"].strip()
+            and isinstance(login_data.get("refreshToken"), str) and login_data["refreshToken"].strip()
+        ):
+            login_data = {**login_data, "needDeviceAuthorization": False}
         return LoginResponse(data=login_data)
 
     if direct_present or nested_present:

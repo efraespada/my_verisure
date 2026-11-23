@@ -50,6 +50,7 @@ async def async_get_config_entry_diagnostics(
     except Exception:
         session_info = {"error": "Unable to collect session diagnostics"}
 
+    push = getattr(coordinator, "_push", None)
     return {
         "entry": redacted_entry,
         "coordinator": {
@@ -59,5 +60,8 @@ async def async_get_config_entry_diagnostics(
             else None,
             "data_summary": data_summary,
             "session": session_info,
+            "push": push.diagnostics()
+            if push is not None
+            else {"enabled": False, "connected": False},
         },
     }

@@ -12,12 +12,14 @@ PLATFORMS = [
 ]
 ```
 
-Each `async_setup_entry` reads `hass.data[DOMAIN][entry_id]` expecting the coordinator instance.
+Each `async_setup_entry` reads its coordinator from `config_entry.runtime_data`.
+Stable entry-scoped unique IDs avoid collisions; unambiguous legacy registry rows
+are migrated without replacing existing entity IDs.
 
 ## Patterns
 
 - **Alarm / sensors / binary sensors**: manual `CoordinatorEntity`-style wiring — entities hold coordinator reference and read `coordinator.data`.  
-- **Cameras**: `CoordinatorEntity` + `Camera`, filesystem-backed snapshots.  
+- **Cameras**: `CoordinatorEntity` + `Camera`, latest complete committed filesystem capture; optional FCM completion with polling fallback.
 - **Button**: triggers service `refresh_camera_images`.
 
 When adding a new platform:

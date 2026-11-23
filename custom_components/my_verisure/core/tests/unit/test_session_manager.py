@@ -11,6 +11,13 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from custom_components.my_verisure.core.application.models.auth import AuthResult
+from ...application.exceptions import (
+    MyVerisureAuthenticationError,
+    MyVerisureConnectionError,
+    MyVerisureDeviceAuthorizationError,
+    MyVerisureOTPError,
+    MyVerisureServiceBlockedError,
+)
 from ...file_manager import FileManager
 from ... import session_manager as session_module
 from ...session_manager import SessionManager
@@ -349,3 +356,45 @@ async def test_automatic_reauthentication_has_single_persistence_owner(manager):
 @pytest.mark.asyncio
 async def test_ensure_authenticated_without_credentials_noninteractive(manager):
     assert await manager.ensure_authenticated(interactive=False) is False
+
+
+@pytest.mark.asyncio
+async def test_rejected_automatic_login_requires_reauthentication(manager):
+    manager.set_login_credentials("test-user", "test-password")
+    manager._session_disk_hydrated = True
+    manager.set_authenticator(
+        AsyncMock(return_value=AuthResult(success=False, message="Login rejected"))
+    )
+    previous = manager.capture_transaction_state()
+
+    with pytest.raises(MyVerisureAuthenticationError):
+        await manager.ensure_authenticated(interactive=False)
+
+    assert manager.capture_transaction_state() == previous
+    assert not Path(manager.session_file).exists()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "error, expected",
+    [
+        (MyVerisureAuthenticationError("invalid"), MyVerisureAuthenticationError),
+        (MyVerisureOTPError("SMS required"), MyVerisureAuthenticationError),
+        (MyVerisureDeviceAuthorizationError("device"), MyVerisureAuthenticationError),
+        (MyVerisureConnectionError("offline"), MyVerisureConnectionError),
+        (MyVerisureServiceBlockedError("cooldown"), MyVerisureServiceBlockedError),
+    ],
+)
+async def test_automatic_login_preserves_actionable_error_after_rollback(
+    manager, error, expected
+):
+    manager.set_login_credentials("test-user", "test-password")
+    manager._session_disk_hydrated = True
+    manager.set_authenticator(AsyncMock(side_effect=error))
+    previous = manager.capture_transaction_state()
+
+    with pytest.raises(expected):
+        await manager.ensure_authenticated(interactive=False)
+
+    assert manager.capture_transaction_state() == previous
+    assert not Path(manager.session_file).exists()

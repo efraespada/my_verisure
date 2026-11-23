@@ -15,6 +15,12 @@ from typing import Any, Awaitable, Callable, Dict, Optional
 from .file_manager import FileManager
 from .utils.jwt_utils import is_jwt_expired
 from .log_utils import get_dev_mode
+from .application.exceptions import (
+    MyVerisureAuthenticationError,
+    MyVerisureDeviceAuthorizationError,
+    MyVerisureError,
+    MyVerisureOTPError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -447,9 +453,7 @@ class SessionManager:
         try:
             auth_result = await self._reauthenticator(username, password)
             if not getattr(auth_result, "success", False) or not self.is_session_valid():
-                await asyncio.shield(rollback())
-                self._reauth_failures += 1
-                return False
+                raise MyVerisureAuthenticationError("Reauthentication required")
             self.clear_service_blocked()
             logger.info("Automatic reauthentication successful")
             return True
@@ -460,7 +464,7 @@ class SessionManager:
                 logger.critical("Automatic reauthentication rollback failed")
                 raise cancellation from rollback_error
             raise
-        except Exception:
+        except Exception as error:
             try:
                 await asyncio.shield(rollback())
             except asyncio.CancelledError:
@@ -472,6 +476,10 @@ class SessionManager:
                 ) from rollback_error
             self._reauth_failures += 1
             logger.warning("Automatic reauthentication failed")
+            if isinstance(error, (MyVerisureOTPError, MyVerisureDeviceAuthorizationError)):
+                raise MyVerisureAuthenticationError("Reauthentication required") from None
+            if isinstance(error, MyVerisureError):
+                raise
             return False
 
     def update_credentials(

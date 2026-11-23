@@ -19,7 +19,7 @@ StatusTransport = Callable[[int], Awaitable[Mapping[str, Any]]]
 class AlarmCommandPoller:
     """Poll arm and disarm command status responses."""
 
-    def __init__(self, *, max_retries: int = 30, retry_delay: float = 15.0) -> None:
+    def __init__(self, *, max_retries: int = 30, retry_delay: float = 1.0) -> None:
         if max_retries < 1:
             raise ValueError("max_retries must be positive")
         if retry_delay < 0:
@@ -46,7 +46,7 @@ class AlarmCommandPoller:
             payload = self._payload(result, "xSArmStatus")
             response_code = self._response_code(payload)
             if response_code == "OK":
-                return ArmResult(True, "Alarm command accepted", reference_id)
+                return ArmResult(True, "Alarm command accepted", reference_id, self._confirmed_state(payload))
             if response_code != "WAIT":
                 return ArmResult(False, "Alarm command rejected", reference_id)
             if attempt < self._max_retries:
@@ -73,13 +73,18 @@ class AlarmCommandPoller:
             payload = self._payload(result, "xSDisarmStatus")
             response_code = self._response_code(payload)
             if response_code == "OK":
-                return DisarmResult(True, "Disarm command accepted", reference_id)
+                return DisarmResult(True, "Disarm command accepted", reference_id, self._confirmed_state(payload))
             if response_code != "WAIT":
                 return DisarmResult(False, "Disarm command rejected", reference_id)
             if attempt < self._max_retries:
                 await asyncio.sleep(self._retry_delay)
 
         return DisarmResult(False, "Disarm command polling exhausted", reference_id)
+
+    @staticmethod
+    def _confirmed_state(payload: Mapping[str, Any]) -> str | None:
+        value = payload.get("protomResponse")
+        return value if isinstance(value, str) and value.strip() else None
 
     @staticmethod
     def _has_graphql_error(result: Mapping[str, Any]) -> bool:

@@ -3,13 +3,18 @@
 from __future__ import annotations
 
 from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import entity_registry as er
 import voluptuous as vol
 
 from .core.application.alarm_service import AlarmServiceDispatcher
-from .core.application.exceptions import MyVerisureError
+from .core.application.exceptions import (
+    MyVerisureError, MyVerisureAuthenticationError, MyVerisureServiceBlockedError,
+)
 from .core.const import DOMAIN, LOGGER
 from .coordinator import MyVerisureDataUpdateCoordinator
+from .camera import camera_unique_id
 
 # Service schemas
 SERVICE_ARM_AWAY_SCHEMA = vol.Schema({
@@ -34,7 +39,42 @@ SERVICE_GET_STATUS_SCHEMA = vol.Schema({
 
 SERVICE_REFRESH_CAMERA_IMAGES_SCHEMA = vol.Schema({
     vol.Required("installation_id"): cv.string,
+    vol.Optional("camera_entity_id"): cv.entity_id,
 })
+
+
+def _selected_camera_identifier(coordinator, entity_id: str) -> str:
+    """Resolve only an existing camera owned by the selected installation."""
+    entity = er.async_get(coordinator.hass).async_get(entity_id)
+    if (
+        entity is None or entity.domain != "camera" or entity.platform != DOMAIN
+        or entity.config_entry_id != coordinator.config_entry.entry_id
+    ):
+        raise HomeAssistantError("Selected camera unavailable")
+    devices = (coordinator.data or {}).get("detailed_installation", {}).get("installation", {}).get("devices", [])
+    matches = [
+        device for device in devices
+        if device.get("type") in {"YP", "YR"}
+        and camera_unique_id(coordinator.config_entry.entry_id, device) == entity.unique_id
+    ]
+    if len(matches) != 1:
+        raise HomeAssistantError("Selected camera unavailable")
+    return f"{matches[0]['type']}{int(matches[0]['code']):02d}"
+
+
+def _camera_refresh_error(error: Exception) -> HomeAssistantError:
+    """Expose a translated HA error without provider payloads or credentials."""
+    key = "camera_refresh_failed"
+    message = "Camera image refresh failed"
+    if isinstance(error, MyVerisureServiceBlockedError):
+        key = "camera_service_blocked"
+        message = "Verisure temporarily blocked requests; wait before retrying"
+    elif isinstance(error, MyVerisureAuthenticationError):
+        key = "camera_authentication_required"
+        message = "Verisure authentication is required"
+    return HomeAssistantError(
+        message, translation_domain=DOMAIN, translation_key=key,
+    )
 
 
 def _update_alarm_panel_state(coordinator: MyVerisureDataUpdateCoordinator) -> None:
@@ -159,15 +199,24 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     "Found coordinator; calling async_refresh_camera_images"
                 )
                 try:
-                    await coordinator.async_refresh_camera_images()
+                    selected = call.data.get("camera_entity_id")
+                    if selected is None:
+                        await coordinator.async_refresh_camera_images()
+                    else:
+                        await coordinator.async_refresh_camera_images(
+                            camera_identifier=_selected_camera_identifier(coordinator, selected)
+                        )
                     LOGGER.warning("Camera images refreshed via service")
-                    _update_button_state(coordinator)
-                except Exception:
-                    LOGGER.error("Error refreshing camera images via service")
+                except HomeAssistantError:
+                    raise
+                except Exception as error:
+                    LOGGER.error("Camera refresh failed (%s)", type(error).__name__)
+                    raise _camera_refresh_error(error) from None
+                finally:
                     _update_button_state(coordinator)
                 break
         else:
-            LOGGER.error("Installation not found")
+            raise HomeAssistantError("Installation not found")
 
     # Register services
     hass.services.async_register(
