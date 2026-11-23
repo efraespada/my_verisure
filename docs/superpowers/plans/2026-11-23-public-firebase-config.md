@@ -30,4 +30,5 @@ The alert's original commit remains historical evidence. Never claim that the pr
 - Complete coverage run: 882 passed, 90% aggregate (14,554 statements; 1,519 missed). Mypy: 264 files.
 - Live public discovery: two unauthenticated HTTPS GETs matched the original public client value; no account calls, receiver registration or alarm commands. See `docs/validation/2026-11-23-public-firebase-config.json`.
 - Existing Validate with HACS workflow re-enabled after GitHub disabled it for inactivity. Remote PR validation follows the corrective push.
+- Initial remote Python runs failed during interpreter setup: Ubuntu 26.04 lacks a Python 3.14.4 distribution. The official actions/python-versions manifest confirms Ubuntu 24.04 support, so the Python job is pinned to that image. HACS passed independently.
 - Historical installed HA timings predate this bootstrap correction. No new household deployment is claimed.

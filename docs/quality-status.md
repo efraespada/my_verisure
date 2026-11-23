@@ -16,6 +16,9 @@ Updated: 2026-11-23
 
 These metrics describe local verification. GitHub Actions and HACS results are
 reported separately on each pull request; they do not imply a published release.
+The Python CI job uses Ubuntu 24.04 for the pinned Python 3.14.4 build. The moving
+`ubuntu-latest` image became Ubuntu 26.04, where that Python patch has no official
+setup-python distribution; the initial run stopped before dependency installation.
 
 ## Full lint policy
 
