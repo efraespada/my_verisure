@@ -22,5 +22,5 @@
     "http-ece~=1.1.0",
     "firebase-messaging==0.4.5"
   ],
-  "version": "1.0.0"
+  "version": "1.1.0"
 }
