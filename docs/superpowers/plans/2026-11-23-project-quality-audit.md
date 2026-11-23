@@ -48,7 +48,7 @@
 
 - [x] Run the full suite with line and branch coverage, including separate CLI/script measurements; retain the existing 100% notification gate and add a repository regression baseline.
 - [x] Run type checking, critical lint, architecture/import, documentation, dependency and distribution gates against the final tree.
-- [ ] Review the complete diff, update the evidence report and clean only this iteration's owned temporary outputs.
+- [x] Review the complete diff, update the evidence report and clean only this iteration's owned temporary outputs.
 - [x] Prepare the reviewed source and verification evidence for the authorized PR workflow. GitHub records the develop merge and the existing develop → master promotion status.
 
 Verification commands (set `HA_PYTHON` to an existing pinned interpreter when using an external environment):

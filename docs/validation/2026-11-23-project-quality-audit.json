@@ -165,5 +165,13 @@
       "runtime_device_artifacts": 0,
       "private_capture_files": 0
     }
+  },
+  "cleanup": {
+    "source_files_verified": 681,
+    "deleted_files": 142419,
+    "allocated_bytes_removed": 1762758656,
+    "free_bytes_change": 1064960000,
+    "current_environment_preserved": true,
+    "old_target_environment_retired": true
   }
 }
