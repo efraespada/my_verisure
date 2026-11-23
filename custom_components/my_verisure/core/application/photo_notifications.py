@@ -23,6 +23,11 @@ class PhotoNotifications:
         self._ready = asyncio.Event()
 
     @property
+    def pending(self) -> bool:
+        """Tell independent consumers that the local capture owns this delivery."""
+        return self._pending is not None and not self._closed
+
+    @property
     def recent_ids(self) -> list[str]:
         return list(self._recent)
 

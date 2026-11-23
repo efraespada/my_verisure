@@ -1,4 +1,8 @@
-"""Base client for My Verisure GraphQL API."""
+"""Base client for My Verisure GraphQL API.
+
+Generated with ha-integration@aurora-smart-home v1.1.0
+https://github.com/tonylofgren/aurora-smart-home
+"""
 
 import asyncio
 import json
@@ -17,6 +21,7 @@ from .exceptions import (
 )
 from ..session_manager import SessionManager
 from .native_profile import ProfileContext
+from .provider_request_gate import ProviderRequestGate, get_provider_request_gate
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -101,8 +106,19 @@ class BaseClient:
         variables: Optional[Dict[str, Any]] = None,
         headers: Optional[Dict[str, str]] = None,
     ) -> Dict[str, Any]:
-        """Execute a GraphQL query using direct aiohttp request."""
-        
+        """Admit one provider request before creating any HTTP resources."""
+        gate = get_provider_request_gate()
+        async with gate.async_request(self._resolve_session_manager()):
+            return await self._execute_admitted_query(query, variables, headers, gate)
+
+    async def _execute_admitted_query(
+        self,
+        query: str,
+        variables: Optional[Dict[str, Any]],
+        headers: Optional[Dict[str, str]],
+        gate: ProviderRequestGate,
+    ) -> Dict[str, Any]:
+        """Execute exactly once while holding origin admission, including close."""
         _session = aiohttp.ClientSession(
             timeout=aiohttp.ClientTimeout(total=30, connect=10)
         )
@@ -116,17 +132,22 @@ class BaseClient:
                 json=request_data,
                 headers=request_headers,
             ) as response:
-                # Check for HTTP 403 status code (service blocked)
-                if response.status == 403:
-                    _LOGGER.error(
-                        "Service temporarily blocked (HTTP 403) - too many requests"
+                if response.status in (403, 429):
+                    retry_after = (getattr(response, "headers", None) or {}).get(
+                        "Retry-After"
                     )
-                    try:
-                        self._resolve_session_manager().record_service_blocked()
-                    except Exception:  # noqa: BLE001
-                        _LOGGER.debug("Could not record service-blocked backoff", exc_info=True)
+                    seconds = gate.record_blocked(retry_after)
+                    recorder = getattr(
+                        self._resolve_session_manager(), "record_service_blocked", None
+                    )
+                    if callable(recorder):
+                        try:
+                            recorder(seconds)
+                        except Exception:
+                            _LOGGER.debug("Could not record entry-local provider backoff")
+                    _LOGGER.warning("Provider requests paused after HTTP %s", response.status)
                     raise MyVerisureServiceBlockedError(
-                        "Service temporarily blocked due to too many requests. Please wait about 10 minutes before trying again."
+                        "Service temporarily blocked; requests are paused"
                     )
 
                 if response.status == 401:

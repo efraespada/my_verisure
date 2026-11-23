@@ -55,3 +55,10 @@ configuration validation, failure before registration and cached startup without
 configuration HTTP. The public-source comparison validates the new bootstrap
 against production metadata. Earlier installed HA photo/polling/restart timings
 refer to the preceding build; they are not a deployment test of this correction.
+
+The correction is now installed with the notification implementation. Its 153
+production files were verified on HA, and cached receiver credentials were reused
+across restart and entry reload. One new photo completed in 23.22 seconds. This
+does not add a fresh-registration bootstrap test; the production metadata GET
+comparison and synthetic discovery coverage remain separate evidence. See the
+[implementation receipt](../validation/2026-11-23-notification-implementation.json).

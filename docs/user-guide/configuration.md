@@ -31,11 +31,16 @@ If login succeeds without OTP, installation selection follows directly.
 |--------|----------|---------|
 | Scan interval (minutes) | `CONF_SCAN_INTERVAL` | Coordinator `update_interval` ([Coordinator](../developer-guide/coordinator.md)) |
 | Immediate photo updates | `CONF_PUSH_ENABLED` | Default false. FCM completion keeps status polling as fallback and may request device verification by SMS. |
+| Observe notifications | `CONF_NOTIFICATION_OBSERVATION` | Default true. Adds safe reported/verified EventEntities; no additional provider reads by itself. |
+| Refresh state from push | `CONF_PUSH_STATE_REFRESH` | Default false; requires push. Coalesces known state/incident hints into read-only verification. |
+| External photo updates | `CONF_EXTERNAL_PHOTO_UPDATES` | Default false; requires push. Retrieves a fresh existing signal without creating another capture. |
+| Advanced event bus | `CONF_ADVANCED_EVENT_BUS` | Default false; requires observation. Mirrors the same safe record on `my_verisure_event`. |
 | Auto arm perimeter with internal | `CONF_AUTO_ARM_PERIMETER_WITH_INTERNAL` | Default false for new entries; adds exterior after a successful interior Away or Night command when enabled |
 
 Disabling immediate updates stops the receiver and keeps the verified native device
 profile and ordinary polling. Re-enabling reuses its private receiver credentials.
 No inbound port or Firebase server credential is needed.
+See the [automation guide](../automation-notifications.md) for examples and scope.
 
 Options override entry `data` for scan interval (see `update_listener` in [`integration.py`](../../custom_components/my_verisure/integration.py)).
 
@@ -65,3 +70,7 @@ confirmed that Home remains exterior-only. See the
 ## Service blocked / rate limiting
 
 `MyVerisureServiceBlockedError` triggers a **persistent notification** and failed update (`UpdateFailed`). See [Troubleshooting](troubleshooting.md).
+Every Verisure client in the HA process shares origin admission and the 403/429
+cooldown, including `Retry-After`. Background verification groups hints for two
+seconds and starts at most one job per 30 seconds across entries. It retains a
+single dirty job per resource while blocked. Ordinary polling remains enabled.

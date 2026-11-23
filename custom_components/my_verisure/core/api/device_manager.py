@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import asyncio
+import copy
+from dataclasses import dataclass
+from enum import StrEnum
 import hashlib
 import logging
 import os
@@ -12,12 +15,35 @@ import time
 from typing import Any, Dict, Optional, TypeGuard
 
 from .fields import NATIVE_APP_VERSION, NATIVE_OS_VERSION
-from .native_profile import ProfileContext
+from .native_profile import NativeProfile, ProfileContext
 from .push_storage import PrivatePushStore
 from ..file_manager import FileManager
 from ..log_utils import redact_sensitive_data
 
 _LOGGER = logging.getLogger(__name__)
+
+
+class PushBindingState(StrEnum):
+    """Safe provider-binding states; transport connectivity is separate."""
+
+    DISABLED = "disabled"
+    PENDING = "pending"
+    BOUND = "bound"
+    REAUTH_REQUIRED = "reauth_required"
+    DEGRADED = "degraded"
+
+
+@dataclass(frozen=True, repr=False)
+class PushTokenStage:
+    """Private device-address transaction; never project its contents to HA."""
+
+    previous_identifiers: dict[str, Any]
+    previous_profile: NativeProfile
+    previous_bytes: bytes | None
+    candidate_token: str
+    generation: int
+    changed: bool
+
 
 class DeviceManager:
     """Manages device identifiers and device authorization."""
@@ -42,6 +68,10 @@ class DeviceManager:
         # Keep platform discovery scoped to this manager. A module-level cache
         # would leak host-derived state between ConfigEntry graphs and tests.
         self._platform_string: str | None = None
+        self._binding_store = PrivatePushStore(file_manager)
+        self._binding_lock = asyncio.Lock()
+        self._binding_generation = 0
+        self._staged_push_token: PushTokenStage | None = None
 
     def _resolve_file_manager(self) -> FileManager:
         """Return the manager owned by this composition root."""
@@ -301,17 +331,97 @@ class DeviceManager:
 
     async def async_set_push_token(self, token: str) -> bool:
         """Persist the notification address while retaining the device UUID."""
+        stage, changed = await self.async_stage_push_token(token)
+        await self.async_commit_staged_push_token(stage)
+        return changed
+
+    async def async_stage_push_token(self, token: str) -> tuple[PushTokenStage, bool]:
+        """Select a candidate in memory; provider authentication owns acceptance."""
         if not isinstance(token, str) or not 10 <= len(token) <= 4096:
             raise ValueError("Invalid notification token")
-        await self.async_ensure_device_identifiers()
-        identifiers = dict(self._device_identifiers or {})
-        if identifiers.get("idDevice") == token and identifiers.get("protocol_profile") == "android":
-            return False
-        identifiers.update({"idDevice": token, "protocol_profile": "android"})
-        await PrivatePushStore(self._resolve_file_manager()).save("device_identifiers.json", identifiers)
-        self._device_identifiers = identifiers
-        self.profile_context.select("android")
-        return True
+        async with self._binding_lock:
+            if self._staged_push_token is not None:
+                raise RuntimeError("A push address is already staged")
+            await self.async_ensure_device_identifiers()
+            identifiers = copy.deepcopy(self._device_identifiers or {})
+            path = self._resolve_file_manager().get_file_path("device_identifiers.json")
+
+            def read_previous() -> bytes | None:
+                try:
+                    return path.read_bytes()
+                except FileNotFoundError:
+                    return None
+
+            previous_bytes = await asyncio.to_thread(read_previous)
+            changed = identifiers.get("idDevice") != token or identifiers.get("protocol_profile") != "android"
+            self._binding_generation += 1
+            stage = PushTokenStage(
+                previous_identifiers=identifiers,
+                previous_profile=self.profile_context.current,
+                previous_bytes=previous_bytes,
+                candidate_token=token,
+                generation=self._binding_generation,
+                changed=changed,
+            )
+            self._staged_push_token = stage
+            self._device_identifiers = {
+                **identifiers, "idDevice": token, "protocol_profile": "android",
+            }
+            self.profile_context.select("android")
+            return stage, changed
+
+    def _require_push_stage(self, stage: PushTokenStage) -> None:
+        if (
+            not isinstance(stage, PushTokenStage)
+            or stage.generation != self._binding_generation
+            or self._staged_push_token is not stage
+        ):
+            raise ValueError("Obsolete push binding snapshot")
+
+    async def _restore_push_stage(self, stage: PushTokenStage) -> None:
+        self._device_identifiers = copy.deepcopy(stage.previous_identifiers)
+        self.profile_context.current = stage.previous_profile
+        await self._binding_store.restore_bytes("device_identifiers.json", stage.previous_bytes)
+        self._staged_push_token = None
+
+    async def _await_push_restore(self, stage: PushTokenStage) -> bool:
+        restoring = asyncio.create_task(self._restore_push_stage(stage))
+        cancelled = False
+        while True:
+            try:
+                await asyncio.shield(restoring)
+                return cancelled
+            except asyncio.CancelledError:
+                if restoring.cancelled():
+                    raise
+                cancelled = True
+
+    async def async_commit_staged_push_token(self, stage: PushTokenStage) -> None:
+        """Persist an accepted candidate, restoring prior state on failure/cancel."""
+        async with self._binding_lock:
+            self._require_push_stage(stage)
+            try:
+                if stage.changed:
+                    await self._binding_store.save(
+                        "device_identifiers.json", copy.deepcopy(self._device_identifiers or {}),
+                    )
+            except BaseException:
+                await self._await_push_restore(stage)
+                raise
+            self._staged_push_token = None
+
+    async def async_rollback_staged_push_token(self, stage: PushTokenStage) -> None:
+        """Restore a failed candidate without reverting a newer transaction."""
+        async with self._binding_lock:
+            if (
+                isinstance(stage, PushTokenStage)
+                and stage.generation == self._binding_generation
+                and self._staged_push_token is None
+            ):
+                return
+            self._require_push_stage(stage)
+            if await self._await_push_restore(stage):
+                raise asyncio.CancelledError
 
     def get_login_variables(
         self, session_id: str, lang: str = "es"

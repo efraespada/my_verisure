@@ -52,6 +52,10 @@ from .core.const import (
     CONF_AUTO_ARM_PERIMETER_WITH_INTERNAL,
     CONF_DEV_MODE,
     CONF_PUSH_ENABLED,
+    CONF_NOTIFICATION_OBSERVATION,
+    CONF_PUSH_STATE_REFRESH,
+    CONF_EXTERNAL_PHOTO_UPDATES,
+    CONF_ADVANCED_EVENT_BUS,
 )
 
 
@@ -824,8 +828,21 @@ class MyVerisureOptionsFlowHandler(OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Manage the options."""
+        options = dict(self.config_entry.options)
+        errors: dict[str, str] = {}
         if user_input is not None:
-            return self.async_create_entry(title="", data=user_input)
+            options.update(user_input)
+            needs_push = options.get(CONF_PUSH_STATE_REFRESH, False) or options.get(
+                CONF_EXTERNAL_PHOTO_UPDATES, False
+            )
+            invalid_push = needs_push and not options.get(CONF_PUSH_ENABLED, False)
+            invalid_bus = options.get(CONF_ADVANCED_EVENT_BUS, False) and not options.get(
+                CONF_NOTIFICATION_OBSERVATION, True
+            )
+            if invalid_push or invalid_bus:
+                errors["base"] = "invalid_options"
+            else:
+                return self.async_create_entry(title="", data=options)
 
         return self.async_show_form(
             step_id="init",
@@ -833,20 +850,37 @@ class MyVerisureOptionsFlowHandler(OptionsFlow):
                 {
                     vol.Optional(
                         CONF_SCAN_INTERVAL,
-                        default=self.config_entry.options.get(CONF_SCAN_INTERVAL, self.config_entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)),
+                        default=options.get(CONF_SCAN_INTERVAL, self.config_entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)),
                     ): int,
                     vol.Optional(
                         CONF_AUTO_ARM_PERIMETER_WITH_INTERNAL,
-                        default=self.config_entry.options.get(CONF_AUTO_ARM_PERIMETER_WITH_INTERNAL, False),
+                        default=options.get(CONF_AUTO_ARM_PERIMETER_WITH_INTERNAL, False),
                     ): bool,
                     vol.Optional(
                         CONF_PUSH_ENABLED,
-                        default=self.config_entry.options.get(CONF_PUSH_ENABLED, False),
+                        default=options.get(CONF_PUSH_ENABLED, False),
+                    ): bool,
+                    vol.Optional(
+                        CONF_NOTIFICATION_OBSERVATION,
+                        default=options.get(CONF_NOTIFICATION_OBSERVATION, True),
+                    ): bool,
+                    vol.Optional(
+                        CONF_PUSH_STATE_REFRESH,
+                        default=options.get(CONF_PUSH_STATE_REFRESH, False),
+                    ): bool,
+                    vol.Optional(
+                        CONF_EXTERNAL_PHOTO_UPDATES,
+                        default=options.get(CONF_EXTERNAL_PHOTO_UPDATES, False),
+                    ): bool,
+                    vol.Optional(
+                        CONF_ADVANCED_EVENT_BUS,
+                        default=options.get(CONF_ADVANCED_EVENT_BUS, False),
                     ): bool,
                     vol.Optional(
                         CONF_DEV_MODE,
-                        default=self.config_entry.options.get(CONF_DEV_MODE, False),
+                        default=options.get(CONF_DEV_MODE, False),
                     ): bool,
                 }
             ),
+            errors=errors,
         )

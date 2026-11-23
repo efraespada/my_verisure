@@ -110,6 +110,26 @@ class AlarmClient(BaseClient):
         """Return the default alarm status through the application service."""
         return self._status_service.default_status()
 
+    async def get_current_alarm_status(
+        self,
+        installation_id: str,
+        panel: str,
+        capabilities: str,
+    ) -> Dict[str, Any]:
+        """Read the native current state without initiating a panel radio check.
+
+        An unrecognized, non-empty provider code remains unknown. This entry
+        point is safe for notification reconciliation: it never falls back to
+        CheckAlarm, command polling or a full installation refresh.
+        """
+        hash_token, session_data = self._get_current_credentials()
+        if not hash_token:
+            raise MyVerisureAuthenticationError("Authenticated session unavailable")
+        code = await self._get_current_panel_status(
+            installation_id, panel, capabilities, hash_token, session_data
+        )
+        return self._status_service.from_panel_code(code)
+
 
     async def get_alarm_status(
         self,

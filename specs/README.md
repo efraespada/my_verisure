@@ -26,9 +26,13 @@ An as-built baseline is not a claim of complete live validation. Separate observ
 facts, the contract to preserve, limitations, unknown historical rationale and
 proposed improvements. Catalog `as-built-baseline` entries retain that distinction.
 
-The four baselines cover native authentication, alarm confirmation,
-installation/camera identity and installed Linux FCM photo completion. The
-[quality record](../docs/quality-status.md) separates pinned offline checks from
+The five baselines cover native authentication, alarm confirmation,
+installation/camera identity, Linux FCM photo completion and
+[notification observability/automation](notification-observability-and-automation.md).
+The notification contract includes a separate source catalog, the original defect
+audit and the implementation's synthetic/real-HA-platform verification. Source
+support remains distinct from actual non-photo delivery on a household account.
+The [quality record](../docs/quality-status.md) separates pinned offline checks from
 controlled household evidence. Alarm total remains outside the live-tested scope.
 
 ## Required content

@@ -1,6 +1,7 @@
 """Refresh camera images use case implementation."""
 
 import asyncio
+from collections.abc import Callable
 import logging
 import time
 
@@ -31,6 +32,13 @@ class RefreshCameraImagesUseCaseImpl(RefreshCameraImagesUseCase):
         """Initialize the refresh camera images use case."""
         self.camera_repository = camera_repository
         self.installation_repository = installation_repository
+        self._photo_committed_callback: Callable[[str, int, str | None], None] | None = None
+
+    def set_photo_committed_callback(
+        self, callback: Callable[[str, int, str | None], None] | None,
+    ) -> None:
+        """Observe saved captures without exposing HA APIs to the application."""
+        self._photo_committed_callback = callback
 
     async def refresh_camera_images(
         self,
@@ -118,6 +126,15 @@ class RefreshCameraImagesUseCaseImpl(RefreshCameraImagesUseCase):
                         if persisted_successfully:
                             successful_refreshes += 1
                             _LOGGER.info("✅ Camera images persisted successfully")
+                            image_count = image_result.get("images_saved", 0)
+                            committed_signal = image_result.get("signal_id", signal_id)
+                            if not isinstance(committed_signal, str) or not committed_signal.isdigit() or len(committed_signal) > 128:
+                                committed_signal = None
+                            if self._photo_committed_callback is not None and type(image_count) is int and 1 <= image_count <= 8:
+                                try:
+                                    self._photo_committed_callback(formatted_code, image_count, committed_signal)
+                                except Exception:
+                                    _LOGGER.warning("Photo committed observer failed")
                         else:
                             _LOGGER.warning("⚠️ Camera images were not persisted")
 

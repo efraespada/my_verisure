@@ -16,6 +16,8 @@ REQUIRED = {
     "config_flow.py",
     "integration.py",
     "strings.json",
+    "event.py",
+    "notification_runtime.py",
 }
 FORBIDDEN_PARTS = {
     ".coverage",
@@ -24,6 +26,7 @@ FORBIDDEN_PARTS = {
     "coverage.xml",
     "device_identifiers.json",
 }
+PACKAGE_ONLY_EXCLUSIONS = {"tests", "conftest.py"}
 
 
 def load_json(path: Path) -> dict[str, object]:
@@ -82,7 +85,7 @@ def create_and_validate_zip() -> Path:
             if INTEGRATION not in path.parents:
                 continue
             if path.is_file() and not any(
-                part in FORBIDDEN_PARTS for part in path.parts
+                part in FORBIDDEN_PARTS | PACKAGE_ONLY_EXCLUSIONS for part in path.parts
             ):
                 archive.write(
                     path,
@@ -99,7 +102,7 @@ def create_and_validate_zip() -> Path:
         forbidden = sorted(
             name
             for name in names
-            if any(part in FORBIDDEN_PARTS for part in Path(name).parts)
+            if any(part in FORBIDDEN_PARTS | PACKAGE_ONLY_EXCLUSIONS for part in Path(name).parts)
         )
         if forbidden:
             raise ValueError(f"ZIP contains generated artifacts: {forbidden}")

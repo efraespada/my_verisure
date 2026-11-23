@@ -18,6 +18,7 @@ Quick links: [Installation](docs/user-guide/installation.md) · [Configuration](
 - ✅ **Multiple installations** supported
 - ✅ **Alarm services** (arm/disarm, status)
 - ✅ **Optional FCM photo completion** with conservative polling fallback
+- ✅ **Typed notification events**, independently verified results and receiver diagnostics
 - ✅ **Stable per-entry identities** preserving existing entities and automations
 - ✅ **Modern GraphQL API** (doesn't use obsolete `vsure` library)
 
@@ -61,6 +62,12 @@ The existing device UUID and entities are retained; another SMS may be required.
 Photo status polling remains available every 20 seconds if no usable event arrives.
 Routine alarm polling keeps the configured interval, which defaults to 10 minutes.
 Disabling immediate updates keeps a usable polling integration and its verified profile.
+
+The **Verisure notices** and **Verified results** event entities provide a safe
+automation interface. Selective alarm/incident reads, external photo updates and
+the advanced event bus are separate opt-in options. Notifications never execute
+alarm commands. See the [notification guide and blueprint](docs/automation-notifications.md)
+for the event vocabulary, dependencies, validated examples and delivery limits.
 
 The pinned automated validation target is HA Core 2026.8.1; controlled household
 validation also covered HA Core 2026.11.2. See the [quality evidence](docs/quality-status.md)

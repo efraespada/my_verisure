@@ -13,6 +13,9 @@ Friendly names come from `ENTITY_NAMES` in [`core/const.py`](../../custom_compon
 | Binary sensors | Per-sensor friendly name | `{entry_id}_alarm_{sensor_id}` |
 | Cameras | `Verisure {device name}` | `{entry_id}_camera_{opaque_device_digest}` |
 | Button | `Refresh Camera Images` | `{entry_id}_refresh_camera_images` |
+| Reported event | Verisure notices | `{entry_id}_notifications` |
+| Confirmed event | Verified results | `{entry_id}_confirmed_results` |
+| Push diagnostics | Connection, binding, receipt/verification times, cooldown | `{entry_id}_push_{diagnostic}` |
 
 Unique IDs are scoped to the config entry. Camera identity uses a digest of the
 entry, provider device type and code, so list reordering does not change it.
@@ -60,6 +63,21 @@ image does not prove a new request succeeded. See the [camera reference](../api-
 ## Buttons
 
 **Refresh Camera Images** triggers the domain service `my_verisure.refresh_camera_images` for the installation ([Services](services.md)).
+
+## Notification events and diagnostics
+
+The two event entities expose 13 finite reported types and three confirmed types.
+Restoring their last display does not replay automations. Their availability is
+independent of the socket/API connection, so the first new event after reconnect
+is retained. Account/personal messages without a verified installation remain in
+sanitized diagnostics rather than the household event stream.
+
+The connection binary sensor is enabled by default. Binding state, last received,
+last accepted, last verified and cooldown sensors are diagnostic entities disabled
+by default. Their attributes contain no raw messages or provider identifiers.
+The diagnostic download adds bounded counters, a safe recent ring, category
+coverage and last authoritative state-sync time. A quiet channel is not itself an error.
+See [notification automations](../automation-notifications.md).
 
 ## Device registry
 

@@ -117,6 +117,11 @@ remains scoped to the entry and existing registry identity.
 
 ## 10. Failure, recovery and cleanup
 
+The follow-up [general-notification audit](../docs/technical/notification-audit-and-design.md)
+reproduced cancellation ordering and cached-crypto validation defects and identified
+token-binding/ACK limits. They remain uncorrected by the documentation iteration;
+the original passing tests do not establish those additional recovery properties.
+
 Durable credentials are reused directly on startup and transport reconnect. Only
 an actual MCS login rejection requests HTTP registration recovery. This avoids
 unnecessarily replacing a working registration after a transient check-in failure.
@@ -166,7 +171,9 @@ rollback are retained. The original 20 entities and device UUID are preserved.
 
 ## 14. Testing strategy and numeric budget
 
-The full suite passes 882 tests with 90% aggregate coverage. Twenty-eight original
+The original photo iteration passed 882 tests with its then-current 90% aggregate
+coverage metric. See [current quality evidence](../docs/quality-status.md) for the
+new production-only branch denominator and complete notification-module gate. Twenty-eight original
 regressions cover profile isolation, private atomic writes, bounded hints,
 authenticated decoding/tamper rejection, sender filtering, credential reuse,
 failed startup, cancellation/task draining, exact camera/signal retrieval,
@@ -183,6 +190,11 @@ source files matched that installed artifact, and the receiver error check was c
 Those observations predate the public-configuration follow-up. That correction
 has synthetic coverage and a live unauthenticated metadata comparison; it was
 not reinstalled or exercised against household devices during PR preparation.
+It was subsequently installed with the notification implementation: 153 source
+files verified, unchanged token/UUID/original identities across restart/reload,
+and a 23.22-second three-image capture producing correlated reported/confirmed
+events. Fresh registration was not repeated. See the
+[implementation receipt](../docs/validation/2026-11-23-notification-implementation.json).
 
 ## 15. Documentation and discoverability
 

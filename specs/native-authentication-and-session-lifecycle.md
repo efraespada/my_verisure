@@ -180,8 +180,8 @@ cases, 6 refresh/failure cases, 6 HA-flow cases and 4 redaction/isolation cases:
 than using the total repository test count as coverage proof.
 
 Run the pinned HA suite and architecture/type/lint/distribution gates. Existing
-coverage reporting has no enforced numeric fail-under value; stronger new-module
-branch thresholds require an explicit future decision. Use synthetic credentials,
+coverage reporting has no repository-wide numeric minimum. The notification
+iteration enforces complete executable line/branch coverage for its ten modules. Use synthetic credentials,
 deterministic clocks and mocked transports. Live SMS/renewal evidence supplements
 these tests and is never a CI dependency.
 

@@ -1,0 +1,179 @@
+{
+  "date": "2026-11-23",
+  "source_commit": "29c35620bf17de631191664fdd4e9ed08643aff2",
+  "scope": "Offline code audit and deterministic synthetic reproductions; defects remain unfixed",
+  "environment": {
+    "python": "3.14.6",
+    "homeassistant": "2026.8.1",
+    "test_plugin": "0.13.355"
+  },
+  "verification": {
+    "focused_tests": 34,
+    "focused_tests_result": "passed",
+    "new_runtime_code": false,
+    "new_live_delivery_tests": false
+  },
+  "reproductions": [
+    {
+      "id": "AUDIT-STATE-ORDER",
+      "severity": "P1",
+      "source": "custom_components/my_verisure/coordinator.py:276",
+      "steps": [
+        "Pause the synthetic response of an actual alarm-only read.",
+        "Apply an actual publication method with a synthetic confirmed D result; no command method is called.",
+        "Release the older response and observe the published snapshot."
+      ],
+      "observed": {
+        "command_confirmed_status": "OK",
+        "status_after_older_read_returns": "ALARM"
+      },
+      "status": "reproduced; not fixed"
+    },
+    {
+      "id": "AUDIT-HTTP-ADMISSION",
+      "severity": "P1",
+      "source": "custom_components/my_verisure/core/api/base_client.py:98",
+      "steps": [
+        "Replace aiohttp session construction with a fake transport.",
+        "Set the session manager cooldown to active.",
+        "Exercise actual transport admission with synthetic HTTP 200,403,429."
+      ],
+      "observed": [
+        {
+          "response_status": 200,
+          "cooldown_already_active": true,
+          "post_calls": 1,
+          "recorded_blocks": 0
+        },
+        {
+          "response_status": 403,
+          "cooldown_already_active": true,
+          "post_calls": 1,
+          "recorded_blocks": 1,
+          "exception_type": "MyVerisureServiceBlockedError"
+        },
+        {
+          "response_status": 429,
+          "cooldown_already_active": true,
+          "post_calls": 1,
+          "recorded_blocks": 0,
+          "exception_type": "MyVerisureConnectionError"
+        }
+      ],
+      "status": "reproduced; not fixed"
+    },
+    {
+      "id": "AUDIT-PRIVATE-WRITE-CANCELLATION",
+      "severity": "P2",
+      "source": "custom_components/my_verisure/core/api/push_storage.py:34",
+      "steps": [
+        "Pause older worker write with a threading Event.",
+        "Cancel its caller; complete a second newer save.",
+        "Release the old worker; inspect only the synthetic temporary file."
+      ],
+      "observed_older_write_overwrites_newer": true,
+      "status": "reproduced; not fixed"
+    },
+    {
+      "id": "AUDIT-CACHED-CRYPTO",
+      "severity": "P2",
+      "source": "custom_components/my_verisure/core/api/push_receiver.py:143",
+      "steps": [
+        "Construct cached state with synthetic valid-shaped GCM fields and invalid DER/public/auth strings.",
+        "Call the actual cached-token validator without starting a receiver or Google registration."
+      ],
+      "observed_invalid_crypto_accepted": true,
+      "status": "reproduced; not fixed"
+    }
+  ],
+  "additional_code_findings": [
+    {
+      "id": "AUDIT-COMMAND-SERIALIZATION",
+      "severity": "P1",
+      "source": "custom_components/my_verisure/coordinator.py:405",
+      "finding": "No mutex across an entire alarm command/compound operation; no physical race test performed."
+    },
+    {
+      "id": "AUDIT-REFRESH-EXPANSION",
+      "severity": "P2",
+      "source": "custom_components/my_verisure/core/api/alarm_client.py:134",
+      "finding": "An unknown current-state code can initiate CheckAlarm and radio polling; alarm-only coordinator refresh can also expand to a full snapshot."
+    },
+    {
+      "id": "AUDIT-TOKEN-BINDING",
+      "severity": "P2",
+      "source": "custom_components/my_verisure/core/api/push_receiver.py:112",
+      "finding": "Registration token updates are reconciled with DeviceManager during prepare/login, not as one transaction with MCS reconnect."
+    },
+    {
+      "id": "AUDIT-DELIVERY-TRANSACTION",
+      "severity": "design-limit",
+      "source": "custom_components/my_verisure/core/api/push_receiver.py:121",
+      "finding": "SDK ACK, state persistence and HA publication are not one durable transaction."
+    },
+    {
+      "id": "AUDIT-SDK-FRAME-LIMIT",
+      "severity": "hardening",
+      "finding": "SDK 0.4.5 reads protobuf frames before the adapter can bound the decoded envelope; no exploit observed."
+    }
+  ],
+  "retained_reproduction_scripts": [
+    {
+      "path": "/private/tmp/my-verisure-notification-state-audit.py",
+      "sha256": "83aeade6c49863140b827bd4c18d956cf89e9d8f90d3b095f6aa5c925185b668",
+      "consumer": "prerequisite correctness fixes and normal regression tests",
+      "command": "PYTHONDONTWRITEBYTECODE=1 TMPDIR=/private/tmp PYTHONPATH=\"$PWD\" /private/tmp/my-verisure-validation-venv/bin/python /private/tmp/my-verisure-notification-state-audit.py"
+    },
+    {
+      "path": "/private/tmp/my-verisure-notification-transport-audit.py",
+      "sha256": "a90dba92d10bc891dd809c05d2674cdf68bc4ee265279211d457a5d76a9105c6",
+      "consumer": "prerequisite correctness fixes and normal regression tests",
+      "command": "PYTHONDONTWRITEBYTECODE=1 TMPDIR=/private/tmp PYTHONPATH=\"$PWD\" /private/tmp/my-verisure-validation-venv/bin/python /private/tmp/my-verisure-notification-transport-audit.py"
+    },
+    {
+      "path": "/private/tmp/my-verisure-notification-yaml-audit.py",
+      "sha256": "f397eedf6cdebf57f3087f9c467e9a3005f1f01073c23914049a05c1e77507f6",
+      "consumer": "proposed HA automation schema compatibility",
+      "command": "PYTHONDONTWRITEBYTECODE=1 /private/tmp/my-verisure-validation-venv/bin/python /private/tmp/my-verisure-notification-yaml-audit.py < /private/tmp/my-verisure-notification-proposed-automation.yaml"
+    }
+  ],
+  "real_http_sessions_created": 0,
+  "provider_calls": 0,
+  "alarm_commands": 0,
+  "credential_or_notification_settings_changed": false,
+  "evidence_limits": [
+    "Synthetic reproduction proves the listed current behavior, not a live household fault or a fix.",
+    "The previous full-suite baseline remains separate from the 34 focused tests run for this audit."
+  ],
+  "automation_example_schema_validation": {
+    "homeassistant": "2026.8.1",
+    "result": "AUTOMATION_AND_EVENT_TRIGGER_SCHEMAS_VALID",
+    "alias": "Verisure foto confirmada",
+    "triggers": [
+      {
+        "type": "event.received",
+        "target": {
+          "entity_id": [
+            "event.mi_alarma_resultados_confirmados"
+          ]
+        },
+        "event_types": [
+          "photo_ready"
+        ]
+      }
+    ],
+    "conditions": 1,
+    "actions": 1,
+    "mode": "queued",
+    "max": 10,
+    "verification_scope": "Static configuration schemas and template syntax only",
+    "ha_started": false,
+    "actions_executed": 0,
+    "live_ha_or_provider_calls": 0,
+    "not_verified": [
+      "Proposed entity and event-type existence",
+      "Service availability and end-to-end automation behavior",
+      "Real notification delivery"
+    ]
+  }
+}

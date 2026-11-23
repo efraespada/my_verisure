@@ -35,8 +35,9 @@ coverage: ## Run the complete suite with contextual coverage
 		--cov=custom_components/my_verisure \
 		--cov-context=test \
 		--cov-report=term-missing \
-		--cov-report=xml -q
-	rm -f coverage.xml device_identifiers.json
+		--cov-report=xml --cov-report=json:dist/notification-coverage.json -q
+	$(PYTHON) scripts/check_notification_coverage.py dist/notification-coverage.json
+	rm -f coverage.xml device_identifiers.json dist/notification-coverage.json
 
 lint: ## Run the full Flake8 check
 	$(PYTHON) -m flake8 cli custom_components scripts

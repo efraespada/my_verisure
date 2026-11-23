@@ -11,7 +11,7 @@ import os
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
-from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives.asymmetric import ec, ed25519
 from cryptography.hazmat.primitives.serialization import (
     Encoding, NoEncryption, PrivateFormat, PublicFormat,
 )
@@ -37,7 +37,7 @@ class FakeClient:
         self.callback = callback
         self.credentials = credentials or {
             "fcm": {"registration": {"token": "synthetic-registration-token"}},
-            "keys": {"private": "synthetic", "public": "synthetic", "secret": "synthetic"},
+            "keys": _credential_keys(),
             "gcm": {"android_id": "123", "security_token": "456", "app_id": "synthetic"},
             "config": {"project_id": push_receiver.PROJECT_ID},
         }
@@ -172,6 +172,44 @@ async def test_cancelled_registration_closes_http_owner(tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_cancelled_durable_prepare_retries_its_owned_writer(tmp_path, monkeypatch):
+    receiver = PushReceiver(FileManager(tmp_path), PhotoNotifications(), client_factory=FakeClient)
+    original = receiver._store.save
+    entered = asyncio.Event()
+    calls = 0
+
+    async def save(name, value):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            entered.set()
+            await asyncio.Event().wait()
+        await original(name, value)
+
+    monkeypatch.setattr(receiver._store, "save", save)
+    preparing = asyncio.create_task(receiver.async_prepare())
+    try:
+        await entered.wait()
+        preparing.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await preparing
+        assert await receiver.async_prepare() == "synthetic-registration-token"
+        assert calls == 2
+        assert not receiver._dirty
+    finally:
+        await asyncio.gather(receiver.async_stop(), return_exceptions=True)
+
+
+@pytest.mark.asyncio
+async def test_stop_drains_an_already_cancelled_writer(tmp_path):
+    receiver = PushReceiver(FileManager(tmp_path), PhotoNotifications(), client_factory=FakeClient)
+    receiver._writer = asyncio.create_task(asyncio.Event().wait())
+    receiver._writer.cancel()
+    await asyncio.gather(receiver._writer, return_exceptions=True)
+    await receiver.async_stop()
+
+
+@pytest.mark.asyncio
 async def test_failed_start_backoff_has_no_leaked_sdk_tasks(tmp_path):
     class BrokenClient(FakeClient):
         async def start(self):
@@ -190,6 +228,61 @@ async def test_failed_start_backoff_has_no_leaked_sdk_tasks(tmp_path):
 
 def _b64(value):
     return base64.urlsafe_b64encode(value).decode().rstrip("=")
+
+
+def _credential_keys(curve=None):
+    key = ec.generate_private_key(curve or ec.SECP256R1())
+    return {
+        "private": _b64(key.private_bytes(Encoding.DER, PrivateFormat.PKCS8, NoEncryption())),
+        "public": _b64(key.public_key().public_bytes(Encoding.X962, PublicFormat.UncompressedPoint)),
+        "secret": _b64(os.urandom(16)),
+    }
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("defect", [
+    "private_base64", "private_der", "non_ec_private", "wrong_curve", "public_base64", "public_encoding",
+    "public_mismatch", "secret_base64", "secret_short", "secret_long",
+])
+async def test_corrupt_cached_crypto_requires_fresh_registration(tmp_path, public_configuration, defect):
+    credentials = FakeClient(None, None, None, None).credentials
+    keys = credentials["keys"]
+    if defect == "private_base64":
+        keys["private"] = "!invalid!"
+    elif defect == "private_der":
+        keys["private"] = _b64(b"not-a-private-key")
+    elif defect == "non_ec_private":
+        keys["private"] = _b64(ed25519.Ed25519PrivateKey.generate().private_bytes(
+            Encoding.DER, PrivateFormat.PKCS8, NoEncryption(),
+        ))
+    elif defect == "wrong_curve":
+        credentials["keys"] = _credential_keys(ec.SECP384R1())
+    elif defect == "public_base64":
+        keys["public"] = "!invalid!"
+    elif defect == "public_encoding":
+        keys["public"] = _b64(b"not-an-uncompressed-point")
+    elif defect == "public_mismatch":
+        keys["public"] = _credential_keys()["public"]
+    elif defect == "secret_base64":
+        keys["secret"] = "!invalid!"
+    else:
+        keys["secret"] = _b64(b"x" * (15 if defect == "secret_short" else 17))
+
+    supplied = []
+
+    def factory(callback, fcm_config, restored, updated, **kwargs):
+        supplied.append(restored)
+        return FakeClient(callback, fcm_config, restored, updated, **kwargs)
+
+    receiver = PushReceiver(FileManager(tmp_path), PhotoNotifications(), client_factory=factory)
+    receiver._credentials = credentials
+    assert receiver._cached_token() is None
+    await receiver._store.save("push_credentials.json", {"credentials": credentials})
+    assert await receiver.async_prepare() == "synthetic-registration-token"
+    assert supplied == [None]
+    receiver._client.checkin_or_register.assert_awaited_once()
+    public_configuration.assert_awaited_once()
+    await receiver.async_stop()
 
 
 @pytest.mark.parametrize("reversed_keys", [False, True])
