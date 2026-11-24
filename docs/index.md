@@ -10,7 +10,7 @@ Custom integration for Home Assistant connecting to **Verisure / Securitas Direc
 | Automating your alarm | [Entities](user-guide/entities.md) · [Services](user-guide/services.md) · [Automations](user-guide/automations.md) |
 | Debugging issues | [Troubleshooting](user-guide/troubleshooting.md) · [FAQ](user-guide/faq.md) |
 | Contributor / developer | [Developer guide](developer-guide/README.md) · [Architecture](architecture/README.md) · [Technical reference](technical/README.md) |
-| Planning / roadmap | [Roadmap](roadmap/README.md) |
+| Planning / roadmap | [Roadmap](roadmap/README.md) · [App capability audit](technical/2026-11-24-app-capability-audit.md) · [Future SDDs](../specs/CATALOG.md) |
 
 ## Documentation map
 
@@ -26,15 +26,15 @@ Custom integration for Home Assistant connecting to **Verisure / Securitas Direc
 ## Repository facts (current implementation)
 
 - **Domain:** `my_verisure` · **Integration type:** hub · **IoT class:** cloud_polling  
-- **Home Assistant:** `2026.8.1` (Core; Python >=3.14.2)
+- **Home Assistant:** `2026.11.2` (Core; Python >=3.14.2)
 - **API endpoint:** `https://customers.verisure.es/owa-api/graphql` (see [`core/api/fields.py`](../custom_components/my_verisure/core/api/fields.py))
 - **Photo completion:** optional FCM with 20-second polling fallback; routine alarm polling defaults to 10 minutes.
 - **Specifications:** [capability catalog](../specs/CATALOG.md) and [quality evidence](quality-status.md).
-- **Platforms:** `alarm_control_panel`, `sensor`, `binary_sensor`, `camera`, `button` (see [`integration.py`](../custom_components/my_verisure/integration.py))
+- **Platforms:** `alarm_control_panel`, `sensor`, `binary_sensor`, `camera`, `button`, `event` (see [`integration.py`](../custom_components/my_verisure/integration.py))
 
 ## Search keywords (findability)
 
-`my_verisure`, `Verisure`, `Securitas Direct`, `GraphQL`, `alarm_control_panel`, `arm_away`, `arm_home`, `arm_night`, `disarm`, `get_status`, `refresh_camera_images`, `HACS`, `config flow`, `OTP`, `installation_id`, `cloud polling`, `Home Assistant 2026.8.1`.
+`my_verisure`, `Verisure`, `Securitas Direct`, `GraphQL`, `alarm_control_panel`, `arm_away`, `arm_home`, `arm_night`, `disarm`, `get_status`, `refresh_camera_images`, `HACS`, `config flow`, `OTP`, `installation_id`, `cloud polling`, `Home Assistant 2026.11.2`.
 
 ## Contributing to docs
 

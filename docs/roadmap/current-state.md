@@ -19,3 +19,17 @@
   push/polling/restart behavior have evidence in the [capability catalog](../../specs/CATALOG.md).
 - Broader camera coverage, physical compound-command recovery and
   stale-image presentation remain separate acceptance boundaries.
+
+## Evaluated future app coverage
+
+The [global web/native audit](../technical/2026-11-24-app-capability-audit.md)
+evaluates all recovered operation families, including access/users, panel/sensor
+settings, provider routines, activity/inbox, media, locks, health, administration
+and native personal services. The [catalog](../../specs/CATALOG.md) separates five
+existing baselines from ten Draft SDDs; proposed functions are not installed.
+
+Recommended order: shared permissions/operation lifecycle, bounded read-only
+views, confirmed configuration/access changes, schedules, then hardware-specific
+media/locks and protected personal/account flows. Native SDK transport, mailbox
+access, telemetry sources and panel-specific write contracts remain explicit
+readiness gates. Purchases, consent and emergency actuation retain official flows.

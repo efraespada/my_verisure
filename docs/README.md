@@ -24,5 +24,6 @@ This directory contains **production-oriented documentation** for the My Verisur
 - **Contributors:** [developer-guide/setup.md](developer-guide/setup.md)  
 - **Notification automations and blueprint:** [automation-notifications.md](automation-notifications.md)
 - **Notification research and implementation:** [technical/notification-audit-and-design.md](technical/notification-audit-and-design.md)
+- **Future app functionality and SDDs:** [web/native audit](technical/2026-11-24-app-capability-audit.md) · [capability catalog](../specs/CATALOG.md)
 
 Legacy project docs at repo root (e.g. `TESTING.md`, `MULTIPLE_ALARMS_GUIDE.md`) remain for historical context; prefer this tree for structured navigation.

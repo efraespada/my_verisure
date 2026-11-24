@@ -75,6 +75,12 @@ The primary automated validation target is HA Core 2026.11.2, matching the
 separately observed household runtime. See the [quality evidence](docs/quality-status.md)
 and [capability specifications](specs/CATALOG.md) for the tested scope and remaining limits.
 
+Future app coverage is evaluated in the [web/native functionality audit](docs/technical/2026-11-24-app-capability-audit.md).
+Ten Draft SDDs cover access/users, installation settings, routines, activity/inbox,
+camera media, locks, health, protected administration and native personal services,
+with a shared management foundation. These are implementation plans; they do not
+add features to release 1.1.0. See the [future capability catalog](specs/CATALOG.md#future-app-capabilities--draft).
+
 ## 🔧 Available Entities
 
 Home Assistant assigns entity IDs from **friendly names** and **unique IDs** (see `custom_components/my_verisure/`). Typical patterns:
