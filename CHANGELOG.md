@@ -1,5 +1,20 @@
 # Changelog
 
+## [Unreleased]
+
+### Documentation
+
+- Evaluate official Spanish web 3.8.0 and native WebView 10.192.1 functionality
+  for future HA expansion, including native-only surfaces and SDK limitations.
+- Add eleven Draft SDDs with capability/permission gates, Clean Architecture design,
+  acceptance, recovery, privacy and future test budgets. Catalog all 263 recovered
+  unique GraphQL operation names (278 textual variants) and 152 native commands
+  with source identities and decisions.
+- Specify complete physical-device registration, independent remote/local names,
+  sensor day/night combinations, chime prerequisites, manual Wi-Fi and screen-level
+  coverage for comfort, visits, routines and battery workflows.
+  This documentation does not add runtime features or change the installed version.
+
 ## [1.1.0] - 2026-11-23
 
 ### Added

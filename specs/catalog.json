@@ -255,6 +255,241 @@
         "docs/technical/2026-11-23-project-quality-audit.md",
         "docs/adr/0001-core-and-adapter-dependencies.md"
       ]
+    },
+    {
+      "id": "app-management-foundation",
+      "title": "Shared management capabilities, permissions and operation lifecycle",
+      "status": "draft",
+      "scope": "Shared admission, semantic ports, per-entry scope, explicit permissions and safe operation lifecycle.",
+      "owner": "My Verisure maintainers",
+      "lastVerified": "2026-11-24",
+      "specs": [
+        "specs/app-management-foundation.md"
+      ],
+      "workflows": [],
+      "entrypoints": [],
+      "code": [],
+      "tests": [],
+      "documentation": [
+        "docs/technical/2026-11-24-app-capability-audit.md",
+        "docs/validation/2026-11-24-app-capabilities.json",
+        "specs/README.md",
+        "docs/adr/0001-core-and-adapter-dependencies.md"
+      ]
+    },
+    {
+      "id": "access-control-and-users",
+      "title": "Llaves, mandos, usuarios y permisos",
+      "status": "draft",
+      "scope": "Inventory, access/tracking changes, reassignment and authorized user administration across panel variants.",
+      "owner": "My Verisure maintainers",
+      "lastVerified": "2026-11-24",
+      "specs": [
+        "specs/access-control-and-users.md"
+      ],
+      "workflows": [],
+      "entrypoints": [],
+      "code": [],
+      "tests": [],
+      "documentation": [
+        "docs/technical/2026-11-24-app-capability-audit.md",
+        "docs/validation/2026-11-24-app-capabilities.json",
+        "specs/README.md",
+        "docs/adr/0001-core-and-adapter-dependencies.md"
+      ]
+    },
+    {
+      "id": "physical-device-inventory",
+      "title": "Inventario físico completo y registro de dispositivos HA",
+      "status": "draft",
+      "scope": "All physical device families, metadata, HA registry identity/hierarchy, independent local/remote names and migration compatibility.",
+      "owner": "My Verisure maintainers",
+      "lastVerified": "2026-11-24",
+      "specs": [
+        "specs/physical-device-inventory.md"
+      ],
+      "workflows": [],
+      "entrypoints": [],
+      "code": [],
+      "tests": [],
+      "documentation": [
+        "docs/technical/2026-11-24-configuration-screen-audit.md",
+        "docs/technical/2026-11-24-app-capability-audit.md",
+        "docs/validation/2026-11-24-app-capabilities.json",
+        "specs/README.md",
+        "docs/adr/0001-core-and-adapter-dependencies.md"
+      ]
+    },
+    {
+      "id": "installation-and-device-settings",
+      "title": "Configuración de instalación, panel, sensores y red",
+      "status": "draft",
+      "scope": "Panel delays/partitions, sensor participation, sounds, aliases and network settings.",
+      "owner": "My Verisure maintainers",
+      "lastVerified": "2026-11-24",
+      "specs": [
+        "specs/installation-and-device-settings.md"
+      ],
+      "workflows": [],
+      "entrypoints": [],
+      "code": [],
+      "tests": [],
+      "documentation": [
+        "docs/technical/2026-11-24-configuration-screen-audit.md",
+        "docs/technical/2026-11-24-app-capability-audit.md",
+        "docs/validation/2026-11-24-app-capabilities.json",
+        "specs/README.md",
+        "docs/adr/0001-core-and-adapter-dependencies.md"
+      ]
+    },
+    {
+      "id": "provider-routines-and-schedules",
+      "title": "Rutinas, recordatorios y calendarios del proveedor",
+      "status": "draft",
+      "scope": "Provider schedules, reminders, long periods, pet mode and device/lock programs.",
+      "owner": "My Verisure maintainers",
+      "lastVerified": "2026-11-24",
+      "specs": [
+        "specs/provider-routines-and-schedules.md"
+      ],
+      "workflows": [],
+      "entrypoints": [],
+      "code": [],
+      "tests": [],
+      "documentation": [
+        "docs/technical/2026-11-24-configuration-screen-audit.md",
+        "docs/technical/2026-11-24-app-capability-audit.md",
+        "docs/validation/2026-11-24-app-capabilities.json",
+        "specs/README.md",
+        "docs/adr/0001-core-and-adapter-dependencies.md"
+      ]
+    },
+    {
+      "id": "activity-inbox-and-incidents",
+      "title": "Actividad, buzón e incidencias",
+      "status": "draft",
+      "scope": "Separate bounded activity, mailbox, counters and incident observations; no historical replay as new events.",
+      "owner": "My Verisure maintainers",
+      "lastVerified": "2026-11-24",
+      "specs": [
+        "specs/activity-inbox-and-incidents.md"
+      ],
+      "workflows": [],
+      "entrypoints": [],
+      "code": [],
+      "tests": [],
+      "documentation": [
+        "docs/technical/2026-11-24-app-capability-audit.md",
+        "docs/validation/2026-11-24-app-capabilities.json",
+        "specs/README.md",
+        "docs/adr/0001-core-and-adapter-dependencies.md"
+      ]
+    },
+    {
+      "id": "connected-camera-media",
+      "title": "Cámaras conectadas, vídeo, galería y configuración",
+      "status": "draft",
+      "scope": "Hardware-specific gallery, streaming, SD playback/settings and authorized camera integrations.",
+      "owner": "My Verisure maintainers",
+      "lastVerified": "2026-11-24",
+      "specs": [
+        "specs/connected-camera-media.md"
+      ],
+      "workflows": [],
+      "entrypoints": [],
+      "code": [],
+      "tests": [],
+      "documentation": [
+        "docs/technical/2026-11-24-app-capability-audit.md",
+        "docs/validation/2026-11-24-app-capabilities.json",
+        "specs/README.md",
+        "docs/adr/0001-core-and-adapter-dependencies.md"
+      ]
+    },
+    {
+      "id": "smart-lock-management",
+      "title": "Cerraduras inteligentes y configuración",
+      "status": "draft",
+      "scope": "Confirmed physical lock observations/actions, autolock and model-specific configuration.",
+      "owner": "My Verisure maintainers",
+      "lastVerified": "2026-11-24",
+      "specs": [
+        "specs/smart-lock-management.md"
+      ],
+      "workflows": [],
+      "entrypoints": [],
+      "code": [],
+      "tests": [],
+      "documentation": [
+        "docs/technical/2026-11-24-app-capability-audit.md",
+        "docs/validation/2026-11-24-app-capabilities.json",
+        "specs/README.md",
+        "docs/adr/0001-core-and-adapter-dependencies.md"
+      ]
+    },
+    {
+      "id": "system-health-and-maintenance",
+      "title": "Salud, entorno y mantenimiento",
+      "status": "draft",
+      "scope": "Verified diagnostics, environmental readings, battery workflows and maintenance observations.",
+      "owner": "My Verisure maintainers",
+      "lastVerified": "2026-11-24",
+      "specs": [
+        "specs/system-health-and-maintenance.md"
+      ],
+      "workflows": [],
+      "entrypoints": [],
+      "code": [],
+      "tests": [],
+      "documentation": [
+        "docs/technical/2026-11-24-configuration-screen-audit.md",
+        "docs/technical/2026-11-24-app-capability-audit.md",
+        "docs/validation/2026-11-24-app-capabilities.json",
+        "specs/README.md",
+        "docs/adr/0001-core-and-adapter-dependencies.md"
+      ]
+    },
+    {
+      "id": "protected-account-administration",
+      "title": "Administración protegida de cuenta e instalación",
+      "status": "draft",
+      "scope": "Private action plans, contacts, secure intent authorization and document access; official legal/commerce flows.",
+      "owner": "My Verisure maintainers",
+      "lastVerified": "2026-11-24",
+      "specs": [
+        "specs/protected-account-administration.md"
+      ],
+      "workflows": [],
+      "entrypoints": [],
+      "code": [],
+      "tests": [],
+      "documentation": [
+        "docs/technical/2026-11-24-app-capability-audit.md",
+        "docs/validation/2026-11-24-app-capabilities.json",
+        "specs/README.md",
+        "docs/adr/0001-core-and-adapter-dependencies.md"
+      ]
+    },
+    {
+      "id": "personal-protection-and-native-services",
+      "title": "Protección personal y funciones del dispositivo nativo",
+      "status": "draft",
+      "scope": "Conditional Conéctame, personal-service observations and authorized presence; local HA equivalents.",
+      "owner": "My Verisure maintainers",
+      "lastVerified": "2026-11-24",
+      "specs": [
+        "specs/personal-protection-and-native-services.md"
+      ],
+      "workflows": [],
+      "entrypoints": [],
+      "code": [],
+      "tests": [],
+      "documentation": [
+        "docs/technical/2026-11-24-app-capability-audit.md",
+        "docs/validation/2026-11-24-app-capabilities.json",
+        "specs/README.md",
+        "docs/adr/0001-core-and-adapter-dependencies.md"
+      ]
     }
   ]
 }

@@ -1,8 +1,8 @@
 # Capability catalog
 
-Source: [catalog.json](catalog.json), schema version 1. It contains five as-built
-baselines, not claims of complete household delivery coverage
-or an installed Copilot workflow.
+Source: [catalog.json](catalog.json), schema version 1. It contains five as-built baselines and eleven Draft future capabilities. Baselines
+do not claim complete household delivery coverage. Drafts do not add runtime
+features or an installed Copilot workflow.
 
 | ID | Specification | Status | Verified | Principal remaining evidence |
 |---|---|---|---|---|
@@ -14,3 +14,24 @@ or an installed Copilot workflow.
 
 See [the specification standard](README.md) for status semantics, evidence rules
 and the explicit boundary before a future Copilot integration.
+
+## Future app capabilities — Draft
+
+The [global app audit](../docs/technical/2026-11-24-app-capability-audit.md) evaluates
+web and native surfaces together. Research dates below do not claim implementation
+or tests. All eleven entries retain open readiness gates; code/test arrays in the JSON
+are empty until the implementation exists.
+
+| ID | Specification | Status | Research date | Principal readiness gate |
+|---|---|---|---|---|
+| `app-management-foundation` | [Shared management capabilities, permissions and operation lifecycle](app-management-foundation.md) | Draft | 2026-11-24 | capabilities/roles, protected authorization, resource generations and operation admission |
+| `access-control-and-users` | [Llaves, mandos, usuarios y permisos](access-control-and-users.md) | Draft | 2026-11-24 | panel/role contracts, tri-state patches, tracking feature flag and partial confirmation |
+| `physical-device-inventory` | [Inventario físico completo y dispositivos HA](physical-device-inventory.md) | Draft | 2026-11-24 | authoritative inventory/identity, independent naming and migration of device targets |
+| `installation-and-device-settings` | [Configuración de instalación, panel, sensores y red](installation-and-device-settings.md) | Draft | 2026-11-24 | effective panel ranges, radio confirmation, hardware flags and sensitive network flow |
+| `provider-routines-and-schedules` | [Rutinas, recordatorios y calendarios del proveedor](provider-routines-and-schedules.md) | Draft | 2026-11-24 | non-idempotent state changes, timezone/DST, pet-mode semantics and legal gates |
+| `activity-inbox-and-incidents` | [Actividad, buzón e incidencias](activity-inbox-and-incidents.md) | Draft | 2026-11-24 | legitimate native inbox transport, paging, privacy and incident detail contracts |
+| `connected-camera-media` | [Cámaras conectadas, vídeo, galería y configuración](connected-camera-media.md) | Draft | 2026-11-24 | SDK transport, hardware, codecs, media bounds and authorization per camera family |
+| `smart-lock-management` | [Cerraduras inteligentes y configuración](smart-lock-management.md) | Draft | 2026-11-24 | hardware, lock versus open semantics, timestamps and safe physical validation |
+| `system-health-and-maintenance` | [Salud, entorno y mantenimiento](system-health-and-maintenance.md) | Draft | 2026-11-24 | actual environmental source, units, guided DIY mutations and maintenance contracts |
+| `protected-account-administration` | [Administración protegida de cuenta e instalación](protected-account-administration.md) | Draft | 2026-11-24 | intent-bound high-security authorization and private HA administration UX |
+| `personal-protection-and-native-services` | [Protección personal y funciones del dispositivo nativo](personal-protection-and-native-services.md) | Draft | 2026-11-24 | SDK availability, personal consent/scope and legitimate service data; no HA emergency actuation |

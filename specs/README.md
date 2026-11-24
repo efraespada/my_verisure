@@ -35,6 +35,22 @@ support remains distinct from actual non-photo delivery on a household account.
 The [quality record](../docs/quality-status.md) separates pinned offline checks from
 controlled household evidence. Alarm total remains outside the live-tested scope.
 
+## Future coverage of the official app
+
+The [2026-11-24 global audit](../docs/technical/2026-11-24-app-capability-audit.md)
+evaluates the Spanish web 3.8.0 and native WebView 10.192.1. Its
+[operation/bridge inventory](../docs/validation/2026-11-24-app-capabilities.json)
+assigns every recovered document and command to a catalog capability. It is scoped
+to inspected inputs, not every country, hardware SDK or unloaded future module.
+
+Eleven Draft SDDs cover the shared management foundation, physical device inventory, access/users, installation
+and device settings, provider routines, activity/inbox/incidents, connected-camera
+media, smart locks, health/maintenance, protected administration and personal/native
+services. Their proposed acceptance cases and numeric test budgets are future
+work; no new entities, actions or tests are claimed by adding these specifications.
+`lastVerified` for a Draft denotes research/design review, not runtime validation.
+See [CATALOG.md](CATALOG.md) for priorities and unresolved gates.
+
 ## Required content
 
 Use [_template.md](_template.md). Every specification covers its numbered sections
