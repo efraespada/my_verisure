@@ -36,6 +36,10 @@ Selected-camera live HA captures and optional production push are verified;
 broader camera coverage remains an acceptance requirement. Historic
 motivation for list-index identity is unknown.
 
+The future [complete physical-device registry](physical-device-inventory.md) is a
+separate Draft. This baseline does not claim that every listed sensor already has
+a dedicated HA device; current cameras share the installation hub.
+
 ## 3. Actors, surfaces and terminology
 
 | Actor/surface | Responsibility |

@@ -19,6 +19,12 @@ Se aplica íntegramente la [base común de gestión](app-management-foundation.m
 
 Se observaron editor de tiempos, lectura Wi-Fi y modos de un fotodetector. Las lecturas de panel, red y programa de dispositivo iniciaban una solicitud y consultaban estados WAIT/OK. El menú y sus formularios se contrastaron con el nativo; no se guardaron valores.
 
+La segunda revisión contrastó las siete capturas del usuario y recorrió el listado
+nativo completo, fichas de distintas familias, modos de un contacto, timbre
+filtrado y formulario de otra red. La [matriz de pantallas](../docs/technical/2026-11-24-configuration-screen-audit.md)
+registra cada control, información, nivel de evidencia y requisito. El inventario
+físico completo en HA tiene ahora [SDD propio](physical-device-inventory.md).
+
 La [auditoría](../docs/technical/2026-11-24-app-capability-audit.md) y el [inventario de operaciones](../docs/validation/2026-11-24-app-capabilities.json) separan fuente estática, UI nativa/web y consultas observadas. Este SDD no declara nuevas funciones instaladas.
 
 ## 3. Actors, surfaces and terminology
@@ -69,9 +75,64 @@ El cliente inspeccionado define defaults FAST de entrada [30,45,60] y salida [60
 
 Aplicar estados unknown/stale/pending/confirmed/partial/ambiguous según la base común. Un resultado antiguo, duplicado o cancelado no sustituye hechos más recientes.
 
+### Participación de sensores — SET-1/3/6
+
+Parcial día y parcial noche son **booleanos independientes**: se observó un
+contacto con ambos seleccionados. Proyectar dos `switch` de configuración cuando
+se admitan, preservando las cuatro combinaciones. Un `select` exclusivo entre
+total/día/noche perdería información. Total permanece de sólo lectura cuando el
+cliente lo fija; los perimetrales observados muestran participación exterior no
+editable. Leer/conservar el programa completo antes de cambiar un campo y
+confirmar después; no mandar ninguna orden ARM ni modificar el mapeo Home/Night/Away.
+
+### Timbre — SET-1/4/6
+
+Separar `chime_enabled` del sensor y habilitación de campana del panel. La UI
+indica que la campana física debe estar encendida: una configuración de sensor
+guardada no demuestra que se vaya a oír un sonido. No confundir el flag de
+capacidad `doorbellButton`, un dispositivo doorbell y un estado efectivo del timbre.
+Cuando no exista lectura autoritativa, el estado sigue unknown aunque haya botones
+Activar/Desactivar; se pueden ofrecer acciones explícitas con resultado confirmado
+sin inventar un switch optimista. El enlace desde una ficha filtra un sensor;
+el menú general lista varios. Cambiar uno nunca aplica la intención a todos.
+
+### Red — SET-5/6
+
+La app observada permite SSID manual, contraseña, tipo de seguridad y QR. El
+formulario muestra red abierta/WPA2; no asumir que todos los paneles admiten esos
+mismos tipos ni anunciar WPA3 sin contrato. El escaneo de redes solicita ubicación
+al móvil; se rechazó el permiso y aun así se pudo abrir el formulario manual.
+La futura edición HA por SSID manual no debe depender del escáner del teléfono
+ni de ubicación, cámara o un adaptador Wi-Fi del host HA. QR es una comodidad de
+frontend opcional, nunca una capacidad de escaneo ficticia del servidor Linux.
+
+El cambio requiere permiso de administración, validación por panel, consentimiento
+concreto y seguimiento hasta confirmación. Puede cortar la conectividad: el estado
+ambiguo no se reenvía ni se revierte automáticamente. No poner contraseña en
+acciones públicas, eventos, atributos, trazas de automatizaciones o Recorder;
+recogerla en un flujo privado autenticado y descartarla al terminar/cancelar.
+
+### Alias y tiempos — SET-2/7
+
+El nombre remoto es independiente de `name_by_user` en HA (INV-5). Proponer `text`
+de configuración del alias remoto con límites del proveedor y confirmación;
+conservar identidad, áreas y nombres locales. Un cambio local no escribe en Verisure.
+«Tiempos de entrada y salida» del listado de dispositivos y «Modificar tiempos
+de entrada/salida» del menú general son accesos a una misma capacidad de gestión:
+no crear dos juegos divergentes de valores ni repetir consultas radio por ambos.
+El adaptador debe resolver el recurso concreto por ruta/panel; que dos enlaces
+ofrezcan tiempos no prueba un único endpoint para todas las generaciones.
+
 ## 7. User-facing configuration
 
 Familia desactivada inicialmente. Proponer acciones independientes para alias, delays, programa de sensor, sonido y red; `select`/`number` de configuración sólo cuando se conozcan opciones efectivas. No ampliar el sondeo normal. Contraseña Wi-Fi: entrada secreta temporal; no restaurarla en formularios ni atributos.
+
+Contrato de presentación propuesto: `text` para alias remoto, dos `switch` para
+participación día/noche, `switch` o acciones explícitas de timbre según lectura
+disponible, cuatro controles de tiempo legacy o particiones equivalentes según
+capacidad, lectura de red/fuerza y flujo privado de cambio Wi-Fi. Son entidades
+de configuración asociadas al aparato correcto; no sustituirlas por una lista de
+atributos del hub ni prometer estado instantáneo de puerta/movimiento.
 
 ## 8. Clean Architecture design
 
@@ -109,7 +170,11 @@ Habilitación por entrada y capacidad, primero lecturas, después escrituras man
 
 ## 14. Testing strategy and numeric budget
 
-28 casos: siete riesgos por cuatro variantes, incluyendo límites exactos por panel, bool versus int, WAIT/OK/KO, configuración concurrente, red ambigua y secreto redactado.
+44 casos futuros: 28 de siete riesgos por cuatro variantes, incluyendo límites
+por panel, bool/int, WAIT/OK/KO, concurrencia y privacidad; más 16 casos de
+proyección: cuatro combinaciones día/noche, dos modos fijos/ausentes, tres estados
+de timbre/campana/lectura desconocida, tres de Wi-Fi manual/permiso denegado/QR
+opcional, dos de entrada duplicada de tiempos y dos de alias remoto/local.
 
 Son mínimos propuestos para la futura implementación, no tests ya escritos ni cobertura medida. Usar relojes/repositorios/HTTP falsos y cero llamadas domésticas en CI; exigir 100% de líneas/rama en políticas críticas y constructores de mutaciones nuevos y respetar los gates del proyecto.
 
@@ -128,6 +193,13 @@ Mantener este SDD, [CATALOG.md](CATALOG.md), el inventario de operaciones y la a
 | SET-5 | Se solicita cambio de red; hay fallo; no se registra la contraseña ni se repite el cambio. |
 | SET-6 | Una operación devuelve referenceId; la UI sigue pendiente hasta confirmar, no muestra guardado inmediato. |
 | SET-7 | Dos clientes cambian el alias; se detecta conflicto y se relee sin cambiar el unique_id. |
+
+Variantes obligatorias: SET-3 conserva día=true/noche=true y permite modificar
+sólo uno sin armar; exterior fijo no ofrece edición. SET-4 diferencia campana
+desconocida, timbre del sensor y capacidad, sin inferir sonido efectivo. SET-5
+funciona con SSID manual y permiso de ubicación denegado; cancelar no manda el
+setter. SET-2 no duplica recursos por los dos accesos de UI. SET-7 preserva nombre
+local/área al confirmar el alias remoto y nunca escribe por un rename local.
 
 Cada escenario se descompone en variantes de tipos, autorización, error, concurrencia y recuperación según el presupuesto. La validación física requiere autorización concreta independiente.
 
@@ -160,5 +232,8 @@ Revisar contratos y bloqueos → modelos/puertos semánticos → casos de uso co
 ## 20. References and decisions
 
 [Configuración oficial](https://www.verisure.es/cliente/configuracion-sistema) · [Datos de instalación actuales](installation-cameras-and-entity-identity.md) · [Administración protegida](protected-account-administration.md)
+
+[Inventario físico](physical-device-inventory.md) ·
+[Matriz de pantallas y controles](../docs/technical/2026-11-24-configuration-screen-audit.md).
 
 [Base común](app-management-foundation.md) · [Norma de SDDs](README.md) · [Decisión de dependencias](../docs/adr/0001-core-and-adapter-dependencies.md). Estado Draft: la elección de exposiciones HA es una recomendación de diseño, no un comportamiento observado del proveedor.

@@ -14,14 +14,14 @@
 Ampliar la integración por capacidades independientes, con lecturas bajo demanda,
 comandos tipados y resultados confirmados. El catálogo de la app es una fuente de
 investigación; no constituye una autorización del proveedor ni una promesa de
-soporte de todos los dispositivos. Los diez SDDs Draft describen trabajo futuro.
+soporte de todos los dispositivos. Los once SDDs Draft describen trabajo futuro.
 
 ## 2. Problem, current behavior and evidence
 
 La [auditoría global](../docs/technical/2026-11-24-app-capability-audit.md) distingue
 la web 3.8.0, el WebView nativo 10.192.1/3, las consultas observadas y los contratos
 estáticos. El [inventario](../docs/validation/2026-11-24-app-capabilities.json)
-asigna 263 documentos GraphQL y 152 comandos del puente nativo. Un comando del
+asigna 263 nombres de operación GraphQL (278 variantes) y 152 comandos del puente nativo. Un comando del
 puente es una llamada al SDK del móvil, no un endpoint HTTP reutilizable.
 
 Las cinco capacidades as-built conservan su alcance actual. Esta especificación

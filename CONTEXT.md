@@ -44,7 +44,7 @@ environment. Historical live receipts are evidence for their recorded build,
 not proof that every subsequent change has been installed.
 
 The [global web/native app audit](docs/technical/2026-11-24-app-capability-audit.md)
-and ten Draft SDDs describe future capability expansion. They are separate from
+and eleven Draft SDDs describe future capability expansion. They are separate from
 the five as-built baselines; source signatures and native RPC declarations are
 research evidence, not implemented endpoints or permission to execute them.
 

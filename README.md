@@ -76,10 +76,13 @@ separately observed household runtime. See the [quality evidence](docs/quality-s
 and [capability specifications](specs/CATALOG.md) for the tested scope and remaining limits.
 
 Future app coverage is evaluated in the [web/native functionality audit](docs/technical/2026-11-24-app-capability-audit.md).
-Ten Draft SDDs cover access/users, installation settings, routines, activity/inbox,
+Eleven Draft SDDs cover complete physical-device inventory, access/users, installation settings, routines, activity/inbox,
 camera media, locks, health, protected administration and native personal services,
 with a shared management foundation. These are implementation plans; they do not
 add features to release 1.1.0. See the [future capability catalog](specs/CATALOG.md#future-app-capabilities--draft).
+The [configuration screen checklist](docs/technical/2026-11-24-configuration-screen-audit.md)
+maps device inventory, naming, modes, chime, Wi-Fi, delays, comfort, maintenance,
+routines and battery workflows to their requirements and evidence limits.
 
 ## 🔧 Available Entities
 

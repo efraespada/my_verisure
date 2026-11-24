@@ -25,7 +25,7 @@ bridge contract. Retain private material outside Git.
   do not modify platform flags or grant additional permissions.
 - [x] Classify every recovered GraphQL operation and native command into a
   product family, with source identity, evidence level and HA disposition.
-- [x] Write the audit, coverage inventory and ten Draft SDDs: shared management
+- [x] Write the audit, coverage inventory and eleven Draft SDDs: shared management
   foundation, access/users, settings, routines, activity/inbox/incidents, camera
   media, smart locks, health/maintenance, protected administration and native
   personal-protection services.
@@ -40,7 +40,7 @@ bridge contract. Retain private material outside Git.
 - [x] Prepare reviewable documentation changes from develop, a PR description
   and the minimal source/evidence required for the later implementation.
 
-## Validation receipt
+## Initial validation receipt
 
 `make docs-check HA_PYTHON=<current-HA-environment>/bin/python` and
 `git diff --check` passed. The one-off offline audit check confirmed fifteen
@@ -51,6 +51,30 @@ private-data patterns returned zero matches; manual content review supplements
 that check. No runtime file, manifest version or installed HA deployment changed.
 Future runtime tests and coverage remain unimplemented. The public inventory
 records the same scope and limitations.
+
+## Configuration follow-up after the user screenshots
+
+- [x] Contrast the seven screenshots with existing requirements and source.
+- [x] Traverse the complete native device list and representative family details;
+  inspect independent modes, scoped chime and manual Wi-Fi without saving.
+- [x] Inspect comfort/presentation settings, visits, routine/reminder forms,
+  failure-only notification preference and the empty battery-workflow list.
+- [x] Add `specs/physical-device-inventory.md`; expand settings, routines and health.
+- [x] Add `docs/technical/2026-11-24-configuration-screen-audit.md`, mapping all
+  thirty-nine menu/screen/control rows to requirements and evidence limits.
+- [x] Recover all 278 textual variants at 295 occurrences for the same 263 names;
+  preserve differing selection sets and correct DIYInit/DIYCheck as mutations.
+- [x] Verify the expanded sixteen-entry catalog, eleven Draft SDDs, eighty-four
+  requirements, variant hashes, privacy, links and documentation-only scope.
+- [x] Prepare the follow-up commit and updated description for the same PR;
+  inspect CI after publication.
+
+Follow-up verification passed: 39 screen/control rows, 84 traced requirements,
+278 variants with exact source-slice/hash checks at 295 occurrences, twelve
+matching source hashes, catalog/section checks, zero common private-data pattern
+matches, `make docs-check` and `git diff --check`. All 26 changed files from the
+base are documentation; the manifest remains 1.1.0. The follow-up does not claim
+new runtime tests or validation of the UI workflows without eligible resources.
 
 ## Fixed live boundaries
 

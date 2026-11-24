@@ -21,6 +21,10 @@ Los clientes muestran Rutinas; el buzón nativo anuncia esa evolución. Se obser
 
 La [auditoría](../docs/technical/2026-11-24-app-capability-audit.md) y el [inventario de operaciones](../docs/validation/2026-11-24-app-capabilities.json) separan fuente estática, UI nativa/web y consultas observadas. Este SDD no declara nuevas funciones instaladas.
 
+La segunda revisión abrió la lista nativa, onboarding (cancelado), formularios de
+nueva rutina/nuevo aviso y ajuste de notificar sólo fallos. No se introdujeron
+valores ni se guardó o activó ningún programa.
+
 ## 3. Actors, surfaces and terminology
 
 Rutina, programa, recordatorio, suspensión de sensor, vacaciones y calendario HA no son sinónimos. El estado de un formulario no sustituye el campo active del recurso autoritativo.
@@ -36,6 +40,7 @@ Actores: usuario HA autorizado, principal/rol Verisure, recurso de la cuenta o i
 - SCHED-5 — **Modos y permisos:** Validar modos y hardware permitidos; programas que armen total o actúen una puerta requieren intención explícita y quedan fuera de pruebas domésticas automáticas.
 - SCHED-6 — **Vacaciones y privacidad:** Separar duración del plan, contactos de vacaciones y agenda de armado; no consultar contactos para una vista de calendario si no son necesarios.
 - SCHED-7 — **Confirmación y legal:** Verificar creación/cambio/baja y respetar aceptación pendiente; no aceptar condiciones o convertir un recordatorio en una orden de armado.
+- SCHED-8 — **Política de avisos:** Modelar «Notificar sólo en caso de fallo» separadamente del estado de cada rutina y de los filtros locales de HA; editarla sólo con ámbito y contrato confirmados, sin silenciar otros receptores por inferencia.
 
 Las pruebas domésticas mantienen la prohibición de interior total. No se realizan compras, emergencias o actuaciones físicas por inferirlas de una notificación.
 
@@ -71,6 +76,18 @@ también SET-3/6 y el orden físico común. Debe verificarse sin inferir efectos
 partir del nombre; su creación/edición queda bloqueada hasta entonces.
 
 Aplicar estados unknown/stale/pending/confirmed/partial/ambiguous según la base común. Un resultado antiguo, duplicado o cancelado no sustituye hechos más recientes.
+
+La UI observada distingue sugerencias mañana/noche, rutinas existentes e intención
+de crear, junto a Conéctame. Una tarjeta sugerida no es un programa activo. Los
+formularios contienen nombre, hora, días individuales/atajos laborables-fin de
+semana-todos, vigencia desde/hasta y duración indefinida. La rutina cambia a un
+modo; el aviso comprueba si el modo **es distinto** de uno seleccionado. Conservar
+esa condición en `RoutineChange`/`ReminderCondition`; no convertir el aviso en ARM.
+
+El ajuste global de notificar sólo fallos se observó, pero no se capturó su setter
+en el inventario GraphQL inicial. Investigar el módulo/transporte correspondiente
+antes de exponer escritura. Un filtro de eventos HA no actualiza esa preferencia
+del proveedor ni demuestra por sí solo recepción de avisos de ejecución.
 
 ## 7. User-facing configuration
 
@@ -112,7 +129,9 @@ Habilitación por entrada y capacidad, primero lecturas, después escrituras man
 
 ## 14. Testing strategy and numeric budget
 
-28 casos: siete riesgos por cuatro variantes; añadir al menos dos transiciones DST distintas y dos recuperaciones de creación/toggle ambiguos dentro de esa matriz.
+32 casos: ocho riesgos por cuatro variantes; incluir dos transiciones DST,
+no-op/toggle concurrente, envío ambiguo sin retry, vigencia, aviso condicionado
+sin comando, privacidad de calendario y política de fallos separada del filtro HA.
 
 Son mínimos propuestos para la futura implementación, no tests ya escritos ni cobertura medida. Usar relojes/repositorios/HTTP falsos y cero llamadas domésticas en CI; exigir 100% de líneas/rama en políticas críticas y constructores de mutaciones nuevos y respetar los gates del proyecto.
 
@@ -131,6 +150,7 @@ Mantener este SDD, [CATALOG.md](CATALOG.md), el inventario de operaciones y la a
 | SCHED-5 | Un test necesita simular modo total; usa repositorio falso y no contacta la instalación. |
 | SCHED-6 | Se solicita sólo la agenda; no se usa la consulta mixta LongTermPlan que también devuelve contactos. |
 | SCHED-7 | La respuesta exige condiciones; se devuelve acción requerida y no se activa el programa. |
+| SCHED-8 | Se solicita cambiar sólo la política de avisos; contrato desconocido; se bloquea la escritura sin activar rutinas ni alterar los filtros FCM locales. |
 
 Cada escenario se descompone en variantes de tipos, autorización, error, concurrencia y recuperación según el presupuesto. La validación física requiere autorización concreta independiente.
 
@@ -145,6 +165,7 @@ Cada escenario se descompone en variantes de tipos, autorización, error, concur
 | SCHED-5 | Modos y permisos | Caso de aceptación SCHED-5; matriz sintética de §14 | Política/caso de uso y adaptador descritos en §8 |
 | SCHED-6 | Vacaciones y privacidad | Caso de aceptación SCHED-6; matriz sintética de §14 | Política/caso de uso y adaptador descritos en §8 |
 | SCHED-7 | Confirmación y legal | Caso de aceptación SCHED-7; matriz sintética de §14 | Política/caso de uso y adaptador descritos en §8 |
+| SCHED-8 | Política de avisos | Caso de aceptación SCHED-8; matriz sintética de §14 | Política/caso de uso y adaptador descritos en §8 |
 
 Tests propuestos: `test_provider_routines.py, test_routine_time_policy.py, test_routine_reconciliation.py, test_schedule_permissions.py`. Son nombres de trabajo futuros, sin atribuirles ejecución actual. La evidencia disponible está en §2/6; los bloqueos del encabezado deben cerrarse antes de Ready for implementation.
 

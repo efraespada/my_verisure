@@ -43,7 +43,7 @@ evaluates the Spanish web 3.8.0 and native WebView 10.192.1. Its
 assigns every recovered document and command to a catalog capability. It is scoped
 to inspected inputs, not every country, hardware SDK or unloaded future module.
 
-Ten Draft SDDs cover the shared management foundation, access/users, installation
+Eleven Draft SDDs cover the shared management foundation, physical device inventory, access/users, installation
 and device settings, provider routines, activity/inbox/incidents, connected-camera
 media, smart locks, health/maintenance, protected administration and personal/native
 services. Their proposed acceptance cases and numeric test budgets are future

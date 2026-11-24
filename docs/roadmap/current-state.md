@@ -26,7 +26,7 @@ The [global web/native audit](../technical/2026-11-24-app-capability-audit.md)
 evaluates all recovered operation families, including access/users, panel/sensor
 settings, provider routines, activity/inbox, media, locks, health, administration
 and native personal services. The [catalog](../../specs/CATALOG.md) separates five
-existing baselines from ten Draft SDDs; proposed functions are not installed.
+existing baselines from eleven Draft SDDs; proposed functions are not installed.
 
 Recommended order: shared permissions/operation lifecycle, bounded read-only
 views, confirmed configuration/access changes, schedules, then hardware-specific

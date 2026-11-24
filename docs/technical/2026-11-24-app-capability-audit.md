@@ -19,18 +19,25 @@ buzón, preferencias, perfil y autorización del terminal. Los editores se cerra
 sin guardar. Se contrastaron sus contratos con los recursos públicos del cliente
 y con las guías oficiales españolas enlazadas al final.
 
+La [segunda revisión por pantallas](2026-11-24-configuration-screen-audit.md)
+contrasta siete capturas del usuario y amplía dispositivos, ajustes, Confort,
+mantenimientos, rutinas y pilas. Especifica los controles HA y los límites de las
+vistas sin casos elegibles o que no terminaron de cargar. Añade un SDD propio
+para el inventario físico completo, que no estaba suficientemente concretado.
+
 El [inventario reproducible](../validation/2026-11-24-app-capabilities.json) recoge:
 
-- **263 documentos GraphQL distintos**, recuperados del bundle principal y once
-  módulos públicos cargados durante la navegación; firma, variables tipadas,
-  campo raíz, hash, fuente y familia asignada para cada uno.
+- **263 nombres de operación GraphQL**, con **278 variantes textuales en 295
+  apariciones**, recuperados del bundle principal y once módulos públicos;
+  variables, campo raíz, hash, fuentes y familia asignados. Las selecciones
+  diferentes de una misma operación se conservan y no se consideran intercambiables.
 - **152 comandos de puente nativo**, distribuidos en veinte handlers. Un comando
   JavaScript → SDK nativo **no es un endpoint HTTP utilizable desde Linux**.
 - Identidad y SHA-256 de las doce fuentes públicas, diferencias observadas entre
   clientes y decisiones de exposición HA. No incluye respuestas de la vivienda,
   credenciales, tokens, identificadores domésticos ni capturas de tráfico.
 
-Se observaron 29 peticiones GraphQL web, correspondientes a 17 operaciones
+En la primera captura se observaron 29 peticiones GraphQL web, correspondientes a 17 operaciones
 distintas, incluidas consultas de estado WAIT/OK. Se enviaron **cero órdenes de
 alarma, cambios de configuración, autorizaciones de terminal o capturas nuevas**.
 No se generó una nueva captura HAR nativa: la evidencia nativa de esta auditoría
@@ -47,8 +54,8 @@ La prohibición de probar interior total se mantiene.
 | Guía oficial | Verisure describe una capacidad y sus condiciones generales | No sustituye un contrato API ni una prueba técnica |
 | Propuesta HA | Decisión de diseño para una futura implementación | No significa que exista una entidad o acción instalada |
 
-La cobertura es completa **respecto a los 263 documentos y 152 comandos
-recuperados**, todos clasificados. No es una afirmación de haber descubierto todos
+La cobertura clasifica **los 263 nombres, sus 278 variantes y los 152 comandos
+recuperados**. No es una afirmación de haber descubierto todos
 los módulos diferidos, países, SDKs, modelos de cámara o funcionalidades futuras.
 Los huecos identificados son puertas de aceptación de los SDDs, no endpoints
 inventados. Tampoco se atribuye soporte implementado a cada variante de una
@@ -86,6 +93,7 @@ ya disponibles. P1 tampoco implica que la implementación esté lista sin revisi
 | Fotos de fotodetectores, miniaturas y actualización | Actual; conservar captura explícita y almacenamiento privado | No confundir foto existente con captura nueva | [Datos e identidad](../../specs/installation-cameras-and-entity-identity.md) |
 | Notificaciones push, eventos y resultados verificados | Actual; ampliar fuentes sin duplicar receptor | Entrega por categoría/servicio no garantizada | [Notificaciones](../../specs/notification-observability-and-automation.md) |
 | Capacidades, permisos y servicios contratados | P1; base de descubrimiento, sin controles ficticios | Rol/servicio/panel positivos, unknown preservado | [Base común](../../specs/app-management-foundation.md) |
+| Inventario de todos los aparatos físicos | P1; ficha HA por panel, contacto, perimetral, lector, sirena, fotodetector y tipos nuevos | Actualmente las cámaras comparten hub; registrar todos sin telemetría ficticia ni ruptura de targets | [Inventario físico](../../specs/physical-device-inventory.md) |
 | Inventario de llaves y mandos | P1; lectura, estado y alias de configuración | UI y lectura; identidad estable de llave/slot | [Accesos](../../specs/access-control-and-users.md) |
 | Activar/desactivar llave, alias y reasignación | P1; acciones o controles de configuración autorizados | Patch vigente, permiso, confirmación, posible resultado parcial | [Accesos](../../specs/access-control-and-users.md) |
 | Seguimiento y avisos email/push de acceso | P1; controles independientes | Flags triestado y posible mutación adicional | [Accesos](../../specs/access-control-and-users.md) |
@@ -113,7 +121,7 @@ ya disponibles. P1 tampoco implica que la implementación esté lista sin revisi
 | Autolock, ajustes, agenda y calibración | P2 ajustes/agenda; oficial calibración hasta procedimiento validado | Hardware Smartlock/Danalock y pasos físicos | [Cerraduras](../../specs/smart-lock-management.md) |
 | Pilas, tamper, conectividad y revisiones | P1; diagnósticos y eventos con frescura | Alerta, porcentaje y salud completa son conceptos distintos | [Salud](../../specs/system-health-and-maintenance.md) |
 | Confort, temperatura, humedad y entorno | P2; sensores sólo con fuente/unidad/timestamp verificados | Fuente ambiental no capturada; meteorología no mide la casa | [Salud](../../specs/system-health-and-maintenance.md) |
-| Cambio guiado de pilas/DIY y suspensión de protección | P1 estado; P3 procedimiento manual controlado | Algunas queries tienen efectos; nunca polling rutinario | [Salud](../../specs/system-health-and-maintenance.md) |
+| Cambio guiado de pilas/DIY y suspensión de protección | P1 estado; P3 procedimiento manual controlado | DIYInit/DIYCheck son mutaciones; nunca polling rutinario | [Salud](../../specs/system-health-and-maintenance.md) |
 | Envío de pilas, seguimiento, citas e informes de revisión | P1/P2 consulta; oficial pedidos/gestión no contratada | Direcciones y documentos privados; capacidad no equivale a cita reservada | [Salud](../../specs/system-health-and-maintenance.md) |
 | Planes de acción, contactos y plan de vacaciones | P3; lectura/edición privada autorizada | Orden y ámbito instalación/persona; campos sensibles | [Administración](../../specs/protected-account-administration.md) |
 | Perfil, teléfonos, password, palabra clave y coacción | P3 o flujo oficial | No publicar secretos ni convertirlos en entidades | [Administración](../../specs/protected-account-administration.md) |
@@ -167,9 +175,10 @@ como no idempotente hasta comprobarla, con lectura fresca y sin retry ambiguo.
 `LongTermPlan` selecciona tanto contactos como agenda: una vista calendario debe
 pedir sólo lo necesario. `PetMode` precisa su propia semántica y elegibilidad.
 
-El nombre GraphQL `query` **no demuestra ausencia de efectos**: operaciones como
-`DIYInit` pueden iniciar un procedimiento que afecte a la protección. La política
-de admisión debe clasificar la intención de negocio, no sólo query/mutation.
+La política de admisión clasifica la intención, no sólo query/mutation: una
+lectura radio puede iniciar trabajo remoto de consulta del panel. **DIYInit y
+DIYCheck son mutaciones** en el código recuperado y no se ejecutan en polling;
+iniciar un procedimiento que afecte protección tiene autorización propia.
 
 ### Buzón, cámaras y protección personal
 
@@ -191,16 +200,18 @@ no acredita una fuente de temperatura/humedad.
 
 ## Diseño recomendado y orden de ejecución
 
-Diez SDDs Draft amplían las cinco baselines existentes. Todos tienen veinte
+Once SDDs Draft amplían las cinco baselines existentes. Todos tienen veinte
 secciones, requisitos estables, aceptación, trazabilidad, límites operativos,
 privacidad, recuperación, rollback y presupuesto de pruebas **futuro**.
 El [catálogo](../../specs/CATALOG.md) y su [JSON](../../specs/catalog.json)
 separan ambos estados; ninguna ruta de código o test propuesta se declara actual.
+La ampliación por pantallas traza 84 requisitos futuros, incluidos inventario
+completo y preferencia de notificar sólo fallos de rutinas.
 
 | Orden | Entrega vertical | Puerta de aceptación |
 |---|---|---|
 | 0 | [Base común de gestión](../../specs/app-management-foundation.md) | Capacidades/roles, acciones tipadas, admisión compartida, generaciones, privacidad, cancelación y no replay |
-| 1 | Lectura de accesos, ajustes, actividad y salud | Contratos y permisos por panel; sin ampliar el polling normal |
+| 1 | Inventario físico completo y lectura de accesos, ajustes, actividad y salud | Identidad y migración de targets; contratos/permisos por panel sin ampliar polling |
 | 2 | Alias y ajustes simples; después llaves/seguimiento | Mutación real, read-back, tipos, caducidad y resultado parcial comprobados |
 | 3 | Rutinas y calendarios | Zona horaria/DST, concurrencia y operaciones no idempotentes resueltas |
 | 4 | Cámaras conectadas y cerraduras | Hardware disponible, transporte/codec/autorización y semántica física probados |

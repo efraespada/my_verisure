@@ -21,6 +21,14 @@ La app ofrece Mi alarma al día, Información de dispositivos, Confort y clima, 
 
 La [auditoría](../docs/technical/2026-11-24-app-capability-audit.md) y el [inventario de operaciones](../docs/validation/2026-11-24-app-capabilities.json) separan fuente estática, UI nativa/web y consultas observadas. Este SDD no declara nuevas funciones instaladas.
 
+La segunda revisión abrió Confort y clima y su configuración, mantenimientos y
+la lista de sustitución guiada de pilas. La vista de Confort mostraba previsión
+meteorológica, sin una medición interior demostrada. Mantenimientos no ofreció
+una cita editable y pilas mostró lista sin eventos; no se fabricó un evento para
+continuar ni se inició una sustitución. El detalle «Mi alarma al día» no terminó
+de cargar en el recorrido adicional. La [matriz de pantallas](../docs/technical/2026-11-24-configuration-screen-audit.md)
+registra estos límites, en vez de declarar comprobados todos los formularios.
+
 ## 3. Actors, surfaces and terminology
 
 Diagnóstico, aviso, porcentaje, medida física, previsión del tiempo, incidencia, envío de pilas y ventana de mantenimiento son recursos separados.
@@ -66,6 +74,46 @@ Entidades diagnóstico y calendario propuestos sólo para fuentes demostradas. P
 
 Aplicar estados unknown/stale/pending/confirmed/partial/ambiguous según la base común. Un resultado antiguo, duplicado o cancelado no sustituye hechos más recientes.
 
+### Confort y clima — HEALTH-2
+
+Separar tres contratos: telemetría real de un dispositivo ambiental, previsión
+meteorológica y preferencias visuales de la app. La página observada ofrece
+previsión actual/varios días y ajustes «Mostrar en pantalla de inicio» y «Mostrar
+previsión del tiempo». Esos toggles no controlan sensores físicos ni climatización;
+su equivalente HA es la presentación elegida por el usuario en su dashboard.
+
+Proponer sensores de temperatura/humedad u otras magnitudes sólo cuando existan
+medición, unidad, dispositivo, fecha y permiso reales. Una entidad `weather` de
+lectura es candidata opcional de menor prioridad si se establece una fuente
+legítima, atribución y contrato; no reutilizar claves privadas de un tercero ni
+introducir dependencias de ubicación del teléfono. La ausencia de telemetría
+interior en esta revisión no descarta hardware contratado en otras instalaciones.
+
+### Mantenimientos — HEALTH-5/6/7
+
+Proponer calendario de visitas y próximo mantenimiento a partir de fecha, franja,
+duración, tipo y suspensión verificadas de `xSListAppointment`. Mantener creación,
+cambio, cancelación y disponibilidad de franja como operaciones diferentes. Una
+respuesta vacía es una lista sin citas, no un fallo de todo el sistema. La UI
+describe cambio de fecha y avisos del técnico en camino, pero no se capturó ese
+flujo ni su setter: administración condicionada al contrato y eventos sólo cuando
+se reciban y clasifiquen legítimamente. `technicianUrl` no va a atributos públicos.
+
+### Sustitución guiada de pilas — HEALTH-3/4/5/7
+
+Observar elegibilidad por dispositivo, estado, días restantes, tutorial/pasos,
+envío y seguimiento cuando el proveedor los devuelva. `DIYList` selecciona
+`idMant/state/idZone/alias/name/tutorial/remainingDays/mediaType/steps` y lista de
+casos no digitales; son datos del proceso, no un porcentaje de batería. Lista
+vacía no significa que las pilas de todos los aparatos estén llenas.
+
+`DIYInit` y `DIYCheck` son **mutaciones** en los documentos recuperados. Inicio,
+comprobación, aceptación, rechazo, reenvío y contingencia no se ejecutan al crear
+entidades ni en polling de salud. El procedimiento asistido conserva pasos,
+intentos, tamper y finalización confirmada; las fases que afecten protección o
+requieran manipular hardware permanecen interactivas. Sin un caso elegible no se
+declara probado su flujo real; la implementación empieza con fixtures sintéticas.
+
 ## 7. User-facing configuration
 
 Lecturas y diagnóstico opt-in, procesos operativos desactivados por defecto. Sensores de battery/problem/connectivity y unidades HA apropiadas únicamente si hay datos reales. Datos de envío/dirección sólo mediante respuesta privada. Sin flujo de pedido o mantenimiento al iniciar HA.
@@ -109,6 +157,11 @@ Habilitación por entrada y capacidad, primero lecturas, después escrituras man
 28 casos: siete riesgos por cuatro variantes, con unidad desconocida, medida antigua, aviso sin nivel, ventana DIY activa al reiniciar y consulta de slot sin reserva.
 
 Son mínimos propuestos para la futura implementación, no tests ya escritos ni cobertura medida. Usar relojes/repositorios/HTTP falsos y cero llamadas domésticas en CI; exigir 100% de líneas/rama en políticas críticas y constructores de mutaciones nuevos y respetar los gates del proyecto.
+
+Dentro de la matriz incluir: sólo previsión sin métricas interiores; preferencias
+visuales sin efecto físico; visita vacía/suspendida/fechas con timezone; franja
+ofertada sin reserva; pilas sin evento sin inferir nivel; mutaciones DIY nunca en
+actualización automática; tutorial de ámbito equivocado; URL del técnico redactada.
 
 ## 15. Documentation and discoverability
 

@@ -299,6 +299,28 @@
       ]
     },
     {
+      "id": "physical-device-inventory",
+      "title": "Inventario físico completo y registro de dispositivos HA",
+      "status": "draft",
+      "scope": "All physical device families, metadata, HA registry identity/hierarchy, independent local/remote names and migration compatibility.",
+      "owner": "My Verisure maintainers",
+      "lastVerified": "2026-11-24",
+      "specs": [
+        "specs/physical-device-inventory.md"
+      ],
+      "workflows": [],
+      "entrypoints": [],
+      "code": [],
+      "tests": [],
+      "documentation": [
+        "docs/technical/2026-11-24-configuration-screen-audit.md",
+        "docs/technical/2026-11-24-app-capability-audit.md",
+        "docs/validation/2026-11-24-app-capabilities.json",
+        "specs/README.md",
+        "docs/adr/0001-core-and-adapter-dependencies.md"
+      ]
+    },
+    {
       "id": "installation-and-device-settings",
       "title": "Configuración de instalación, panel, sensores y red",
       "status": "draft",
@@ -313,6 +335,7 @@
       "code": [],
       "tests": [],
       "documentation": [
+        "docs/technical/2026-11-24-configuration-screen-audit.md",
         "docs/technical/2026-11-24-app-capability-audit.md",
         "docs/validation/2026-11-24-app-capabilities.json",
         "specs/README.md",
@@ -334,6 +357,7 @@
       "code": [],
       "tests": [],
       "documentation": [
+        "docs/technical/2026-11-24-configuration-screen-audit.md",
         "docs/technical/2026-11-24-app-capability-audit.md",
         "docs/validation/2026-11-24-app-capabilities.json",
         "specs/README.md",
@@ -418,6 +442,7 @@
       "code": [],
       "tests": [],
       "documentation": [
+        "docs/technical/2026-11-24-configuration-screen-audit.md",
         "docs/technical/2026-11-24-app-capability-audit.md",
         "docs/validation/2026-11-24-app-capabilities.json",
         "specs/README.md",
